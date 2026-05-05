@@ -39,11 +39,3 @@ canvas {
 .header-logo {
   max-width: 200px;
 }
-
-.animate-slide-out {
-  right: -100%;
-  transition: all 0.3s ease-in-out;
-  &.open {
-    right: 0;
-  }
-}

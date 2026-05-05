@@ -47,7 +47,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
       </header>
 
       {/* 3D scene — fills remaining space */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden relative z-10">
         <Scene />
       </main>
 
