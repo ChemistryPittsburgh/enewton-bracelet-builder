@@ -30,14 +30,18 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
           Bracelet Builder
         </span>
         <span className="text-sm text-neutral-500 min-w-[200px] shrink-0 text-right">
-          {placedBeads.length} / {MAX_BEADS} beads
-          {placedBeads.length > 0 && (
-            <button
-              onClick={clearBeads}
-              className="primary-btn transition-colors ml-4"
-            >
-              Clear Beads
-            </button>
+          {placedBeads.length > 0 ? (
+            <>
+              {placedBeads.length} bead(s) placed}
+              <button
+                onClick={clearBeads}
+                className="primary-btn transition-colors ml-4"
+              >
+                Clear Beads
+              </button>
+            </>
+          ) : (
+            <p>No beads placed</p>
           )}
         </span>
       </header>

@@ -86,8 +86,8 @@ All spacing constants are in `lib/bead-layout.ts`:
 ```ts
 BRACELET_RADIUS = 0.029  // 29 mm — make larger for bigger bracelet
 CORD_RADIUS     = 0.0008 // cord tube thickness
-BEAD_DIAMETER   = 0.005
-BEAD_GAP        = 0.0005 // gap between beads
+BEAD_DIAMETER  // pulled from page.tsx value
+BEAD_SPACING        = -0.00035 // negative value pulls beads closer together
 ```
 
 Adjust `BRACELET_RADIUS` first — it changes the circumference and therefore how many beads fit (`MAX_BEADS` is derived automatically).

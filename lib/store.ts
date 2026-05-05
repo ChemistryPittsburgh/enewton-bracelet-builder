@@ -11,6 +11,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import { MAX_BEADS } from "@/lib/bead-layout";
 import type { BeadProduct, PlacedBead } from "@/types";
+import { beadFits } from "@/lib/bead-layout";
 
 interface Store {
   beads: PlacedBead[];
@@ -41,8 +42,8 @@ export const useStore = create<Store>()(
       selectedBead: null,
 
       addBead(product) {
-        if (get().beads.length >= MAX_BEADS) {
-          return `Bracelet is full (max ${MAX_BEADS} beads).`;
+        if (!beadFits(get().beads, product.diameter ?? 0.01)) {
+          return "Bracelet is full — no room for that bead.";
         }
         set((s) => ({
           beads: [...s.beads, { instanceId: nanoid(), product }],

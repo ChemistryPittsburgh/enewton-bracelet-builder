@@ -20,13 +20,14 @@ interface BeadOnBraceletProps {
 export function BeadOnBracelet({ bead, slotIndex }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glbPath);
   const cloned = useRef(scene.clone(true)).current;
-  const { selectBead, selectedBead } = useStore((s) => ({
+  const { selectBead, selectedBead, beads } = useStore((s) => ({
     selectBead: s.selectBead,
     selectedBead: s.selectedBead,
+    beads: s.beads,
   }));
 
   const isSelected = selectedBead?.instanceId === bead.instanceId;
-  const angle = getBeadAngle(slotIndex);
+  const angle = getBeadAngle(slotIndex, beads); // pass full list
   const position = getBeadPosition(angle);
   const outerRotY = getBeadOuterRotationY(angle);
 
