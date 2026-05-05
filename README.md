@@ -18,12 +18,9 @@ The two Dignity 4mm GLBs are already in `/public/models/`. No env vars needed.
 
 ## Deploying to Netlify Test Enviroment
 
-Checkout production branch
-Run:
-```bash
-npm run build
-```
-Push production branch
+1. Checkout production branch
+2. Run `npm run build`
+3. Push `production` branch
 
 Netlify automatically pushes to test enviroment located here: `https://enewton-bracelet-builder-test.netlify.app/`
 
