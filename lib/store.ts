@@ -9,7 +9,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
-import { MAX_BEADS } from "@/lib/bead-layout";
 import type { BeadProduct, PlacedBead } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
 

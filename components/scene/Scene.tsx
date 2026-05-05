@@ -26,7 +26,7 @@ export function Scene() {
 
         <Suspense fallback={null}>
           <BraceletCord />
-          <AllBeads controlsRef={controlsRef} />
+          <AllBeads />
           <CameraController controlsRef={controlsRef} />
         </Suspense>
 

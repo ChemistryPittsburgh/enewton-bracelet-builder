@@ -6,7 +6,6 @@ import { Scene } from "@/components/scene/Scene";
 import { BeadPicker } from "./BeadPicker";
 import { BeadInfoPanel } from "./BeadInfoPanel";
 import { useStore } from "@/lib/store";
-import { MAX_BEADS } from "@/lib/bead-layout";
 import type { BeadProduct } from "@/types";
 
 interface BuilderLayoutProps {
@@ -32,7 +31,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         <span className="text-sm text-neutral-500 min-w-[200px] shrink-0 text-right">
           {placedBeads.length > 0 ? (
             <>
-              {placedBeads.length} bead(s) placed}
+              {placedBeads.length} bead(s) placed
               <button
                 onClick={clearBeads}
                 className="primary-btn transition-colors ml-4"
