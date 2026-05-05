@@ -51,7 +51,7 @@ export function BeadInfoPanel() {
                   {bead.product.name}
                 </h2>
                 <p className="mt-0.5 text-xs text-neutral-400">
-                  {((bead.product.diameter ?? 0) * 1000).toFixed(1)} mm bead
+                  SKU Number: {bead.product.sku}
                 </p>
               </div>
               <button
@@ -65,7 +65,7 @@ export function BeadInfoPanel() {
 
             {/* Bead details */}
             <div className="mx-5 mt-4 mb-4 rounded-xl bg-neutral-50 p-4 space-y-2">
-              <DetailRow label="Style" value={bead.product.name} />
+              <DetailRow label="Bead Style" value={bead.product.beadType} />
               <DetailRow
                 label="Diameter"
                 value={`${((bead.product.diameter ?? 0) * 1000).toFixed(2)} mm`}
