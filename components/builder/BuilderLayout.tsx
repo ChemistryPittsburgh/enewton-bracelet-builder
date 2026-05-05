@@ -25,7 +25,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
 
       {/* Header */}
       <header className="flex shrink-0 items-center gap-4 py-4 border-b border-neutral-200 bg-white px-10">
-        <img src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png" alt="eNewton Logo" class="header-logo" />
+        <img src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png" alt="eNewton Logo" className="header-logo" />
         <span className="text-md font-semibold tracking-wide text-neutral-700 flex-1 text-center">
           Bracelet Builder
         </span>
@@ -52,7 +52,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         <div className="shrink-0 flex-1">
           <BeadPicker beads={beads} />
         </div>
-        <div class="shrink-0">
+        <div className="shrink-0">
           {placedBeads.length > 0 && (
               <button
                 onClick={clearBeads}
