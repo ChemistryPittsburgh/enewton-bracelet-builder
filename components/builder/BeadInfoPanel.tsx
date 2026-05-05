@@ -72,15 +72,17 @@ export function BeadInfoPanel() {
               </div>
 
               {/* Remove button */}
-              <div className="px-5 pb-8">
-                <button
-                  onClick={() => removeBead(bead.instanceId)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
-                >
-                  <Trash2 size={15} />
-                  Remove from bracelet
-                </button>
-              </div>
+              {bead && (
+                <div className="px-5 pb-8">
+                  <button
+                    onClick={() => removeBead(bead.instanceId)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                    Remove from bracelet
+                  </button>
+                </div>
+              )}
 
             </div>
           </>
