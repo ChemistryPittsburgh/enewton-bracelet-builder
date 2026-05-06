@@ -27,6 +27,7 @@ interface ExportedBracelet {
 
 export interface ImportResult {
   beads: PlacedBead[];
+  name: string | null;   
   warnings: string[];
 }
 
@@ -72,5 +73,9 @@ export function parseBraceletJson(jsonText: string): ImportResult {
     };
   }).filter((b) => b.product.glbPath); // drop any with no GLB path
 
-  return { beads, warnings };
+  return {
+    beads,
+    name: (parsed.bracelet as any)?.name ?? null,
+    warnings,
+  };
 }

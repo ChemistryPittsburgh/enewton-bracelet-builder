@@ -17,9 +17,10 @@ interface BuilderLayoutProps {
 }
 
 export function BuilderLayout({ beads }: BuilderLayoutProps) {
-  const { placedBeads, clearBeads } = useStore((s) => ({
+  const { placedBeads, clearBeads, braceletName } = useStore((s) => ({
     placedBeads: s.beads,
     clearBeads: s.clearBeads,
+    braceletName: s.braceletName,
   }));
 
   const [resolvedBeads, setResolvedBeads] = useState<BeadProduct[]>(beads);
@@ -66,7 +67,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
             <BarChart2 size={14} />
             <span>Bracelet Information</span>
           </button>
-          
+
           <BraceletImporter />
         </div>
 
@@ -94,7 +95,10 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
       </main>
 
       {/* Bead picker */}
-      <div className="shrink-0 border-t border-neutral-200 bg-white">
+      <div className="shrink-0 border-t border-neutral-200 bg-white px-4 py-3">
+        { braceletName && 
+          <h2 className="mt-1"><span class="font-bold">Bracelet Name:</span> {braceletName}</h2>
+        }
         <BeadPicker beads={resolvedBeads} />
       </div>
 

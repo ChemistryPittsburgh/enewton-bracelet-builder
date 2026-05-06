@@ -4,6 +4,8 @@ import { useRef } from "react";
 import { X, Download } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { usedArc, MAX_BRACELET_ARC } from "@/lib/bead-layout";
+import { Check } from "lucide-react";
+import { slugify } from "@/lib/utils";
 
 interface BraceletPanelProps {
   isOpen: boolean;
@@ -11,7 +13,11 @@ interface BraceletPanelProps {
 }
 
 export function BraceletPanel({ isOpen, onClose }: BraceletPanelProps) {
-  const beads = useStore((s) => s.beads);
+  const {beads, braceletName, setBraceletName } = useStore((s) => ({
+    beads: s.beads, 
+    setBraceletName: s.setBraceletName, 
+    braceletName: s.braceletName,
+  }));
 
   const arcUsed = usedArc(beads);
   const percentUsed = Math.min((arcUsed / MAX_BRACELET_ARC) * 100, 100);
@@ -21,6 +27,7 @@ export function BraceletPanel({ isOpen, onClose }: BraceletPanelProps) {
     const data = {
       exportedAt: new Date().toISOString(),
       bracelet: {
+        name: braceletName, 
         arcUsedMm: (arcUsed * 1000).toFixed(2),
         arcTotalMm: (MAX_BRACELET_ARC * 1000).toFixed(2),
         percentUsed: percentUsed.toFixed(1),
@@ -41,8 +48,9 @@ export function BraceletPanel({ isOpen, onClose }: BraceletPanelProps) {
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+    const braceletNameSlug = slugify(braceletName);
     a.href = url;
-    a.download = `bracelet-${Date.now()}.json`;
+    a.download = `bracelet-${braceletNameSlug}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -78,6 +86,17 @@ export function BraceletPanel({ isOpen, onClose }: BraceletPanelProps) {
           >
             <X size={16} />
           </button>
+        </div>
+
+        <div class="px-5 py-4 border-b border-neutral-100 flex gap-2 items-center">
+        <input
+            type="text"
+            value={braceletName}
+            onChange={(e) => setBraceletName(e.target.value)}
+            className="bracelet-panel-name-input flex-1 text-sm font-semibold text-neutral-700 bg-transparent outline-none border border-neutral-400 hover:bg-neutral-100 focus:border-yellow-600 transition-all rounded px-3 py-2"
+            aria-label="Bracelet name"
+          />
+          <Check size={20} />
         </div>
 
         {/* Usage bar */}

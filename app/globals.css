@@ -39,3 +39,10 @@ canvas {
 .header-logo {
   max-width: 200px;
 }
+
+.bracelet-panel-name-input + svg {
+  width: 0;
+}
+.bracelet-panel-name-input:focus + svg {
+  width: 20px;
+}

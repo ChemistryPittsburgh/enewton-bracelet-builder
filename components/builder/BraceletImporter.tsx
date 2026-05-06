@@ -51,7 +51,7 @@ export function BraceletImporter() {
       if (!confirmed) return;
     }
 
-    loadBeads(result.beads);
+    loadBeads(result.beads, result.name ?? undefined);
 
     const msg = result.warnings.length > 0
       ? `Loaded ${result.beads.length} beads (${result.warnings.length} warning${result.warnings.length !== 1 ? "s" : ""})`

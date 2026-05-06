@@ -14,6 +14,7 @@ import { beadFits } from "@/lib/bead-layout";
 
 interface Store {
   beads: PlacedBead[];
+  braceletName: string;
 
   /** The bead currently tapped in the 3D scene — drives the info panel. */
   selectedBead: PlacedBead | null;
@@ -75,12 +76,18 @@ export const useStore = create<Store>()(
       loadBeads(beads) {
         set({ beads, selectedBead: null });
       },
+
+      braceletName: "My Bracelet",
+
+      setBraceletName(name) {
+        set({ braceletName: name });
+      },
     }),
     {
       name: "enewton-beads",
       storage: createJSONStorage(() => localStorage),
       // Only persist the bead list — panel always starts closed
-      partialize: (s) => ({ beads: s.beads }),
+      partialize: (s) => ({ beads: s.beads, braceletName: s.braceletName }),
     }
   )
 );

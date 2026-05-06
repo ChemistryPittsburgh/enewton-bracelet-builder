@@ -52,10 +52,10 @@ export function BeadPicker({ beads }: BeadPickerProps) {
     }
 
   return (
-    <div className="px-4 py-3">
+    <div>
 
       {/* Hint text */}
-      <p className="mb-2 text-[11px] text-neutral-400">
+      <p className="mt-1 mb-3 text-[11px] text-neutral-400">
         Select a bead to add it · Click a bead on the bracelet to learn more
       </p>
 
