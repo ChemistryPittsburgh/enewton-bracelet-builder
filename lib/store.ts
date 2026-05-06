@@ -35,7 +35,7 @@ interface Store {
   clearSelectedBead: () => void;
 
   /** Replace the entire bead list — used by the JSON importer. */
-  loadBeads: (beads: PlacedBead[]) => void;
+  loadBeads: (beads: PlacedBead[], name?: string) => void;
 }
 
 export const useStore = create<Store>()(
@@ -73,8 +73,8 @@ export const useStore = create<Store>()(
       clearSelectedBead() {
         set({ selectedBead: null });
       },
-      loadBeads(beads) {
-        set({ beads, selectedBead: null });
+      loadBeads(beads, name) {
+        set({ beads, selectedBead: null, ...(name ? { braceletName: name } : {}) });
       },
 
       braceletName: "My Bracelet",

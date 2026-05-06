@@ -97,7 +97,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
       {/* Bead picker */}
       <div className="shrink-0 border-t border-neutral-200 bg-white px-4 py-3">
         { braceletName && 
-          <h2 className="mt-1"><span class="font-bold">Bracelet Name:</span> {braceletName}</h2>
+          <h2 className="mt-1"><span className="font-bold">Bracelet Name:</span> {braceletName}</h2>
         }
         <BeadPicker beads={resolvedBeads} />
       </div>
