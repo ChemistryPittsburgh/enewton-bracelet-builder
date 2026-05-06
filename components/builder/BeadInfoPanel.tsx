@@ -65,7 +65,7 @@ export function BeadInfoPanel() {
 
             {/* Bead details */}
             <div className="mx-5 mt-4 mb-4 rounded-xl bg-neutral-50 p-4 space-y-2">
-              <DetailRow label="Bead Style" value={bead.product.beadType} />
+              <DetailRow label="Bead Style" value={bead.product.beadType ?? "—"} />
               <DetailRow
                 label="Diameter"
                 value={`${((bead.product.diameter ?? 0) * 1000).toFixed(2)} mm`}

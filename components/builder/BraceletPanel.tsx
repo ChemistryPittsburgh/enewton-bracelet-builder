@@ -88,7 +88,7 @@ export function BraceletPanel({ isOpen, onClose }: BraceletPanelProps) {
           </button>
         </div>
 
-        <div class="px-5 py-4 border-b border-neutral-100 flex gap-2 items-center">
+        <div className="px-5 py-4 border-b border-neutral-100 flex gap-2 items-center">
         <input
             type="text"
             value={braceletName}

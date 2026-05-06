@@ -32,23 +32,23 @@ export function BeadPicker({ beads }: BeadPickerProps) {
 
   function BeadThumbnail({ bead }: { bead: BeadProduct }) {
       const [failed, setFailed] = useState(false);
-      const src = `/images/${bead.beadType.toLowerCase()}-thumbnail.png`;
 
-      if (failed) {
+      if (failed || bead.beadType == null) {
         return (
           <Plus size={16} />
         );
+      } else {
+        const src = `/images/${bead.beadType.toLowerCase()}-thumbnail.png`;
+        return (
+          <img
+            src={src}
+            alt={bead.name}
+            width={64}
+            height={64}
+            onError={() => setFailed(true)}
+          />
+        );
       }
-
-      return (
-        <img
-          src={src}
-          alt={bead.name}
-          width={64}
-          height={64}
-          onError={() => setFailed(true)}
-        />
-      );
     }
 
   return (

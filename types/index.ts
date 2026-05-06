@@ -6,13 +6,8 @@ export interface BeadProduct {
   name: string;
   /** Path inside /public/models/ */
   glbPath: string;
-  beadType: string;
-  sku: string;
-  /**
-   * Bead diameter in metres — used for spacing on the cord.
-   * Measured from the GLB bounding box (X or Z extent).
-   * Dignity 4mm beads = 0.00421
-   */
+  beadType?: string; 
+  sku?: string; 
   diameter: number;
 }
 

@@ -36,6 +36,9 @@ interface Store {
 
   /** Replace the entire bead list — used by the JSON importer. */
   loadBeads: (beads: PlacedBead[], name?: string) => void;
+
+  setBraceletName: (name: string) => void;
+
 }
 
 export const useStore = create<Store>()(
