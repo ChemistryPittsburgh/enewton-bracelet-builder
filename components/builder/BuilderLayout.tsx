@@ -7,6 +7,7 @@ import { Scene } from "@/components/scene/Scene";
 import { BeadPicker } from "./BeadPicker";
 import { BeadInfoPanel } from "./BeadInfoPanel";
 import { BraceletPanel } from "./BraceletPanel";
+import { BraceletImporter } from "./BraceletImporter";
 import { useStore } from "@/lib/store";
 import { measureBeadDiameter } from "@/lib/measure-bead";
 import type { BeadProduct } from "@/types";
@@ -65,6 +66,8 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
             <BarChart2 size={14} />
             <span>Bracelet Information</span>
           </button>
+          
+          <BraceletImporter />
         </div>
 
         <span className="flex-1 justify-center font-semibold tracking-wide text-neutral-700 flex gap-3 items-center">
@@ -86,7 +89,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
       </header>
 
       {/* 3D scene */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden relative z-40">
         <Scene />
       </main>
 

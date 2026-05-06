@@ -24,9 +24,9 @@ Bead models are located inside `/public/models/beads/`.
 
 ## Deploying to Netlify Test Enviroment
 
-1. Checkout production branch
-2. Run `npm run build`
-3. Push `production` branch
+1. On `main` branch, run `npm run build`
+2. Fix any linting errors + recommit 
+3. Once `main` npm build ran successfully, push to production
 
 Netlify automatically pushes to test enviroment located here: `https://enewton-bracelet-builder-test.netlify.app/`
 

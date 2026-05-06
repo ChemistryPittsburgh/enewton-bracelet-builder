@@ -32,6 +32,9 @@ interface Store {
 
   /** Close the info panel without removing anything. */
   clearSelectedBead: () => void;
+
+  /** Replace the entire bead list — used by the JSON importer. */
+  loadBeads: (beads: PlacedBead[]) => void;
 }
 
 export const useStore = create<Store>()(
@@ -68,6 +71,9 @@ export const useStore = create<Store>()(
 
       clearSelectedBead() {
         set({ selectedBead: null });
+      },
+      loadBeads(beads) {
+        set({ beads, selectedBead: null });
       },
     }),
     {

@@ -35,7 +35,7 @@ const BEADS: BeadProduct[] = [
   {
     id: "test-gold",
     name: "Placeholder Gold Bead",
-    glbPath: "/models/beads/Dignity_4mm_Hole_v01.glb", // reuse existing
+    glbPath: "/models/beads/Dignity_4mm_Hole_v01.glb", 
     beadType: "gold",
     diameter: 0.005,
     sku: "00000",
