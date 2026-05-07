@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useGLTF } from "@react-three/drei";
-import { BarChart2 } from "lucide-react";
+import { BarChart2, GripVertical } from "lucide-react";
 import { Scene } from "@/components/scene/Scene";
 import { BeadPicker } from "./BeadPicker";
 import { BeadInfoPanel } from "./BeadInfoPanel";
 import { BraceletPanel } from "./BraceletPanel";
 import { BraceletImporter } from "./BraceletImporter";
+import { BeadReorderPanel } from "./BeadReorderPanel";
 import { useStore } from "@/lib/store";
 import { measureBeadDiameter } from "@/lib/measure-bead";
 import type { BeadProduct } from "@/types";
@@ -25,6 +26,17 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
 
   const [resolvedBeads, setResolvedBeads] = useState<BeadProduct[]>(beads);
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
+  const [reorderOpen, setReorderOpen] = useState(false);
+
+  // Only one left panel open at a time
+  function openStats() {
+    setReorderOpen(false);
+    setBraceletPanelOpen((o) => !o);
+  }
+  function openReorder() {
+    setBraceletPanelOpen(false);
+    setReorderOpen((o) => !o);
+  }
 
   useEffect(() => {
     beads.forEach((b) => useGLTF.preload(b.glbPath));
@@ -68,6 +80,19 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
             <span>Bracelet Information</span>
           </button>
 
+          <button
+            onClick={openReorder}
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors ${
+              reorderOpen
+                ? "bg-neutral-900 text-white"
+                : "text-neutral-500 hover:bg-neutral-100"
+            }`}
+            title="Edit bead order"
+          >
+            <GripVertical size={14} />
+            <span>Edit order</span>
+          </button>
+
           <BraceletImporter />
         </div>
 
@@ -101,6 +126,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
 
       {/* Panels */}
       <BraceletPanel isOpen={braceletPanelOpen} onClose={() => setBraceletPanelOpen(false)} />
+      <BeadReorderPanel isOpen={reorderOpen} onClose={() => setReorderOpen(false)} />
       <BeadInfoPanel />
 
     </div>

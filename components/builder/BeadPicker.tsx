@@ -12,17 +12,6 @@ import { Plus } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { BeadProduct } from "@/types";
 import Image from 'next/image';
-// Import Swiper React components
-import { Swiper, SwiperSlide } from 'swiper/react';
-
-// Import Swiper styles
-import 'swiper/css';
-import 'swiper/css/free-mode';
-import 'swiper/css/pagination';
-import 'swiper/css/navigation';
-
-// import required modules
-import { FreeMode, Pagination, Navigation } from 'swiper/modules';
 
 interface BeadPickerProps {
   beads: BeadProduct[];
@@ -84,19 +73,7 @@ export function BeadPicker({ beads }: BeadPickerProps) {
 
       {/* Bead options */}
       <div className="flex gap-3 overflow-x-auto picker-scroll pb-2">
-        <Swiper
-          slidesPerView={'auto'}
-          spaceBetween={12}
-          modules={[Navigation]}
-          className="bead-picker-slider"
-          navigation={true} 
-          watchSlidesProgress={true}
-          slidesPerGroupAuto={true}
-          observeParents={true}
-          loop={false}
-        >
           {beads.map((bead) => (
-            <SwiperSlide>
               <button
                 key={bead.id}
                 onClick={() => handleAdd(bead)}
@@ -109,9 +86,7 @@ export function BeadPicker({ beads }: BeadPickerProps) {
                   {bead.name}
                 </span>
               </button>
-            </SwiperSlide>
           ))}
-        </Swiper>
 
       </div>
 

@@ -39,6 +39,9 @@ interface Store {
 
   setBraceletName: (name: string) => void;
 
+  /** Move a bead from one index to another — drives the reorder panel. **/
+  reorderBeads: (fromIndex: number, toIndex: number) => void;
+
 }
 
 export const useStore = create<Store>()(
@@ -84,6 +87,15 @@ export const useStore = create<Store>()(
 
       setBraceletName(name) {
         set({ braceletName: name });
+      },
+
+      reorderBeads(fromIndex, toIndex) {
+        set((s) => {
+          const arr = [...s.beads];
+          const [moved] = arr.splice(fromIndex, 1);
+          arr.splice(toIndex, 0, moved);
+          return { beads: arr };
+        });
       },
     }),
     {
