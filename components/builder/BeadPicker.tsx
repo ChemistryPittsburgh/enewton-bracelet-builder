@@ -92,7 +92,6 @@ export function BeadPicker({ beads }: BeadPickerProps) {
           navigation={true} 
           watchSlidesProgress={true}
           slidesPerGroupAuto={true}
-          observe={true}
           observeParents={true}
           loop={false}
         >
