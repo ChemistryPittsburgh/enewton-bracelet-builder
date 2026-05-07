@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import { BarChart2, GripVertical } from "lucide-react";
 import { Scene } from "@/components/scene/Scene";
+import { BeadPickerHeader } from "./BeadPickerHeader";
 import { BeadPicker } from "./BeadPicker";
 import { BeadInfoPanel } from "./BeadInfoPanel";
 import { BraceletPanel } from "./BraceletPanel";
@@ -115,9 +116,14 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
       </header>
 
       {/* 3D scene */}
-      <main className="flex-1 overflow-hidden relative z-40">
-        <Scene />
-      </main>
+      <div class="canvas-wrapper relative flex-1 flex flex-col">
+        <main className="overflow-hidden relative z-40 flex-1">
+          <Scene />
+        </main>
+
+        {/* Bead picker header */}
+        <BeadPickerHeader />
+      </div>
 
       {/* Bead picker */}
       <div className="shrink-0 border-t border-neutral-200 bg-white py-3">

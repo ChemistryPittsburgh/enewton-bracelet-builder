@@ -4,7 +4,7 @@
  * BeadPicker.tsx
  *
  * Shows available bead products. Clicking one adds it to the bracelet.
- * Click a bead in the 3D scene to remove it.
+ * Click a bead to open BeadInfoPanel
  */
 
 import { useState } from "react";
@@ -34,7 +34,6 @@ export function BeadPicker({ beads }: BeadPickerProps) {
 
   const { addBead, braceletName } = useStore((s) => ({
     addBead: s.addBead,
-    braceletName: s.braceletName,
   }));
 
   function handleAdd(bead: BeadProduct) {
@@ -69,9 +68,6 @@ export function BeadPicker({ beads }: BeadPickerProps) {
   return (
     <div>
       <div className="bracelet-panel-gutters">
-        { braceletName && 
-          <h2 className="mt-1"><span className="font-bold">Bracelet Name:</span> {braceletName}</h2>
-        }
         {/* Hint text */}
         <p className="mt-1 mb-3 text-[11px] text-neutral-400">
           Select a bead to add it · Click a bead on the bracelet to learn more
