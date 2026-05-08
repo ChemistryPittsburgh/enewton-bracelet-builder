@@ -11,7 +11,7 @@ import Image from 'next/image';
 
 export function BeadPickerHeader() {
 
-  const { addBead, braceletName } = useStore((s) => ({
+  const { braceletName } = useStore((s) => ({
     braceletName: s.braceletName,
   }));
 

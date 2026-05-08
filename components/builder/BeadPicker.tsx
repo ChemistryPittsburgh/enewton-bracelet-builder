@@ -34,7 +34,7 @@ interface BeadPickerProps {
 export function BeadPicker({ beads }: BeadPickerProps) {
   const [error, setError] = useState<string | null>(null);
 
-  const { addBead, braceletName } = useStore((s) => ({
+  const { addBead } = useStore((s) => ({
     addBead: s.addBead,
   }));
 
