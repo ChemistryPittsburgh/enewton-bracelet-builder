@@ -6,8 +6,7 @@
  * Displays Bracelet name + contains drawer for bead sorting
  */
 
-import { useState } from "react";
-import { useStore } from "@/lib/store";;
+import { useStore } from "@/lib/store";
 import Image from 'next/image';
 
 export function BeadPickerHeader() {
@@ -17,7 +16,7 @@ export function BeadPickerHeader() {
   }));
 
   return (
-    <div className="bracelet-panel-gutters absolute left-0 right-0 bottom-0 w-full z-40 flex items-center">
+    <div className="px-[var(--bracelet-picker-gutter)] absolute left-0 right-0 bottom-0 w-full z-40 flex items-center">
       { braceletName && 
         <h2 className="mt-1 flex-1 py-2">
           <span className="font-bold">Bracelet Name: </span> 

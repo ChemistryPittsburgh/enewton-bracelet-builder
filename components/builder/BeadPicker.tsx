@@ -9,9 +9,11 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { useStore } from "@/lib/store";
-import type { BeadProduct } from "@/types";
 import Image from 'next/image';
+
+import { useStore } from "@/lib/store";
+
+import type { BeadProduct } from "@/types";
 
 // Import Swiper React components
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -67,7 +69,7 @@ export function BeadPicker({ beads }: BeadPickerProps) {
 
   return (
     <div>
-      <div className="bracelet-panel-gutters">
+      <div className="px-[var(--bracelet-picker-gutter)]">
         {/* Hint text */}
         <p className="mt-1 mb-3 text-[11px] text-neutral-400">
           Select a bead to add it · Click a bead on the bracelet to learn more
@@ -93,9 +95,8 @@ export function BeadPicker({ beads }: BeadPickerProps) {
             loop={false}
           >
           {beads.map((bead) => (
-            <SwiperSlide>
+            <SwiperSlide key={bead.id}>
               <button
-                key={bead.id}
                 onClick={() => handleAdd(bead)}
                 className="group flex shrink-0 flex-col items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-4 py-3 transition-all hover:border-neutral-400 hover:shadow-sm active:scale-95"
               >

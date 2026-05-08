@@ -26,8 +26,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
 import { useStore } from "@/lib/store";
+
 import type { PlacedBead } from "@/types";
+
+import { Panel } from "@/components/ui/Panel";
 
 interface BeadReorderPanelProps {
   isOpen: boolean;
@@ -69,7 +73,7 @@ export function BeadReorderPanel({ isOpen, onClose }: BeadReorderPanelProps) {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-20 transition-opacity duration-300 ${
           isOpen
             ? "pointer-events-auto opacity-100 bg-black/20"
             : "pointer-events-none opacity-0"
@@ -79,66 +83,53 @@ export function BeadReorderPanel({ isOpen, onClose }: BeadReorderPanelProps) {
       />
 
       {/* Panel */}
-      <div
-        className={`fixed top-0 left-0 h-full w-72 z-50 bg-white shadow-xl transition-transform duration-300 ease-out flex flex-col ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 shrink-0">
-          <div>
-            <h2 className="text-sm font-semibold text-neutral-800">
-              Edit bead order
-            </h2>
+      <Panel open={isOpen} onClose={onClose} title="Reorder Beads" direction="left">
+        <div className="px-5 pb-4">
+
+          {/* Intro */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 shrink-0">
             <p className="text-[11px] text-neutral-400 mt-0.5">
               Drag to reorder · changes apply instantly
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 transition-colors"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
-        </div>
 
-        {/* Sortable list */}
-        <div className="flex-1 overflow-y-auto px-3 py-3">
-          {beads.length === 0 ? (
-            <p className="text-xs text-neutral-400 text-center mt-8">
-              No beads added yet.
-            </p>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={beads.map((b) => b.instanceId)}
-                strategy={verticalListSortingStrategy}
+          {/* Sortable list */}
+          <div className="flex-1 overflow-y-auto py-3">
+            {beads.length === 0 ? (
+              <p className="text-xs text-neutral-400 text-center mt-8">
+                No beads added yet.
+              </p>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                {beads.map((bead, index) => (
-                  <SortableBeadRow
-                    key={bead.instanceId}
-                    bead={bead}
-                    index={index}
-                    onRemove={() => removeBead(bead.instanceId)}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
-          )}
-        </div>
+                <SortableContext
+                  items={beads.map((b) => b.instanceId)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {beads.map((bead, index) => (
+                    <SortableBeadRow
+                      key={bead.instanceId}
+                      bead={bead}
+                      index={index}
+                      onRemove={() => removeBead(bead.instanceId)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
 
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-neutral-100 shrink-0">
-          <p className="text-[11px] text-neutral-400 text-center">
-            {beads.length} bead{beads.length !== 1 ? "s" : ""} on bracelet
-          </p>
+          {/* Footer */}
+          <div className="py-4 border-t border-neutral-100 shrink-0">
+            <p className="text-[11px] text-neutral-400 text-center">
+              {beads.length} bead{beads.length !== 1 ? "s" : ""} on bracelet
+            </p>
+          </div>
         </div>
-      </div>
+      </Panel>
     </>
   );
 }

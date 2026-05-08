@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import { BarChart2, GripVertical } from "lucide-react";
+
 import { Scene } from "@/components/scene/Scene";
+import { Button } from "@/components/ui/Button";
+
 import { BeadPickerHeader } from "./BeadPickerHeader";
 import { BeadPicker } from "./BeadPicker";
 import { BeadInfoPanel } from "./BeadInfoPanel";
 import { BraceletPanel } from "./BraceletPanel";
 import { BraceletImporter } from "./BraceletImporter";
 import { BeadReorderPanel } from "./BeadReorderPanel";
+
 import { useStore } from "@/lib/store";
 import { measureBeadDiameter } from "@/lib/measure-bead";
 import type { BeadProduct } from "@/types";
@@ -98,25 +102,25 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         </div>
 
         <span className="flex-1 justify-center font-semibold tracking-wide text-neutral-700 flex gap-3 items-center">
-          <img src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png" alt="eNewton Logo" className="header-logo border-r border-yellow-600 pr-4" />
+          <img src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png" alt="eNewton Logo" className="header-logo max-w-[200px] border-r border-yellow-600 pr-4" />
           <span>Bracelet Builder</span>
         </span>
 
         <span className="text-sm text-neutral-400">
           {placedBeads.length} bead{placedBeads.length !== 1 ? "s" : ""} added
           {placedBeads.length > 0 && (
-            <button
+            <Button
               onClick={clearBeads}
-              className="primary-btn transition-colors ml-4"
+              className="ml-4"
             >
               Clear Beads
-            </button>
+            </Button>
           )}
         </span>
       </header>
 
       {/* 3D scene */}
-      <div class="canvas-wrapper relative flex-1 flex flex-col">
+      <div className="canvas-wrapper relative flex-1 flex flex-col">
         <main className="overflow-hidden relative z-40 flex-1">
           <Scene />
         </main>

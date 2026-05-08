@@ -3,6 +3,8 @@
 import { useRef } from "react";
 import { X, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
 
 export function BeadInfoPanel() {
   const { selectedBead, clearSelectedBead, removeBead } = useStore((s) => ({
@@ -36,59 +38,39 @@ export function BeadInfoPanel() {
         aria-hidden
       />
 
-      {/* Panel — always in DOM, slides in/out */}
-      <div
-        className={`fixed bottom-0 right-0 h-full w-[30vw] min-w-[250px] z-50 bg-white shadow-xl transition-all duration-300 ease-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {bead && (
-          <>
-            {/* Header */}
-            <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-neutral-100">
-              <div>
-                <h2 className="text-base font-semibold text-neutral-800">
-                  {bead.product.name}
-                </h2>
-                <p className="mt-0.5 text-xs text-neutral-400">
-                  SKU Number: {bead.product.sku}
-                </p>
+      {/* Panel */}
+      <Panel open={isOpen} onClose={clearSelectedBead} title="Bead Details" direction="right">
+        <div className="px-5 py-4">
+          {bead && (
+            <>
+
+
+              {/* Bead details */}
+              <div className="mt-4 mb-4 rounded-xl bg-neutral-50 p-4 space-y-2">
+                <DetailRow label="Bead Style" value={bead.product.beadType ?? "—"} />
+                <DetailRow
+                  label="Diameter"
+                  value={`${((bead.product.diameter ?? 0) * 1000).toFixed(2)} mm`}
+                />
+                <DetailRow
+                  label="File"
+                  value={bead.product.glbPath.split("/").pop() ?? ""}
+                />
               </div>
-              <button
-                onClick={clearSelectedBead}
-                className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 transition-colors"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
-            </div>
 
-            {/* Bead details */}
-            <div className="mx-5 mt-4 mb-4 rounded-xl bg-neutral-50 p-4 space-y-2">
-              <DetailRow label="Bead Style" value={bead.product.beadType ?? "—"} />
-              <DetailRow
-                label="Diameter"
-                value={`${((bead.product.diameter ?? 0) * 1000).toFixed(2)} mm`}
-              />
-              <DetailRow
-                label="File"
-                value={bead.product.glbPath.split("/").pop() ?? ""}
-              />
-            </div>
-
-            {/* Remove button */}
-            <div className="px-5">
-              <button
-                onClick={handleRemove}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
-              >
-                <Trash2 size={15} />
-                Remove from bracelet
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+              {/* Remove button */}
+                <Button
+                  onClick={handleRemove}
+                  className="w-full"
+                  variant="danger"
+                >
+                  <Trash2 size={15} />
+                  Remove from bracelet
+                </Button>
+            </>
+          )}
+        </div>
+      </Panel>
     </>
   );
 }
