@@ -49,7 +49,7 @@ export function BeadPicker({ beads }: BeadPickerProps) {
   function BeadThumbnail({ bead }: { bead: BeadProduct }) {
       const [failed, setFailed] = useState(false);
 
-      if (failed || bead.beadType == null) {
+      if (failed || bead.beadCategory == null) {
         return (
           <Plus size={16} />
         );
