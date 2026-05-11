@@ -5,6 +5,7 @@ import { X, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
+import { capitalize } from "@/lib/utils";
 
 export function BeadInfoPanel() {
   const { selectedBead, clearSelectedBead, removeBead } = useStore((s) => ({
@@ -47,7 +48,9 @@ export function BeadInfoPanel() {
 
               {/* Bead details */}
               <div className="mt-4 mb-4 rounded-xl bg-neutral-50 p-4 space-y-2">
-                <DetailRow label="Bead Style" value={bead.product.beadType ?? "—"} />
+                <DetailRow label="Bead Type" value={capitalize(bead.product.beadType) ?? "—"} />
+                <DetailRow label="Bead Category" value={bead.product.beadCategory ?? "—"} />
+                <DetailRow label="Bead Material" value={bead.product.beadMaterial ?? "—"} />
                 <DetailRow
                   label="Diameter"
                   value={`${((bead.product.diameter ?? 0) * 1000).toFixed(2)} mm`}
@@ -65,7 +68,7 @@ export function BeadInfoPanel() {
                   variant="danger"
                 >
                   <Trash2 size={15} />
-                  Remove from bracelet
+                  Remove Bead
                 </Button>
             </>
           )}

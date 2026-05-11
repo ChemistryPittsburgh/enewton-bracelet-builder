@@ -18,3 +18,11 @@ export const slugify = (str: string): string => {
     .replace(/\s+/g, '-')                   // Replace spaces with hyphens [21, 28]
     .replace(/-+/g, '-');                   // Remove consecutive hyphens [21]
 };
+
+/**
+ * Capitalize first letter in string
+ */
+export const capitalize = (str: string): string => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};

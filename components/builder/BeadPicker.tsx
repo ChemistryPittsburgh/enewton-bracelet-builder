@@ -54,7 +54,7 @@ export function BeadPicker({ beads }: BeadPickerProps) {
           <Plus size={16} />
         );
       } else {
-        const src = `/images/${bead.beadType.toLowerCase()}-thumbnail.png`;
+        const src = `/images/${bead.beadCategory.toLowerCase()}-thumbnail.png`;
         return (
           <img
             src={src}
