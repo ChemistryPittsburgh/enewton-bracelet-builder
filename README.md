@@ -38,10 +38,10 @@ Netlify automatically pushes to test enviroment located here: `https://enewton-b
 app/page.tsx        ← Bead catalog (add new GLBs here)
      ↓
 BuilderLayout       ← Layout of app 
-     ├── Scene                     ← R3F Canvas, lighting, orbit controls
+     ├── Scene                     ← R3F Canvas, lighting, CameraControls (drei)
      │    ├── BraceletCord         ← Procedural cord/bracelet base ***TEMP***
      │    ├── AllBeads             ← One BeadOnBracelet per placed bead
-     │    └── CameraController     ← Sets Camera zoom and angle, adjusted when bracelet is interacted with
+     │    └── CameraController     ← Zooms in on selected bead via setLookAt(); zooms out on deselect
      │
      ├── ui                       
      │    ├── Button               ← Button w/ variants: primary, secondary, ghost, danger, black
@@ -49,10 +49,11 @@ BuilderLayout       ← Layout of app
      │
      ├── BeadPickerHeader     ← Header above picker w/ Bracelet name + tab for bead sorting drawer
      ├── BeadPicker           ← Button to add bead; tap bead to open BeadInfoPanel
+     │                           └── BeadThumbnail (bottom of file) ← thumbnail w/ fallback if image missing
      ├── BeadInfoPanel        ← Panel that contains bead meta info + remove bead button
      ├── BeadReorderPanel     ← Panel to reorder beads ***TEMP***
      ├── BraceletImporter     ← Imports JSON bracelet to replace current one
-     └── BraceletPanel        ← Panel for all bracelet settings - name + export
+     └── BraceletPanel        ← Bead stats (ordered list, arc used, remaining capacity) + JSON export
 
 ```
 
@@ -91,6 +92,8 @@ BuilderLayout       ← Layout of app
 | `components/scene/BraceletCord.tsx` | Bracelet cord **(SWAP FOR GLB?)** |
 | `components/scene/BeadOnBracelet.tsx` | Loads one bead GLB, positions + rotates it on the cord |
 | `components/scene/AllBeads.tsx` | Maps the store's bead list into BeadOnBracelet instances |
+| `components/scene/CameraController.tsx` | Drives `CameraControls` (drei) — zoom to selected bead, zoom out on deselect |
+| `components/builder/BeadPicker.tsx` | Bead catalog buttons + `BeadThumbnail` helper (image fallback) |
 | `app/page.tsx` | Bead catalog — the source of truth for available beads |
 
 ---
@@ -113,5 +116,6 @@ Adjust `BRACELET_RADIUS` first — it changes the circumference and therefore ho
 ## Bead orientation note
 
 All GLB files should have the hole on the **Y axis**. `getBeadRotation()` in `bead-layout.ts` handles this with `[π/2, -θ, 0]`. 
+
 
 If a future bead has its hole on a different axis, override the rotation in `BeadOnBracelet.tsx` for that specific GLB.
