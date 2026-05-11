@@ -9,6 +9,8 @@ export interface BeadProduct {
   beadType?: string; 
   sku?: string; 
   diameter: number;
+  beadMaterial?: string;
+  beadCategory?: string;
 }
 
 /**

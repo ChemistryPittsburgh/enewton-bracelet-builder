@@ -37,12 +37,23 @@ Netlify automatically pushes to test enviroment located here: `https://enewton-b
 ```
 app/page.tsx        ← Bead catalog (add new GLBs here)
      ↓
-BuilderLayout       ← Header + 3D scene + BeadPicker
-     ├── Scene      ← R3F Canvas, lighting, orbit controls
-     │    ├── BraceletCord   ← Procedural cord/bracelet base ***TEMP***
-     │    └── AllBeads       ← One BeadOnBracelet per placed bead
-     └── BeadPicker          ← Button to add bead; tap bead to open panel
-     └── BeadInfoPanel       ← Panel that contains bead info
+BuilderLayout       ← Layout of app 
+     ├── Scene                     ← R3F Canvas, lighting, orbit controls
+     │    ├── BraceletCord         ← Procedural cord/bracelet base ***TEMP***
+     │    ├── AllBeads             ← One BeadOnBracelet per placed bead
+     │    └── CameraController     ← Sets Camera zoom and angle, adjusted when bracelet is interacted with
+     │
+     ├── ui                       
+     │    ├── Button               ← Button w/ variants: primary, secondary, ghost, danger, black
+     │    └──  Panel               ← Panel w/ options for direction, 
+     │
+     ├── BeadPickerHeader     ← Header above picker w/ Bracelet name + tab for bead sorting drawer
+     ├── BeadPicker           ← Button to add bead; tap bead to open BeadInfoPanel
+     ├── BeadInfoPanel        ← Panel that contains bead meta info + remove bead button
+     ├── BeadReorderPanel     ← Panel to reorder beads ***TEMP***
+     ├── BraceletImporter     ← Imports JSON bracelet to replace current one
+     └── BraceletPanel        ← Panel for all bracelet settings - name + export
+
 ```
 
 **State** ***TEMP*** lives in `lib/store.ts` (persisted to localStorage).  
@@ -61,6 +72,11 @@ BuilderLayout       ← Header + 3D scene + BeadPicker
   name: "New Bead Name",
   glbPath: "/models/bead/MyBead_v01.glb",
   diameter: 0.005, // measure from GLB bounding box X extent
+  beadCategory: "gold", // category name, ex. Dignity 
+  beadMaterial: "gold", // material/metal
+  beadType: "bead", // charm or bead
+  diameter: 0.005,
+  sku: "44444444",
 },
 ```
 
