@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useGLTF } from "@react-three/drei";
-import { BarChart2, GripVertical } from "lucide-react";
+import { BarChart2, GripVertical, Check } from "lucide-react";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { BeadPickerHeader } from "./BeadPickerHeader";
 import { BeadPicker } from "./BeadPicker";
 import { BeadInfoPanel } from "./BeadInfoPanel";
+import { BraceletInfoBar } from "./BraceletInfoBar";
 import { BraceletPanel } from "./BraceletPanel";
 import { BraceletImporter } from "./BraceletImporter";
 import { BeadReorderPanel } from "./BeadReorderPanel";
@@ -70,52 +71,32 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
 
       {/* Header */}
       <header className="flex shrink-0 items-center gap-4 py-4 border-b border-neutral-200 bg-white px-10">
-        <div className="flex items-center gap-3">
-          {/* Bracelet Panel toggle button */}
-          <button
-            onClick={() => setBraceletPanelOpen((o) => !o)}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors ${
-              braceletPanelOpen
-                ? "bg-neutral-900 text-white"
-                : "text-neutral-500 hover:bg-neutral-100"
-            }`}
-            title="Bracelet Information"
-          >
-            <BarChart2 size={14} />
-            <span>Bracelet Information</span>
-          </button>
-
-          <button
-            onClick={openReorder}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors ${
-              reorderOpen
-                ? "bg-neutral-900 text-white"
-                : "text-neutral-500 hover:bg-neutral-100"
-            }`}
-            title="Edit bead order"
-          >
-            <GripVertical size={14} />
-            <span>Edit order</span>
-          </button>
-
-          <BraceletImporter />
+        <div className="flex flex-1 items-center gap-3">
+          <img src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png" alt="eNewton Logo" className="header-logo max-w-[200px] border-r border-yellow-600 pr-4" />
+          <div className="flex gap-2 items-center">
+          <input
+              type="text"
+              value={braceletName}
+              onChange={(e) => setBraceletName(e.target.value)}
+              className="bracelet-panel-name-input flex-1 font-semibold text-neutral-700 bg-transparent outline-none border-transparent hover:bg-neutral-100 focus:border-yellow-600 transition-all rounded px-3 py-2"
+              aria-label="Bracelet name"
+            />
+            <Check size={20} />
+          </div>
         </div>
 
-        <span className="flex-1 justify-center font-semibold tracking-wide text-neutral-700 flex gap-3 items-center">
-          <img src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png" alt="eNewton Logo" className="header-logo max-w-[200px] border-r border-yellow-600 pr-4" />
-          <span>Bracelet Builder</span>
-        </span>
-
-        <span className="text-sm text-neutral-400">
-          {placedBeads.length} bead{placedBeads.length !== 1 ? "s" : ""} added
-          {placedBeads.length > 0 && (
-            <Button
-              onClick={clearBeads}
-              className="ml-4"
-            >
-              Clear Beads
-            </Button>
-          )}
+        <span className="flex-1 justify-end font-semibold tracking-wide text-neutral-700 flex gap-2 items-center">
+          <BraceletImporter />
+          <span className="text-sm text-neutral-400">
+            {placedBeads.length > 0 && (
+              <Button
+                onClick={clearBeads}
+                className="ml-4"
+              >
+                Clear Beads
+              </Button>
+            )}
+          </span>
         </span>
       </header>
 
@@ -124,14 +105,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         <main className="overflow-hidden relative z-40 flex-1">
           <Scene />
         </main>
-
-        {/* Bead picker header */}
-        <BeadPickerHeader />
-      </div>
-
-      {/* Bead picker */}
-      <div className="shrink-0 border-t border-neutral-200 bg-white py-3">
-        <BeadPicker beads={resolvedBeads} />
+        <BraceletInfoBar />
       </div>
 
       {/* Panels */}

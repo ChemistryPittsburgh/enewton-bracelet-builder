@@ -13,6 +13,8 @@ import { Upload } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { parseBraceletJson } from "@/lib/import-bracelet";
 
+import { Button } from "@/components/ui/Button";
+
 export function BraceletImporter() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -73,14 +75,15 @@ export function BraceletImporter() {
       />
 
       {/* Trigger button */}
-      <button
+
+      <Button
         onClick={handleClick}
-        className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-neutral-500 hover:bg-neutral-100 transition-colors"
-        title="Import bracelet JSON"
+        className="ml-4 justify-end"
+        variant="black"
       >
         <Upload size={14} />
         <span>Import JSON</span>
-      </button>
+       </Button>
 
       {/* Status toast */}
       {status && (
