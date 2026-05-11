@@ -76,13 +76,14 @@ export function BeadPicker({ beads }: BeadPickerProps) {
           <Plus size={16} />
         );
       } else {
-        const src = `/images/${bead.beadCategory.toLowerCase()}-thumbnail.png`;
+        const src = `/images/${bead.id.toLowerCase()}-thumbnail.png`;
         return (
           <img
             src={src}
             alt={bead.name}
             width={64}
             height={64}
+            className="max-w-[40px]"
             onError={() => setFailed(true)}
           />
         );

@@ -84,4 +84,5 @@ export function getBeadPosition(angle: number): [number, number, number] {
 }
 
 /** Tilt applied to the inner group — lays the bead on its side. */
-export const BEAD_INNER_TILT_X = Math.PI / 2;
+//export const BEAD_INNER_TILT_X = Math.PI / 2;
+export const BEAD_INNER_TILT_X = 0;

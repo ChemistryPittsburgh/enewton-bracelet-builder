@@ -50,7 +50,7 @@ export function BeadOnBracelet({ bead, slotIndex }: BeadOnBraceletProps) {
         </mesh>
         {/* Selection highlight ring */}
         {isSelected && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <mesh rotation={[0, 0, 0]}>
             <torusGeometry args={[bead.product.diameter * 0.65, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#c8a97e" />
           </mesh>
