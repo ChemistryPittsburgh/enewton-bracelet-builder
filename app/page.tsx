@@ -1,5 +1,4 @@
 import { BuilderLayout } from "@/components/builder/BuilderLayout";
-import { useGLTF } from "@react-three/drei";
 import type { BeadProduct } from "@/types";
 
 
@@ -68,8 +67,7 @@ const BEADS: BeadProduct[] = [
     name: "Admire 8mm",
     glbPath: "/models/beads/Admire_8mm.glb", 
     beadType: "Admire",
-    beadMaterial: "metal",
-    diameter: 0.08,
+    diameter: 0.008,
     sku: "30439039503",
     beadCategory: "bead",
     material: "gold",
@@ -108,16 +106,6 @@ const BEADS: BeadProduct[] = [
     material: "gold",
     sizeMm: 5,
   },
-  // {
-  //   id: "blessed-disc",
-  //   name: "Blessed Disc",
-  //   glbPath: "/models/beads/Blessed_Disc.glb", 
-  //   beadType: "charm",
-  //   beadCategory: "Blessed",
-  //   beadMaterial: "silver",
-  //   diameter: 0.005,
-  //   sku: "00000",
-  // },
 ];
 
 export default function HomePage() {

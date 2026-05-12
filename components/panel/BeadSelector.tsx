@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useStore } from "@/lib/store";
 import type { BeadProduct } from "@/types";
+import { capitalize } from "@/lib/utils";
 
 interface BeadSelectorProps {
   beads: BeadProduct[];
@@ -10,10 +11,6 @@ interface BeadSelectorProps {
 
 function unique<T>(arr: (T | undefined)[]): T[] {
   return [...new Set(arr.filter((v): v is T => v !== undefined))];
-}
-
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function FilterPill({

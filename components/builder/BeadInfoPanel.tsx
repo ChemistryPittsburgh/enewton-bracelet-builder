@@ -38,8 +38,8 @@ export function BeadInfoPanel() {
               {/* Bead details */}
               <div className="mt-4 mb-4 rounded-xl bg-neutral-50 p-4 space-y-2">
                 <DetailRow label="Bead Type" value={bead.product.beadType ? capitalize(bead.product.beadType) : "—"} />
-                <DetailRow label="Bead Category" value={capitalize(bead.product.beadCategory) ?? "—"} />
-                <DetailRow label="Bead Material" value={capitalize(bead.product.material) ?? "—"} />
+                <DetailRow label="Bead Category" value={bead.product.beadCategory ? capitalize(bead.product.beadCategory) : "—"} />
+                <DetailRow label="Bead Material" value={bead.product.material ? capitalize(bead.product.material) : "—"} />
                 <DetailRow
                   label="Diameter"
                   value={`${bead.product.sizeMm} mm`}

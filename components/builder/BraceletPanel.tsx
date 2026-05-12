@@ -12,6 +12,8 @@ import { BeadSelector } from "@/components/panel/BeadSelector";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 
+import type { BeadProduct } from "@/types";
+
 interface BraceletPanelProps {
   isOpen: boolean;
   onClose: () => void;
