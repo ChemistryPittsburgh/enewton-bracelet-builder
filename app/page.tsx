@@ -49,16 +49,6 @@ const BEADS: BeadProduct[] = [
     sku: "00000",
   },
   {
-    id: "tester",
-    name: "Tester",
-    glbPath: "/models/beads/Tester_5mm.glb", 
-    beadType: "bead",
-    beadCategory: "Test",
-    beadMaterial: "metal",
-    diameter: 0.005,
-    sku: "88888",
-  },
-  {
     id: "admire-6mm",
     name: "Admire 6mm",
     glbPath: "/models/beads/Admire_6mm.glb", 
