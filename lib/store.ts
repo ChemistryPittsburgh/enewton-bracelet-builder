@@ -49,6 +49,7 @@ export const useStore = create<Store>()(
     (set, get) => ({
       beads: [],
       selectedBead: null,
+      braceletName: "My Bracelet",
 
       addBead(product) {
         if (!beadFits(get().beads, product.diameter ?? 0.01)) {
@@ -82,8 +83,6 @@ export const useStore = create<Store>()(
       loadBeads(beads, name) {
         set({ beads, selectedBead: null, ...(name ? { braceletName: name } : {}) });
       },
-
-      braceletName: "My Bracelet",
 
       setBraceletName(name) {
         set({ braceletName: name });

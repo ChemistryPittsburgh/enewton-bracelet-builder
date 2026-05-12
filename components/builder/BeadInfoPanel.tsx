@@ -28,17 +28,6 @@ export function BeadInfoPanel() {
 
   return (
     <>
-      {/* Backdrop - canvas should appear above */}
-      <div
-        className={`fixed inset-0 transition-opacity duration-300 bg-black/20 ${
-          isOpen
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
-        }`}
-        onClick={clearSelectedBead}
-        aria-hidden
-      />
-
       {/* Panel */}
       <Panel open={isOpen} onClose={clearSelectedBead} title="Bead Details" direction="right">
         <div className="px-5 py-4">
@@ -49,11 +38,11 @@ export function BeadInfoPanel() {
               {/* Bead details */}
               <div className="mt-4 mb-4 rounded-xl bg-neutral-50 p-4 space-y-2">
                 <DetailRow label="Bead Type" value={bead.product.beadType ? capitalize(bead.product.beadType) : "—"} />
-                <DetailRow label="Bead Category" value={bead.product.beadCategory ?? "—"} />
-                <DetailRow label="Bead Material" value={bead.product.beadMaterial ?? "—"} />
+                <DetailRow label="Bead Category" value={bead.product.beadCategory ? capitalize(bead.product.beadCategory) : "—"} />
+                <DetailRow label="Bead Material" value={bead.product.material ? capitalize(bead.product.material) : "—"} />
                 <DetailRow
                   label="Diameter"
-                  value={`${((bead.product.diameter ?? 0) * 1000).toFixed(2)} mm`}
+                  value={`${bead.product.sizeMm} mm`}
                 />
                 <DetailRow
                   label="File"
