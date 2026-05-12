@@ -29,8 +29,20 @@ canvas {
 }
 .picker-scroll::-webkit-scrollbar { display: none; }
 
+
+
+.bracelet-panel-toggle-btn {
+  svg {
+    transition: all 0.3s ease;
+    transform: 0;
+  }
+  &.open svg {
+    transform: rotate(180deg);
+  }
+}
+
 /* ─── Bead Picker Swiper ────────────── */
-.bead-picker-slider.swiper {
+/*.bead-picker-slider.swiper {
   z-index: 0;
 
   .swiper-slide {
@@ -74,4 +86,4 @@ canvas {
 
   .swiper-button-next { right: 0; padding-right: 2px; }
   .swiper-button-prev { left: 0;  padding-left: 2px;  }
-}
+}*/

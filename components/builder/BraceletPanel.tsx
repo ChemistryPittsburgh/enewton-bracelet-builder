@@ -60,7 +60,7 @@ export function BraceletPanel({ isOpen, onClose, beads }: BraceletPanelProps) {
   }
 
   return (
-    <Panel open={isOpen} onClose={onClose} title="Bracelet Editor" direction="left">
+    <Panel open={isOpen} onClose={onClose} title="Bracelet Editor" direction="left" fixed={false}>
 
       {/* Bead selector */}
       <div className="flex-1 min-h-0">
