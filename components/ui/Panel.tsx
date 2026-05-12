@@ -57,14 +57,14 @@ export function Panel({
       {/* Panel */}
       <div
         className={cn(
-          "fixed z-50 bg-white shadow-xl",
+          "fixed z-50 bg-white shadow-xl flex flex-col",
           slide.base,
           open ? slide.open : slide.closed,
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
+          <div className="flex shrink-0 items-center justify-between px-5 py-4 border-b border-neutral-100">
             <h2 className="text-sm font-semibold text-neutral-900">{title}</h2>
             <button
               onClick={onClose}
@@ -75,7 +75,9 @@ export function Panel({
             </button>
           </div>
         )}
-        {children}
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {children}
+        </div>
       </div>
     </>
   );

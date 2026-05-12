@@ -9,7 +9,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
-import type { BeadProduct, PlacedBead } from "@/types";
+import type { BeadProduct, PlacedBead, StringMaterial, BraceletSize } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
 
 interface Store {
@@ -42,6 +42,10 @@ interface Store {
   /** Move a bead from one index to another — drives the reorder panel. **/
   reorderBeads: (fromIndex: number, toIndex: number) => void;
 
+  stringMaterial: StringMaterial;
+  braceletSize: BraceletSize;
+  setStringMaterial: (m: StringMaterial) => void;
+  setBraceletSize: (s: BraceletSize) => void;
 }
 
 export const useStore = create<Store>()(
@@ -50,6 +54,8 @@ export const useStore = create<Store>()(
       beads: [],
       selectedBead: null,
       braceletName: "My Bracelet",
+      stringMaterial: "chord" as StringMaterial,
+      braceletSize: "small" as BraceletSize,
 
       addBead(product) {
         if (!beadFits(get().beads, product.diameter ?? 0.01)) {
@@ -96,12 +102,20 @@ export const useStore = create<Store>()(
           return { beads: arr };
         });
       },
+
+      setStringMaterial: (stringMaterial) => set({ stringMaterial }),
+      setBraceletSize: (braceletSize) => set({ braceletSize }),
     }),
     {
       name: "enewton-beads",
       storage: createJSONStorage(() => localStorage),
       // Only persist the bead list — panel always starts closed
-      partialize: (s) => ({ beads: s.beads, braceletName: s.braceletName }),
+      partialize: (s) => ({
+        beads: s.beads,
+        braceletName: s.braceletName,
+        stringMaterial: s.stringMaterial,
+        braceletSize: s.braceletSize,
+      }),
     }
   )
 );

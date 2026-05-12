@@ -1,3 +1,6 @@
+export type StringMaterial = "wire" | "chord" | "elastic";
+export type BraceletSize = "small" | "large";
+
 /**
  * A bead/charm product the user can add to their bracelet.
  */
