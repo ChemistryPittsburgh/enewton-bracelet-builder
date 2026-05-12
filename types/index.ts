@@ -9,8 +9,12 @@ export interface BeadProduct {
   beadType?: string; 
   sku?: string; 
   diameter: number;
-  beadMaterial?: string;
+  /** Material: "gold" | "silver" | "pearl" | "gemstones" | "seed" etc */
+  material?: string;
+  /** Top-level tab: "beads" | "charms" | "tubes" */
   beadCategory?: string;
+  /** Size in mm — used for the size filter pills */
+  sizeMm?: number;
 }
 
 /**
