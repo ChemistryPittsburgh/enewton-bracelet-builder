@@ -129,7 +129,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
           </button>
 
           {/* 3D scene */}
-          <div className="relative z-10 flex-1 overflow-hidden">
+          <div className="relative z-20 flex-1 overflow-hidden">
             <Scene />
           </div>
 
