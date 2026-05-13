@@ -1,5 +1,5 @@
-export type StringMaterial = "wire" | "chord" | "elastic";
-export type BraceletSize = "small" | "large";
+export type StringMaterial = "wire" | "cord" | "elastic";
+export type BraceletSize =  "x-small" | "small" | "large";
 
 /**
  * A bead/charm product the user can add to their bracelet.

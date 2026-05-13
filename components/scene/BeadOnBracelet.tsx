@@ -11,6 +11,7 @@ import {
   BEAD_INNER_TILT_X,
 } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
+import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
 interface BeadOnBraceletProps {
   bead: PlacedBead;
@@ -20,15 +21,17 @@ interface BeadOnBraceletProps {
 export function BeadOnBracelet({ bead, slotIndex }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glbPath);
   const cloned = useRef(scene.clone(true)).current;
-  const { selectBead, selectedBead, beads } = useStore((s) => ({
+  const { selectBead, selectedBead, beads, braceletSize } = useStore((s) => ({
     selectBead: s.selectBead,
     selectedBead: s.selectedBead,
     beads: s.beads,
+    braceletSize: s.braceletSize,
   }));
 
   const isSelected = selectedBead?.instanceId === bead.instanceId;
-  const angle = getBeadAngle(slotIndex, beads); // pass full list
-  const position = getBeadPosition(angle);
+  const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const angle = getBeadAngle(slotIndex, beads, radius);
+  const position = getBeadPosition(angle, radius);
   const outerRotY = getBeadOuterRotationY(angle);
 
   function handleClick(e: ThreeEvent<MouseEvent>) {

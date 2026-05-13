@@ -36,6 +36,10 @@ const START_ANGLE_OFFSET = Math.PI / 2;
 // Max beads is calculated by bead diameter - check to see if next bead fits
 export const MAX_BRACELET_ARC = 2 * Math.PI * BRACELET_RADIUS; // full circumference in metres
 
+export function braceletArc(radius: number): number {
+  return 2 * Math.PI * radius;
+}
+
 /** Total cord length consumed by beads - how much room left */
 export function usedArc(beads: { product: { diameter: number } }[]): number {
   return beads.reduce((sum, b) => sum + b.product.diameter + BEAD_SPACING, 0);
@@ -44,9 +48,10 @@ export function usedArc(beads: { product: { diameter: number } }[]): number {
 /** Returns true if a new bead of the given diameter fits on the bracelet */
 export function beadFits(
   currentBeads: { product: { diameter: number } }[],
-  newDiameter: number
+  newDiameter: number,
+  radius = BRACELET_RADIUS
 ): boolean {
-  return usedArc(currentBeads) + newDiameter + BEAD_SPACING <= MAX_BRACELET_ARC;
+  return usedArc(currentBeads) + newDiameter + BEAD_SPACING <= braceletArc(radius);
 }
 
 // ─── Per-bead geometry ────────────────────────────────────────────────────────
@@ -57,16 +62,17 @@ export function beadFits(
  */
 export function getBeadAngle(
   slotIndex: number,
-  beads: { product: { diameter: number } }[]
+  beads: { product: { diameter: number } }[],
+  radius = BRACELET_RADIUS
 ): number {
   let angle = START_ANGLE_OFFSET;
 
   for (let i = 0; i < slotIndex; i++) {
-    const arcPerBead = (beads[i].product.diameter + BEAD_SPACING) / BRACELET_RADIUS;
+    const arcPerBead = (beads[i].product.diameter + BEAD_SPACING) / radius;
     angle += arcPerBead;
   }
 
-  angle += (beads[slotIndex].product.diameter / 2) / BRACELET_RADIUS;
+  angle += (beads[slotIndex].product.diameter / 2) / radius;
 
   return angle;
 }
@@ -75,11 +81,11 @@ export function getBeadOuterRotationY(angle: number): number {
   return -angle;
 }
 
-export function getBeadPosition(angle: number): [number, number, number] {
+export function getBeadPosition(angle: number, radius = BRACELET_RADIUS): [number, number, number] {
   return [
-    Math.cos(angle) * BRACELET_RADIUS,
+    Math.cos(angle) * radius,
     0,
-    Math.sin(angle) * BRACELET_RADIUS,
+    Math.sin(angle) * radius,
   ];
 }
 

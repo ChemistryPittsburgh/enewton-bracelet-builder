@@ -11,6 +11,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import type { BeadProduct, PlacedBead, StringMaterial, BraceletSize } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
+import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
 interface Store {
   beads: PlacedBead[];
@@ -54,11 +55,12 @@ export const useStore = create<Store>()(
       beads: [],
       selectedBead: null,
       braceletName: "My Bracelet",
-      stringMaterial: "chord" as StringMaterial,
+      stringMaterial: "cord" as StringMaterial,
       braceletSize: "small" as BraceletSize,
 
       addBead(product) {
-        if (!beadFits(get().beads, product.diameter ?? 0.01)) {
+        const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
+        if (!beadFits(get().beads, product.diameter ?? 0.01, radius)) {
           return "Bracelet is full — no room for that bead.";
         }
         set((s) => ({

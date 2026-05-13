@@ -1,15 +1,20 @@
 "use client";
 
 import { useStore } from "@/lib/store";
-import { usedArc, MAX_BRACELET_ARC } from "@/lib/bead-layout";
+import { usedArc, braceletArc } from "@/lib/bead-layout";
+import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
 export function BraceletInfoBar() {
-  const placedBeads = useStore((s) => s.beads);
+  const { placedBeads, braceletSize } = useStore((s) => ({
+    placedBeads: s.beads,
+    braceletSize: s.braceletSize,
+  }));
 
+  const maxArc = braceletArc(BRACELET_SIZE_RADIUS[braceletSize]);
   const arcUsed = usedArc(placedBeads);
-  const percentUsed = Math.min((arcUsed / MAX_BRACELET_ARC) * 100, 100);
-  const totalMm = Math.max((MAX_BRACELET_ARC) * 1000, 0);
-  const remainingMm = Math.max((MAX_BRACELET_ARC - arcUsed) * 1000, 0);
+  const percentUsed = Math.min((arcUsed / maxArc) * 100, 100);
+  const totalMm = Math.max(maxArc * 1000, 0);
+  const remainingMm = Math.max((maxArc - arcUsed) * 1000, 0);
 
   const beadCount = placedBeads.filter(
     (b) => b.product.beadCategory === "bead"

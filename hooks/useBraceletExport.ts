@@ -1,15 +1,18 @@
 import { useStore } from "@/lib/store";
-import { usedArc, MAX_BRACELET_ARC } from "@/lib/bead-layout";
+import { usedArc, braceletArc } from "@/lib/bead-layout";
 import { slugify } from "@/lib/utils";
+import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
 export function useBraceletExport() {
-  const { storedBeads, braceletName } = useStore((s) => ({
+  const { storedBeads, braceletName, braceletSize } = useStore((s) => ({
     storedBeads: s.beads,
     braceletName: s.braceletName,
+    braceletSize: s.braceletSize,
   }));
 
+  const maxArc = braceletArc(BRACELET_SIZE_RADIUS[braceletSize]);
   const arcUsed = usedArc(storedBeads);
-  const percentUsed = Math.min((arcUsed / MAX_BRACELET_ARC) * 100, 100);
+  const percentUsed = Math.min((arcUsed / maxArc) * 100, 100);
 
   return function handleExport() {
     const data = {
@@ -17,7 +20,7 @@ export function useBraceletExport() {
       bracelet: {
         name: braceletName,
         arcUsedMm: (arcUsed * 1000).toFixed(2),
-        arcTotalMm: (MAX_BRACELET_ARC * 1000).toFixed(2),
+        arcTotalMm: (maxArc * 1000).toFixed(2),
         percentUsed: percentUsed.toFixed(1),
         beadCount: storedBeads.length,
       },
