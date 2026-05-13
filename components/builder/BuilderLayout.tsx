@@ -10,6 +10,7 @@ import { BraceletInfoBar } from "./BraceletInfoBar";
 import { BraceletImporter } from "./BraceletImporter";
 import { BraceletPanel } from "./BraceletPanel";
 import { BeadInfoPanel } from "./BeadInfoPanel";
+import { CanvasToolbar } from "./CanvasToolbar";
 
 import { useStore } from "@/lib/store";
 import { measureBeadDiameter } from "@/lib/measure-bead";
@@ -109,28 +110,33 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         </span>
       </header>
 
-      {/* 3D scene */}
-      <div className="canvas-wrapper relative flex flex-1 flex-col">
-        <button
-          onClick={openBraceletPanel}
-          className="absolute left-0 top-0 bottom-0 z-40 my-auto h-fit rounded-br-lg rounded-tr-lg bg-neutral-700 px-1 py-2 text-white"
-        >
-          <ChevronsRight size={25} />
-        </button>
-
-        <main className="relative z-10 flex-1 overflow-hidden">
-          <Scene />
-        </main>
-
-        <BraceletInfoBar />
-      </div>
-
-      {/* Panels */}
+    <main id="bracelet-scene" className="relative flex">
       <BraceletPanel
-        isOpen={braceletPanelOpen}
-        onClose={() => setBraceletPanelOpen(false)}
-        beads={resolvedBeads}
-      />
+          isOpen={braceletPanelOpen}
+          onClose={() => setBraceletPanelOpen(false)}
+          beads={resolvedBeads}
+        />
+      <div className="canvas-wrapper relative flex h-screen flex-col overflow-hidden flex-1">
+          <CanvasToolbar />
+          <button
+            onClick={openBraceletPanel}
+            className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit rounded-br-lg rounded-tr-lg bg-neutral-700 px-1 py-3 text-white transition-all hover:pl-3 ${
+              braceletPanelOpen ? "open" : ""
+            }`}
+          >
+            <ChevronsRight size={25} />
+
+          </button>
+
+          {/* 3D scene */}
+          <div className="relative z-10 flex-1 overflow-hidden">
+            <Scene />
+          </div>
+
+          <BraceletInfoBar />
+        </div>
+      </main>
+
       <BeadInfoPanel />
 
     </div>

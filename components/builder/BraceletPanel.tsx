@@ -24,8 +24,10 @@ export function BraceletPanel({ isOpen, onClose, beads }: BraceletPanelProps) {
   const handleExport = useBraceletExport();
 
   return (
-    <Panel open={isOpen} onClose={onClose} title="Bracelet Editor" direction="left">
-      <div className="flex-1 min-h-0 overflow-hidden">
+    <Panel open={isOpen} onClose={onClose} title="Bracelet Editor" direction="left" fixed={false}>
+
+      {/* Bead selector */}
+      <div className="flex-1 min-h-0">
         <BeadSelector beads={beads} />
       </div>
       <div className="shrink-0">
