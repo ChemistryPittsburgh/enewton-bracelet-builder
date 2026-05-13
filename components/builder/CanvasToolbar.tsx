@@ -19,7 +19,7 @@ export function CanvasToolbar() {
   const [viewMode, setViewMode] = useState<"3D" | "Line">("3D");
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-40 flex flex-col gap-2 pointer-events-none">
+    <div className="flex flex-col gap-2 pointer-events-none">
 
       {/* Main toolbar row */}
       <div className="flex justify-between pointer-events-auto bg-white shadow-sm">
@@ -69,15 +69,6 @@ export function CanvasToolbar() {
           <Pencil size={24} />
         </button>
 
-      </div>
-
-      {/* Second row — Light mode */}
-      <div className="pointer-events-auto self-start pl-8 pt-2">
-        <button className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-600 shadow-sm hover:bg-neutral-50 transition-colors">
-          <Eye size={16} />
-          <span>Light mode</span>
-          <ChevronDown size={14} className="text-neutral-400" />
-        </button>
       </div>
 
     </div>

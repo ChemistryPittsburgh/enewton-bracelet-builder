@@ -30,7 +30,7 @@ export const BRACELET_SIZES: { value: BraceletSize; label: string }[] = [
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
  */
 export const CORD_MATERIALS: Record<StringMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number }> = {
-  wire:    { color: "#a8a9ad", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0008 }, // silver-grey, ~1.6 mm diameter
-  cord:    { color: "#c8a97e", roughness: 0.4,  metalness: 0.6,  tubeRadius: 0.0013 }, // tan/gold, ~2.6 mm diameter
+  wire:    { color: "#c8a97e", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0008 }, // silver-grey, ~1.6 mm diameter
+  cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0010 }, // tan/gold, ~2.6 mm diameter
   elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.0004 }, // off-white, ~0.8 mm diameter
 };

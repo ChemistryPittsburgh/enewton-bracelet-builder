@@ -110,13 +110,13 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         </span>
       </header>
 
-    <main id="bracelet-scene" className="relative flex">
+    <main id="bracelet-scene" className="relative flex flex-1">
       <BraceletPanel
           isOpen={braceletPanelOpen}
           onClose={() => setBraceletPanelOpen(false)}
           beads={resolvedBeads}
         />
-      <div className="canvas-wrapper relative flex h-screen flex-col overflow-hidden flex-1">
+      <div className="canvas-wrapper relative flex h-full flex-col overflow-hidden flex-1">
           <CanvasToolbar />
           <button
             onClick={openBraceletPanel}
