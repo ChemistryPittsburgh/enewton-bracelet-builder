@@ -18,9 +18,9 @@ export const BRACELET_MATERIALS: { value: StringMaterial; label: string }[] = [
 
 /** UI label pairs for the bracelet size toggle buttons. */
 export const BRACELET_SIZES: { value: BraceletSize; label: string }[] = [
-  { value: "x-small", label: "X-Small" },
-  { value: "small",   label: "Small" },
-  { value: "large",   label: "Large" },
+  { value: "x-small", label: "5.5" },
+  { value: "small",   label: "6.25" },
+  { value: "large",   label: "7.25" },
 ];
 
 /** Visual properties for the cord torus mesh, keyed by string material.
