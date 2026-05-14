@@ -19,7 +19,7 @@ export function CanvasToolbar() {
   const [viewMode, setViewMode] = useState<"3D" | "Line">("3D");
 
   return (
-    <div className="flex flex-col gap-2 pointer-events-none">
+    <div className="flex flex-col gap-2 pointer-events-none relative z-20">
 
       {/* Main toolbar row */}
       <div className="flex justify-between pointer-events-auto bg-white shadow-sm">

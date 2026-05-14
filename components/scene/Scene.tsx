@@ -6,9 +6,14 @@ import { CameraControls, Environment, ContactShadows } from "@react-three/drei";
 import { BraceletCord } from "./BraceletCord";
 import { AllBeads } from "./AllBeads";
 import { CameraController } from "./CameraController"; 
+import { CameraOffset } from "./CameraOffset";
+import { PANEL_WIDTH } from "@/components/ui/Panel";
 
+interface SceneProps {
+  panelOpen?: boolean;
+}
 
-export function Scene() {
+export function Scene({ panelOpen = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
   return (
     <div className="relative h-full w-full">
@@ -37,7 +42,7 @@ export function Scene() {
           blur={1}
           far={0.02}
         />
-
+        <CameraOffset panelOpen={panelOpen} panelWidth={PANEL_WIDTH} />
         <CameraControls
           ref={controlsRef}
           minDistance={0.04}

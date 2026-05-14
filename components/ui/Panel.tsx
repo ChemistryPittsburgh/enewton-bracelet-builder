@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 
 type SlideDirection = "bottom" | "left" | "right";
 
-const PANEL_WIDTH = 400; // px — single source of truth
+export const PANEL_WIDTH = 400;
 
 interface PanelProps {
   open: boolean;
@@ -20,17 +20,17 @@ interface PanelProps {
 
 const fixedSlideClasses: Record<SlideDirection, { base: string; open: string; closed: string }> = {
   bottom: {
-    base: "fixed bottom-0 left-0 right-0 rounded-t-2xl transition-transform duration-300 ease-out",
+    base: "absolute bottom-0 left-0 right-0 rounded-t-2xl transition-transform duration-300 ease-out",
     open: "translate-y-0",
     closed: "translate-y-full",
   },
   right: {
-    base: "fixed right-0 top-0 h-full transition-transform duration-300 ease-out",
+    base: "absolute right-0 top-0 h-full transition-transform duration-300 ease-out",
     open: "translate-x-0",
     closed: "translate-x-full",
   },
   left: {
-    base: "fixed left-0 top-0 h-full transition-transform duration-300 ease-out",
+    base: "absolute left-0 top-0 h-full transition-transform duration-300 ease-out",
     open: "translate-x-0",
     closed: "-translate-x-full",
   },
@@ -77,14 +77,14 @@ export function Panel({
   return (
     <>
       {/* Backdrop */}
-      <div
+      {/*<div
         aria-hidden
         onClick={onClose}
         className={cn(
-          "fixed inset-0 z-20 transition-opacity duration-200",
+          "absolute inset-0 z-20 transition-opacity duration-200",
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
-      />
+      />*/}
 
       {/* Panel */}
       <div

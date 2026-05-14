@@ -6,6 +6,7 @@ import { Check, ChevronsRight } from "lucide-react";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
+import { PANEL_WIDTH } from "@/components/ui/Panel";
 import { BraceletInfoBar } from "./BraceletInfoBar";
 import { BraceletImporter } from "./BraceletImporter";
 import { BraceletPanel } from "./BraceletPanel";
@@ -42,9 +43,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
 
   // When a bead is selected (BeadInfoPanel opens), close BraceletPanel
   useEffect(() => {
-    if (selectedBead) {
-      setBraceletPanelOpen(false);
-    }
+    if (selectedBead) setBraceletPanelOpen(false);
   }, [selectedBead]);
 
   // When BraceletPanel opens, clear selected bead (closes BeadInfoPanel)
@@ -53,8 +52,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
     setBraceletPanelOpen((o) => !o);
   }
 
-  // Preload GLB file
-  // Measures each bead diameter if not diameter is provided 
+  // Preload GLBs and auto-measure any beads missing a diameter
   useEffect(() => {
     beads.forEach((b) => useGLTF.preload(b.glbPath));
 
@@ -110,31 +108,45 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         </span>
       </header>
 
-    <main id="bracelet-scene" className="relative flex flex-1">
-      <BraceletPanel
+      {/* Scene */}
+      <main id="bracelet-scene" className="relative flex-1 overflow-hidden">
+
+        <BraceletPanel
           isOpen={braceletPanelOpen}
           onClose={() => setBraceletPanelOpen(false)}
           beads={resolvedBeads}
         />
-      <div className="canvas-wrapper relative flex h-full flex-col overflow-hidden flex-1">
-          <CanvasToolbar />
+
+        {/* Clip container — narrows visible area without resizing the canvas */}
+        <div
+          className="absolute top-0 bottom-0 right-0 overflow-hidden"
+          style={{
+            left: braceletPanelOpen ? PANEL_WIDTH : 0,
+            transition: "left 300ms ease-out",
+          }}
+        >
           <button
             onClick={openBraceletPanel}
-            className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit rounded-br-lg rounded-tr-lg bg-neutral-700 px-1 py-3 text-white transition-all hover:pl-3 ${
-              braceletPanelOpen ? "open" : ""
-            }`}
+            className={`absolute left-0 top-0 bottom-0 z-40 my-auto h-fit rounded-br-lg rounded-tr-lg bg-neutral-700 px-1 py-2 text-white ${braceletPanelOpen ? "open" : ""}`}
           >
             <ChevronsRight size={25} />
-
           </button>
 
-          {/* 3D scene */}
-          <div className="relative z-20 flex-1 overflow-hidden">
-            <Scene />
-          </div>
-
+          <CanvasToolbar />
           <BraceletInfoBar />
+
+          {/* Inner canvas — always full screen width, clipped by parent */}
+          <div
+            className="absolute top-0 bottom-0 right-0"
+            style={{
+              left: braceletPanelOpen ? -PANEL_WIDTH : 0,
+              transition: "left 300ms ease-out",
+            }}
+          >
+            <Scene panelOpen={braceletPanelOpen} />
+          </div>
         </div>
+
       </main>
 
       <BeadInfoPanel />
