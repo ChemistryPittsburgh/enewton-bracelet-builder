@@ -4,7 +4,7 @@ import { useStore } from "@/lib/store";
 import { usedArc, braceletArc } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
-export function BraceletInfoBar() {
+export function CanvasStatsBar() {
   const { placedBeads, braceletSize } = useStore((s) => ({
     placedBeads: s.beads,
     braceletSize: s.braceletSize,
@@ -27,7 +27,7 @@ export function BraceletInfoBar() {
   return (
     <div className="absolute left-4 bottom-4 right-4 z-40 flex items-center justify-center">
       <div className="bg-white/80 backdrop-blur-sm shadow-sm rounded-2xl flex items-center p-4 m-auto gap-4">
-        <Stat label="Available" value={`${remainingMm.toFixed(1)}mm / ${totalMm.toFixed(0)}mm`} />
+        <Stat label="Available" value={`${remainingMm.toFixed(0)}mm / ${totalMm.toFixed(0)}mm`} />
         <Stat label="Fit" value={`${percentUsed.toFixed(0)}% used`} />
         <Stat label="Items" value={`${placedBeads.length} items`} />
         <Stat label="Beads" value={`${String(beadCount)} beads`} />

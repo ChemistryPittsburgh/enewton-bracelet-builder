@@ -7,10 +7,11 @@ import { Check, ChevronsRight } from "lucide-react";
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
-import { BraceletInfoBar } from "./BraceletInfoBar";
 import { BraceletImporter } from "./BraceletImporter";
-import { BraceletPanel } from "./BraceletPanel";
+import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { BeadInfoPanel } from "./BeadInfoPanel";
+
+import { CanvasStatsBar } from "./CanvasStatsBar";
 import { CanvasToolbar } from "./CanvasToolbar";
 
 import { useStore } from "@/lib/store";
@@ -111,7 +112,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
       {/* Scene */}
       <main id="bracelet-scene" className="relative flex-1 overflow-hidden">
 
-        <BraceletPanel
+        <BeadSelectorPanel
           isOpen={braceletPanelOpen}
           onClose={() => setBraceletPanelOpen(false)}
           beads={resolvedBeads}
@@ -127,13 +128,13 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         >
           <button
             onClick={openBraceletPanel}
-            className={`absolute left-0 top-0 bottom-0 z-40 my-auto h-fit rounded-br-lg rounded-tr-lg bg-neutral-700 px-1 py-2 text-white ${braceletPanelOpen ? "open" : ""}`}
+            className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit rounded-br-lg rounded-tr-lg bg-neutral-700 px-1 py-2 text-white ${braceletPanelOpen ? "open" : ""}`}
           >
             <ChevronsRight size={25} />
           </button>
 
           <CanvasToolbar />
-          <BraceletInfoBar />
+          <CanvasStatsBar />
 
           {/* Inner canvas — always full screen width, clipped by parent */}
           <div
