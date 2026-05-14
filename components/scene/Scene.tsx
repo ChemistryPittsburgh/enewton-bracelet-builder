@@ -5,8 +5,9 @@ import { Canvas } from "@react-three/fiber";
 import { CameraControls, Environment, ContactShadows } from "@react-three/drei";
 import { BraceletCord } from "./BraceletCord";
 import { AllBeads } from "./AllBeads";
-import { CameraController } from "./CameraController"; 
+import { CameraController } from "./CameraController";
 import { CameraOffset } from "./CameraOffset";
+import { BeadErrorToast } from "./BeadErrorToast";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
 
 interface SceneProps {
@@ -17,6 +18,7 @@ export function Scene({ panelOpen = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
   return (
     <div className="relative h-full w-full">
+      <BeadErrorToast />
       <Canvas
         camera={{ fov: 50, position: [0, 0.08, 0.06], near: 0.001, far: 5 }}
         gl={{ antialias: true }}

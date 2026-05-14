@@ -54,6 +54,10 @@ interface Store {
   braceletSize: BraceletSize;
   setStringMaterial: (m: StringMaterial) => void;
   setBraceletSize: (s: BraceletSize) => void;
+
+  /** Ephemeral — not persisted. Tracks beads whose GLB failed to load. */
+  beadLoadErrors: { instanceId: string; name: string; filename: string }[];
+  addBeadLoadError: (instanceId: string, name: string, filename: string) => void;
 }
 
 /** Persist the store to localStorage.
@@ -67,6 +71,7 @@ export const useStore = create<Store>()(
       braceletName: "My Bracelet",
       stringMaterial: "cord" as StringMaterial,
       braceletSize: "small" as BraceletSize,
+      beadLoadErrors: [],
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -84,11 +89,12 @@ export const useStore = create<Store>()(
           beads: s.beads.filter((b) => b.instanceId !== instanceId),
           selectedBead:
             s.selectedBead?.instanceId === instanceId ? null : s.selectedBead,
+          beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
         }));
       },
 
       clearBeads() {
-        set({ beads: [], selectedBead: null });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [] });
       },
 
       selectBead(bead) {
@@ -117,6 +123,13 @@ export const useStore = create<Store>()(
 
       setStringMaterial: (stringMaterial) => set({ stringMaterial }),
       setBraceletSize: (braceletSize) => set({ braceletSize }),
+
+      addBeadLoadError(instanceId, name, filename) {
+        set((s) => {
+          if (s.beadLoadErrors.some((e) => e.instanceId === instanceId)) return s;
+          return { beadLoadErrors: [...s.beadLoadErrors, { instanceId, name, filename }] };
+        });
+      },
     }),
     {
       name: "enewton-beads",

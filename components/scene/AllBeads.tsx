@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useStore } from "@/lib/store";
 import { BeadOnBracelet } from "./BeadOnBracelet";
+import { BeadErrorBoundary } from "./BeadErrorBoundary";
 
 export function AllBeads() {
   const beads = useStore((s) => s.beads);
@@ -10,9 +11,11 @@ export function AllBeads() {
   return (
     <group name="all-beads">
       {beads.map((bead, index) => (
-        <Suspense key={bead.instanceId} fallback={null}>
-          <BeadOnBracelet bead={bead} slotIndex={index} />
-        </Suspense>
+        <BeadErrorBoundary key={bead.instanceId} bead={bead} slotIndex={index}>
+          <Suspense fallback={null}>
+            <BeadOnBracelet bead={bead} slotIndex={index} />
+          </Suspense>
+        </BeadErrorBoundary>
       ))}
     </group>
   );
