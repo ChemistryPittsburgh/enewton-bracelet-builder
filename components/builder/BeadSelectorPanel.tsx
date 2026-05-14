@@ -11,10 +11,46 @@ import { StringDetailsSelector } from "./StringDetailsSelector";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 
+import Image from 'next/image';
+
 interface BeadSelectorPanelProps {
   beads: BeadProduct[];
   isOpen: boolean;
   onClose: () => void;
+}
+
+
+function BeadThumbnail({ bead }: { bead: BeadProduct }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed || bead.beadType == null) {
+    return (
+      <>
+      <div
+        className="rounded-full"
+        style={{
+          width: circlePx,
+          height: circlePx,
+          background: "radial-gradient(circle at 35% 35%, #f5d87e, #c8980a)",
+        }}
+      >
+          <Plus size={16} />
+        </div>
+      </>
+    );
+  } else {
+    const src = `/images/${bead.id.toLowerCase()}-thumbnail.png`;
+    return (
+      <img
+        src={src}
+        alt={bead.name}
+        width={64}
+        height={64}
+        className="h-auto max-w-[30px]"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
 }
 
 function BeadCard({ bead, selected, onClick }: {
@@ -32,14 +68,7 @@ function BeadCard({ bead, selected, onClick }: {
           : "border-neutral-200 bg-white hover:border-neutral-400"
       }`}
     >
-      <div
-        className="rounded-full"
-        style={{
-          width: circlePx,
-          height: circlePx,
-          background: "radial-gradient(circle at 35% 35%, #f5d87e, #c8980a)",
-        }}
-      />
+      <BeadThumbnail bead={bead} />
       <span className="text-[11px] text-neutral-500">{size} mm</span>
     </button>
   );
@@ -195,10 +224,15 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
 
         {/* Bottom bar */}
         <div className="shrink-0 border-t border-neutral-100 px-5 pt-4 pb-5 space-y-3">
+
+          <p className="text-[12px] tracking-wider uppercase font-bold text-neutral-500 mb-1">
+            {selectedBead?.name ? "Item Selected" : "Select a bead"}
+          </p>
+
           <div className="flex items-center gap-3">
 
             {/* Preview */}
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50">
+            {/*<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50">
               {selectedBead ? (
                 <div
                   className="rounded-full"
@@ -211,20 +245,20 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
               ) : (
                 <div className="h-4 w-4 rounded-full bg-neutral-200" />
               )}
-            </div>
+            </div>*/}
 
-            {/* Name + size */}
+            {/* Bead name + size */}
             <div className="flex-1 min-w-0">
-              <p className="truncate text-xs font-medium text-neutral-800">
-                {selectedBead?.name ?? "Select a bead"}
+              <p className="truncate text-[15px] font-medium text-neutral-800">
+                {selectedBead?.beadType ?? ""}
               </p>
-              <p className="text-[11px] text-neutral-400">
+              <p className="text-[12px] text-neutral-500">
                 {selectedBead?.sizeMm ? `${selectedBead.sizeMm}mm` : "—"}
               </p>
             </div>
 
-            {/* Fill full */}
-            <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-neutral-600">
+            {/* Fill entire bracelet checkbox */}
+            <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-neutral-600 mr-1">
               <input
                 type="checkbox"
                 checked={fillFull}
@@ -234,7 +268,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
               Fill full bracelet?
             </label>
 
-            {/* Quantity */}
+            {/* Quantity input */}
             {!fillFull && (
               <div className="flex shrink-0 items-center gap-1.5 text-xs text-neutral-600">
                 <span>Quantity</span>
