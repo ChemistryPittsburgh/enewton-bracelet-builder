@@ -257,30 +257,34 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
               </p>
             </div>
 
-            {/* Fill entire bracelet checkbox */}
-            <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-neutral-600 mr-1">
-              <input
-                type="checkbox"
-                checked={fillFull}
-                onChange={(e) => setFillFull(e.target.checked)}
-                className="rounded"
-              />
-              Fill full bracelet?
-            </label>
-
-            {/* Quantity input */}
-            {!fillFull && (
-              <div className="flex shrink-0 items-center gap-1.5 text-xs text-neutral-600">
-                <span>Quantity</span>
+            { selectedBead && (
+              <>
+              {/* Fill entire bracelet checkbox */}
+              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-neutral-600 mr-1">
                 <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, Math.min(20, Number(e.target.value))))}
-                  className="w-14 rounded border border-neutral-200 px-2 py-1.5 text-center text-sm outline-none focus:border-neutral-400"
+                  type="checkbox"
+                  checked={fillFull}
+                  onChange={(e) => setFillFull(e.target.checked)}
+                  className="form-checkbox rounded-xs w-4 h-4 bg-neutral-200 border-none text-amber-600 focus:ring-neutral-600 focus:ring-1"
                 />
-              </div>
+                Fill full bracelet?
+              </label>
+
+              {/* Quantity input */}
+              {!fillFull && (
+                <div className="flex shrink-0 items-center gap-1.5 text-xs text-neutral-600">
+                  <span>Quantity</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Math.min(20, Number(e.target.value))))}
+                    className="w-14 rounded border border-neutral-200 px-2 py-1.5 text-center text-sm outline-none focus:border-neutral-400"
+                  />
+                </div>
+              )}
+              </>
             )}
           </div>
 
