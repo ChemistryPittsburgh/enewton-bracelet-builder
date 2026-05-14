@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { ThreeEvent } from "@react-three/fiber";
 import type { PlacedBead } from "@/types";
@@ -12,6 +12,7 @@ import {
 } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { cloneShared } from "@/lib/measure-bead";
 
 interface BeadOnBraceletProps {
   bead: PlacedBead;
@@ -20,7 +21,7 @@ interface BeadOnBraceletProps {
 
 export function BeadOnBracelet({ bead, slotIndex }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glbPath);
-  const cloned = useRef(scene.clone(true)).current;
+  const cloned = useMemo(() => cloneShared(scene), [scene]);
   const { selectBead, selectedBead, beads, braceletSize } = useStore((s) => ({
     selectBead: s.selectBead,
     selectedBead: s.selectedBead,

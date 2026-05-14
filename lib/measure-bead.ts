@@ -57,3 +57,24 @@ export async function measureAllBeads(
   await Promise.all(glbPaths.map(measureBeadDiameter));
   return cache;
 }
+
+/**
+ * Structural clone: new Object3D nodes per instance (required for independent
+ * transforms) but meshes share the source's geometry and material objects.
+ * Use instead of scene.clone(true) when the same GLB appears multiple times —
+ * geometry/material JS wrappers are deduplicated while GPU memory stays shared.
+ */
+export function cloneShared(source: THREE.Object3D): THREE.Object3D {
+  const clone = source.clone(false);
+
+  if (source instanceof THREE.Mesh) {
+    (clone as THREE.Mesh).geometry = source.geometry;
+    (clone as THREE.Mesh).material = source.material;
+  }
+
+  source.children.forEach((child) => {
+    clone.add(cloneShared(child));
+  });
+
+  return clone;
+}
