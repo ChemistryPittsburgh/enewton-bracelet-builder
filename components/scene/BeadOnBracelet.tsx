@@ -49,7 +49,7 @@ export function BeadOnBracelet({ bead, slotIndex }: BeadOnBraceletProps) {
         <primitive object={cloned} />
         {/* Invisible slightly-larger hit area so small beads are easy to tap */}
         <mesh visible={false}>
-          <sphereGeometry args={[(bead.product.diameter ?? 0.006) * 0.9, 8, 8]} />
+          <sphereGeometry args={[bead.product.diameter * 0.9, 8, 8]} />
         </mesh>
         {/* Selection highlight ring */}
         {isSelected && (

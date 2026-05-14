@@ -60,7 +60,7 @@ export const useStore = create<Store>()(
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
-        if (!beadFits(get().beads, product.diameter ?? 0.01, radius)) {
+        if (!beadFits(get().beads, product.diameter, radius)) {
           return "Bracelet is full — no room for that bead.";
         }
         set((s) => ({
