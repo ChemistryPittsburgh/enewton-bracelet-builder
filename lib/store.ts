@@ -13,6 +13,13 @@ import type { BeadProduct, PlacedBead, StringMaterial, BraceletSize } from "@/ty
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
+type PersistedState = {
+  beads?: PlacedBead[];
+  braceletName?: string;
+  stringMaterial?: string;
+  braceletSize?: string;
+};
+
 interface Store {
   beads: PlacedBead[];
   braceletName: string;
@@ -49,6 +56,9 @@ interface Store {
   setBraceletSize: (s: BraceletSize) => void;
 }
 
+/** Persist the store to localStorage.
+ * If fields change be sure to update the migrate function to convert the old data to the new format.
+*/
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
@@ -111,7 +121,18 @@ export const useStore = create<Store>()(
     {
       name: "enewton-beads",
       storage: createJSONStorage(() => localStorage),
-      // Only persist the bead list — panel always starts closed
+      version: 1,
+      migrate(persistedState: unknown, fromVersion: number) {
+        const s = (persistedState ?? {}) as PersistedState;
+        if (fromVersion < 1) {
+          // Fix "chord" typo stored before the key was corrected to "cord"
+          if (s.stringMaterial === "chord") s.stringMaterial = "cord";
+          // Fields added in v1 — supply defaults if absent in old snapshots
+          s.stringMaterial ??= "cord";
+          s.braceletSize   ??= "small";
+        }
+        return s;
+      },
       partialize: (s) => ({
         beads: s.beads,
         braceletName: s.braceletName,
