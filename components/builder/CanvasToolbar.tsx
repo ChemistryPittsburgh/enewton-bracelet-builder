@@ -24,32 +24,14 @@ export function CanvasToolbar() {
       {/* Main toolbar row */}
       <div className="flex justify-between pointer-events-auto bg-white shadow-sm">
 
-        {/* Left — Undo / Redo */}
-        <div className="flex items-center divide-x divide-neutral-200 m-0 overflow-hidden">
-          <button
-            disabled
-            className="flex items-center border-r border-neutral-200 justify-center px-5 py-4 text-neutral-500 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            aria-label="Undo"
-          >
-            <Undo2 size={24} />
-          </button>
-          <button
-            disabled
-            className="flex items-center border-r border-neutral-200 justify-center px-5 py-4 text-neutral-500 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            aria-label="Redo"
-          >
-            <Redo2 size={24} />
-          </button>
-        </div>
-
         {/* Centre — 3D / Line toggle */}
-        <div className="flex items-center">
+        <div className="flex items-center justify-center py-3 flex-1">
           <div className="flex rounded-xl border border-neutral-200 bg-white min-w-[140px] overflow-hidden">
             {(["3D", "Line"] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-5 py-1.5 flex-1 text-sm font-semibold transition-all ${
+                className={`px-5 py-2 flex-1 text-sm font-semibold transition-all ${
                   viewMode === mode
                     ? "bg-neutral-600 text-white"
                     : "text-neutral-500 hover:text-neutral-700"
