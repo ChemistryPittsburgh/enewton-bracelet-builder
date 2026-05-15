@@ -12,9 +12,10 @@ export function BraceletInfoBar() {
 
   const maxArc = braceletArc(BRACELET_SIZE_RADIUS[braceletSize]);
   const arcUsed = usedArc(placedBeads);
-  const percentUsed = Math.min((arcUsed / maxArc) * 100, 100);
+  const arcUsedMm = arcUsed * 1000;
   const totalMm = Math.max(maxArc * 1000, 0);
-  const remainingMm = Math.max((maxArc - arcUsed) * 1000, 0);
+  const percentUsed = Math.min((arcUsed / maxArc) * 100, 100);
+  const remainingMm = Math.max(totalMm - arcUsedMm, 0);
 
   const beadCount = placedBeads.filter(
     (b) => b.product.beadCategory === "bead"
