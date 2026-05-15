@@ -13,6 +13,13 @@ import type { BeadProduct, PlacedBead, StringMaterial, BraceletSize } from "@/ty
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
+type PersistedState = {
+  beads?: PlacedBead[];
+  braceletName?: string;
+  stringMaterial?: string;
+  braceletSize?: string;
+};
+
 interface Store {
   beads: PlacedBead[];
   braceletName: string;
@@ -47,8 +54,15 @@ interface Store {
   braceletSize: BraceletSize;
   setStringMaterial: (m: StringMaterial) => void;
   setBraceletSize: (s: BraceletSize) => void;
+
+  /** Ephemeral — not persisted. Tracks beads whose GLB failed to load. */
+  beadLoadErrors: { instanceId: string; name: string; filename: string }[];
+  addBeadLoadError: (instanceId: string, name: string, filename: string) => void;
 }
 
+/** Persist the store to localStorage.
+ * If fields change be sure to update the migrate function to convert the old data to the new format.
+*/
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
@@ -57,10 +71,11 @@ export const useStore = create<Store>()(
       braceletName: "My Bracelet",
       stringMaterial: "cord" as StringMaterial,
       braceletSize: "small" as BraceletSize,
+      beadLoadErrors: [],
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
-        if (!beadFits(get().beads, product.diameter ?? 0.01, radius)) {
+        if (!beadFits(get().beads, product.diameter, radius)) {
           return "Bracelet is full — no room for that bead.";
         }
         set((s) => ({
@@ -74,11 +89,12 @@ export const useStore = create<Store>()(
           beads: s.beads.filter((b) => b.instanceId !== instanceId),
           selectedBead:
             s.selectedBead?.instanceId === instanceId ? null : s.selectedBead,
+          beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
         }));
       },
 
       clearBeads() {
-        set({ beads: [], selectedBead: null });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [] });
       },
 
       selectBead(bead) {
@@ -107,11 +123,29 @@ export const useStore = create<Store>()(
 
       setStringMaterial: (stringMaterial) => set({ stringMaterial }),
       setBraceletSize: (braceletSize) => set({ braceletSize }),
+
+      addBeadLoadError(instanceId, name, filename) {
+        set((s) => {
+          if (s.beadLoadErrors.some((e) => e.instanceId === instanceId)) return s;
+          return { beadLoadErrors: [...s.beadLoadErrors, { instanceId, name, filename }] };
+        });
+      },
     }),
     {
       name: "enewton-beads",
       storage: createJSONStorage(() => localStorage),
-      // Only persist the bead list — panel always starts closed
+      version: 1,
+      migrate(persistedState: unknown, fromVersion: number) {
+        const s = (persistedState ?? {}) as PersistedState;
+        if (fromVersion < 1) {
+          // Fix "chord" typo stored before the key was corrected to "cord"
+          if (s.stringMaterial === "chord") s.stringMaterial = "cord";
+          // Fields added in v1 — supply defaults if absent in old snapshots
+          s.stringMaterial ??= "cord";
+          s.braceletSize   ??= "small";
+        }
+        return s;
+      },
       partialize: (s) => ({
         beads: s.beads,
         braceletName: s.braceletName,

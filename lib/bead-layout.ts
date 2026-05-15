@@ -77,7 +77,7 @@ export function getBeadAngle(
   return angle;
 }
 
-export function getBeadOuterRotationY(angle: number): number {
+function getBeadOuterRotationY(angle: number): number {
   return -angle;
 }
 
@@ -90,5 +90,22 @@ export function getBeadPosition(angle: number, radius = BRACELET_RADIUS): [numbe
 }
 
 /** Tilt applied to the inner group — lays the bead on its side. */
-//export const BEAD_INNER_TILT_X = Math.PI / 2;
-export const BEAD_INNER_TILT_X = 0;
+const BEAD_INNER_TILT_X = 0;
+
+/** Returns the complete transform for a bead at the given slot. */
+export function getBeadTransform(
+  slotIndex: number,
+  beads: { product: { diameter: number } }[],
+  radius = BRACELET_RADIUS
+): {
+  position: [number, number, number];
+  outerRotation: [number, number, number];
+  innerRotation: [number, number, number];
+} {
+  const angle = getBeadAngle(slotIndex, beads, radius);
+  return {
+    position: getBeadPosition(angle, radius),
+    outerRotation: [0, getBeadOuterRotationY(angle), 0],
+    innerRotation: [BEAD_INNER_TILT_X, 0, 0],
+  };
+}

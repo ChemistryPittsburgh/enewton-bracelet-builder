@@ -12,6 +12,8 @@ export function useBraceletExport() {
 
   const maxArc = braceletArc(BRACELET_SIZE_RADIUS[braceletSize]);
   const arcUsed = usedArc(storedBeads);
+  const arcUsedMm = arcUsed * 1000;
+  const maxArcMm = maxArc * 1000;
   const percentUsed = Math.min((arcUsed / maxArc) * 100, 100);
 
   return function handleExport() {
@@ -19,8 +21,8 @@ export function useBraceletExport() {
       exportedAt: new Date().toISOString(),
       bracelet: {
         name: braceletName,
-        arcUsedMm: (arcUsed * 1000).toFixed(2),
-        arcTotalMm: (maxArc * 1000).toFixed(2),
+        arcUsedMm: arcUsedMm.toFixed(2),
+        arcTotalMm: maxArcMm.toFixed(2),
         percentUsed: percentUsed.toFixed(1),
         beadCount: storedBeads.length,
       },

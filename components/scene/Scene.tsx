@@ -5,9 +5,18 @@ import { Canvas } from "@react-three/fiber";
 import { CameraControls, Environment, ContactShadows } from "@react-three/drei";
 import { BraceletCord } from "./BraceletCord";
 import { AllBeads } from "./AllBeads";
-import { CameraController } from "./CameraController"; 
+import { CameraController } from "./CameraController";
 import { CameraOffset } from "./CameraOffset";
+import { BeadErrorToast } from "./BeadErrorToast";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
+import {
+  CAMERA_FOV,
+  CAMERA_DEFAULT_POSITION,
+  CAMERA_NEAR,
+  CAMERA_FAR,
+  CAMERA_MIN_DISTANCE,
+  CAMERA_MAX_DISTANCE,
+} from "@/lib/constants";
 
 interface SceneProps {
   panelOpen?: boolean;
@@ -17,8 +26,9 @@ export function Scene({ panelOpen = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
   return (
     <div className="relative h-full w-full">
+      <BeadErrorToast />
       <Canvas
-        camera={{ fov: 50, position: [0, 0.08, 0.06], near: 0.001, far: 5 }}
+        camera={{ fov: CAMERA_FOV, position: CAMERA_DEFAULT_POSITION, near: CAMERA_NEAR, far: CAMERA_FAR }}
         gl={{ antialias: true }}
         shadows
         dpr={[1, 2]}
@@ -45,8 +55,8 @@ export function Scene({ panelOpen = false }: SceneProps) {
         <CameraOffset panelOpen={panelOpen} panelWidth={PANEL_WIDTH} />
         <CameraControls
           ref={controlsRef}
-          minDistance={0.04}
-          maxDistance={0.18}
+          minDistance={CAMERA_MIN_DISTANCE}
+          maxDistance={CAMERA_MAX_DISTANCE}
         />
       </Canvas>
     </div>

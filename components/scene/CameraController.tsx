@@ -3,6 +3,12 @@
 import { useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { getBeadAngle, getBeadPosition } from "@/lib/bead-layout";
+import {
+  CAMERA_DEFAULT_POSITION,
+  ZOOM_BEAD_X_MULTIPLIER,
+  ZOOM_BEAD_Y_OFFSET,
+  ZOOM_BEAD_Z_MULTIPLIER,
+} from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
 
 interface CameraControllerProps {
@@ -29,21 +35,17 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       const angle = getBeadAngle(index, beads);
       const [x, y, z] = getBeadPosition(angle);
 
-      // Zoom into the bead — pull camera close and look directly at it
       controls.setLookAt(
-        x * 3.5,  // camera position — same direction as bead, pulled back a bit
-        y + 0.015,
-        z * 2.5,
-        x,        // look-at target — the bead itself
-        y,
-        z,
-        true      // animate = true
+        x * ZOOM_BEAD_X_MULTIPLIER,
+        y + ZOOM_BEAD_Y_OFFSET,
+        z * ZOOM_BEAD_Z_MULTIPLIER,
+        x, y, z,
+        true
       );
     } else {
-      // Zoom back out to the default view
       controls.setLookAt(
-        0, 0.08, 0.06,  // default camera position
-        0, 0, 0,         // look at bracelet centre
+        ...CAMERA_DEFAULT_POSITION,
+        0, 0, 0,
         true
       );
     }
