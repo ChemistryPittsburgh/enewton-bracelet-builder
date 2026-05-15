@@ -50,6 +50,12 @@ interface Store {
   /** Move a bead from one index to another — drives the reorder panel. **/
   reorderBeads: (fromIndex: number, toIndex: number) => void;
 
+  /** Insert a copy of the bead immediately after it. No-op if bracelet is full. */
+  duplicateBead: (instanceId: string) => void;
+
+  /** Reverse the entire bead order. */
+  reverseBracelet: () => void;
+
   stringMaterial: StringMaterial;
   braceletSize: BraceletSize;
   setStringMaterial: (m: StringMaterial) => void;
@@ -58,6 +64,18 @@ interface Store {
   /** Ephemeral — not persisted. Tracks beads whose GLB failed to load. */
   beadLoadErrors: { instanceId: string; name: string; filename: string }[];
   addBeadLoadError: (instanceId: string, name: string, filename: string) => void;
+
+  /** Ephemeral — not persisted. Bead selected inside edit mode — drives EditModeToolbar only. */
+  editSelectedBead: PlacedBead | null;
+  setEditSelectedBead: (bead: PlacedBead | null) => void;
+
+  /** Ephemeral — not persisted. True when the canvas is in drag-to-reorder edit mode. */
+  isEditMode: boolean;
+  toggleEditMode: () => void;
+
+  /** Ephemeral — not persisted. Which camera view is active in edit mode. */
+  editViewMode: 'top' | 'side';
+  toggleEditViewMode: () => void;
 }
 
 /** Persist the store to localStorage.
@@ -72,6 +90,9 @@ export const useStore = create<Store>()(
       stringMaterial: "cord" as StringMaterial,
       braceletSize: "small" as BraceletSize,
       beadLoadErrors: [],
+      isEditMode: false,
+      editSelectedBead: null,
+      editViewMode: 'top' as const,
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -89,6 +110,8 @@ export const useStore = create<Store>()(
           beads: s.beads.filter((b) => b.instanceId !== instanceId),
           selectedBead:
             s.selectedBead?.instanceId === instanceId ? null : s.selectedBead,
+          editSelectedBead:
+            s.editSelectedBead?.instanceId === instanceId ? null : s.editSelectedBead,
           beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
         }));
       },
@@ -121,8 +144,36 @@ export const useStore = create<Store>()(
         });
       },
 
+      duplicateBead(instanceId) {
+        const { beads, braceletSize } = get();
+        const index = beads.findIndex((b) => b.instanceId === instanceId);
+        if (index === -1) return;
+        const bead = beads[index];
+        const radius = BRACELET_SIZE_RADIUS[braceletSize];
+        if (bead.product.diameter === undefined) return;
+        if (!beadFits(beads, bead.product.diameter, radius)) return;
+        const copy: PlacedBead = { instanceId: nanoid(), product: bead.product };
+        set({ beads: [...beads.slice(0, index + 1), copy, ...beads.slice(index + 1)] });
+      },
+
+      reverseBracelet() {
+        set((s) => ({ beads: [...s.beads].reverse() }));
+      },
+
       setStringMaterial: (stringMaterial) => set({ stringMaterial }),
       setBraceletSize: (braceletSize) => set({ braceletSize }),
+
+      setEditSelectedBead(bead) {
+        set({ editSelectedBead: bead });
+      },
+
+      toggleEditMode() {
+        set((s) => ({ isEditMode: !s.isEditMode, selectedBead: null, editSelectedBead: null, editViewMode: 'top' }));
+      },
+
+      toggleEditViewMode() {
+        set((s) => ({ editViewMode: s.editViewMode === 'top' ? 'side' : 'top' }));
+      },
 
       addBeadLoadError(instanceId, name, filename) {
         set((s) => {

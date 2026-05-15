@@ -13,10 +13,15 @@
  */
 
 import { useState } from "react";
-import { Undo2, Redo2, Pencil, Eye, ChevronDown } from "lucide-react";
+import { Pencil } from "lucide-react";
+import { useStore } from "@/lib/store";
 
 export function CanvasToolbar() {
   const [viewMode, setViewMode] = useState<"3D" | "Line">("3D");
+  const { isEditMode, toggleEditMode } = useStore((s) => ({
+    isEditMode: s.isEditMode,
+    toggleEditMode: s.toggleEditMode,
+  }));
 
   return (
     <div className="flex flex-col gap-2 pointer-events-none relative z-20">
@@ -45,9 +50,14 @@ export function CanvasToolbar() {
 
         {/* Right — Edit */}
         <button
-            className="flex border-l min-w-[70px] border-neutral-200 items-center justify-center px-3 py-2.5 text-neutral-500 hover:bg-neutral-100 transition-colors"
-            aria-label="Edit"
-          >
+          onClick={toggleEditMode}
+          className={`flex border-l min-w-[70px] border-neutral-200 items-center justify-center px-3 py-2.5 transition-colors ${
+            isEditMode
+              ? "bg-blue-50 text-blue-600"
+              : "text-neutral-500 hover:bg-neutral-100"
+          }`}
+          aria-label={isEditMode ? "Exit edit mode" : "Edit bead order"}
+        >
           <Pencil size={24} />
         </button>
 

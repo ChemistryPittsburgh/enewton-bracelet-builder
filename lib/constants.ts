@@ -23,6 +23,14 @@ export const BRACELET_SIZES: { value: BraceletSize; label: string }[] = [
   { value: "large",   label: "7.25" },
 ];
 
+// ─── Scene ────────────────────────────────────────────────────────────────────
+
+/** Default canvas background colour. */
+export const SCENE_BACKGROUND = "#f5f0eb";
+
+/** Canvas background colour when edit mode is active. */
+export const EDIT_MODE_BACKGROUND = "#dbeafe";
+
 // ─── Camera ───────────────────────────────────────────────────────────────────
 
 /** Camera field of view in degrees. */
@@ -51,6 +59,12 @@ export const ZOOM_BEAD_Z_MULTIPLIER = 2.5;
 
 /** Vertical offset added to the camera Y when zooming in to a bead, in metres. */
 export const ZOOM_BEAD_Y_OFFSET = 0.015;
+
+/** Camera Y height for the top-down edit mode view, in metres. */
+export const CAMERA_EDIT_HEIGHT = 0.12;
+
+/** Camera position for the side/angled edit mode view — lower and further forward than the default. */
+export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.09];
 
 // ─── Cord ─────────────────────────────────────────────────────────────────────
 

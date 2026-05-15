@@ -13,6 +13,7 @@ import { BeadInfoPanel } from "./BeadInfoPanel";
 
 import { CanvasStatsBar } from "./CanvasStatsBar";
 import { CanvasToolbar } from "./CanvasToolbar";
+import { EditModeToolbar } from "./EditModeToolbar";
 
 import { useStore } from "@/lib/store";
 import { measureBeadDiameter } from "@/lib/measure-bead";
@@ -135,6 +136,11 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
 
           <CanvasToolbar />
           <CanvasStatsBar />
+
+          {/* Edit mode action toolbar — floats upper-right over canvas */}
+          <div className="absolute top-20 right-4 z-20 pointer-events-none shadow-sm rounded-lg">
+            <EditModeToolbar />
+          </div>
 
           {/* Inner canvas — always full screen width, clipped by parent */}
           <div
