@@ -23,6 +23,37 @@ export const BRACELET_SIZES: { value: BraceletSize; label: string }[] = [
   { value: "large",   label: "7.25" },
 ];
 
+// ─── Camera ───────────────────────────────────────────────────────────────────
+
+/** Camera field of view in degrees. */
+export const CAMERA_FOV = 50;
+
+/** Default world position [x, y, z] — used for both the Canvas initial camera and the zoom-out target. */
+export const CAMERA_DEFAULT_POSITION: [number, number, number] = [0, 0.08, 0.06];
+
+/** Near clipping plane in metres — keep small to avoid z-fighting at bracelet scale. */
+export const CAMERA_NEAR = 0.001;
+
+/** Far clipping plane in metres. */
+export const CAMERA_FAR = 5;
+
+/** Minimum scroll-zoom distance from bracelet centre, in metres. */
+export const CAMERA_MIN_DISTANCE = 0.04;
+
+/** Maximum scroll-zoom distance from bracelet centre, in metres. */
+export const CAMERA_MAX_DISTANCE = 0.18;
+
+/** Camera X pulled this many times further from the bead than the bead itself when zooming in. */
+export const ZOOM_BEAD_X_MULTIPLIER = 3.5;
+
+/** Camera Z pulled this many times further from the bead than the bead itself when zooming in. */
+export const ZOOM_BEAD_Z_MULTIPLIER = 2.5;
+
+/** Vertical offset added to the camera Y when zooming in to a bead, in metres. */
+export const ZOOM_BEAD_Y_OFFSET = 0.015;
+
+// ─── Cord ─────────────────────────────────────────────────────────────────────
+
 /** Visual properties for the cord torus mesh, keyed by string material.
  *  color      — hex base colour of the cord
  *  roughness  — 0 (mirror) → 1 (fully diffuse)
