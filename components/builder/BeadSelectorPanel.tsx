@@ -10,6 +10,7 @@ import { StringDetailsSelector } from "./StringDetailsSelector";
 
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
+import { Plus } from "lucide-react";
 
 import Image from 'next/image';
 
@@ -29,8 +30,8 @@ function BeadThumbnail({ bead }: { bead: BeadProduct }) {
       <div
         className="rounded-full"
         style={{
-          width: circlePx,
-          height: circlePx,
+          width: "30px",
+          height: "30px",
           background: "radial-gradient(circle at 35% 35%, #f5d87e, #c8980a)",
         }}
       >
@@ -44,9 +45,8 @@ function BeadThumbnail({ bead }: { bead: BeadProduct }) {
       <img
         src={src}
         alt={bead.name}
-        width={64}
-        height={64}
-        className="h-auto max-w-[30px]"
+        width={38}
+        height="auto"
         onError={() => setFailed(true)}
       />
     );
@@ -62,14 +62,19 @@ function BeadCard({ bead, selected, onClick }: {
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-2 rounded-xl border py-4 transition-all ${
+      className={`flex flex-col gap-1 rounded-md border transition-all overflow-hidden ${
         selected
-          ? "border-neutral-800 bg-neutral-50 shadow-sm"
+          ? "outline-yellow-600 outline-2 border-yellow-600 bg-neutral-50 shadow-sm"
           : "border-neutral-200 bg-white hover:border-neutral-400"
       }`}
     >
-      <BeadThumbnail bead={bead} />
-      <span className="text-[11px] text-neutral-500">{size} mm</span>
+      <div className="bg-neutral-100 p-2 min-h-[55px] w-full items-center flex justify-center">
+        <BeadThumbnail bead={bead} />
+      </div>
+      <div className="flex flex-col pt-[2px] pb-2 text-left px-2">
+        <span className="text-[12px] text-neutral-800">{bead.beadType}</span>
+        <span className="text-[10px] leading-tight text-neutral-500">{size}mm</span>
+      </div>
     </button>
   );
 }
@@ -191,11 +196,13 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
         {/* Type dropdown */}
         <div className="px-5 pb-4">
           <select
+            id="bead-type-select"
+            aria-label="Filter Beads by Bead Type"
             value={activeType}
             onChange={(e) => setActiveType(e.target.value)}
-            className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-600 outline-none focus:border-neutral-400"
+            className="rounded-lg border border-neutral-200 bg-white px-3 py-2 pr-6 min-w-[150px] text-sm text-neutral-600 outline-none focus:border-neutral-400"
           >
-            <option value="">Filter type</option>
+            <option value="">Filter by type</option>
             {beadTypes.map((type) => (
               <option key={type} value={type}>{type}</option>
             ))}
@@ -203,7 +210,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
         </div>
 
         {/* Bead grid */}
-        <div className="flex-1 overflow-y-auto px-5 pb-4">
+        <div className="flex-1 overflow-y-auto px-5 pb-4 overflow-visible">
           {filteredBeads.length === 0 ? (
             <p className="text-xs text-neutral-400 text-center py-8">
               No beads match your filters.
@@ -265,7 +272,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
                   type="checkbox"
                   checked={fillFull}
                   onChange={(e) => setFillFull(e.target.checked)}
-                  className="form-checkbox rounded-xs w-4 h-4 bg-neutral-200 border-none text-amber-600 focus:ring-neutral-600 focus:ring-1"
+                  className="form-checkbox rounded-xs w-4 h-4 bg-neutral-200 border-none text-yellow-600 focus:ring-neutral-600 focus:ring-1"
                 />
                 Fill full bracelet?
               </label>
