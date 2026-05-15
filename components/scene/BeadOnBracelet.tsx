@@ -4,12 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { ThreeEvent } from "@react-three/fiber";
 import type { PlacedBead } from "@/types";
-import {
-  getBeadAngle,
-  getBeadPosition,
-  getBeadOuterRotationY,
-  BEAD_INNER_TILT_X,
-} from "@/lib/bead-layout";
+import { getBeadTransform } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { cloneShared } from "@/lib/measure-bead";
@@ -31,9 +26,7 @@ export function BeadOnBracelet({ bead, slotIndex }: BeadOnBraceletProps) {
 
   const isSelected = selectedBead?.instanceId === bead.instanceId;
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
-  const angle = getBeadAngle(slotIndex, beads, radius);
-  const position = getBeadPosition(angle, radius);
-  const outerRotY = getBeadOuterRotationY(angle);
+  const { position, outerRotation, innerRotation } = getBeadTransform(slotIndex, beads, radius);
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
@@ -45,8 +38,8 @@ export function BeadOnBracelet({ bead, slotIndex }: BeadOnBraceletProps) {
      * TWO nested groups for correct bead orientation.
      * See bead-layout.ts getBeadOuterRotationY for the full explanation.
      */
-    <group position={position} rotation={[0, outerRotY, 0]} onClick={handleClick}>
-      <group rotation={[BEAD_INNER_TILT_X, 0, 0]} dispose={null}>
+    <group position={position} rotation={outerRotation} onClick={handleClick}>
+      <group rotation={innerRotation} dispose={null}>
         <primitive object={cloned} />
         {/* Invisible slightly-larger hit area so small beads are easy to tap */}
         <mesh visible={false}>
