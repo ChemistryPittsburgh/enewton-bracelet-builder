@@ -50,17 +50,13 @@ interface Store {
   /** Move a bead from one index to another — drives the reorder panel. **/
   reorderBeads: (fromIndex: number, toIndex: number) => void;
 
-<<<<<<< HEAD
   /** Insert a copy of the bead immediately after it. No-op if bracelet is full. */
   duplicateBead: (instanceId: string) => void;
 
   /** Reverse the entire bead order. */
   reverseBracelet: () => void;
 
-  stringMaterial: StringMaterial;
-=======
   bandMaterial: BandMaterial;
->>>>>>> origin/main
   braceletSize: BraceletSize;
   setbandMaterial: (m: BandMaterial) => void;
   setBraceletSize: (s: BraceletSize) => void;
