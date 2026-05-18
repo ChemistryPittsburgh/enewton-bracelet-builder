@@ -1,4 +1,4 @@
-import type { StringMaterial, BraceletSize } from "@/types";
+import type { BandMaterial, BraceletSize } from "@/types";
 
 /** Cord centreline radius per bracelet size, derived from wrist circumference in inches.
  *  Formula: (circumference_in * 0.0254) / (2π)  →  metres
@@ -10,7 +10,7 @@ export const BRACELET_SIZE_RADIUS: Record<BraceletSize, number> = {
 };
 
 /** UI label pairs for the string material toggle buttons. */
-export const BRACELET_MATERIALS: { value: StringMaterial; label: string }[] = [
+export const BRACELET_MATERIALS: { value: BandMaterial; label: string }[] = [
   { value: "wire",    label: "Wire" },
   { value: "cord",    label: "Cord" },
   { value: "elastic", label: "Elastic" },
@@ -74,7 +74,7 @@ export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.0
  *  metalness  — 0 (dielectric) → 1 (metal); wire is nearly full metal
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
  */
-export const CORD_MATERIALS: Record<StringMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number }> = {
+export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number }> = {
   wire:    { color: "#c8a97e", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0008 }, // silver-grey, ~1.6 mm diameter
   cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0010 }, // tan/gold, ~2.6 mm diameter
   elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.0004 }, // off-white, ~0.8 mm diameter

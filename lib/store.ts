@@ -9,14 +9,14 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
-import type { BeadProduct, PlacedBead, StringMaterial, BraceletSize } from "@/types";
+import type { BeadProduct, PlacedBead, BandMaterial, BraceletSize } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
 type PersistedState = {
   beads?: PlacedBead[];
   braceletName?: string;
-  stringMaterial?: string;
+  bandMaterial?: string;
   braceletSize?: string;
 };
 
@@ -50,6 +50,7 @@ interface Store {
   /** Move a bead from one index to another — drives the reorder panel. **/
   reorderBeads: (fromIndex: number, toIndex: number) => void;
 
+<<<<<<< HEAD
   /** Insert a copy of the bead immediately after it. No-op if bracelet is full. */
   duplicateBead: (instanceId: string) => void;
 
@@ -57,8 +58,11 @@ interface Store {
   reverseBracelet: () => void;
 
   stringMaterial: StringMaterial;
+=======
+  bandMaterial: BandMaterial;
+>>>>>>> origin/main
   braceletSize: BraceletSize;
-  setStringMaterial: (m: StringMaterial) => void;
+  setbandMaterial: (m: BandMaterial) => void;
   setBraceletSize: (s: BraceletSize) => void;
 
   /** Ephemeral — not persisted. Tracks beads whose GLB failed to load. */
@@ -87,7 +91,7 @@ export const useStore = create<Store>()(
       beads: [],
       selectedBead: null,
       braceletName: "My Bracelet",
-      stringMaterial: "cord" as StringMaterial,
+      bandMaterial: "cord" as BandMaterial,
       braceletSize: "small" as BraceletSize,
       beadLoadErrors: [],
       isEditMode: false,
@@ -160,7 +164,7 @@ export const useStore = create<Store>()(
         set((s) => ({ beads: [...s.beads].reverse() }));
       },
 
-      setStringMaterial: (stringMaterial) => set({ stringMaterial }),
+      setbandMaterial: (bandMaterial) => set({ bandMaterial }),
       setBraceletSize: (braceletSize) => set({ braceletSize }),
 
       setEditSelectedBead(bead) {
@@ -190,9 +194,9 @@ export const useStore = create<Store>()(
         const s = (persistedState ?? {}) as PersistedState;
         if (fromVersion < 1) {
           // Fix "chord" typo stored before the key was corrected to "cord"
-          if (s.stringMaterial === "chord") s.stringMaterial = "cord";
+          if (s.bandMaterial === "chord") s.bandMaterial = "cord";
           // Fields added in v1 — supply defaults if absent in old snapshots
-          s.stringMaterial ??= "cord";
+          s.bandMaterial ??= "cord";
           s.braceletSize   ??= "small";
         }
         return s;
@@ -200,7 +204,7 @@ export const useStore = create<Store>()(
       partialize: (s) => ({
         beads: s.beads,
         braceletName: s.braceletName,
-        stringMaterial: s.stringMaterial,
+        bandMaterial: s.bandMaterial,
         braceletSize: s.braceletSize,
       }),
     }

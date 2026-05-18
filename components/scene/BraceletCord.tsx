@@ -18,12 +18,12 @@ import { useStore } from "@/lib/store";
 import { CORD_MATERIALS, BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
 export function BraceletCord() {
-  const { stringMaterial, braceletSize } = useStore((s) => ({
-    stringMaterial: s.stringMaterial,
+  const { bandMaterial, braceletSize } = useStore((s) => ({
+    bandMaterial: s.bandMaterial,
     braceletSize: s.braceletSize,
   }));
-  const mat = CORD_MATERIALS[stringMaterial];
-  const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const mat = CORD_MATERIALS[bandMaterial] ?? CORD_MATERIALS["cord"];
+  const radius = BRACELET_SIZE_RADIUS[braceletSize] ?? BRACELET_SIZE_RADIUS["small"];
 
   return (
     // Rotate 90° on X so the torus lies flat in the XZ plane (Y=0)

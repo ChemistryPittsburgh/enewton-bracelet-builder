@@ -10,6 +10,7 @@ import { PANEL_WIDTH } from "@/components/ui/Panel";
 import { BraceletImporter } from "./BraceletImporter";
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { BeadInfoPanel } from "./BeadInfoPanel";
+import { BandSelector } from "./BandSelector";
 
 import { CanvasStatsBar } from "./CanvasStatsBar";
 import { CanvasToolbar } from "./CanvasToolbar";
@@ -141,6 +142,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
           <div className="absolute top-20 right-4 z-20 pointer-events-none shadow-sm rounded-lg">
             <EditModeToolbar />
           </div>
+          <BandSelector panelOpen={braceletPanelOpen} />
 
           {/* Inner canvas — always full screen width, clipped by parent */}
           <div
