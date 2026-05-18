@@ -210,7 +210,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
         </div>
 
         {/* Bead grid */}
-        <div className="flex-1 overflow-y-auto px-5 pb-4 overflow-visible">
+        <div className="flex-1 px-5 pb-4 overflow-visible">
           {filteredBeads.length === 0 ? (
             <p className="text-xs text-neutral-400 text-center py-8">
               No beads match your filters.

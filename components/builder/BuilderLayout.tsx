@@ -10,6 +10,7 @@ import { PANEL_WIDTH } from "@/components/ui/Panel";
 import { BraceletImporter } from "./BraceletImporter";
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { BeadInfoPanel } from "./BeadInfoPanel";
+import { BandSelector } from "./BandSelector";
 
 import { CanvasStatsBar } from "./CanvasStatsBar";
 import { CanvasToolbar } from "./CanvasToolbar";
@@ -135,6 +136,8 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
 
           <CanvasToolbar />
           <CanvasStatsBar />
+
+          <BandSelector panelOpen={braceletPanelOpen} />
 
           {/* Inner canvas — always full screen width, clipped by parent */}
           <div

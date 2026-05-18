@@ -1,4 +1,4 @@
-export type StringMaterial = "wire" | "cord" | "elastic";
+export type bandMaterial = "wire" | "cord" | "elastic";
 export type BraceletSize =  "x-small" | "small" | "large";
 
 /**
