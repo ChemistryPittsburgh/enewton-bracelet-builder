@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize } from "@/lib/utils";
@@ -18,37 +18,15 @@ interface BeadSelectorPanelProps {
   onClose: () => void;
 }
 
-
 function BeadThumbnail({ bead }: { bead: BeadProduct }) {
-  const [failed, setFailed] = useState(false);
-
-  if (failed || bead.beadType == null) {
+  if (!bead.thumbnailPath) {
     return (
-      <>
-      <div
-        className="rounded-full"
-        style={{
-          width: "30px",
-          height: "30px",
-          background: "radial-gradient(circle at 35% 35%, #f5d87e, #c8980a)",
-        }}
-      >
-          <Plus size={16} />
-        </div>
-      </>
-    );
-  } else {
-    const src = `/images/${bead.id.toLowerCase()}-thumbnail.png`;
-    return (
-      <img
-        src={src}
-        alt={bead.name}
-        width={38}
-        height="auto"
-        onError={() => setFailed(true)}
-      />
+      <div className="absolute inset-0 flex items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
+        <Plus size={16} />
+      </div>
     );
   }
+  return <img src={bead.thumbnailPath} alt={bead.name} width={38} height={38} className="w-full h-full object-contain" />;
 }
 
 function BeadCard({ bead, selected, onClick }: {
@@ -65,9 +43,12 @@ function BeadCard({ bead, selected, onClick }: {
           ? "outline-yellow-600 outline-2 border-yellow-600 bg-neutral-50 shadow-sm"
           : "border-neutral-200 bg-white hover:border-neutral-400"
       }`}
+      data-bead-id={bead.id}
     >
       <div className="bg-neutral-100 p-2 min-h-[55px] w-full items-center flex justify-center">
-        <BeadThumbnail bead={bead} />
+        <div className="relative flex items-center justify-center" style={{ width: 38, height: 38 }}>
+          <BeadThumbnail bead={bead} />
+        </div>
       </div>
       <div className="flex flex-col pt-[2px] pb-2 text-left px-2">
         <span className="text-[12px] text-neutral-800">{bead.beadType}</span>
@@ -208,7 +189,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
         </div>
 
         {/* Bead grid */}
-        <div className="flex-1 px-5 pb-4 overflow-visible">
+        <div className="flex-1 px-5 pb-4 overflow-y-scroll pt-1 max-h-[50vh]">
           {filteredBeads.length === 0 ? (
             <p className="text-xs text-neutral-400 text-center py-8">
               No beads match your filters.

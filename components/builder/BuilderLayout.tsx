@@ -17,7 +17,7 @@ import { CanvasToolbar } from "./CanvasToolbar";
 import { EditModeToolbar } from "./EditModeToolbar";
 
 import { useStore } from "@/lib/store";
-import { measureBeadDiameter } from "@/lib/measure-bead";
+import { measureBeadDiameter, measureCharm } from "@/lib/measure-bead";
 import type { BeadProduct } from "@/types";
 
 interface BuilderLayoutProps {
@@ -59,20 +59,28 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
   useEffect(() => {
     beads.forEach((b) => useGLTF.preload(b.glbPath));
 
-    const needsMeasuring = beads.filter((b) => b.diameter === undefined);
-    if (needsMeasuring.length === 0) return;
+    const needsDiameter = beads.filter((b) => b.diameter === undefined);
+    const needsCharm = beads.filter((b) => b.isCharm && b.hangOffset === undefined);
 
-    Promise.all(
-      needsMeasuring.map(async (b) => ({
+    const measurements = [
+      ...needsDiameter.map(async (b) => ({
         id: b.id,
         diameter: await measureBeadDiameter(b.glbPath),
-      }))
-    ).then((measured) => {
-      const diameterById = new Map(measured.map((m) => [m.id, m.diameter]));
+      })),
+      ...needsCharm.map(async (b) =>
+        measureCharm(b.glbPath).then((m) => ({ id: b.id, ...m }))
+      ),
+    ];
+
+    if (measurements.length === 0) return;
+
+    Promise.all(measurements).then((results) => {
+      const byId = new Map(results.map((r) => [r.id, r]));
       setResolvedBeads(
         beads.map((b) => ({
           ...b,
-          diameter: b.diameter ?? diameterById.get(b.id) ?? 0.01,
+          diameter:   b.diameter   ?? byId.get(b.id)?.diameter   ?? 0.01,
+          hangOffset: b.hangOffset ?? byId.get(b.id)?.hangOffset ?? undefined,
         }))
       );
     });
@@ -139,7 +147,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
           <CanvasStatsBar />
 
           {/* Edit mode action toolbar — floats upper-right over canvas */}
-          <div className="absolute top-20 right-4 z-20 pointer-events-none shadow-sm rounded-lg">
+          <div className="absolute top-20 right-4 z-20 shadow-sm rounded-lg">
             <EditModeToolbar />
           </div>
           <BandSelector panelOpen={braceletPanelOpen} />

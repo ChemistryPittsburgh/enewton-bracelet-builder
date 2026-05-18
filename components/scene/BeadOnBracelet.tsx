@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
-import { ThreeEvent } from "@react-three/fiber";
+import { Box3, Vector3 } from 'three';
+import { useThree, ThreeEvent } from "@react-three/fiber";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
@@ -26,9 +26,31 @@ export function BeadOnBracelet({
   onDragStart,
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glbPath);
-  const cloned = useMemo(() => cloneShared(scene), [scene]);
+  const cloned = useMemo(() => {
+    const clone = cloneShared(scene);
+    // Center the mesh at origin first
+    const box = new Box3().setFromObject(clone);
+    const center = new Vector3();
+    box.getCenter(center);
+    clone.position.sub(center);
+
+    // Fix orientation — charm is lying on its side, rotate 90° around X
+    clone.rotation.x = Math.PI / 2;
+    clone.rotation.z = Math.PI / 1.8;
+
+    return clone;
+  }, [scene]);
   const { gl } = useThree();
-  const { selectBead, selectedBead, editSelectedBead, setEditSelectedBead, beads, braceletSize, isEditMode } = useStore((s) => ({
+
+  const {
+    selectBead,
+    selectedBead,
+    editSelectedBead,
+    setEditSelectedBead,
+    beads,
+    braceletSize,
+    isEditMode,
+  } = useStore((s) => ({
     selectBead: s.selectBead,
     selectedBead: s.selectedBead,
     editSelectedBead: s.editSelectedBead,
@@ -38,15 +60,33 @@ export function BeadOnBracelet({
     isEditMode: s.isEditMode,
   }));
 
+  const isCharm = bead.product.beadCategory === "charm";
   const isSelected = isEditMode
     ? editSelectedBead?.instanceId === bead.instanceId
     : selectedBead?.instanceId === bead.instanceId;
+
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = getBeadTransform(slotIndex, beads, radius);
 
-  const liftedPosition: [number, number, number] = isDragged
-    ? [position[0], position[1] + 0.003, position[2]]
-    : position;
+  // Charms: hang below cord in world Y, beads: sit on cord
+    const hangOffset = isCharm ? (bead.product.hangOffset ?? -0.009) : 0;
+    const depthOffset = isCharm ? (bead.product.depthOffset ?? -0.0005) : 0; 
+
+    const liftedPosition: [number, number, number] = [
+      position[0],
+      isDragged ? position[1] + 0.002 : position[1] + hangOffset,
+      position[2] + depthOffset,
+    ];
+
+  // Charms need a 90° tilt so the bail points up to the cord
+  const charmInnerRotation: [number, number, number] = [
+    innerRotation[0] + Math.PI / 2,
+    innerRotation[1],
+    innerRotation[2],
+  ];
+  const finalInnerRotation: [number, number, number] = isCharm
+  ? [0, 0, 0]   // charm is already oriented correctly once centered
+  : innerRotation;
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
@@ -88,24 +128,27 @@ export function BeadOnBracelet({
       onPointerLeave={handlePointerLeave}
       onDoubleClick={handleDoubleClick}
     >
-      <group rotation={innerRotation} dispose={null}>
+      <group rotation={finalInnerRotation} dispose={null}>
         <primitive object={cloned} />
-        {/* Invisible slightly-larger hit area so small beads are easy to tap */}
+
+        {/* Hit area */}
         {bead.product.diameter !== undefined && (
           <mesh visible={false}>
             <sphereGeometry args={[bead.product.diameter * 0.9, 8, 8]} />
           </mesh>
         )}
-        {/* Selection highlight ring */}
+
+        {/* Selection ring — flat (XZ plane) for charms, vertical for beads */}
         {isSelected && bead.product.diameter !== undefined && (
-          <mesh>
+          <mesh rotation={isCharm ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
             <torusGeometry args={[bead.product.diameter * 0.65, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#c8a97e" />
           </mesh>
         )}
-        {/* Drag target indicator ring — edit mode only */}
+
+        {/* Drag target ring */}
         {isDragTarget && bead.product.diameter !== undefined && (
-          <mesh>
+          <mesh rotation={isCharm ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
             <torusGeometry args={[bead.product.diameter * 0.65, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#93c5fd" />
           </mesh>
