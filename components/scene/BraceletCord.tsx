@@ -22,7 +22,7 @@ export function BraceletCord() {
     bandMaterial: s.bandMaterial,
     braceletSize: s.braceletSize,
   }));
-  const mat = CORD_MATERIALS[bandMaterial] ?? CORD_MATERIALS["chord"];
+  const mat = CORD_MATERIALS[bandMaterial] ?? CORD_MATERIALS["cord"];
   const radius = BRACELET_SIZE_RADIUS[braceletSize] ?? BRACELET_SIZE_RADIUS["small"];
 
   return (

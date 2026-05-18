@@ -6,8 +6,6 @@ import { useStore } from "@/lib/store";
 import { capitalize } from "@/lib/utils";
 import type { BeadProduct } from "@/types";
 
-import { StringDetailsSelector } from "./StringDetailsSelector";
-
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { Plus } from "lucide-react";
