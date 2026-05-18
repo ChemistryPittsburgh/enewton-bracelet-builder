@@ -135,7 +135,7 @@ const BEADS_RAW: BeadProduct[] = [
     name: "Classic Charm 10mm",
     glbPath: "/models/charms/Classic/Classic_Charm_10mm.glb",
     beadType: "Classic",
-    diameter: 0.012,
+    diameter: 0.010,
     sku: "",
     beadCategory: "charm",
     material: "gold",
