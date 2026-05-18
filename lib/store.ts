@@ -76,6 +76,10 @@ interface Store {
   /** Ephemeral — not persisted. Which camera view is active in edit mode. */
   editViewMode: 'top' | 'side';
   toggleEditViewMode: () => void;
+
+  /** Ephemeral — not persisted. Which canvas view is active. */
+  viewMode: '3D' | 'line';
+  setViewMode: (mode: '3D' | 'line') => void;
 }
 
 /** Persist the store to localStorage.
@@ -93,6 +97,7 @@ export const useStore = create<Store>()(
       isEditMode: false,
       editSelectedBead: null,
       editViewMode: 'top' as const,
+      viewMode: '3D' as const,
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -173,6 +178,10 @@ export const useStore = create<Store>()(
 
       toggleEditViewMode() {
         set((s) => ({ editViewMode: s.editViewMode === 'top' ? 'side' : 'top' }));
+      },
+
+      setViewMode(mode) {
+        set({ viewMode: mode });
       },
 
       addBeadLoadError(instanceId, name, filename) {

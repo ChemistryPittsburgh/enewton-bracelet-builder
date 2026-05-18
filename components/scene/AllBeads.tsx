@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useStore } from "@/lib/store";
-import { getBeadAngle } from "@/lib/bead-layout";
+import { getBeadAngle, getBeadTransformLine } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import type { PlacedBead } from "@/types";
 import { BeadOnBracelet } from "./BeadOnBracelet";
@@ -34,11 +34,23 @@ function nearestSlot(
   return nearest;
 }
 
+function nearestSlotLine(point: THREE.Vector3, beads: PlacedBead[]): number {
+  let nearest = 0;
+  let minDist = Infinity;
+  for (let i = 0; i < beads.length; i++) {
+    const cx = getBeadTransformLine(i, beads).position[0];
+    const dist = Math.abs(point.x - cx);
+    if (dist < minDist) { minDist = dist; nearest = i; }
+  }
+  return nearest;
+}
+
 export function AllBeads() {
-  const { beads, reorderBeads, braceletSize } = useStore((s) => ({
-    beads: s.beads,
+  const { beads, reorderBeads, braceletSize, viewMode } = useStore((s) => ({
+    beads:        s.beads,
     reorderBeads: s.reorderBeads,
     braceletSize: s.braceletSize,
+    viewMode:     s.viewMode,
   }));
   const { gl, camera } = useThree();
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -52,6 +64,8 @@ export function AllBeads() {
   reorderBeadsRef.current = reorderBeads;
   const radiusRef = useRef(radius);
   radiusRef.current = radius;
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
 
   function handleDragStart(index: number) {
     setDragState({ fromIndex: index, toIndex: index });
@@ -74,7 +88,9 @@ export function AllBeads() {
       const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
       if (raycaster.ray.intersectPlane(horizontalPlane, target)) {
-        toIndex = nearestSlot(target, beadsRef.current, radiusRef.current);
+        toIndex = viewModeRef.current === 'line'
+          ? nearestSlotLine(target, beadsRef.current)
+          : nearestSlot(target, beadsRef.current, radiusRef.current);
         setDragState({ fromIndex, toIndex });
       }
     }

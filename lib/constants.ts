@@ -63,6 +63,12 @@ export const ZOOM_BEAD_Y_OFFSET = 0.015;
 /** Camera Y height for the top-down edit mode view, in metres. */
 export const CAMERA_EDIT_HEIGHT = 0.12;
 
+/** Fixed camera position for line view — locked, no user controls. */
+export const LINE_VIEW_CAMERA_POSITION: [number, number, number] = [0, 0.05, 0.09];
+
+/** Camera Y height for top-down edit mode in line view. */
+export const LINE_VIEW_EDIT_HEIGHT = 0.10;
+
 /** Camera position for the side/angled edit mode view — lower and further forward than the default. */
 export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.09];
 
