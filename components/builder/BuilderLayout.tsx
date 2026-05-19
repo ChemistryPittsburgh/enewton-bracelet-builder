@@ -137,7 +137,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
 
           <div className="inner-canvas relative flex-1">
             <div className="absolute left-2 top-2 z-20 flex flex-col gap-1">
-              <div class="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={braceletName}
