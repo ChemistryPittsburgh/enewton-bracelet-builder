@@ -1,49 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useThree } from "@react-three/fiber";
-import * as THREE from "three";
+import { Suspense, useRef } from "react";
 import { useStore } from "@/lib/store";
-import { getBeadAngle, getBeadTransformLine } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import type { PlacedBead } from "@/types";
 import { BeadOnBracelet } from "./BeadOnBracelet";
 import { BeadErrorBoundary } from "./BeadErrorBoundary";
-
-interface DragState {
-  fromIndex: number;
-  toIndex: number;
-}
-
-function nearestSlot(
-  point: THREE.Vector3,
-  beads: PlacedBead[],
-  radius: number
-): number {
-  const angle = Math.atan2(point.z, point.x);
-  const TWO_PI = 2 * Math.PI;
-  let nearest = 0;
-  let minDiff = Infinity;
-  for (let i = 0; i < beads.length; i++) {
-    let beadAngle = getBeadAngle(i, beads, radius) % TWO_PI;
-    if (beadAngle > Math.PI) beadAngle -= TWO_PI;
-    let diff = Math.abs(angle - beadAngle);
-    if (diff > Math.PI) diff = TWO_PI - diff;
-    if (diff < minDiff) { minDiff = diff; nearest = i; }
-  }
-  return nearest;
-}
-
-function nearestSlotLine(point: THREE.Vector3, beads: PlacedBead[]): number {
-  let nearest = 0;
-  let minDist = Infinity;
-  for (let i = 0; i < beads.length; i++) {
-    const cx = getBeadTransformLine(i, beads).position[0];
-    const dist = Math.abs(point.x - cx);
-    if (dist < minDist) { minDist = dist; nearest = i; }
-  }
-  return nearest;
-}
+import { useBraceletReorderDrag, usePanelDrop } from "@/hooks/useDrag";
 
 export function AllBeads() {
   const { beads, reorderBeads, braceletSize, viewMode } = useStore((s) => ({
@@ -52,62 +15,18 @@ export function AllBeads() {
     braceletSize: s.braceletSize,
     viewMode:     s.viewMode,
   }));
-  const { gl, camera } = useThree();
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
 
-  const [dragState, setDragState] = useState<DragState | null>(null);
-
-  // Refs so the effect closure always reads the latest values without re-subscribing
-  const beadsRef = useRef(beads);
+  // Refs shared by both hooks so closures always read latest values
+  const beadsRef = useRef<PlacedBead[]>(beads);
   beadsRef.current = beads;
-  const reorderBeadsRef = useRef(reorderBeads);
-  reorderBeadsRef.current = reorderBeads;
-  const radiusRef = useRef(radius);
+  const radiusRef = useRef<number>(radius);
   radiusRef.current = radius;
-  const viewModeRef = useRef(viewMode);
+  const viewModeRef = useRef<"3D" | "line">(viewMode);
   viewModeRef.current = viewMode;
 
-  function handleDragStart(index: number) {
-    setDragState({ fromIndex: index, toIndex: index });
-  }
-
-  const isDragging = dragState !== null;
-
-  useEffect(() => {
-    if (!dragState) return;
-
-    const horizontalPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const raycaster = new THREE.Raycaster();
-    const target = new THREE.Vector3();
-    const fromIndex = dragState.fromIndex;
-    let toIndex = dragState.toIndex;
-
-    function onMove(e: PointerEvent) {
-      const rect = gl.domElement.getBoundingClientRect();
-      const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
-      if (raycaster.ray.intersectPlane(horizontalPlane, target)) {
-        toIndex = viewModeRef.current === 'line'
-          ? nearestSlotLine(target, beadsRef.current)
-          : nearestSlot(target, beadsRef.current, radiusRef.current);
-        setDragState({ fromIndex, toIndex });
-      }
-    }
-
-    function onUp() {
-      if (fromIndex !== toIndex) reorderBeadsRef.current(fromIndex, toIndex);
-      setDragState(null);
-      gl.domElement.style.cursor = "";
-    }
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-  }, [isDragging]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { dragState, handleDragStart } = useBraceletReorderDrag(beadsRef, radiusRef, viewModeRef, reorderBeads);
+  const { panelDropSlot, dragFromPanel } = usePanelDrop(beadsRef, radiusRef, viewModeRef);
 
   return (
     <group name="all-beads">
@@ -119,9 +38,10 @@ export function AllBeads() {
               slotIndex={index}
               isDragged={dragState?.fromIndex === index}
               isDragTarget={
-                dragState !== null &&
-                dragState.toIndex === index &&
-                dragState.fromIndex !== index
+                (dragState !== null &&
+                  dragState.toIndex === index &&
+                  dragState.fromIndex !== index) ||
+                (panelDropSlot === index && dragFromPanel !== null)
               }
               onDragStart={handleDragStart}
             />
