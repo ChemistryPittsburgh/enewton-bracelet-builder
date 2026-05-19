@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Search } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize } from "@/lib/utils";
@@ -54,13 +54,42 @@ function BeadThumbnail({ bead }: { bead: BeadProduct }) {
 function BeadCard({ bead, selected, onClick }: {
   bead: BeadProduct; selected: boolean; onClick: () => void;
 }) {
+  const setDragFromPanel = useStore((s) => s.setDragFromPanel);
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+  const didDragRef = useRef(false);
   const size = bead.sizeMm ?? 4;
-  const circlePx = Math.max(14, Math.min(44, size * 5.5));
+
+  function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    startRef.current = { x: e.clientX, y: e.clientY };
+    didDragRef.current = false;
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!startRef.current || didDragRef.current) return;
+    const dx = e.clientX - startRef.current.x;
+    const dy = e.clientY - startRef.current.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) {
+      didDragRef.current = true;
+      setDragFromPanel(bead);
+    }
+  }
+
+  function handlePointerUp() {
+    startRef.current = null;
+  }
+
+  function handleClick() {
+    if (!didDragRef.current) onClick();
+  }
 
   return (
     <button
-      onClick={onClick}
-      className={`flex flex-col gap-1 rounded-md border transition-all overflow-hidden ${
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onClick={handleClick}
+      className={`flex flex-col gap-1 rounded-md border transition-all overflow-hidden cursor-grab active:cursor-grabbing ${
         selected
           ? "outline-yellow-600 outline-2 border-yellow-600 bg-neutral-50 shadow-sm"
           : "border-neutral-200 bg-white hover:border-neutral-400"

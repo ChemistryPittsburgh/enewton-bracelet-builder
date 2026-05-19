@@ -1,0 +1,162 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import { useStore } from "@/lib/store";
+import { getBeadAngle, getBeadTransformLine } from "@/lib/bead-layout";
+import type { BeadProduct, PlacedBead } from "@/types";
+
+// ─── Slot-finding helpers ─────────────────────────────────────────────────────
+
+function nearestSlot(point: THREE.Vector3, beads: PlacedBead[], radius: number): number {
+  const angle = Math.atan2(point.z, point.x);
+  const TWO_PI = 2 * Math.PI;
+  let nearest = 0;
+  let minDiff = Infinity;
+  for (let i = 0; i < beads.length; i++) {
+    let beadAngle = getBeadAngle(i, beads, radius) % TWO_PI;
+    if (beadAngle > Math.PI) beadAngle -= TWO_PI;
+    let diff = Math.abs(angle - beadAngle);
+    if (diff > Math.PI) diff = TWO_PI - diff;
+    if (diff < minDiff) { minDiff = diff; nearest = i; }
+  }
+  return nearest;
+}
+
+function nearestSlotLine(point: THREE.Vector3, beads: PlacedBead[]): number {
+  let nearest = 0;
+  let minDist = Infinity;
+  for (let i = 0; i < beads.length; i++) {
+    const cx = getBeadTransformLine(i, beads).position[0];
+    const dist = Math.abs(point.x - cx);
+    if (dist < minDist) { minDist = dist; nearest = i; }
+  }
+  return nearest;
+}
+
+// ─── Reorder drag (edit-mode, in-canvas) ─────────────────────────────────────
+
+export interface DragState { fromIndex: number; toIndex: number }
+
+export function useBraceletReorderDrag(
+  beadsRef: React.RefObject<PlacedBead[]>,
+  radiusRef: React.RefObject<number>,
+  viewModeRef: React.RefObject<"3D" | "line">,
+  reorderBeads: (from: number, to: number) => void
+): { dragState: DragState | null; handleDragStart: (index: number) => void } {
+  const { gl, camera } = useThree();
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const reorderBeadsRef = useRef(reorderBeads);
+  reorderBeadsRef.current = reorderBeads;
+  const isDragging = dragState !== null;
+
+  function handleDragStart(index: number) {
+    setDragState({ fromIndex: index, toIndex: index });
+  }
+
+  useEffect(() => {
+    if (!dragState) return;
+
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const raycaster = new THREE.Raycaster();
+    const target = new THREE.Vector3();
+    const fromIndex = dragState.fromIndex;
+    let toIndex = dragState.toIndex;
+
+    function onMove(e: PointerEvent) {
+      const rect = gl.domElement.getBoundingClientRect();
+      const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+      if (raycaster.ray.intersectPlane(plane, target)) {
+        toIndex = viewModeRef.current === "line"
+          ? nearestSlotLine(target, beadsRef.current!)
+          : nearestSlot(target, beadsRef.current!, radiusRef.current!);
+        setDragState({ fromIndex, toIndex });
+      }
+    }
+
+    function onUp() {
+      if (fromIndex !== toIndex) reorderBeadsRef.current(fromIndex, toIndex);
+      setDragState(null);
+      gl.domElement.style.cursor = "";
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [isDragging]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { dragState, handleDragStart };
+}
+
+// ─── Panel drop (drag from BeadSelectorPanel) ─────────────────────────────────
+
+export function usePanelDrop(
+  beadsRef: React.RefObject<PlacedBead[]>,
+  radiusRef: React.RefObject<number>,
+  viewModeRef: React.RefObject<"3D" | "line">
+): { panelDropSlot: number | null; dragFromPanel: BeadProduct | null } {
+  const { gl, camera } = useThree();
+  const { dragFromPanel, insertBead, setDragFromPanel } = useStore((s) => ({
+    dragFromPanel:    s.dragFromPanel,
+    insertBead:       s.insertBead,
+    setDragFromPanel: s.setDragFromPanel,
+  }));
+  const [panelDropSlot, setPanelDropSlot] = useState<number | null>(null);
+
+  const dragFromPanelRef = useRef(dragFromPanel);
+  dragFromPanelRef.current = dragFromPanel;
+  const insertBeadRef = useRef(insertBead);
+  insertBeadRef.current = insertBead;
+  const setDragFromPanelRef = useRef(setDragFromPanel);
+  setDragFromPanelRef.current = setDragFromPanel;
+
+  useEffect(() => {
+    if (!dragFromPanel) return;
+
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const raycaster = new THREE.Raycaster();
+    const target = new THREE.Vector3();
+    let slot: number | null = null;
+
+    function onMove(e: PointerEvent) {
+      const rect = gl.domElement.getBoundingClientRect();
+      const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+      if (raycaster.ray.intersectPlane(plane, target)) {
+        slot = viewModeRef.current === "line"
+          ? nearestSlotLine(target, beadsRef.current!)
+          : nearestSlot(target, beadsRef.current!, radiusRef.current!);
+        setPanelDropSlot(slot);
+      }
+    }
+
+    function onUp(e: PointerEvent) {
+      const rect = gl.domElement.getBoundingClientRect();
+      const overCanvas =
+        e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top  && e.clientY <= rect.bottom;
+      if (overCanvas && slot !== null) {
+        insertBeadRef.current(dragFromPanelRef.current!, slot);
+      }
+      setDragFromPanelRef.current(null);
+      setPanelDropSlot(null);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      setPanelDropSlot(null);
+    };
+  }, [dragFromPanel]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { panelDropSlot, dragFromPanel };
+}

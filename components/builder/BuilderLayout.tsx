@@ -35,17 +35,35 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
     clearBeads,
     braceletName,
     setBraceletName,
+    clearSelectedBead,
+    selectedBead,
+    dragFromPanel,
   } = useStore((s) => ({
     placedBeads: s.beads,
     clearBeads: s.clearBeads,
     braceletName: s.braceletName,
     setBraceletName: s.setBraceletName,
+    clearSelectedBead: s.clearSelectedBead,
+    selectedBead: s.selectedBead,
+    dragFromPanel: s.dragFromPanel,
   }));
 
   const [resolvedBeads, setResolvedBeads] = useState<BeadProduct[]>(beads);
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
+  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!dragFromPanel) return;
+    document.body.style.cursor = "grabbing";
+    const onMove = (e: PointerEvent) => setGhostPos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("pointermove", onMove);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      document.body.style.cursor = "";
+    };
+  }, [!!dragFromPanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // When BraceletPanel opens, clear selected bead (closes BeadInfoDialog)
@@ -190,6 +208,22 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
       >
         Bracelet Details Here
       </FullScreenDialog>
+
+      {dragFromPanel && (
+        <div
+          style={{
+            position: "fixed",
+            left: ghostPos.x + 12,
+            top: ghostPos.y + 12,
+            pointerEvents: "none",
+            zIndex: 9999,
+          }}
+          className="rounded-lg border border-neutral-300 bg-white shadow-lg px-2 py-1 text-xs text-neutral-800 flex items-center gap-1.5"
+        >
+          <span className="text-neutral-400">＋</span>
+          {dragFromPanel.beadType ?? dragFromPanel.name}
+        </div>
+      )}
 
     </div>
   );

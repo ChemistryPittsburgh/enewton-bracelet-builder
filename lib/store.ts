@@ -85,6 +85,13 @@ interface Store {
   /** Ephemeral — not persisted. Which canvas view is active. */
   viewMode: '3D' | 'line';
   setViewMode: (mode: '3D' | 'line') => void;
+
+  /** Ephemeral — not persisted. Bead being dragged from the selector panel onto the canvas. */
+  dragFromPanel: BeadProduct | null;
+  setDragFromPanel: (product: BeadProduct | null) => void;
+
+  /** Insert a new bead at a specific slot index. Returns an error string or null. */
+  insertBead: (product: BeadProduct, atIndex: number) => string | null;
 }
 
 /** Persist the store to localStorage.
@@ -104,6 +111,7 @@ export const useStore = create<Store>()(
       editViewMode: 'top' as const,
       selectAllActive: false,
       viewMode: '3D' as const,
+      dragFromPanel: null,
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -200,6 +208,24 @@ export const useStore = create<Store>()(
 
       setViewMode(mode) {
         set({ viewMode: mode });
+      },
+
+      setDragFromPanel(product) {
+        set({ dragFromPanel: product });
+      },
+
+      insertBead(product, atIndex) {
+        const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
+        if (!beadFits(get().beads, product.diameter, radius)) {
+          return "Bracelet is full — no room for that bead.";
+        }
+        const newBead: PlacedBead = { instanceId: nanoid(), product };
+        set((s) => {
+          const arr = [...s.beads];
+          arr.splice(atIndex, 0, newBead);
+          return { beads: arr };
+        });
+        return null;
       },
 
       addBeadLoadError(instanceId, name, filename) {
