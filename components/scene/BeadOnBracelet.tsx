@@ -28,7 +28,7 @@ export function BeadOnBracelet({
   const { scene } = useGLTF(bead.product.glbPath);
   const cloned = useMemo(() => cloneShared(scene), [scene]);
   const { gl } = useThree();
-  const { selectBead, selectedBead, editSelectedBead, setEditSelectedBead, beads, braceletSize, isEditMode } = useStore((s) => ({
+  const { selectBead, selectedBead, editSelectedBead, setEditSelectedBead, beads, braceletSize, isEditMode, selectAllActive } = useStore((s) => ({
     selectBead: s.selectBead,
     selectedBead: s.selectedBead,
     editSelectedBead: s.editSelectedBead,
@@ -36,11 +36,14 @@ export function BeadOnBracelet({
     beads: s.beads,
     braceletSize: s.braceletSize,
     isEditMode: s.isEditMode,
+    selectAllActive: s.selectAllActive,
   }));
 
   const isSelected = isEditMode
     ? editSelectedBead?.instanceId === bead.instanceId
-    : selectedBead?.instanceId === bead.instanceId;
+    : selectedBead?.instanceId === bead.instanceId
+    || (selectAllActive && selectedBead?.product.id === bead.product.id);
+    
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = getBeadTransform(slotIndex, beads, radius);
 
