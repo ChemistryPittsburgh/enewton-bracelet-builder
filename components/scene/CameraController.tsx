@@ -18,11 +18,12 @@ interface CameraControllerProps {
 }
 
 export function CameraController({ controlsRef }: CameraControllerProps) {
-  const { selectedBead, beads, isEditMode, editViewMode } = useStore((s) => ({
+  const { selectedBead, beads, isEditMode, editViewMode, selectAllActive } = useStore((s) => ({
     selectedBead: s.selectedBead,
     beads: s.beads,
     isEditMode: s.isEditMode,
     editViewMode: s.editViewMode,
+    selectAllActive: s.selectAllActive,
   }));
 
   useEffect(() => {
@@ -73,15 +74,13 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     controls.touches.two   = 4096;
     controls.touches.three = 128;
 
-    if (selectedBead) {
+    if (selectedBead && !selectAllActive) {
       const index = beads.findIndex(
         (b) => b.instanceId === selectedBead.instanceId
       );
       if (index === -1) return;
-
       const angle = getBeadAngle(index, beads);
       const [x, y, z] = getBeadPosition(angle);
-
       controls.setLookAt(
         x * ZOOM_BEAD_X_MULTIPLIER,
         y + ZOOM_BEAD_Y_OFFSET,
@@ -96,7 +95,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
         true
       );
     }
-  }, [isEditMode, editViewMode, selectedBead, beads, controlsRef]);
+  }, [isEditMode, editViewMode, selectedBead, beads, controlsRef, selectAllActive]);
 
   return null;
 }
