@@ -52,6 +52,7 @@ export function BeadInfoDialog() {
         title=""
         open={isOpen}
         onClose={clearSelectedBead}
+        includeTitleBar={false}
       >
         {bead && (
           <>

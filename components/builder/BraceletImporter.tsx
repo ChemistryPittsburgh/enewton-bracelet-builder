@@ -19,7 +19,7 @@ export function BraceletImporter() {
 
       <Button onClick={handleClick} className="ml-4 justify-end" variant="black">
         <Upload size={14} />
-        <span>Import JSON</span>
+        <span>Load Bracelet</span>
       </Button>
 
       {status && (

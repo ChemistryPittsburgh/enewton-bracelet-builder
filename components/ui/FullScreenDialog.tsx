@@ -1,0 +1,56 @@
+"use client";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface FullScreenDialogProps {
+  open: boolean;
+  onClose: () => void;
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function FullScreenDialog({
+  open,
+  onClose,
+  title,
+  children,
+  className,
+}: FullScreenDialogProps) {
+  if (!open) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 z-50 bg-black/30 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <div
+        className={cn(
+          "absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
+          "w-full max-w-2xl rounded-2xl bg-white shadow-xl border border-neutral-100 overflow-hidden",
+          className
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
+          {title && (
+            <span className="text-sm font-bold text-neutral-900">{title}</span>
+          )}
+          <button
+            onClick={onClose}
+            className="ml-auto flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 text-neutral-400 hover:bg-neutral-50 hover:ring-2 transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4">{children}</div>
+      </div>
+    </>
+  );
+}
