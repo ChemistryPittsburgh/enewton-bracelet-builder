@@ -21,13 +21,14 @@ interface CameraControllerProps {
 }
 
 export function CameraController({ controlsRef }: CameraControllerProps) {
-  const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize } = useStore((s) => ({
+const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, selectAllActive } = useStore((s) => ({
     selectedBead:  s.selectedBead,
     beads:         s.beads,
     isEditMode:    s.isEditMode,
     editViewMode:  s.editViewMode,
     viewMode:      s.viewMode,
     braceletSize:  s.braceletSize,
+    selectAllActive: s.selectAllActive,
   }));
 
   useEffect(() => {
@@ -113,13 +114,13 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     controls.touches.two   = 4096;
     controls.touches.three = 128;
 
-    if (selectedBead) {
-      const index = beads.findIndex((b) => b.instanceId === selectedBead.instanceId);
+    if (selectedBead && !selectAllActive) {
+      const index = beads.findIndex(
+        (b) => b.instanceId === selectedBead.instanceId
+      );
       if (index === -1) return;
-
       const angle = getBeadAngle(index, beads);
       const [x, y, z] = getBeadPosition(angle);
-
       controls.setLookAt(
         x * ZOOM_BEAD_X_MULTIPLIER,
         y + ZOOM_BEAD_Y_OFFSET,
@@ -130,7 +131,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     } else {
       controls.setLookAt(...CAMERA_DEFAULT_POSITION, 0, 0, 0, true);
     }
-  }, [viewMode, isEditMode, editViewMode, selectedBead, beads, braceletSize, controlsRef]);
+  }, [viewMode, isEditMode, editViewMode, selectedBead, beads, braceletSize, controlsRef, selectAllActive]);
 
   return null;
 }

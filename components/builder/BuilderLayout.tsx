@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
 import { BraceletImporter } from "./BraceletImporter";
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
-import { BeadInfoPanel } from "./BeadInfoPanel";
+import { BeadInfoDialog } from "./BeadInfoDialog";
 import { BandSelector } from "./BandSelector";
 
 import { CanvasStatsBar } from "./CanvasStatsBar";
@@ -30,28 +30,19 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
     clearBeads,
     braceletName,
     setBraceletName,
-    clearSelectedBead,
-    selectedBead,
   } = useStore((s) => ({
     placedBeads: s.beads,
     clearBeads: s.clearBeads,
     braceletName: s.braceletName,
     setBraceletName: s.setBraceletName,
-    clearSelectedBead: s.clearSelectedBead,
-    selectedBead: s.selectedBead,
   }));
 
   const [resolvedBeads, setResolvedBeads] = useState<BeadProduct[]>(beads);
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
 
-  // When a bead is selected (BeadInfoPanel opens), close BraceletPanel
-  useEffect(() => {
-    if (selectedBead) setBraceletPanelOpen(false);
-  }, [selectedBead]);
 
-  // When BraceletPanel opens, clear selected bead (closes BeadInfoPanel)
+  // When BraceletPanel opens, clear selected bead (closes BeadInfoDialog)
   function openBraceletPanel() {
-    clearSelectedBead();
     setBraceletPanelOpen((o) => !o);
   }
 
@@ -120,6 +111,8 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
           beads={resolvedBeads}
         />
 
+        <BeadInfoDialog />
+
         {/* Clip container — narrows visible area without resizing the canvas */}
         <div
           className="absolute top-0 bottom-0 right-0 overflow-hidden"
@@ -157,8 +150,6 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         </div>
 
       </main>
-
-      <BeadInfoPanel />
 
     </div>
   );

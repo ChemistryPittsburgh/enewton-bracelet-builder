@@ -42,6 +42,11 @@ interface Store {
   /** Close the info panel without removing anything. */
   clearSelectedBead: () => void;
 
+  /** Selecting all of beads with bead info dialog */
+  selectAllActive: boolean;
+  selectAllOfType: () => void;
+  removeAllOfType: () => void;
+
   /** Replace the entire bead list — used by the JSON importer. */
   loadBeads: (beads: PlacedBead[], name?: string) => void;
 
@@ -97,6 +102,7 @@ export const useStore = create<Store>()(
       isEditMode: false,
       editSelectedBead: null,
       editViewMode: 'top' as const,
+      selectAllActive: false,
       viewMode: '3D' as const,
 
       addBead(product) {
@@ -126,12 +132,24 @@ export const useStore = create<Store>()(
       },
 
       selectBead(bead) {
-        set({ selectedBead: bead });
+        set({ selectedBead: bead, selectAllActive: false });
       },
 
       clearSelectedBead() {
-        set({ selectedBead: null });
+        set({ selectedBead: null, selectAllActive: false });
       },
+
+      selectAllOfType() {
+        set({ selectAllActive: true });
+      },
+
+      removeAllOfType() {
+        const { beads, selectedBead } = get();
+        if (!selectedBead) return;
+        const filtered = beads.filter((b) => b.product.id !== selectedBead.product.id);
+        set({ beads: filtered, selectedBead: null, selectAllActive: false });
+      },
+
       loadBeads(beads, name) {
         set({ beads, selectedBead: null, ...(name ? { braceletName: name } : {}) });
       },
