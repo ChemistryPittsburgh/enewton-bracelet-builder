@@ -42,10 +42,8 @@ export function Scene({ panelOpen = false }: SceneProps) {
         dpr={[1, 2]}
         style={{ background: isEditMode ? EDIT_MODE_BACKGROUND : SCENE_BACKGROUND }}
         onPointerMissed={() => {
-          if (isEditMode) {
-            clearSelectedBead();
-            setEditSelectedBead(null);
-          }
+          clearSelectedBead();
+          setEditSelectedBead(null);
         }}
       >
         <ambientLight intensity={0.7} />
