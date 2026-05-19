@@ -1,16 +1,21 @@
 /**
  * bead-layout.ts
  *
- * All geometry for placing beads on a circular bracelet cord.
+ * Geometry helpers for placing beads in two layouts:
+ *   • 3D circular — beads arranged on a torus in the XZ plane (Y = 0)
+ *   • Line        — beads laid out along the X axis, centred at world origin
  *
- * Coordinate system:
- *   - Bracelet lies flat in the XZ plane (Y = 0 is the cord center)
- *   - Beads sit ON the cord — same Y=0, positioned at radius BRACELET_RADIUS
- *   - The bead's hole axis is its local Y axis (from the GLB).
- *     We rotate each bead so its hole aligns with cord
+ * Coordinate system (both layouts):
+ *   - Y = 0 is the cord centre line
+ *   - The bead's hole axis is its local Y axis (GLB convention)
  *
- *   - Bead diameter: Pulled dynamically from page.tsx
- *   - Hole axis height (Y): 3.72 mm
+ * Circular layout: outerRotation turns each bead to face radially outward;
+ *   the cord (torus in XZ plane) threads through each hole (hole stays on world Y).
+ *
+ * Line layout: outerRotation [0, -π/2, 0] makes every bead face the camera (+Z);
+ *   the cord cylinder runs along X through each bead centre.
+ *
+ *   - Bead diameter: pulled dynamically from the bead catalog (metres)
  */
 
 // ─── Bracelet constants ───────────────────────────────────────────────────────
@@ -28,7 +33,7 @@ export const CORD_RADIUS = 0.0008;
  * -0.001 = beads slightly overlapping (good for tight stacking)
  * Positive values add space between beads
  */
-const BEAD_SPACING = -0.00035;
+export const BEAD_SPACING = -0.00035;
 
 /** Controls where beads start (set to 0 to start bead adding on the right) */
 const START_ANGLE_OFFSET = Math.PI / 2;
@@ -52,6 +57,43 @@ export function beadFits(
   radius = BRACELET_RADIUS
 ): boolean {
   return usedArc(currentBeads) + newDiameter + BEAD_SPACING <= braceletArc(radius);
+}
+
+// ─── Line view geometry ───────────────────────────────────────────────────────
+
+/** Same total length as usedArc — exposed for line-view consumers. */
+export function getLineTotalWidth(beads: { product: { diameter: number } }[]): number {
+  return usedArc(beads);
+}
+
+/**
+ * Complete transform for bead at slotIndex when laid out in a straight line
+ * along the X axis, centred at world origin.
+ *
+ * outerRotation [0, -π/2, 0] makes the bead face point toward +Z (the camera),
+ * identical to the front-facing bead in the circular layout (angle = π/2).
+ * innerRotation [0, 0, 0] keeps the hole on world Y — the cord cylinder along X
+ * passes through each bead centre, threading them visually.
+ */
+export function getBeadTransformLine(
+  slotIndex: number,
+  beads: { product: { diameter: number } }[]
+): {
+  position: [number, number, number];
+  outerRotation: [number, number, number];
+  innerRotation: [number, number, number];
+} {
+  const totalW = usedArc(beads);
+  let x = -totalW / 2;
+  for (let i = 0; i < slotIndex; i++) {
+    x += beads[i].product.diameter + BEAD_SPACING;
+  }
+  x += beads[slotIndex].product.diameter / 2;
+  return {
+    position:       [x, 0, 0],
+    outerRotation:  [0, -Math.PI / 2, 0],
+    innerRotation:  [0, 0, 0],
+  };
 }
 
 // ─── Per-bead geometry ────────────────────────────────────────────────────────

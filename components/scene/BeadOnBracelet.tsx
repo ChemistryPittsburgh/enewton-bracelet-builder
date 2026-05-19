@@ -5,7 +5,7 @@ import { useGLTF } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { ThreeEvent } from "@react-three/fiber";
 import type { PlacedBead } from "@/types";
-import { getBeadTransform } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { cloneShared } from "@/lib/measure-bead";
@@ -28,7 +28,7 @@ export function BeadOnBracelet({
   const { scene } = useGLTF(bead.product.glbPath);
   const cloned = useMemo(() => cloneShared(scene), [scene]);
   const { gl } = useThree();
-  const { selectBead, selectedBead, editSelectedBead, setEditSelectedBead, beads, braceletSize, isEditMode, selectAllActive } = useStore((s) => ({
+  const { selectBead, selectedBead, editSelectedBead, setEditSelectedBead, beads, braceletSize, isEditMode, viewMode, selectAllActive } = useStore((s) => ({
     selectBead: s.selectBead,
     selectedBead: s.selectedBead,
     editSelectedBead: s.editSelectedBead,
@@ -37,6 +37,7 @@ export function BeadOnBracelet({
     braceletSize: s.braceletSize,
     isEditMode: s.isEditMode,
     selectAllActive: s.selectAllActive,
+    viewMode: s.viewMode,
   }));
 
   const isSelected = isEditMode
@@ -45,7 +46,9 @@ export function BeadOnBracelet({
     || (selectAllActive && selectedBead?.product.id === bead.product.id);
     
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
-  const { position, outerRotation, innerRotation } = getBeadTransform(slotIndex, beads, radius);
+  const { position, outerRotation, innerRotation } = viewMode === 'line'
+    ? getBeadTransformLine(slotIndex, beads)
+    : getBeadTransform(slotIndex, beads, radius);
 
   const liftedPosition: [number, number, number] = isDragged
     ? [position[0], position[1] + 0.003, position[2]]

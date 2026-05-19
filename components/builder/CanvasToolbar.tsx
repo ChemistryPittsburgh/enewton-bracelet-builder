@@ -12,15 +12,15 @@
  * Below:  Light mode dropdown
  */
 
-import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { useStore } from "@/lib/store";
 
 export function CanvasToolbar() {
-  const [viewMode, setViewMode] = useState<"3D" | "Line">("3D");
-  const { isEditMode, toggleEditMode } = useStore((s) => ({
+  const { isEditMode, toggleEditMode, viewMode, setViewMode } = useStore((s) => ({
     isEditMode: s.isEditMode,
     toggleEditMode: s.toggleEditMode,
+    viewMode: s.viewMode,
+    setViewMode: s.setViewMode,
   }));
 
   return (
@@ -35,9 +35,9 @@ export function CanvasToolbar() {
             {(["3D", "Line"] as const).map((mode) => (
               <button
                 key={mode}
-                onClick={() => setViewMode(mode)}
+                onClick={() => setViewMode(mode === "3D" ? "3D" : "line")}
                 className={`px-5 py-2 flex-1 text-sm font-semibold transition-all ${
-                  viewMode === mode
+                  (mode === "3D" ? "3D" : "line") === viewMode
                     ? "bg-neutral-600 text-white"
                     : "text-neutral-500 hover:text-neutral-700"
                 }`}
