@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Search } from "lucide-react";
+import { useQueryClient, useIsFetching } from "@tanstack/react-query";
+import { RotateCcw, Search } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize } from "@/lib/utils";
 import type { BeadProduct } from "@/types";
@@ -22,7 +23,7 @@ interface BeadSelectorPanelProps {
 function BeadThumbnail({ bead }: { bead: BeadProduct }) {
   const [failed, setFailed] = useState(false);
 
-  if (failed || bead.beadType == null) {
+  if (failed || bead.bead_type == null) {
     return (
       <>
       <div
@@ -38,7 +39,7 @@ function BeadThumbnail({ bead }: { bead: BeadProduct }) {
       </>
     );
   } else {
-    const src = `/images/${bead.id.toLowerCase()}-thumbnail.png`;
+    const src = `/images/${bead.slug}-thumbnail.png`;
     return (
       <img
         src={src}
@@ -57,7 +58,7 @@ function BeadCard({ bead, selected, onClick }: {
   const setDragFromPanel = useStore((s) => s.setDragFromPanel);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const didDragRef = useRef(false);
-  const size = bead.sizeMm ?? 4;
+  const size = bead.size_mm ?? 4;
 
   function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>) {
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -99,7 +100,7 @@ function BeadCard({ bead, selected, onClick }: {
         <BeadThumbnail bead={bead} />
       </div>
       <div className="flex flex-col pt-[2px] pb-2 text-left px-2">
-        <span className="text-[12px] text-neutral-800">{bead.beadType}</span>
+        <span className="text-[12px] text-neutral-800">{bead.bead_type}</span>
         <span className="text-[10px] leading-tight text-neutral-500">{size}mm</span>
       </div>
     </button>
@@ -125,6 +126,8 @@ function MaterialPill({ label, active, onClick }: {
 
 export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelProps) {
   const addBead = useStore((s) => s.addBead);
+  const queryClient = useQueryClient();
+  const isFetching = useIsFetching({ queryKey: ["beads"] });
 
   const [search, setSearch] = useState("");
   const [activeMaterial, setActiveMaterial] = useState<string | null>(null);
@@ -139,18 +142,18 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
     [beads]
   );
 
-  const beadTypes = useMemo(() => {
+  const bead_types = useMemo(() => {
     const pool = activeMaterial
       ? beads.filter((b) => b.material === activeMaterial)
       : beads;
-    return [...new Set(pool.map((b) => b.beadType).filter(Boolean))] as string[];
+    return [...new Set(pool.map((b) => b.bead_type).filter(Boolean))] as string[];
   }, [beads, activeMaterial]);
 
   const filteredBeads = useMemo(() => {
     return beads.filter((b) => {
       const matchesSearch = !search || b.name.toLowerCase().includes(search.toLowerCase());
       const matchesMaterial = !activeMaterial || b.material === activeMaterial;
-      const matchesType = !activeType || b.beadType === activeType;
+      const matchesType = !activeType || b.bead_type === activeType;
       return matchesSearch && matchesMaterial && matchesType;
     });
   }, [beads, search, activeMaterial, activeType]);
@@ -194,9 +197,19 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
               placeholder="Search item name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-4 pr-10 text-sm outline-none placeholder:text-neutral-400 focus:border-neutral-400"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-4 pr-16 text-sm outline-none placeholder:text-neutral-400 focus:border-neutral-400"
             />
-            <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["beads"] })}
+                disabled={isFetching > 0}
+                className="rounded p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200 disabled:opacity-40 transition-colors"
+                aria-label="Refresh beads"
+              >
+                <RotateCcw size={13} className={isFetching > 0 ? "animate-spin" : ""} />
+              </button>
+              <Search size={16} className="text-neutral-400 mr-1" />
+            </div>
           </div>
         </div>
 
@@ -230,7 +243,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
             className="rounded-lg border border-neutral-200 bg-white px-3 py-2 pr-6 min-w-[150px] text-sm text-neutral-600 outline-none focus:border-neutral-400"
           >
             <option value="">Filter by type</option>
-            {beadTypes.map((type) => (
+            {bead_types.map((type) => (
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
@@ -271,8 +284,8 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
                 <div
                   className="rounded-full"
                   style={{
-                    width: Math.max(10, Math.min(28, (selectedBead.sizeMm ?? 4) * 3.5)),
-                    height: Math.max(10, Math.min(28, (selectedBead.sizeMm ?? 4) * 3.5)),
+                    width: Math.max(10, Math.min(28, (selectedBead.size_mm ?? 4) * 3.5)),
+                    height: Math.max(10, Math.min(28, (selectedBead.size_mm ?? 4) * 3.5)),
                     background: "radial-gradient(circle at 35% 35%, #f5d87e, #c8980a)",
                   }}
                 />
@@ -284,10 +297,10 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
             {/* Bead name + size */}
             <div className="flex-1 min-w-0">
               <p className="truncate text-[15px] font-medium text-neutral-800">
-                {selectedBead?.beadType ?? ""}
+                {selectedBead?.bead_type ?? ""}
               </p>
               <p className="text-[12px] text-neutral-500">
-                {selectedBead?.sizeMm ? `${selectedBead.sizeMm}mm` : "—"}
+                {selectedBead?.size_mm ? `${selectedBead.size_mm}mm` : "—"}
               </p>
             </div>
 

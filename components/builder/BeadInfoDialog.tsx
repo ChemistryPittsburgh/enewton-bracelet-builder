@@ -57,30 +57,30 @@ export function BeadInfoDialog() {
         {bead && (
           <>
             <div className="p-2 mb-2 space-y-2">
-              <h3 className="mb-3">{bead.product.beadType ? capitalize(bead.product.name) : "Bead Name"}</h3>
+              <h3 className="mb-3">{bead.product.bead_type ? capitalize(bead.product.name) : "Bead Name"}</h3>
               <DetailRow
                 label="Bead Type"
-                value={bead.product.beadType ? capitalize(bead.product.beadType) : "—"}
+                value={bead.product.bead_type ? capitalize(bead.product.bead_type) : "—"}
               />
               <DetailRow
                 label="Category"
-                value={bead.product.beadCategory ? capitalize(bead.product.beadCategory) : "—"}
+                value={bead.product.bead_category ? capitalize(bead.product.bead_category) : "—"}
               />
               <DetailRow
                 label="Material"
                 value={bead.product.material ? capitalize(bead.product.material) : "—"}
               />
-              <DetailRow label="Diameter" value={`${bead.product.sizeMm} mm`} />
+              <DetailRow label="Diameter" value={`${bead.product.size_mm} mm`} />
               <DetailRow
                 label="File"
-                value={bead.product.glbPath.split("/").pop() ?? ""}
+                value={bead.product.glb_path.split("/").pop() ?? ""}
               />
               <DetailRow label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
             </div>
             {matchCount > 1 && (
               <>
                 {selectAllActive ? (
-                  <p className="text-sm font-semibold text-neutral-700 mb-3 px-2">All {bead.product.name} {bead.product.beadCategory}s selected</p>
+                  <p className="text-sm font-semibold text-neutral-700 mb-3 px-2">All {bead.product.name} {bead.product.bead_category}s selected</p>
                 ) : (
                   <Button onClick={() => selectAllOfType()} className="w-full mb-2">
                   Select All ({matchCount})

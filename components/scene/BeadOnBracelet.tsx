@@ -25,7 +25,7 @@ export function BeadOnBracelet({
   isDragTarget = false,
   onDragStart,
 }: BeadOnBraceletProps) {
-  const { scene } = useGLTF(bead.product.glbPath);
+  const { scene } = useGLTF(bead.product.glb_path);
   const cloned = useMemo(() => cloneShared(scene), [scene]);
   const { gl } = useThree();
   const { selectBead, selectedBead, editSelectedBead, setEditSelectedBead, beads, braceletSize, isEditMode, viewMode, selectAllActive } = useStore((s) => ({

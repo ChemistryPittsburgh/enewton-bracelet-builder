@@ -32,7 +32,7 @@ export function useBraceletExport() {
         id: b.product.id,
         name: b.product.name,
         diameterMm: ((b.product.diameter ?? 0) * 1000).toFixed(2),
-        glbPath: b.product.glbPath,
+        glb_path: b.product.glb_path,
       })),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });

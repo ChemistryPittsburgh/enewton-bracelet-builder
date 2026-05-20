@@ -21,7 +21,7 @@ function BeadFallback({ bead, slotIndex }: FallbackProps) {
     braceletSize: s.braceletSize,
   }));
 
-  const filename = bead.product.glbPath.split("/").pop() ?? bead.product.glbPath;
+  const filename = bead.product.glb_path?.split("/").pop() ?? bead.product.glb_path ?? bead.product.name;
 
   useEffect(() => {
     addBeadLoadError(bead.instanceId, bead.product.name, filename);
