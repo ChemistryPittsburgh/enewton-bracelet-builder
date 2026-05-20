@@ -1,3 +1,17 @@
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  permissions: {
+    is_admin: boolean;
+    is_bracelet_editor: boolean;
+    is_reviewer: boolean;
+    is_publisher: boolean;
+    is_component_admin: boolean;
+  };
+  active: number;
+}
+
 export type BandMaterial = "wire" | "cord" | "elastic";
 export type BraceletSize =  "x-small" | "small" | "large";
 
