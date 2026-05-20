@@ -18,11 +18,11 @@ export function CanvasStatsBar() {
   const remainingMm = Math.max(totalMm - arcUsedMm, 0);
 
   const beadCount = placedBeads.filter(
-    (b) => b.product.beadCategory === "bead"
+    (b) => b.product.bead_category === "bead"
   ).length;
 
   const charmCount = placedBeads.filter(
-    (b) => b.product.beadCategory === "charm"
+    (b) => b.product.bead_category === "charm"
   ).length;
 
   return (

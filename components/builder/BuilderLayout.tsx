@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useGLTF } from "@react-three/drei";
-import { Check, ChevronsRight, Inbox } from "lucide-react";
+import { AlertCircle, Check, ChevronsRight, Inbox, Loader2 } from "lucide-react";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
@@ -22,14 +22,9 @@ import { CanvasToolbar } from "./CanvasToolbar";
 import { EditModeToolbar } from "./EditModeToolbar";
 
 import { useStore } from "@/lib/store";
-import { measureBeadDiameter } from "@/lib/measure-bead";
-import type { BeadProduct } from "@/types";
+import { useBeads } from "@/hooks/useBeads";
 
-interface BuilderLayoutProps {
-  beads: BeadProduct[];
-}
-
-export function BuilderLayout({ beads }: BuilderLayoutProps) {
+export function BuilderLayout() {
   const {
     placedBeads,
     clearBeads,
@@ -48,7 +43,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
     dragFromPanel: s.dragFromPanel,
   }));
 
-  const [resolvedBeads, setResolvedBeads] = useState<BeadProduct[]>(beads);
+  const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
@@ -71,27 +66,9 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
     setBraceletPanelOpen((o) => !o);
   }
 
-  // Preload GLBs and auto-measure any beads missing a diameter
+  // Preload GLBs whenever the catalog updates
   useEffect(() => {
-    beads.forEach((b) => useGLTF.preload(b.glbPath));
-
-    const needsMeasuring = beads.filter((b) => b.diameter === undefined);
-    if (needsMeasuring.length === 0) return;
-
-    Promise.all(
-      needsMeasuring.map(async (b) => ({
-        id: b.id,
-        diameter: await measureBeadDiameter(b.glbPath),
-      }))
-    ).then((measured) => {
-      const diameterById = new Map(measured.map((m) => [m.id, m.diameter]));
-      setResolvedBeads(
-        beads.map((b) => ({
-          ...b,
-          diameter: b.diameter ?? diameterById.get(b.id) ?? 0.01,
-        }))
-      );
-    });
+    beads.forEach((b) => useGLTF.preload(b.glb_path));
   }, [beads]);
 
   return (
@@ -130,7 +107,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
         <BeadSelectorPanel
           isOpen={braceletPanelOpen}
           onClose={() => setBraceletPanelOpen(false)}
-          beads={resolvedBeads}
+          beads={beads}
         />
 
         <BeadInfoDialog />
@@ -181,6 +158,32 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
             </div>
             <BandSelector panelOpen={braceletPanelOpen} />
 
+            {/* Beads loading overlay */}
+            {beadsLoading && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
+                <div className="flex flex-col items-center gap-3 text-neutral-500">
+                  <Loader2 size={28} className="animate-spin" />
+                  <span className="text-sm font-medium">Loading beads…</span>
+                </div>
+              </div>
+            )}
+
+            {/* Beads error overlay */}
+            {beadsError && !beadsLoading && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
+                <div className="flex flex-col items-center gap-3">
+                  <AlertCircle size={28} className="text-red-400" />
+                  <p className="text-sm font-medium text-neutral-700">Failed to load bead catalog.</p>
+                  <button
+                    onClick={() => refetchBeads()}
+                    className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Inner canvas — always full screen width, clipped by parent */}
             <div
               className="absolute top-0 bottom-0 right-0"
@@ -221,7 +224,7 @@ export function BuilderLayout({ beads }: BuilderLayoutProps) {
           className="rounded-lg border border-neutral-300 bg-white shadow-lg px-2 py-1 text-xs text-neutral-800 flex items-center gap-1.5"
         >
           <span className="text-neutral-400">＋</span>
-          {dragFromPanel.beadType ?? dragFromPanel.name}
+          {dragFromPanel.bead_type ?? dragFromPanel.name}
         </div>
       )}
 

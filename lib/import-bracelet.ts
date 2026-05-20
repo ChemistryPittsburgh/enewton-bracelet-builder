@@ -70,11 +70,12 @@ export function parseBraceletJson(jsonText: string): ImportResult {
 
       const position = typeof bead.position === "number" ? bead.position : "?";
       const beadName = typeof bead.name === "string" ? bead.name : "Unknown Bead";
-      const id = typeof bead.id === "string" ? bead.id : nanoid();
-      const glbPath = typeof bead.glbPath === "string" ? bead.glbPath : "";
+      const id = typeof bead.id === "number" ? bead.id : 0;
+      const slug = typeof bead.slug === "string" ? bead.slug : String(id);
+      const glb_path = typeof bead.glb_path === "string" ? bead.glb_path : "";
 
-      if (!glbPath) {
-        warnings.push(`Bead at position ${position} ("${beadName}") has no glbPath — skipped.`);
+      if (!glb_path) {
+        warnings.push(`Bead at position ${position} ("${beadName}") has no glb_path — skipped.`);
         return null;
       }
 
@@ -106,8 +107,16 @@ export function parseBraceletJson(jsonText: string): ImportResult {
         instanceId: nanoid(),
         product: {
           id,
+          slug,
           name: beadName,
-          glbPath,
+          glb_path,
+          bead_type: null,
+          bead_category: null,
+          color: null,
+          material: null,
+          sku: null,
+          size_mm: null,
+          active: 1,
           diameter: diameterMm / 1000, // mm → metres
         },
       };

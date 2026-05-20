@@ -238,7 +238,7 @@ export const useStore = create<Store>()(
     {
       name: "enewton-beads",
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
       migrate(persistedState: unknown, fromVersion: number) {
         const s = (persistedState ?? {}) as PersistedState;
         if (fromVersion < 1) {
@@ -247,6 +247,10 @@ export const useStore = create<Store>()(
           // Fields added in v1 — supply defaults if absent in old snapshots
           s.bandMaterial ??= "cord";
           s.braceletSize   ??= "small";
+        }
+        if (fromVersion < 2) {
+          // BeadProduct fields changed to snake_case; old persisted beads are incompatible
+          s.beads = [];
         }
         return s;
       },
