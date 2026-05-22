@@ -115,7 +115,7 @@ export const useStore = create<Store>()(
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
-        if (!beadFits(get().beads, product.diameter, radius)) {
+        if (!beadFits(get().beads, { product }, radius)) {
           return "Bracelet is full — no room for that bead.";
         }
         set((s) => ({
@@ -181,8 +181,7 @@ export const useStore = create<Store>()(
         if (index === -1) return;
         const bead = beads[index];
         const radius = BRACELET_SIZE_RADIUS[braceletSize];
-        if (bead.product.diameter === undefined) return;
-        if (!beadFits(beads, bead.product.diameter, radius)) return;
+        if (!beadFits(beads, bead, radius)) return;
         const copy: PlacedBead = { instanceId: nanoid(), product: bead.product };
         set({ beads: [...beads.slice(0, index + 1), copy, ...beads.slice(index + 1)] });
       },
@@ -216,7 +215,7 @@ export const useStore = create<Store>()(
 
       insertBead(product, atIndex) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
-        if (!beadFits(get().beads, product.diameter, radius)) {
+        if (!beadFits(get().beads, { product }, radius)) {
           return "Bracelet is full — no room for that bead.";
         }
         const newBead: PlacedBead = { instanceId: nanoid(), product };

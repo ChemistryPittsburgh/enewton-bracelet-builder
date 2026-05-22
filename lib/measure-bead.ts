@@ -14,9 +14,58 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { CHARM_ROTATION } from "@/lib/constants";
 
 const cache = new Map<string, number>();
 const loader = new GLTFLoader();
+
+export interface CharmMeasurement {
+  diameter: number;
+  hangOffset: number;
+  hangLength: number;
+}
+
+const charmCache = new Map<string, CharmMeasurement>();
+
+export function measureCharm(glbPath: string): Promise<CharmMeasurement> {
+  const key = `${glbPath}::${CHARM_ROTATION.join(",")}`;
+  if (charmCache.has(key)) return Promise.resolve(charmCache.get(key)!);
+
+  return new Promise((resolve, reject) => {
+    loader.load(glbPath, (gltf) => {
+      const rawBox = new THREE.Box3().setFromObject(gltf.scene);
+      const center = rawBox.getCenter(new THREE.Vector3());
+      gltf.scene.position.sub(center);
+
+      const wrapper = new THREE.Group();
+      wrapper.add(gltf.scene);
+      wrapper.rotation.set(...CHARM_ROTATION);
+      wrapper.updateMatrixWorld(true);
+
+      const rotBox = new THREE.Box3().setFromObject(wrapper);
+      const rotSize = rotBox.getSize(new THREE.Vector3());
+      const result: CharmMeasurement = {
+        diameter:   Math.max(rotSize.x, rotSize.z),
+        hangOffset: -rotBox.max.y,
+        hangLength: Math.abs(rotBox.min.y),
+      };
+      charmCache.set(key, result);
+      resolve(result);
+    }, undefined, reject);
+  });
+}
+
+export async function measureAllCharms(
+  glbPaths: string[]
+): Promise<Map<string, CharmMeasurement>> {
+  await Promise.all(glbPaths.map(measureCharm));
+  const out = new Map<string, CharmMeasurement>();
+  for (const p of glbPaths) {
+    const m = await measureCharm(p);
+    out.set(p, m);
+  }
+  return out;
+}
 
 /**
  * Returns the bead diameter in metres, derived from the GLB bounding box.

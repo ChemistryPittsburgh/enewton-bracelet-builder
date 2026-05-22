@@ -63,6 +63,9 @@ export const ZOOM_BEAD_Y_OFFSET = 0.015;
 /** Camera Y height for the top-down edit mode view, in metres. */
 export const CAMERA_EDIT_HEIGHT = 0.12;
 
+/** Euler rotation [rx, ry, rz] applied to every charm GLB to orient it hanging from the cord. */
+export const CHARM_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI / 1.8];
+
 /** Fixed camera position for line view — locked, no user controls. */
 export const LINE_VIEW_CAMERA_POSITION: [number, number, number] = [0, 0.05, 0.09];
 
