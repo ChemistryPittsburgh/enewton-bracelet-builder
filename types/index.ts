@@ -33,6 +33,13 @@ export interface BeadProduct {
   active: number;
   created_at?: string;
   updated_at?: string;
+  // ── Charm-specific optional fields ───────────────────────────────────────────
+  hang_offset?: number;
+  hang_length?: number;
+  depth_offset?: number;
+  bail_width_mm?: number;
+  total_height_mm?: number;
+  body_width_mm?: number;
 }
 
 /**

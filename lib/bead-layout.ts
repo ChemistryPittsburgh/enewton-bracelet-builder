@@ -20,6 +20,13 @@
 
 // ─── Bracelet constants ───────────────────────────────────────────────────────
 
+type BeadLike = {
+  product: {
+    diameter: number;
+    bead_category?: string | null;
+    body_width_mm?: number | null;
+  };
+};
 
 /** Radius of the bracelet cord centreline, in metres. ~182 mm circumference. */
 export const BRACELET_RADIUS = 0.029;
@@ -45,24 +52,43 @@ export function braceletArc(radius: number): number {
   return 2 * Math.PI * radius;
 }
 
-/** Total cord length consumed by beads - how much room left */
-export function usedArc(beads: { product: { diameter: number } }[]): number {
-  return beads.reduce((sum, b) => sum + b.product.diameter + BEAD_SPACING, 0);
+// Returns the half-arc a bead contributes toward a given neighbor.
+// Charm–charm pairs use body_width_mm (disc body width); all others use diameter.
+function arcHalf(bead: BeadLike, neighbor: BeadLike): number {
+  if (
+    bead.product.bead_category === "charm" &&
+    neighbor.product.bead_category === "charm" &&
+    bead.product.body_width_mm != null
+  ) {
+    return bead.product.body_width_mm / 2 / 1000;
+  }
+  return bead.product.diameter / 2;
 }
 
-/** Returns true if a new bead of the given diameter fits on the bracelet */
+/** Total cord length consumed by beads - how much room left */
+export function usedArc(beads: BeadLike[]): number {
+  if (beads.length === 0) return 0;
+  let total = beads[0].product.diameter / 2;
+  for (let i = 0; i < beads.length - 1; i++) {
+    total += arcHalf(beads[i], beads[i + 1]) + BEAD_SPACING + arcHalf(beads[i + 1], beads[i]);
+  }
+  total += beads[beads.length - 1].product.diameter / 2;
+  return total;
+}
+
+/** Returns true if a new bead fits on the bracelet when appended */
 export function beadFits(
-  currentBeads: { product: { diameter: number } }[],
-  newDiameter: number,
+  currentBeads: BeadLike[],
+  newBead: BeadLike,
   radius = BRACELET_RADIUS
 ): boolean {
-  return usedArc(currentBeads) + newDiameter + BEAD_SPACING <= braceletArc(radius);
+  return usedArc([...currentBeads, newBead]) <= braceletArc(radius);
 }
 
 // ─── Line view geometry ───────────────────────────────────────────────────────
 
 /** Same total length as usedArc — exposed for line-view consumers. */
-export function getLineTotalWidth(beads: { product: { diameter: number } }[]): number {
+export function getLineTotalWidth(beads: BeadLike[]): number {
   return usedArc(beads);
 }
 
@@ -77,18 +103,17 @@ export function getLineTotalWidth(beads: { product: { diameter: number } }[]): n
  */
 export function getBeadTransformLine(
   slotIndex: number,
-  beads: { product: { diameter: number } }[]
+  beads: BeadLike[]
 ): {
   position: [number, number, number];
   outerRotation: [number, number, number];
   innerRotation: [number, number, number];
 } {
   const totalW = usedArc(beads);
-  let x = -totalW / 2;
+  let x = -totalW / 2 + beads[0].product.diameter / 2;
   for (let i = 0; i < slotIndex; i++) {
-    x += beads[i].product.diameter + BEAD_SPACING;
+    x += arcHalf(beads[i], beads[i + 1]) + BEAD_SPACING + arcHalf(beads[i + 1], beads[i]);
   }
-  x += beads[slotIndex].product.diameter / 2;
   return {
     position:       [x, 0, 0],
     outerRotation:  [0, -Math.PI / 2, 0],
@@ -104,17 +129,14 @@ export function getBeadTransformLine(
  */
 export function getBeadAngle(
   slotIndex: number,
-  beads: { product: { diameter: number } }[],
+  beads: BeadLike[],
   radius = BRACELET_RADIUS
 ): number {
-  let angle = START_ANGLE_OFFSET;
+  let angle = START_ANGLE_OFFSET + beads[0].product.diameter / 2 / radius;
 
   for (let i = 0; i < slotIndex; i++) {
-    const arcPerBead = (beads[i].product.diameter + BEAD_SPACING) / radius;
-    angle += arcPerBead;
+    angle += (arcHalf(beads[i], beads[i + 1]) + BEAD_SPACING + arcHalf(beads[i + 1], beads[i])) / radius;
   }
-
-  angle += (beads[slotIndex].product.diameter / 2) / radius;
 
   return angle;
 }
@@ -137,7 +159,7 @@ const BEAD_INNER_TILT_X = 0;
 /** Returns the complete transform for a bead at the given slot. */
 export function getBeadTransform(
   slotIndex: number,
-  beads: { product: { diameter: number } }[],
+  beads: BeadLike[],
   radius = BRACELET_RADIUS
 ): {
   position: [number, number, number];
