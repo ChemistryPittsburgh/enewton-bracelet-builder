@@ -72,7 +72,7 @@ export function BeadOnBracelet({
   const isCharm = bead.product.bead_category === "charm";
 
   const vizRadius = isCharm
-    ? (bead.product.body_width_mm ?? 0) / 2 / 1000
+    ? (bead.product.body_width_mm ?? bead.product.diameter * 1000) / 2 / 1000
     : bead.product.diameter / 2;
 
   const hangOffset = isCharm ? autoHangOffset : 0;
