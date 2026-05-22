@@ -110,11 +110,10 @@ export function getBeadTransformLine(
   innerRotation: [number, number, number];
 } {
   const totalW = usedArc(beads);
-  let x = -totalW / 2;
+  let x = -totalW / 2 + beads[0].product.diameter / 2;
   for (let i = 0; i < slotIndex; i++) {
-    x += beads[i].product.diameter + BEAD_SPACING;
+    x += arcHalf(beads[i], beads[i + 1]) + BEAD_SPACING + arcHalf(beads[i + 1], beads[i]);
   }
-  x += beads[slotIndex].product.diameter / 2;
   return {
     position:       [x, 0, 0],
     outerRotation:  [0, -Math.PI / 2, 0],
