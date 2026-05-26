@@ -13,6 +13,7 @@ import { BraceletImporter } from "./BraceletImporter";
 
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { SavedDesignsPanel } from "./SavedDesignsPanel";
+import { UserPanel, getInitials } from "./UserPanel";
 
 import { BeadInfoDialog } from "./BeadInfoDialog";
 import { BandSelector } from "./BandSelector";
@@ -23,6 +24,7 @@ import { EditModeToolbar } from "./EditModeToolbar";
 
 import { useStore } from "@/lib/store";
 import { useBeads } from "@/hooks/useBeads";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export function BuilderLayout() {
   const {
@@ -44,9 +46,11 @@ export function BuilderLayout() {
   }));
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
+  const { data: currentUser } = useCurrentUser();
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
+  const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -98,6 +102,15 @@ export function BuilderLayout() {
               Clear Beads
             </Button>
           )}
+          {/* Profile icon */}
+          <button
+            onClick={() => setUserPanelOpen(true)}
+            className="ml-2 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white transition-colors shrink-0"
+            style={{ backgroundColor: "#7F7F7F" }}
+            aria-label="Open user profile"
+          >
+            {currentUser ? getInitials(currentUser.name) : "?"}
+          </button>
         </span>
       </header>
 
@@ -111,6 +124,8 @@ export function BuilderLayout() {
         />
 
         <BeadInfoDialog />
+
+        <UserPanel open={userPanelOpen} onClose={() => setUserPanelOpen(false)} />
 
         {/* Clip container — narrows visible area without resizing the canvas */}
         <div
