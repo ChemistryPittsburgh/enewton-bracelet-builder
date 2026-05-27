@@ -16,6 +16,7 @@ import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 type PersistedState = {
   beads?: PlacedBead[];
   braceletName?: string;
+  braceletDescription?: string;
   bandMaterial?: string;
   braceletSize?: string;
 };
@@ -23,6 +24,7 @@ type PersistedState = {
 interface Store {
   beads: PlacedBead[];
   braceletName: string;
+  braceletDescription: string;
 
   /** The bead currently tapped in the 3D scene — drives the info panel. */
   selectedBead: PlacedBead | null;
@@ -51,6 +53,7 @@ interface Store {
   loadBeads: (beads: PlacedBead[], name?: string) => void;
 
   setBraceletName: (name: string) => void;
+  setBraceletDescription: (description: string) => void;
 
   /** Move a bead from one index to another — drives the reorder panel. **/
   reorderBeads: (fromIndex: number, toIndex: number) => void;
@@ -117,6 +120,7 @@ export const useStore = create<Store>()(
       beads: [],
       selectedBead: null,
       braceletName: "My Bracelet",
+      braceletDescription: "",
       bandMaterial: "cord" as BandMaterial,
       braceletSize: "small" as BraceletSize,
       beadLoadErrors: [],
@@ -180,6 +184,10 @@ export const useStore = create<Store>()(
 
       setBraceletName(name) {
         set({ braceletName: name });
+      },
+
+      setBraceletDescription(description) {
+        set({ braceletDescription: description });
       },
 
       reorderBeads(fromIndex, toIndex) {
@@ -280,6 +288,7 @@ export const useStore = create<Store>()(
       partialize: (s) => ({
         beads: s.beads,
         braceletName: s.braceletName,
+        braceletDescription: s.braceletDescription,
         bandMaterial: s.bandMaterial,
         braceletSize: s.braceletSize,
       }),

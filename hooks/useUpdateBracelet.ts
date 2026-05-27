@@ -16,11 +16,12 @@ import { slugify } from "@/lib/utils";
  * Callers are responsible for managing their own loading/error UI state.
  */
 export function useUpdateBracelet() {
-  const { activeDesignId, beads, braceletName, bandMaterial, braceletSize } = useStore(
+  const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize } = useStore(
     (s) => ({
       activeDesignId: s.activeDesignId,
       beads: s.beads,
       braceletName: s.braceletName,
+      braceletDescription: s.braceletDescription,
       bandMaterial: s.bandMaterial,
       braceletSize: s.braceletSize,
     }),
@@ -47,6 +48,7 @@ export function useUpdateBracelet() {
     await updateDesign({
       id: activeDesignId,
       name: braceletName,
+      description: braceletDescription || null,
       configuration,
       preview_image_url,
     });

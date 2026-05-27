@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import { AlertCircle, Check, ChevronsRight, Inbox, Loader2 } from "lucide-react";
 
@@ -33,6 +33,8 @@ export function BuilderLayout() {
     clearBeads,
     braceletName,
     setBraceletName,
+    braceletDescription,
+    setBraceletDescription,
     clearSelectedBead,
     selectedBead,
     dragFromPanel,
@@ -41,6 +43,8 @@ export function BuilderLayout() {
     clearBeads: s.clearBeads,
     braceletName: s.braceletName,
     setBraceletName: s.setBraceletName,
+    braceletDescription: s.braceletDescription,
+    setBraceletDescription: s.setBraceletDescription,
     clearSelectedBead: s.clearSelectedBead,
     selectedBead: s.selectedBead,
     dragFromPanel: s.dragFromPanel,
@@ -53,6 +57,15 @@ export function BuilderLayout() {
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
   const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
+
+  // Auto-resize the description textarea whenever its content changes
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [braceletDescription]);
 
   useEffect(() => {
     if (!dragFromPanel) return;
@@ -159,7 +172,17 @@ export function BuilderLayout() {
                 />
                 <Check size={20} />
               </div>
-              <button 
+              <textarea
+                ref={descriptionRef}
+                value={braceletDescription}
+                onChange={(e) => setBraceletDescription(e.target.value)}
+                placeholder="Add a description…"
+                rows={5}
+                cols={50}
+                className="bracelet-panel-name-input w-full resize-none overflow-hidden rounded border-transparent bg-transparent px-2 py-1 text-xs leading-relaxed text-neutral-500 outline-none transition-all placeholder:text-neutral-400 hover:bg-neutral-100 focus:border-yellow-600"
+                aria-label="Bracelet description"
+              />
+              <button
                 className="text-left px-2 text-xs underline hover:no-underline w-fit rounded focus:ring-2 focus:ring-neutral-600"
                 onClick={() => setBraceletDetailsOpen(true)}
               >

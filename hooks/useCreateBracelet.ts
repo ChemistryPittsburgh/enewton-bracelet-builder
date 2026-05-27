@@ -24,9 +24,10 @@ function uniqueTags(values: (string | null | undefined)[]): string[] {
  */
 export function useCreateBracelet() {
   const queryClient = useQueryClient();
-  const { beads, braceletName, bandMaterial, braceletSize } = useStore((s) => ({
+  const { beads, braceletName, braceletDescription, bandMaterial, braceletSize } = useStore((s) => ({
     beads: s.beads,
     braceletName: s.braceletName,
+    braceletDescription: s.braceletDescription,
     bandMaterial: s.bandMaterial,
     braceletSize: s.braceletSize,
   }));
@@ -41,7 +42,7 @@ export function useCreateBracelet() {
 
       const body: CreateBraceletRequest = {
         name: braceletName,
-        description: null,
+        description: braceletDescription || null,
         configuration,
         material_tags,
         bead_types,
