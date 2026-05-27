@@ -4,38 +4,20 @@ import { useState } from "react";
 import { AlertCircle, Check, Download, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { useCreateBracelet } from "@/hooks/useCreateBracelet";
-import { useGenerateThumbnail } from "@/hooks/useGenerateThumbnail";
-import { uploadThumbnail } from "@/hooks/useUploadThumbnail";
-import { useStore } from "@/lib/store";
-import { slugify } from "@/lib/utils";
+import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function BraceletExporter() {
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const braceletName = useStore((s) => s.braceletName);
-  const { mutateAsync: createBracelet } = useCreateBracelet();
-  const { capture } = useGenerateThumbnail();
+  const { save } = useSaveBracelet();
 
   async function handleSave() {
     if (status === "saving") return;
     setStatus("saving");
 
     try {
-      // 1. Capture thumbnail from the 3D canvas
-      const dataUrl = capture();
-      const filename = `bracelet-${slugify(braceletName)}-${Date.now()}.png`;
-
-      // 2. Upload to public/thumbnails/ (dev) — replace with S3 in production
-      let preview_image_url: string | null = null;
-      if (dataUrl) {
-        preview_image_url = await uploadThumbnail(dataUrl, filename);
-      }
-
-      // 3. POST /designs with full schema
-      await createBracelet({ preview_image_url });
-
+      await save();
       setStatus("saved");
       setTimeout(() => setStatus("idle"), 2000);
     } catch (err) {
