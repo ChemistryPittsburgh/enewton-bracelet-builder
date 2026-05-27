@@ -92,6 +92,10 @@ interface Store {
 
   /** Insert a new bead at a specific slot index. Returns an error string or null. */
   insertBead: (product: BeadProduct, atIndex: number) => string | null;
+
+  /** Ephemeral — not persisted. The WebGL canvas element registered by Scene. */
+  canvasEl: HTMLCanvasElement | null;
+  setCanvasEl: (el: HTMLCanvasElement | null) => void;
 }
 
 /** Persist the store to localStorage.
@@ -112,6 +116,7 @@ export const useStore = create<Store>()(
       selectAllActive: false,
       viewMode: '3D' as const,
       dragFromPanel: null,
+      canvasEl: null,
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -211,6 +216,10 @@ export const useStore = create<Store>()(
 
       setDragFromPanel(product) {
         set({ dragFromPanel: product });
+      },
+
+      setCanvasEl(el) {
+        set({ canvasEl: el });
       },
 
       insertBead(product, atIndex) {

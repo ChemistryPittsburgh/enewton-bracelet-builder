@@ -10,6 +10,7 @@ import { PANEL_WIDTH } from "@/components/ui/Panel";
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 
 import { BraceletImporter } from "./BraceletImporter";
+import { BraceletExporter } from "./BraceletExporter";
 
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { SavedDesignsPanel } from "./SavedDesignsPanel";
@@ -97,6 +98,7 @@ export function BuilderLayout() {
 
         <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide text-neutral-700">
           <BraceletImporter />
+          <BraceletExporter />
           {placedBeads.length > 0 && (
             <Button onClick={clearBeads} className="ml-4">
               Clear Beads

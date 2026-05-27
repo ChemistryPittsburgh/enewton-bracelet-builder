@@ -1,15 +1,15 @@
 "use client";
 
-import { Suspense, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Suspense, useEffect, useRef } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { CameraControls, Environment, ContactShadows } from "@react-three/drei";
+import { useStore } from "@/lib/store";
 import { BraceletCord } from "./BraceletCord";
 import { AllBeads } from "./AllBeads";
 import { CameraController } from "./CameraController";
 import { CameraOffset } from "./CameraOffset";
 import { BeadErrorToast } from "./BeadErrorToast";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
-import { useStore } from "@/lib/store";
 import {
   CAMERA_FOV,
   CAMERA_DEFAULT_POSITION,
@@ -20,6 +20,17 @@ import {
   SCENE_BACKGROUND,
   EDIT_MODE_BACKGROUND,
 } from "@/lib/constants";
+
+/** Registers gl.domElement in the Zustand store so hooks outside the Canvas can capture thumbnails. */
+function CanvasRegistrar() {
+  const gl = useThree((s) => s.gl);
+  const setCanvasEl = useStore((s) => s.setCanvasEl);
+  useEffect(() => {
+    setCanvasEl(gl.domElement);
+    return () => setCanvasEl(null);
+  }, [gl.domElement, setCanvasEl]);
+  return null;
+}
 
 interface SceneProps {
   panelOpen?: boolean;
@@ -37,7 +48,7 @@ export function Scene({ panelOpen = false }: SceneProps) {
       <BeadErrorToast />
       <Canvas
         camera={{ fov: CAMERA_FOV, position: CAMERA_DEFAULT_POSITION, near: CAMERA_NEAR, far: CAMERA_FAR }}
-        gl={{ antialias: true }}
+        gl={{ antialias: true, preserveDrawingBuffer: true }}
         shadows
         dpr={[1, 2]}
         style={{ background: isEditMode ? EDIT_MODE_BACKGROUND : SCENE_BACKGROUND }}
@@ -46,6 +57,7 @@ export function Scene({ panelOpen = false }: SceneProps) {
           setEditSelectedBead(null);
         }}
       >
+        <CanvasRegistrar />
         <ambientLight intensity={0.7} />
         <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.0} castShadow />
         <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.4} />
