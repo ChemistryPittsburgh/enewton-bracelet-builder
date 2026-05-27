@@ -103,6 +103,8 @@ export interface UpdateDesignRequest {
   name?: string;
   description?: string | null;
   configuration?: BraceletConfiguration;
+  /** Refreshed thumbnail URL — captured and uploaded before calling PUT /designs/:id. */
+  preview_image_url?: string | null;
 }
 
 // ─── Users ───────────────────────────────────────────────────────────────────

@@ -9,10 +9,14 @@ import { slugify } from "@/lib/utils";
  * Used by BraceletExporter (header button) and the SavedDesignsPanel
  * "Save & Load" confirmation flow.
  *
+ * After a successful POST the returned design's ID is stored in
+ * `store.activeDesignId` so subsequent saves become updates.
+ *
  * Callers are responsible for managing their own loading/error UI state.
  */
 export function useSaveBracelet() {
   const braceletName = useStore((s) => s.braceletName);
+  const setActiveDesignId = useStore((s) => s.setActiveDesignId);
   const { mutateAsync: createBracelet } = useCreateBracelet();
   const { capture } = useGenerateThumbnail();
 
@@ -25,7 +29,10 @@ export function useSaveBracelet() {
       preview_image_url = await uploadThumbnail(dataUrl, filename);
     }
 
-    await createBracelet({ preview_image_url });
+    const created = await createBracelet({ preview_image_url });
+
+    // Track the ID so BraceletExporter switches to "Update Bracelet"
+    setActiveDesignId(created.id);
   }
 
   return { save };

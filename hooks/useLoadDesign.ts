@@ -20,6 +20,7 @@ export function useLoadDesign() {
   const loadBeads = useStore((s) => s.loadBeads);
   const setBraceletSize = useStore((s) => s.setBraceletSize);
   const setbandMaterial = useStore((s) => s.setbandMaterial);
+  const setActiveDesignId = useStore((s) => s.setActiveDesignId);
 
   function loadDesign(design: Bracelet): void {
     const { configuration, name } = design;
@@ -38,6 +39,9 @@ export function useLoadDesign() {
     setBraceletSize(configuration.bracelet_size);
     setbandMaterial(configuration.band_material);
     loadBeads(placedBeads, name);
+
+    // Mark this design as the active one — subsequent saves become updates.
+    setActiveDesignId(design.id);
   }
 
   return { loadDesign };

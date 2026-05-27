@@ -96,6 +96,16 @@ interface Store {
   /** Ephemeral — not persisted. The WebGL canvas element registered by Scene. */
   canvasEl: HTMLCanvasElement | null;
   setCanvasEl: (el: HTMLCanvasElement | null) => void;
+
+  /**
+   * Ephemeral — not persisted.
+   * ID of the design currently on the canvas (set after a successful save or
+   * when a design is loaded from the Saved Designs panel).
+   * null means the canvas holds an unsaved / new bracelet.
+   * Cleared when the user clears all beads (starting fresh).
+   */
+  activeDesignId: number | null;
+  setActiveDesignId: (id: number | null) => void;
 }
 
 /** Persist the store to localStorage.
@@ -117,6 +127,7 @@ export const useStore = create<Store>()(
       viewMode: '3D' as const,
       dragFromPanel: null,
       canvasEl: null,
+      activeDesignId: null,
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -141,7 +152,7 @@ export const useStore = create<Store>()(
       },
 
       clearBeads() {
-        set({ beads: [], selectedBead: null, beadLoadErrors: [] });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null });
       },
 
       selectBead(bead) {
@@ -220,6 +231,10 @@ export const useStore = create<Store>()(
 
       setCanvasEl(el) {
         set({ canvasEl: el });
+      },
+
+      setActiveDesignId(id) {
+        set({ activeDesignId: id });
       },
 
       insertBead(product, atIndex) {

@@ -1,23 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Check, Download, Loader2 } from "lucide-react";
+import { AlertCircle, Check, Download, Loader2, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
+import { useUpdateBracelet } from "@/hooks/useUpdateBracelet";
+import { useStore } from "@/lib/store";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function BraceletExporter() {
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const { save } = useSaveBracelet();
 
-  async function handleSave() {
+  const activeDesignId = useStore((s) => s.activeDesignId);
+  const isUpdate = activeDesignId !== null;
+
+  const { save } = useSaveBracelet();
+  const { update, canUpdate } = useUpdateBracelet();
+
+  async function handleClick() {
     if (status === "saving") return;
     setStatus("saving");
 
     try {
-      await save();
+      if (isUpdate) {
+        await update();
+      } else {
+        await save();
+      }
       setStatus("saved");
       setTimeout(() => setStatus("idle"), 2000);
     } catch (err) {
@@ -27,11 +38,18 @@ export function BraceletExporter() {
     }
   }
 
+  const isDisabled = status === "saving" || (isUpdate && !canUpdate);
+
+  const idleLabel   = isUpdate ? "Update Bracelet" : "Save Bracelet";
+  const savingLabel = isUpdate ? "Updating…"       : "Saving…";
+  const savedLabel  = isUpdate ? "Updated!"        : "Saved!";
+
   return (
     <Button
-      onClick={handleSave}
+      onClick={handleClick}
       variant="black"
-      disabled={status === "saving"}
+      disabled={isDisabled}
+      title={isUpdate && !canUpdate ? "You don't have permission to edit this design." : undefined}
       className={
         status === "saved"
           ? "bg-green-700 hover:bg-green-700"
@@ -40,16 +58,19 @@ export function BraceletExporter() {
             : ""
       }
     >
-      {status === "saving" && <Loader2 size={14} className="animate-spin" />}
-      {status === "saved"  && <Check size={14} />}
+      {status === "saving" && <Loader2   size={14} className="animate-spin" />}
+      {status === "saved"  && <Check     size={14} />}
       {status === "error"  && <AlertCircle size={14} />}
-      {status === "idle"   && <Download size={14} />}
+      {status === "idle"   && (isUpdate
+        ? <RefreshCw size={14} />
+        : <Download  size={14} />
+      )}
 
       <span>
-        {status === "saving" ? "Saving…"  :
-         status === "saved"  ? "Saved!"   :
-         status === "error"  ? "Failed"   :
-         "Save Bracelet"}
+        {status === "saving" ? savingLabel :
+         status === "saved"  ? savedLabel  :
+         status === "error"  ? "Failed"    :
+         idleLabel}
       </span>
     </Button>
   );
