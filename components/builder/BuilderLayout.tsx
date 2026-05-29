@@ -7,10 +7,12 @@ import { AlertCircle, Check, ChevronsRight, Inbox, Loader2 } from "lucide-react"
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
-import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 
 import { BraceletImporter } from "./BraceletImporter";
 import { BraceletExporter } from "./BraceletExporter";
+import { ConfirmReplaceDialog } from "./ConfirmReplaceDialog";
+import { BraceletDetailsDialog } from "./BraceletDetailsDialog";
+import { CanvasWorkflowBar } from "./CanvasWorkflowBar";
 
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { SavedDesignsPanel } from "./SavedDesignsPanel";
@@ -26,6 +28,7 @@ import { EditModeToolbar } from "./EditModeToolbar";
 import { useStore } from "@/lib/store";
 import { useBeads } from "@/hooks/useBeads";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDesigns } from "@/hooks/useDesigns";
 
 export function BuilderLayout() {
   const {
@@ -52,6 +55,17 @@ export function BuilderLayout() {
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
   const { data: currentUser } = useCurrentUser();
+
+  // ── Notification badge (header) ───────────────────────────────────────────
+  // Poll every 60 s so the badge stays fresh while the app is open.
+  // When the UserPanel is also open it polls at 30 s; React Query uses the
+  // shorter of all active intervals so no duplicate requests are made.
+  const perms = currentUser?.permissions;
+  const { data: inReviewAll = [] } = useDesigns({ status: "in_review", refetchInterval: 60_000 });
+  const { data: approvedAll  = [] } = useDesigns({ status: "approved",  refetchInterval: 60_000 });
+  const notificationCount =
+    ((perms?.is_reviewer || perms?.is_admin) ? inReviewAll.length : 0) +
+    ((perms?.is_publisher || perms?.is_admin) ? approvedAll.length  : 0);
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
@@ -117,15 +131,22 @@ export function BuilderLayout() {
               Clear Beads
             </Button>
           )}
-          {/* Profile icon */}
-          <button
-            onClick={() => setUserPanelOpen(true)}
-            className="ml-2 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white transition-colors shrink-0"
-            style={{ backgroundColor: "#7F7F7F" }}
-            aria-label="Open user profile"
-          >
-            {currentUser ? getInitials(currentUser.name) : "?"}
-          </button>
+          {/* Profile icon + notification badge */}
+          <div className="relative ml-2 shrink-0">
+            <button
+              onClick={() => setUserPanelOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white transition-colors"
+              style={{ backgroundColor: "#7F7F7F" }}
+              aria-label="Open user profile"
+            >
+              {currentUser ? getInitials(currentUser.name) : "?"}
+            </button>
+            {notificationCount > 0 && (
+              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </span>
+            )}
+          </div>
         </span>
       </header>
 
@@ -144,10 +165,11 @@ export function BuilderLayout() {
 
         {/* Clip container — narrows visible area without resizing the canvas */}
         <div
-          className="absolute flex flex-col top-0 bottom-0 right-0 overflow-hidden"
+          className="absolute flex flex-col top-0 bottom-0 overflow-hidden"
           style={{
-            left: braceletPanelOpen ? PANEL_WIDTH : 0,
-            transition: "left 300ms ease-out",
+            left:  braceletPanelOpen ? PANEL_WIDTH : 0,
+            right: userPanelOpen     ? PANEL_WIDTH : 0,
+            transition: "left 300ms ease-out, right 300ms ease-out",
           }}
         >
 
@@ -162,7 +184,9 @@ export function BuilderLayout() {
 
           <div className="inner-canvas relative flex-1">
             <div className="absolute left-2 top-2 z-20 flex flex-col gap-1">
+            <CanvasWorkflowBar />
               <div className="flex items-center gap-2">
+                
                 <input
                   type="text"
                   value={braceletName}
@@ -226,13 +250,14 @@ export function BuilderLayout() {
 
             {/* Inner canvas — always full screen width, clipped by parent */}
             <div
-              className="absolute top-0 bottom-0 right-0"
+              className="absolute top-0 bottom-0"
               style={{
-                left: braceletPanelOpen ? -PANEL_WIDTH : 0,
-                transition: "left 300ms ease-out",
+                left:  braceletPanelOpen ? -PANEL_WIDTH : 0,
+                right: userPanelOpen     ? -PANEL_WIDTH : 0,
+                transition: "left 300ms ease-out, right 300ms ease-out",
               }}
             >
-              <Scene panelOpen={braceletPanelOpen} />
+              <Scene panelOpen={braceletPanelOpen} rightPanelOpen={userPanelOpen} />
             </div>
           </div>
         </div>
@@ -244,13 +269,12 @@ export function BuilderLayout() {
         onClose={() => setSavedDesignsOpen(false)}
       />
 
-      <FullScreenDialog
+      <ConfirmReplaceDialog />
+
+      <BraceletDetailsDialog
         open={braceletDetailsOpen}
         onClose={() => setBraceletDetailsOpen(false)}
-        title={`${braceletName} Details`}
-      >
-        Bracelet Details Here
-      </FullScreenDialog>
+      />
 
       {dragFromPanel && (
         <div

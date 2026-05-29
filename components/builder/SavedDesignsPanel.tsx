@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, Loader2, Search, X } from "lucide-react";
+import { AlertCircle, Search, X } from "lucide-react";
 
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
-import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Bracelet, BraceletStatus } from "@/types";
@@ -45,8 +44,6 @@ const AVATAR_COLOURS = [
   "bg-emerald-500",
 ];
 
-type ConfirmStatus = "idle" | "saving" | "error";
-
 export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
   // ── Status sidebar
   const [selectedStatus, setSelectedStatus] = useState<BraceletStatus | undefined>(undefined);
@@ -57,10 +54,6 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
   const [selectedCreators,  setSelectedCreators]  = useState<string[]>([]);
   const [sortBy,            setSortBy]            = useState<DesignSortOption>("newest");
   const [search,            setSearch]            = useState("");
-
-  // ── Confirmation dialog state
-  const [pendingDesign,  setPendingDesign]  = useState<Bracelet | null>(null);
-  const [confirmStatus,  setConfirmStatus]  = useState<ConfirmStatus>("idle");
 
   // ── Data
   // Raw list — drives option derivation (no filters, one network request shared with filtered query)
@@ -76,10 +69,9 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
     sortBy,
   });
 
-  const { loadDesign } = useLoadDesign();
-  const { save }       = useSaveBracelet();
-  const beads          = useStore((s) => s.beads);
-  const braceletName   = useStore((s) => s.braceletName);
+  const { loadDesign }    = useLoadDesign();
+  const beads             = useStore((s) => s.beads);
+  const setPendingDesign  = useStore((s) => s.setPendingDesign);
 
   // ── Derived option lists (from full unfiltered dataset)
   const allMaterials = useMemo(
@@ -138,41 +130,14 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
     setSelectedTypes((prev) => [...prev, value]);
   }
 
-  // ── Load handlers
+  // ── Load handler
   function handleCardClick(design: Bracelet) {
     if (beads.length > 0) {
-      setPendingDesign(design);
+      setPendingDesign(design, onClose);
     } else {
       loadDesign(design);
       onClose();
     }
-  }
-
-  async function handleSaveAndLoad() {
-    if (!pendingDesign || confirmStatus === "saving") return;
-    setConfirmStatus("saving");
-    try {
-      await save();
-      loadDesign(pendingDesign);
-      setPendingDesign(null);
-      setConfirmStatus("idle");
-      onClose();
-    } catch {
-      setConfirmStatus("error");
-    }
-  }
-
-  function handleDiscardAndLoad() {
-    if (!pendingDesign) return;
-    loadDesign(pendingDesign);
-    setPendingDesign(null);
-    setConfirmStatus("idle");
-    onClose();
-  }
-
-  function handleCancelConfirm() {
-    setPendingDesign(null);
-    setConfirmStatus("idle");
   }
 
   // ── Shared select style
@@ -388,57 +353,6 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
           </div>
         </div>
       </div>
-
-      {/* ── Confirmation dialog ─────────────────────────────────────────── */}
-      {pendingDesign && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="w-[360px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-5">
-            <div>
-              <h3 className="text-base font-semibold text-neutral-900">
-                Replace current bracelet?
-              </h3>
-              <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
-                You have beads on{" "}
-                <span className="font-medium text-neutral-700">"{braceletName}"</span>.
-                Save it before loading{" "}
-                <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
-              </p>
-            </div>
-
-            {confirmStatus === "error" && (
-              <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                <AlertCircle size={14} className="shrink-0" />
-                Save failed — check your connection and try again.
-              </p>
-            )}
-
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleSaveAndLoad}
-                disabled={confirmStatus === "saving"}
-                className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors disabled:opacity-50"
-              >
-                {confirmStatus === "saving" && <Loader2 size={14} className="animate-spin" />}
-                Save &amp; Load
-              </button>
-              <button
-                onClick={handleDiscardAndLoad}
-                disabled={confirmStatus === "saving"}
-                className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors disabled:opacity-50"
-              >
-                Discard &amp; Load
-              </button>
-              <button
-                onClick={handleCancelConfirm}
-                disabled={confirmStatus === "saving"}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-neutral-400 hover:text-neutral-700 transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

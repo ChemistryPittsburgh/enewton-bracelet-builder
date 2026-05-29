@@ -15,6 +15,12 @@ interface UseDesignsParams {
   creators?: string[];
   /** Sort order applied after filtering. Defaults to "newest" (updated_at desc). */
   sortBy?: DesignSortOption;
+  /**
+   * Polling interval in ms. Pass `false` to disable.
+   * When multiple subscribers share the same cache entry, React Query uses
+   * the shortest active interval — so one polling subscriber is enough.
+   */
+  refetchInterval?: number | false;
 }
 
 /**
@@ -28,6 +34,7 @@ export function useDesigns(params?: UseDesignsParams) {
   return useQuery({
     queryKey: ["designs"],
     queryFn: () => apiFetch<Bracelet[]>("/designs"),
+    refetchInterval: params?.refetchInterval,
     select: (all) => {
       // Ensure we have an array to work with (API may return null/non-array)
       const list = Array.isArray(all) ? all : [];

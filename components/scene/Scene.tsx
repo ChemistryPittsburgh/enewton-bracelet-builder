@@ -34,9 +34,10 @@ function CanvasRegistrar() {
 
 interface SceneProps {
   panelOpen?: boolean;
+  rightPanelOpen?: boolean;
 }
 
-export function Scene({ panelOpen = false }: SceneProps) {
+export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
   const { isEditMode, clearSelectedBead, setEditSelectedBead } = useStore((s) => ({
     isEditMode: s.isEditMode,
@@ -76,7 +77,11 @@ export function Scene({ panelOpen = false }: SceneProps) {
           blur={1}
           far={0.02}
         />
-        <CameraOffset panelOpen={panelOpen} panelWidth={PANEL_WIDTH} />
+        <CameraOffset
+          leftPanelOpen={panelOpen}
+          rightPanelOpen={rightPanelOpen}
+          panelWidth={PANEL_WIDTH}
+        />
         <CameraControls
           ref={controlsRef}
           minDistance={CAMERA_MIN_DISTANCE}

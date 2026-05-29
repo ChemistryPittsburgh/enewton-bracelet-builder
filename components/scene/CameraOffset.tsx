@@ -5,11 +5,21 @@ import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 interface CameraOffsetProps {
-  panelOpen: boolean;
+  leftPanelOpen: boolean;
+  rightPanelOpen: boolean;
   panelWidth: number;
 }
 
-export function CameraOffset({ panelOpen, panelWidth }: CameraOffsetProps) {
+/**
+ * Smoothly shifts the camera's view offset so the bracelet stays centred in
+ * the visible canvas area when either the left (bead selector) or right (user)
+ * panel is open.
+ *
+ * Left panel open  → shift scene left  by panelWidth/2 (negative X offset)
+ * Right panel open → shift scene right by panelWidth/2 (positive X offset)
+ * Both open        → offsets cancel out (net 0)
+ */
+export function CameraOffset({ leftPanelOpen, rightPanelOpen, panelWidth }: CameraOffsetProps) {
   const { camera, size } = useThree();
 
   const anim = useRef({
@@ -24,10 +34,12 @@ export function CameraOffset({ panelOpen, panelWidth }: CameraOffsetProps) {
   useEffect(() => {
     const a = anim.current;
     a.start = a.current;
-    a.target = panelOpen ? -(panelWidth / 2) : 0;
+    a.target =
+      (rightPanelOpen ? panelWidth / 2 : 0) -
+      (leftPanelOpen  ? panelWidth / 2 : 0);
     a.startTime = performance.now();
     a.running = true;
-  }, [panelOpen, panelWidth]);
+  }, [leftPanelOpen, rightPanelOpen, panelWidth]);
 
   useFrame(() => {
     const a = anim.current;

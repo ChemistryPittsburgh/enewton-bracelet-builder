@@ -9,7 +9,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
-import type { BeadProduct, PlacedBead, BandMaterial, BraceletSize } from "@/types";
+import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
@@ -109,6 +109,20 @@ interface Store {
    */
   activeDesignId: number | null;
   setActiveDesignId: (id: number | null) => void;
+
+  /**
+   * Ephemeral — not persisted.
+   * When a panel tries to load a design while the canvas already has beads,
+   * it calls setPendingDesign() instead of loadDesign() directly.
+   * ConfirmReplaceDialog (rendered at the root) reads this and shows the
+   * "Replace current bracelet?" modal. After the user confirms or discards,
+   * pendingDesignOnLoad is called (closes the originating panel) and the
+   * pending state is cleared.
+   */
+  pendingDesign: Bracelet | null;
+  pendingDesignOnLoad: (() => void) | null;
+  setPendingDesign: (design: Bracelet, onLoad: () => void) => void;
+  clearPendingDesign: () => void;
 }
 
 /** Persist the store to localStorage.
@@ -132,6 +146,8 @@ export const useStore = create<Store>()(
       dragFromPanel: null,
       canvasEl: null,
       activeDesignId: null,
+      pendingDesign: null,
+      pendingDesignOnLoad: null,
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -243,6 +259,14 @@ export const useStore = create<Store>()(
 
       setActiveDesignId(id) {
         set({ activeDesignId: id });
+      },
+
+      setPendingDesign(design, onLoad) {
+        set({ pendingDesign: design, pendingDesignOnLoad: onLoad });
+      },
+
+      clearPendingDesign() {
+        set({ pendingDesign: null, pendingDesignOnLoad: null });
       },
 
       insertBead(product, atIndex) {
