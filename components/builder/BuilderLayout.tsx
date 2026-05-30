@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import { AlertCircle, Check, ChevronsRight, Inbox, Loader2 } from "lucide-react";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
-import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 
 import { BraceletImporter } from "./BraceletImporter";
+import { BraceletExporter } from "./BraceletExporter";
+import { ConfirmReplaceDialog } from "./ConfirmReplaceDialog";
+import { BraceletDetailsDialog } from "./BraceletDetailsDialog";
+import { CanvasWorkflowBar } from "./CanvasWorkflowBar";
 
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { SavedDesignsPanel } from "./SavedDesignsPanel";
+import { UserPanel, getInitials } from "./UserPanel";
 
 import { BeadInfoDialog } from "./BeadInfoDialog";
 import { BandSelector } from "./BandSelector";
@@ -23,6 +27,8 @@ import { EditModeToolbar } from "./EditModeToolbar";
 
 import { useStore } from "@/lib/store";
 import { useBeads } from "@/hooks/useBeads";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDesigns } from "@/hooks/useDesigns";
 
 export function BuilderLayout() {
   const {
@@ -30,6 +36,8 @@ export function BuilderLayout() {
     clearBeads,
     braceletName,
     setBraceletName,
+    braceletDescription,
+    setBraceletDescription,
     clearSelectedBead,
     selectedBead,
     dragFromPanel,
@@ -38,16 +46,40 @@ export function BuilderLayout() {
     clearBeads: s.clearBeads,
     braceletName: s.braceletName,
     setBraceletName: s.setBraceletName,
+    braceletDescription: s.braceletDescription,
+    setBraceletDescription: s.setBraceletDescription,
     clearSelectedBead: s.clearSelectedBead,
     selectedBead: s.selectedBead,
     dragFromPanel: s.dragFromPanel,
   }));
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
+  const { data: currentUser } = useCurrentUser();
+
+  // ── Notification badge (header) ───────────────────────────────────────────
+  // Poll every 60 s so the badge stays fresh while the app is open.
+  // When the UserPanel is also open it polls at 30 s; React Query uses the
+  // shorter of all active intervals so no duplicate requests are made.
+  const perms = currentUser?.permissions;
+  const { data: inReviewAll = [] } = useDesigns({ status: "in_review", refetchInterval: 60_000 });
+  const { data: approvedAll  = [] } = useDesigns({ status: "approved",  refetchInterval: 60_000 });
+  const notificationCount =
+    ((perms?.is_reviewer || perms?.is_admin) ? inReviewAll.length : 0) +
+    ((perms?.is_publisher || perms?.is_admin) ? approvedAll.length  : 0);
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
+  const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
+
+  // Auto-resize the description textarea whenever its content changes
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [braceletDescription]);
 
   useEffect(() => {
     if (!dragFromPanel) return;
@@ -93,11 +125,28 @@ export function BuilderLayout() {
 
         <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide text-neutral-700">
           <BraceletImporter />
+          <BraceletExporter />
           {placedBeads.length > 0 && (
             <Button onClick={clearBeads} className="ml-4">
               Clear Beads
             </Button>
           )}
+          {/* Profile icon + notification badge */}
+          <div className="relative ml-2 shrink-0">
+            <button
+              onClick={() => setUserPanelOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white transition-colors"
+              style={{ backgroundColor: "#7F7F7F" }}
+              aria-label="Open user profile"
+            >
+              {currentUser ? getInitials(currentUser.name) : "?"}
+            </button>
+            {notificationCount > 0 && (
+              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </span>
+            )}
+          </div>
         </span>
       </header>
 
@@ -112,12 +161,15 @@ export function BuilderLayout() {
 
         <BeadInfoDialog />
 
+        <UserPanel open={userPanelOpen} onClose={() => setUserPanelOpen(false)} />
+
         {/* Clip container — narrows visible area without resizing the canvas */}
         <div
-          className="absolute flex flex-col top-0 bottom-0 right-0 overflow-hidden"
+          className="absolute flex flex-col top-0 bottom-0 overflow-hidden"
           style={{
-            left: braceletPanelOpen ? PANEL_WIDTH : 0,
-            transition: "left 300ms ease-out",
+            left:  braceletPanelOpen ? PANEL_WIDTH : 0,
+            right: userPanelOpen     ? PANEL_WIDTH : 0,
+            transition: "left 300ms ease-out, right 300ms ease-out",
           }}
         >
 
@@ -132,7 +184,9 @@ export function BuilderLayout() {
 
           <div className="inner-canvas relative flex-1">
             <div className="absolute left-2 top-2 z-20 flex flex-col gap-1">
+            <CanvasWorkflowBar />
               <div className="flex items-center gap-2">
+                
                 <input
                   type="text"
                   value={braceletName}
@@ -142,7 +196,17 @@ export function BuilderLayout() {
                 />
                 <Check size={20} />
               </div>
-              <button 
+              <textarea
+                ref={descriptionRef}
+                value={braceletDescription}
+                onChange={(e) => setBraceletDescription(e.target.value)}
+                placeholder="Add a description…"
+                rows={5}
+                cols={50}
+                className="bracelet-panel-name-input w-full resize-none overflow-hidden rounded border-transparent bg-transparent px-2 py-1 text-xs leading-relaxed text-neutral-500 outline-none transition-all placeholder:text-neutral-400 hover:bg-neutral-100 focus:border-yellow-600"
+                aria-label="Bracelet description"
+              />
+              <button
                 className="text-left px-2 text-xs underline hover:no-underline w-fit rounded focus:ring-2 focus:ring-neutral-600"
                 onClick={() => setBraceletDetailsOpen(true)}
               >
@@ -186,13 +250,14 @@ export function BuilderLayout() {
 
             {/* Inner canvas — always full screen width, clipped by parent */}
             <div
-              className="absolute top-0 bottom-0 right-0"
+              className="absolute top-0 bottom-0"
               style={{
-                left: braceletPanelOpen ? -PANEL_WIDTH : 0,
-                transition: "left 300ms ease-out",
+                left:  braceletPanelOpen ? -PANEL_WIDTH : 0,
+                right: userPanelOpen     ? -PANEL_WIDTH : 0,
+                transition: "left 300ms ease-out, right 300ms ease-out",
               }}
             >
-              <Scene panelOpen={braceletPanelOpen} />
+              <Scene panelOpen={braceletPanelOpen} rightPanelOpen={userPanelOpen} />
             </div>
           </div>
         </div>
@@ -204,13 +269,12 @@ export function BuilderLayout() {
         onClose={() => setSavedDesignsOpen(false)}
       />
 
-      <FullScreenDialog
+      <ConfirmReplaceDialog />
+
+      <BraceletDetailsDialog
         open={braceletDetailsOpen}
         onClose={() => setBraceletDetailsOpen(false)}
-        title={`${braceletName} Details`}
-      >
-        Bracelet Details Here
-      </FullScreenDialog>
+      />
 
       {dragFromPanel && (
         <div

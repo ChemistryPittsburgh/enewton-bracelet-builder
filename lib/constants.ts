@@ -28,6 +28,9 @@ export const BRACELET_SIZES: { value: BraceletSize; label: string }[] = [
 /** Default canvas background colour. */
 export const SCENE_BACKGROUND = "#f5f0eb";
 
+/** Fixed pixel dimensions for saved bracelet thumbnail PNGs (square). */
+export const THUMBNAIL_SIZE = 600;
+
 /** Canvas background colour when edit mode is active. */
 export const EDIT_MODE_BACKGROUND = "#dbeafe";
 

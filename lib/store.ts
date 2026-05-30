@@ -9,13 +9,14 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
-import type { BeadProduct, PlacedBead, BandMaterial, BraceletSize } from "@/types";
+import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
 type PersistedState = {
   beads?: PlacedBead[];
   braceletName?: string;
+  braceletDescription?: string;
   bandMaterial?: string;
   braceletSize?: string;
 };
@@ -23,6 +24,7 @@ type PersistedState = {
 interface Store {
   beads: PlacedBead[];
   braceletName: string;
+  braceletDescription: string;
 
   /** The bead currently tapped in the 3D scene — drives the info panel. */
   selectedBead: PlacedBead | null;
@@ -51,6 +53,7 @@ interface Store {
   loadBeads: (beads: PlacedBead[], name?: string) => void;
 
   setBraceletName: (name: string) => void;
+  setBraceletDescription: (description: string) => void;
 
   /** Move a bead from one index to another — drives the reorder panel. **/
   reorderBeads: (fromIndex: number, toIndex: number) => void;
@@ -92,6 +95,34 @@ interface Store {
 
   /** Insert a new bead at a specific slot index. Returns an error string or null. */
   insertBead: (product: BeadProduct, atIndex: number) => string | null;
+
+  /** Ephemeral — not persisted. The WebGL canvas element registered by Scene. */
+  canvasEl: HTMLCanvasElement | null;
+  setCanvasEl: (el: HTMLCanvasElement | null) => void;
+
+  /**
+   * Ephemeral — not persisted.
+   * ID of the design currently on the canvas (set after a successful save or
+   * when a design is loaded from the Saved Designs panel).
+   * null means the canvas holds an unsaved / new bracelet.
+   * Cleared when the user clears all beads (starting fresh).
+   */
+  activeDesignId: number | null;
+  setActiveDesignId: (id: number | null) => void;
+
+  /**
+   * Ephemeral — not persisted.
+   * When a panel tries to load a design while the canvas already has beads,
+   * it calls setPendingDesign() instead of loadDesign() directly.
+   * ConfirmReplaceDialog (rendered at the root) reads this and shows the
+   * "Replace current bracelet?" modal. After the user confirms or discards,
+   * pendingDesignOnLoad is called (closes the originating panel) and the
+   * pending state is cleared.
+   */
+  pendingDesign: Bracelet | null;
+  pendingDesignOnLoad: (() => void) | null;
+  setPendingDesign: (design: Bracelet, onLoad: () => void) => void;
+  clearPendingDesign: () => void;
 }
 
 /** Persist the store to localStorage.
@@ -103,6 +134,7 @@ export const useStore = create<Store>()(
       beads: [],
       selectedBead: null,
       braceletName: "My Bracelet",
+      braceletDescription: "",
       bandMaterial: "cord" as BandMaterial,
       braceletSize: "small" as BraceletSize,
       beadLoadErrors: [],
@@ -112,6 +144,10 @@ export const useStore = create<Store>()(
       selectAllActive: false,
       viewMode: '3D' as const,
       dragFromPanel: null,
+      canvasEl: null,
+      activeDesignId: null,
+      pendingDesign: null,
+      pendingDesignOnLoad: null,
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -136,7 +172,7 @@ export const useStore = create<Store>()(
       },
 
       clearBeads() {
-        set({ beads: [], selectedBead: null, beadLoadErrors: [] });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null });
       },
 
       selectBead(bead) {
@@ -164,6 +200,10 @@ export const useStore = create<Store>()(
 
       setBraceletName(name) {
         set({ braceletName: name });
+      },
+
+      setBraceletDescription(description) {
+        set({ braceletDescription: description });
       },
 
       reorderBeads(fromIndex, toIndex) {
@@ -213,6 +253,22 @@ export const useStore = create<Store>()(
         set({ dragFromPanel: product });
       },
 
+      setCanvasEl(el) {
+        set({ canvasEl: el });
+      },
+
+      setActiveDesignId(id) {
+        set({ activeDesignId: id });
+      },
+
+      setPendingDesign(design, onLoad) {
+        set({ pendingDesign: design, pendingDesignOnLoad: onLoad });
+      },
+
+      clearPendingDesign() {
+        set({ pendingDesign: null, pendingDesignOnLoad: null });
+      },
+
       insertBead(product, atIndex) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
         if (!beadFits(get().beads, { product }, radius)) {
@@ -256,6 +312,7 @@ export const useStore = create<Store>()(
       partialize: (s) => ({
         beads: s.beads,
         braceletName: s.braceletName,
+        braceletDescription: s.braceletDescription,
         bandMaterial: s.bandMaterial,
         braceletSize: s.braceletSize,
       }),
