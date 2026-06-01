@@ -8,9 +8,9 @@
  * used instead of the direct S3 endpoint.
  *
  * Required env vars:
- *   AWS_ACCESS_KEY_ID
- *   AWS_SECRET_ACCESS_KEY
- *   AWS_REGION
+ *   ENEWTON_AWS_ACCESS_KEY_ID
+ *   ENEWTON_AWS_SECRET_ACCESS_KEY
+ *   ENEWTON_AWS_REGION
  *   S3_BUCKET_NAME
  *
  * Optional env var:
@@ -23,8 +23,8 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 const s3 = new S3Client({
   region: process.env.AWS_REGION!,
   credentials: {
-    accessKeyId:     process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId:     process.env.ENEWTON_AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.ENEWTON_AWS_SECRET_ACCESS_KEY!,
   },
 });
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     const baseUrl =
       process.env.S3_PUBLIC_URL ??
-      `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com`;
+      `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.ENEWTON_AWS_REGION}.amazonaws.com`;
 
     return NextResponse.json({ url: `${baseUrl}/${key}` });
   } catch (err) {
