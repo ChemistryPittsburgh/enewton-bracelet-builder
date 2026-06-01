@@ -205,6 +205,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
                 disabled={isFetching > 0}
                 className="rounded p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200 disabled:opacity-40 transition-colors"
                 aria-label="Refresh beads"
+                title="Refresh beads"
               >
                 <RotateCcw size={13} className={isFetching > 0 ? "animate-spin" : ""} />
               </button>

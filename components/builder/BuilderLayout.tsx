@@ -175,7 +175,15 @@ export function BuilderLayout() {
 
           <button
             onClick={openBraceletPanel}
-            className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit rounded-br-lg rounded-tr-lg bg-neutral-700 px-1 py-2 text-white ${braceletPanelOpen ? "open" : ""}`}
+            className=
+              {`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit 
+              rounded-br-lg rounded-tr-lg bg-neutral-700 text-white
+              px-1 py-2 
+              transition-all
+              hover:bg-neutral-600 hover:pl-2
+              ${braceletPanelOpen ? "open" : ""}`}
+              title={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
+              aria-label={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
           >
             <ChevronsRight size={25} />
           </button>

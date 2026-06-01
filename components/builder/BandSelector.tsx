@@ -46,6 +46,7 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
     <FloatingDialog
       title={bandSelectorTitle}
       onOpenChange={setDialogOpen}
+      buttonTitle="Band Settings"
       className={cn(
         "absolute bottom-4 left-4 z-40 transition-all duration-300 ease-out w-auto",
         !panelOpen && "min-w-65"

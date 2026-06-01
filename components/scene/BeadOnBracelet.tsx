@@ -151,7 +151,7 @@ export function BeadOnBracelet({
 
         {/* Selection highlight ring */}
         {isSelected && vizRadius > 0 && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <mesh rotation={isCharm ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
             <torusGeometry args={[vizRadius * 1.15, 0.0003, 8, 32]} />
             <meshBasicMaterial color="#c8a97e" />
           </mesh>

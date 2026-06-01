@@ -111,6 +111,7 @@ function PanelHeader({ title, onClose }: { title: string; onClose: () => void })
         onClick={onClose}
         className="rounded-md p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
         aria-label="Close panel"
+        title="Close panel"
       >
         <X size={16} />
       </button>

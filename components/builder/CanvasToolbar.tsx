@@ -36,6 +36,7 @@ export function CanvasToolbar() {
               <button
                 key={mode}
                 onClick={() => setViewMode(mode === "3D" ? "3D" : "line")}
+                title={`${mode} View`}
                 className={`px-5 py-2 flex-1 text-sm font-semibold transition-all ${
                   (mode === "3D" ? "3D" : "line") === viewMode
                     ? "bg-neutral-600 text-white"
@@ -56,7 +57,8 @@ export function CanvasToolbar() {
               ? "bg-blue-50 text-blue-600"
               : "text-neutral-500 hover:bg-neutral-100"
           }`}
-          aria-label={isEditMode ? "Exit edit mode" : "Edit bead order"}
+          title={isEditMode ? "Exit edit mode" : "Enter edit mode"}
+          aria-label={isEditMode ? "Exit edit mode" : "Enter edit mode"}
         >
           <Pencil size={24} />
         </button>

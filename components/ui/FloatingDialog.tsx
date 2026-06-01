@@ -14,6 +14,7 @@ interface FloatingDialogProps {
   open?: boolean;
   onClose?: () => void;
   includeTitleBar?: boolean;
+  buttonTitle?: string;
 }
 
 export function FloatingDialog({
@@ -25,6 +26,7 @@ export function FloatingDialog({
   open: controlledOpen,
   onClose,
   includeTitleBar = true,
+  buttonTitle = "Dialog",
 }: FloatingDialogProps) {
   const isControlled = controlledOpen !== undefined;
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
@@ -56,6 +58,7 @@ export function FloatingDialog({
             ? "flex w-full items-center px-3 py-2 justify-between"
             : "absolute right-2 top-2 z-10"
         )}
+        title={!open ? `Open ${buttonTitle}` : `Close ${buttonTitle}`}
       >
         {title && (
           <span className="text-sm font-bold text-neutral-900">{title}</span>
