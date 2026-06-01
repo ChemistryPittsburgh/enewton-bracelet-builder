@@ -54,13 +54,11 @@ export const CAMERA_MIN_DISTANCE = 0.04;
 /** Maximum scroll-zoom distance from bracelet centre, in metres. */
 export const CAMERA_MAX_DISTANCE = 0.18;
 
-/** Camera X pulled this many times further from the bead than the bead itself when zooming in. */
-export const ZOOM_BEAD_X_MULTIPLIER = 3.5;
 
-/** Camera Z pulled this many times further from the bead than the bead itself when zooming in. */
-export const ZOOM_BEAD_Z_MULTIPLIER = 2.5;
 
+/** How far the camera sits outside the bracelet along the bead's own radial axis when zoomed in, in metres. */
 /** Vertical offset added to the camera Y when zooming in to a bead, in metres. */
+export const ZOOM_BEAD_RADIAL_DISTANCE = 0.06;
 export const ZOOM_BEAD_Y_OFFSET = 0.015;
 
 /** Camera Y height for the top-down edit mode view, in metres. */

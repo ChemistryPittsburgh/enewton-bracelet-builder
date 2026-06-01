@@ -7,9 +7,8 @@ import {
   CAMERA_DEFAULT_POSITION,
   CAMERA_EDIT_HEIGHT,
   CAMERA_EDIT_SIDE_POSITION,
-  ZOOM_BEAD_X_MULTIPLIER,
+  ZOOM_BEAD_RADIAL_DISTANCE,
   ZOOM_BEAD_Y_OFFSET,
-  ZOOM_BEAD_Z_MULTIPLIER,
   BRACELET_SIZE_RADIUS,
   CAMERA_FOV,
   LINE_VIEW_EDIT_HEIGHT,
@@ -22,12 +21,12 @@ interface CameraControllerProps {
 
 export function CameraController({ controlsRef }: CameraControllerProps) {
 const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, selectAllActive } = useStore((s) => ({
-    selectedBead:  s.selectedBead,
-    beads:         s.beads,
-    isEditMode:    s.isEditMode,
-    editViewMode:  s.editViewMode,
-    viewMode:      s.viewMode,
-    braceletSize:  s.braceletSize,
+    selectedBead:    s.selectedBead,
+    beads:           s.beads,
+    isEditMode:      s.isEditMode,
+    editViewMode:    s.editViewMode,
+    viewMode:        s.viewMode,
+    braceletSize:    s.braceletSize,
     selectAllActive: s.selectAllActive,
   }));
 
@@ -35,15 +34,14 @@ const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, s
     const controls = controlsRef.current;
     if (!controls) return;
 
+    const radius = BRACELET_SIZE_RADIUS[braceletSize];
+
     // ── Line view: camera always locked ──────────────────────────────────────
     if (viewMode === 'line') {
       controls.minPolarAngle = 0;
       controls.maxPolarAngle = Math.PI;
 
-      // Compute Z so the full bracelet circumference fits in frame (+ 25% padding).
-      // Uses vertical FOV; assumes the canvas is wider than it is tall so horizontal
-      // extent is not the constraint, but we still want a comfortable side view.
-      const cordLength = braceletArc(BRACELET_SIZE_RADIUS[braceletSize]);
+      const cordLength = braceletArc(radius);
       const camZ = (cordLength / 2) / Math.tan(((CAMERA_FOV / 2) * Math.PI) / 180) * 1.25;
       const camY = camZ * 0.35;
 
@@ -59,17 +57,17 @@ const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, s
         controls.setLookAt(0, camY, camZ, 0, 0, 0, true);
       }
 
-      // Rotation and pan locked; zoom (dolly) enabled — same as 3D free mode
-      controls.mouseButtons.left   = 0;    // no rotate
-      controls.mouseButtons.right  = 0;    // no pan
-      controls.mouseButtons.middle = 16;   // dolly
-      controls.mouseButtons.wheel  = 16;   // dolly
-      controls.touches.one   = 0;          // no single-finger rotate
-      controls.touches.two   = 4096;       // pinch zoom
+      controls.mouseButtons.left   = 0;
+      controls.mouseButtons.right  = 0;
+      controls.mouseButtons.middle = 16;
+      controls.mouseButtons.wheel  = 16;
+      controls.touches.one   = 0;
+      controls.touches.two   = 4096;
       controls.touches.three = 0;
+      return; // ← prevent fallthrough into 3D edit-mode block
     }
 
-    // ── 3D view ───────────────────────────────────────────────────────────────
+    // ── 3D edit mode ──────────────────────────────────────────────────────────
     if (isEditMode) {
       controls.minPolarAngle = 0;
       controls.maxPolarAngle = Math.PI;
@@ -103,7 +101,7 @@ const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, s
       return () => controls.removeEventListener('rest', lockOnRest);
     }
 
-    // Restore full controls when returning to 3D free mode
+    // ── 3D free mode ──────────────────────────────────────────────────────────
     controls.minPolarAngle = 0;
     controls.maxPolarAngle = Math.PI;
     controls.mouseButtons.left   = 1;
@@ -119,12 +117,24 @@ const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, s
         (b) => b.instanceId === selectedBead.instanceId
       );
       if (index === -1) return;
-      const angle = getBeadAngle(index, beads);
-      const [x, y, z] = getBeadPosition(angle);
+
+      // Pass the correct per-size radius so the bead world position matches
+      // what's actually rendered in the scene.
+      const angle = getBeadAngle(index, beads, radius);
+      const [x, y, z] = getBeadPosition(angle, radius);
+
+      // Place the camera directly outside the bracelet along the bead's own
+      // radial direction. This keeps the bead centred for all ring positions —
+      // front, back, left, and right — unlike per-axis multipliers which skew
+      // the camera sideways for beads not on the front arc.
+      const radialLen = Math.sqrt(x * x + z * z); // ≈ radius
+      const nx = radialLen > 0 ? x / radialLen : 0;
+      const nz = radialLen > 0 ? z / radialLen : 0;
+
       controls.setLookAt(
-        x * ZOOM_BEAD_X_MULTIPLIER,
+        x + nx * ZOOM_BEAD_RADIAL_DISTANCE,
         y + ZOOM_BEAD_Y_OFFSET,
-        z * ZOOM_BEAD_Z_MULTIPLIER,
+        z + nz * ZOOM_BEAD_RADIAL_DISTANCE,
         x, y, z,
         true
       );
