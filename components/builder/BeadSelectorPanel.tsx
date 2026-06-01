@@ -11,8 +11,6 @@ import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { Plus } from "lucide-react";
 
-import Image from 'next/image';
-
 interface BeadSelectorPanelProps {
   beads: BeadProduct[];
   isOpen: boolean;
@@ -45,7 +43,7 @@ function BeadThumbnail({ bead }: { bead: BeadProduct }) {
         src={src}
         alt={bead.name}
         width={38}
-        height="auto"
+        style={{ height: "auto" }}
         onError={() => setFailed(true)}
       />
     );

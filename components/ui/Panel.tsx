@@ -76,15 +76,6 @@ export function Panel({
 
   return (
     <>
-      {/* Backdrop */}
-      {/*<div
-        aria-hidden
-        onClick={onClose}
-        className={cn(
-          "absolute inset-0 z-20 transition-opacity duration-200",
-          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        )}
-      />*/}
 
       {/* Panel */}
       <div

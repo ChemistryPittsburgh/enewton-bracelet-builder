@@ -67,6 +67,8 @@ const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, s
       controls.touches.one   = 0;          // no single-finger rotate
       controls.touches.two   = 4096;       // pinch zoom
       controls.touches.three = 0;
+      // Prevents camera from being set twice 
+      return;
     }
 
     // ── 3D view ───────────────────────────────────────────────────────────────

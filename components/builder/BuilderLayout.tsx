@@ -113,6 +113,7 @@ export function BuilderLayout() {
           onClick={() => setSavedDesignsOpen(true)}
           className="flex items-center rounded border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
           aria-label="Saved Designs"
+          title="View All Saved Designs"
         >
           <Inbox size={20} />
         </button>

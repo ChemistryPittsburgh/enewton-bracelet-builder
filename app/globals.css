@@ -56,7 +56,7 @@ canvas {
 .bracelet-panel-toggle-btn {
   svg {
     transition: all 0.3s ease;
-    transform: 0;
+    transform: none;
   }
   &.open svg {
     transform: rotate(180deg);

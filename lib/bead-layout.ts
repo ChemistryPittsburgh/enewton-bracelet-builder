@@ -29,7 +29,7 @@ type BeadLike = {
 };
 
 /** Radius of the bracelet cord centreline, in metres. ~182 mm circumference. */
-export const BRACELET_RADIUS = 0.029;
+const BRACELET_RADIUS = 0.029;
 
 /** Visual radius of the cord */
 export const CORD_RADIUS = 0.0008;
@@ -44,9 +44,6 @@ export const BEAD_SPACING = -0.00035;
 
 /** Controls where beads start (set to 0 to start bead adding on the right) */
 const START_ANGLE_OFFSET = Math.PI / 2;
-
-// Max beads is calculated by bead diameter - check to see if next bead fits
-export const MAX_BRACELET_ARC = 2 * Math.PI * BRACELET_RADIUS; // full circumference in metres
 
 export function braceletArc(radius: number): number {
   return 2 * Math.PI * radius;
