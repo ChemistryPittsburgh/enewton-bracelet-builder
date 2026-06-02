@@ -70,7 +70,9 @@ export function BeadInfoDialog() {
                 label="Material"
                 value={bead.product.material ? capitalize(bead.product.material) : "—"}
               />
-              <DetailRow label="Diameter" value={`${bead.product.size_mm} mm`} />
+              <DetailRow label="Diameter" value={bead.product.size_mm != null
+                ? `${bead.product.size_mm} mm`
+                : `${Math.round(bead.product.diameter * 1000)} mm`} />
               <DetailRow
                 label="File"
                 value={bead.product.glb_path.split("/").pop() ?? ""}

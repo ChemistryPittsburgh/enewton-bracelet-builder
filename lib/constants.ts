@@ -54,17 +54,22 @@ export const CAMERA_MIN_DISTANCE = 0.04;
 /** Maximum scroll-zoom distance from bracelet centre, in metres. */
 export const CAMERA_MAX_DISTANCE = 0.18;
 
-/** Camera X pulled this many times further from the bead than the bead itself when zooming in. */
-export const ZOOM_BEAD_X_MULTIPLIER = 3.5;
 
-/** Camera Z pulled this many times further from the bead than the bead itself when zooming in. */
-export const ZOOM_BEAD_Z_MULTIPLIER = 2.5;
 
+/** How far the camera sits outside the bracelet along the bead's own radial axis when zoomed in, in metres. */
 /** Vertical offset added to the camera Y when zooming in to a bead, in metres. */
+export const ZOOM_BEAD_RADIAL_DISTANCE = 0.06;
 export const ZOOM_BEAD_Y_OFFSET = 0.015;
 
 /** Camera Y height for the top-down edit mode view, in metres. */
 export const CAMERA_EDIT_HEIGHT = 0.12;
+
+/**
+ * Minimum arc half-contribution for a charm, in metres.
+ * Ensures adjacent charms can't fully overlap even when body_width_mm is
+ * missing from the API. 0.008 = 8 mm half-width → 16 mm min bail-to-bail.
+ */
+export const CHARM_MIN_ARC_HALF = 0.0008;
 
 /** Euler rotation [rx, ry, rz] applied to every charm GLB to orient it hanging from the cord. */
 export const CHARM_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI / 1.8];

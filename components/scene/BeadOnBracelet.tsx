@@ -28,10 +28,10 @@ export function BeadOnBracelet({
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
-  const { cloned, autoHangOffset } = useMemo(() => {
+  const { cloned, autoHangOffset, charmBodyCenterY } = useMemo(() => {
     const clone = cloneShared(scene);
 
-    // Center the clone so its bounding-box midpoint sits at the wrapper origin;
+    // Centre the clone so its bounding-box midpoint sits at the wrapper origin;
     // CHARM_ROTATION then rotates about that centre for autoHangOffset measurement.
     const rawBox = new Box3().setFromObject(clone);
     const center = new Vector3();
@@ -39,20 +39,34 @@ export function BeadOnBracelet({
     clone.position.sub(center);
 
     let autoHangOffset = 0;
+    // How far below the cord the charm body's centre sits, in the outer group's
+    // local space. Used to position the hit sphere and selection ring on the
+    // body rather than at bail/cord level.
+    let charmBodyCenterY = 0;
+
     if (bead.product.bead_category === "charm") {
       const wrapper = new Group();
       wrapper.add(clone);
       wrapper.rotation.set(...CHARM_ROTATION);
       wrapper.updateMatrixWorld(true);
-      // Raise the bounding-box top by one cord radius so the cord centre
-      // threads through the bail opening rather than pressing on the bail edge.
+
       const rotBox = new Box3().setFromObject(wrapper);
       const bailWireRadius = (bead.product.bail_width_mm ?? 0.8) / 1000;
+
+      // Raise the bounding-box top by one cord radius so the cord centre
+      // threads through the bail opening rather than pressing on the bail edge.
       autoHangOffset = -rotBox.max.y + CORD_RADIUS + bailWireRadius;
+
+      // rotBox.min.y is the bottom of the charm in the wrapper's local space.
+      // After hangOffset shifts the outer group down, cord level is at Y=0
+      // in the outer group. The charm body's centre is halfway between the
+      // cord (0) and the bottom of the charm (rotBox.min.y).
+      charmBodyCenterY = rotBox.min.y / 2;
+
       wrapper.remove(clone);
     }
 
-    return { cloned: clone, autoHangOffset };
+    return { cloned: clone, autoHangOffset, charmBodyCenterY };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, bead.product.bead_category, CHARM_ROTATION[0], CHARM_ROTATION[1], CHARM_ROTATION[2]]);
 
@@ -144,14 +158,14 @@ export function BeadOnBracelet({
         )}
 
         {/* Hit area — invisible but catches pointer events */}
-        <mesh visible={false} position={isCharm ? [0, -vizRadius, 0] : [0, 0, 0]}>
-          <sphereGeometry args={[vizRadius * 1.1, 8, 8]} />
+        <mesh visible={false} position={[0, 0, 0]}>
+          <sphereGeometry args={isCharm ? [vizRadius * 1.3, 8, 8] : [vizRadius * 1.1, 8, 8]} />
           <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>
 
-        {/* Selection highlight ring */}
+        {/* Selection highlight ring — sits at cord level for charms (bail attachment point) */}
         {isSelected && vizRadius > 0 && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <mesh rotation={isCharm ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
             <torusGeometry args={[vizRadius * 1.15, 0.0003, 8, 32]} />
             <meshBasicMaterial color="#c8a97e" />
           </mesh>

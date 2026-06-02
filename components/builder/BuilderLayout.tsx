@@ -2,13 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useGLTF } from "@react-three/drei";
-import { AlertCircle, Check, ChevronsRight, Inbox, Loader2 } from "lucide-react";
+import { AlertCircle, Check, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
 
-import { BraceletImporter } from "./BraceletImporter";
 import { BraceletExporter } from "./BraceletExporter";
 import { ConfirmReplaceDialog } from "./ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./BraceletDetailsDialog";
@@ -33,7 +32,6 @@ import { useDesigns } from "@/hooks/useDesigns";
 export function BuilderLayout() {
   const {
     placedBeads,
-    clearBeads,
     braceletName,
     setBraceletName,
     braceletDescription,
@@ -41,9 +39,10 @@ export function BuilderLayout() {
     clearSelectedBead,
     selectedBead,
     dragFromPanel,
+    resetBracelet,
+    setPendingDesign,
   } = useStore((s) => ({
     placedBeads: s.beads,
-    clearBeads: s.clearBeads,
     braceletName: s.braceletName,
     setBraceletName: s.setBraceletName,
     braceletDescription: s.braceletDescription,
@@ -51,6 +50,8 @@ export function BuilderLayout() {
     clearSelectedBead: s.clearSelectedBead,
     selectedBead: s.selectedBead,
     dragFromPanel: s.dragFromPanel,
+    resetBracelet: s.resetBracelet,
+    setPendingDesign: s.setPendingDesign,
   }));
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
@@ -98,6 +99,15 @@ export function BuilderLayout() {
     setBraceletPanelOpen((o) => !o);
   }
 
+  // reset to New Bracelet
+  function handleNewBracelet() {
+    if (placedBeads.length > 0) {
+      setPendingDesign({ id: -1, name: "New Bracelet" } as any, () => resetBracelet());
+    } else {
+      resetBracelet();
+    }
+  }
+
   // Preload GLBs whenever the catalog updates
   useEffect(() => {
     beads.forEach((b) => useGLTF.preload(b.glb_path));
@@ -113,6 +123,7 @@ export function BuilderLayout() {
           onClick={() => setSavedDesignsOpen(true)}
           className="flex items-center rounded border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
           aria-label="Saved Designs"
+          title="View All Saved Designs"
         >
           <Inbox size={20} />
         </button>
@@ -124,13 +135,13 @@ export function BuilderLayout() {
         </div>
 
         <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide text-neutral-700">
-          <BraceletImporter />
+          <Button
+            onClick={handleNewBracelet}
+          >
+            <Plus size={14} />
+            New Bracelet
+          </Button>
           <BraceletExporter />
-          {placedBeads.length > 0 && (
-            <Button onClick={clearBeads} className="ml-4">
-              Clear Beads
-            </Button>
-          )}
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
             <button
@@ -175,7 +186,15 @@ export function BuilderLayout() {
 
           <button
             onClick={openBraceletPanel}
-            className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit rounded-br-lg rounded-tr-lg bg-neutral-700 px-1 py-2 text-white ${braceletPanelOpen ? "open" : ""}`}
+            className=
+              {`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit 
+              rounded-br-lg rounded-tr-lg bg-neutral-700 text-white
+              px-1 py-2 
+              transition-all
+              hover:bg-neutral-600 hover:pl-2
+              ${braceletPanelOpen ? "open" : ""}`}
+              title={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
+              aria-label={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
           >
             <ChevronsRight size={25} />
           </button>
