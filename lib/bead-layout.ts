@@ -57,7 +57,7 @@ function arcHalf(bead: BeadLike, neighbor: BeadLike): number {
     neighbor.product.bead_category === "charm" &&
     bead.product.body_width_mm != null
   ) {
-    return bead.product.body_width_mm / 2 / 1000;
+    return bead.product.body_width_mm / 2.2 / 1000;
   }
   return bead.product.diameter / 2;
 }

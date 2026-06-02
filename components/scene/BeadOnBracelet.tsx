@@ -138,13 +138,6 @@ export function BeadOnBracelet({
     gl.domElement.style.cursor = "";
   }
 
-  // For charms: the hit sphere and selection ring must be offset downward to
-  // sit on the charm body, not at cord level. charmBodyCenterY is negative
-  // (below the cord) in the outer group's local space.
-  const hitPosition: [number, number, number] = isCharm
-    ? [0, charmBodyCenterY, 0]
-    : [0, 0, 0];
-
   return (
     <group
       position={liftedPosition}
@@ -165,8 +158,8 @@ export function BeadOnBracelet({
         )}
 
         {/* Hit area — invisible but catches pointer events */}
-        <mesh visible={false} position={hitPosition}>
-          <sphereGeometry args={[vizRadius * 1.1, 8, 8]} />
+        <mesh visible={false} position={[0, 0, 0]}>
+          <sphereGeometry args={isCharm ? [vizRadius * 1.3, 8, 8] : [vizRadius * 1.1, 8, 8]} />
           <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>
 
