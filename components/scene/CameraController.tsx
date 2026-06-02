@@ -34,6 +34,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
   // Track the previous selectedBead
   const prevSelectedBeadRef = useRef(selectedBead);
   const prevSelectAllActiveRef = useRef(selectAllActive);
+  const prevViewModeRef = useRef(viewMode);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -54,8 +55,9 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
 
       const prevBead = prevSelectedBeadRef.current;
       const justDeselectedLine = prevBead && !selectedBead;
+      const switchedToLine     = prevViewModeRef.current !== 'line';
       const justSelectedLine   = selectedBead && !selectAllActive && (
-        !prevBead || prevBead.instanceId !== selectedBead.instanceId
+        switchedToLine || !prevBead || prevBead.instanceId !== selectedBead.instanceId
       );
 
       const justActivatedSelectAll = selectAllActive && !prevSelectAllActiveRef.current;
@@ -76,16 +78,21 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
         // When bead is deselected, unpin focus mode
         controls.setLookAt(0, camY, camZ, 0, 0, 0, true);
       }
-      // Otherwise, don't move camera
+      // Otherwise don't move camera
 
-      controls.mouseButtons.left   = 0;
-      controls.mouseButtons.right  = 0;
-      controls.mouseButtons.middle = 16;
-      controls.mouseButtons.wheel  = 16;
-      controls.touches.one   = 0;
-      controls.touches.two   = 4096;
-      controls.touches.three = 0;
+      // Line view: allow limited rotation and pan but clamp polar angle so can't flip upside down
+      const polarBuffer = Math.PI * 0.2; // ~36° from top/bottom
+      controls.minPolarAngle = polarBuffer;
+      controls.maxPolarAngle = Math.PI - polarBuffer;
+      controls.mouseButtons.left   = 1;   // rotate
+      controls.mouseButtons.right  = 2;   // pan
+      controls.mouseButtons.middle = 16;  // zoom
+      controls.mouseButtons.wheel  = 16;  // zoom
+      controls.touches.one   = 64;        // rotate
+      controls.touches.two   = 4096;      // zoom
+      controls.touches.three = 128;       // pan
 
+      prevViewModeRef.current = viewMode;
       prevSelectAllActiveRef.current = selectAllActive;
       prevSelectedBeadRef.current = selectedBead;
       return;
@@ -123,6 +130,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       }
       controls.addEventListener('rest', lockOnRest);
 
+      prevViewModeRef.current = viewMode;
       prevSelectAllActiveRef.current = selectAllActive;
       prevSelectedBeadRef.current = selectedBead;
       return () => controls.removeEventListener('rest', lockOnRest);
@@ -141,8 +149,9 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
 
     const prevBead = prevSelectedBeadRef.current;
     const justDeselected = prevBead && !selectedBead;
+    const switchedTo3D   = prevViewModeRef.current !== viewMode;
     const justSelected   = selectedBead && (
-      !prevBead || prevBead.instanceId !== selectedBead.instanceId
+      switchedTo3D || !prevBead || prevBead.instanceId !== selectedBead.instanceId
     );
 
     const justActivatedSelectAll3D = selectAllActive && !prevSelectAllActiveRef.current;
@@ -184,6 +193,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       controls.setLookAt(...CAMERA_DEFAULT_POSITION, 0, 0, 0, true);
     }
 
+    prevViewModeRef.current = viewMode;
     prevSelectAllActiveRef.current = selectAllActive;
     prevSelectedBeadRef.current = selectedBead;
   }, [viewMode, isEditMode, editViewMode, selectedBead, beads, braceletSize, controlsRef, selectAllActive]);
