@@ -34,7 +34,9 @@ export function ConfirmReplaceDialog() {
     setStatus("saving");
     try {
       await save();
-      loadDesign(pendingDesign!);
+      if (pendingDesign!.id !== -1) {
+        loadDesign(pendingDesign!);
+      }
       pendingOnLoad?.();
       clearPending();
       setStatus("idle");
@@ -44,7 +46,12 @@ export function ConfirmReplaceDialog() {
   }
 
   function handleDiscardAndLoad() {
-    loadDesign(pendingDesign!);
+    if (!pendingDesign) return null;
+    if (pendingDesign.id === -1) {
+      // New bracelet — just reset, don't load a design
+    } else {
+      loadDesign(pendingDesign!);
+    }
     pendingOnLoad?.();
     clearPending();
     setStatus("idle");
@@ -65,8 +72,13 @@ export function ConfirmReplaceDialog() {
           <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
             You have beads on{" "}
             <span className="font-medium text-neutral-700">"{braceletName}"</span>.
-            Save it before loading{" "}
-            <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+            {pendingDesign.id === -1
+              ? " Save before starting a new bracelet?"
+              : <>
+                  {" "}Save it before loading{" "}
+                  <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                </>
+            }
           </p>
         </div>
 
