@@ -64,6 +64,13 @@ export const ZOOM_BEAD_Y_OFFSET = 0.015;
 /** Camera Y height for the top-down edit mode view, in metres. */
 export const CAMERA_EDIT_HEIGHT = 0.12;
 
+/**
+ * Minimum arc half-contribution for a charm, in metres.
+ * Ensures adjacent charms can't fully overlap even when body_width_mm is
+ * missing from the API. 0.008 = 8 mm half-width → 16 mm min bail-to-bail.
+ */
+export const CHARM_MIN_ARC_HALF = 0.0008;
+
 /** Euler rotation [rx, ry, rz] applied to every charm GLB to orient it hanging from the cord. */
 export const CHARM_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI / 1.8];
 
