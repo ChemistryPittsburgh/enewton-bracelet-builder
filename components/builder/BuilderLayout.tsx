@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
 
 import { BraceletExporter } from "./canvas/BraceletExporter";
-import { CanvasWorkflowBar } from "./canvas/CanvasWorkflowBar";
 import { BandSelector } from "./canvas/BandSelector";
 import { CanvasStatsBar } from "./canvas/CanvasStatsBar";
 import { CanvasToolbar } from "./canvas/CanvasToolbar";
@@ -35,7 +34,9 @@ import { getInitials } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useBeads } from "@/hooks/useBeads";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDesign } from "@/hooks/useDesign";
 import { useDesigns } from "@/hooks/useDesigns";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function BuilderLayout() {
   const {
@@ -49,6 +50,7 @@ export function BuilderLayout() {
     dragFromPanel,
     resetBracelet,
     setPendingDesign,
+    activeDesignId,
   } = useStore((s) => ({
     placedBeads: s.beads,
     braceletName: s.braceletName,
@@ -60,10 +62,14 @@ export function BuilderLayout() {
     dragFromPanel: s.dragFromPanel,
     resetBracelet: s.resetBracelet,
     setPendingDesign: s.setPendingDesign,
+    activeDesignId: s.activeDesignId,
   }));
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
   const { data: currentUser } = useCurrentUser();
+  const { canEdit } = usePermissions();
+  const { data: savedDesign } = useDesign(activeDesignId);
+  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   // ── Notification badge (header) ───────────────────────────────────────────
   // Poll every 60 s so the badge stays fresh while the app is open.
@@ -103,6 +109,11 @@ export function BuilderLayout() {
     };
   }, [!!dragFromPanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
+
+  // Close the bead selector panel if the user loses edit permission or the design becomes locked
+  useEffect(() => {
+    if (!canEdit || isLocked) setBraceletPanelOpen(false);
+  }, [canEdit, isLocked]);
 
   // When BraceletPanel opens, clear selected bead (closes BeadInfoDialog)
   function openBraceletPanel() {
@@ -199,20 +210,21 @@ export function BuilderLayout() {
           }}
         >
 
-          <button
-            onClick={openBraceletPanel}
-            className=
-              {`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit 
+          {canEdit && !isLocked && (
+            <button
+              onClick={openBraceletPanel}
+              className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit
               rounded-br-lg rounded-tr-lg bg-neutral-700 text-white
-              px-1 py-2 
+              px-1 py-2
               transition-all
               hover:bg-neutral-600 hover:pl-2
               ${braceletPanelOpen ? "open" : ""}`}
               title={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
               aria-label={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
-          >
-            <ChevronsRight size={25} />
-          </button>
+            >
+              <ChevronsRight size={25} />
+            </button>
+          )}
 
           <CanvasToolbar
             commentsOpen={rightPanel === "comments"}
@@ -221,7 +233,6 @@ export function BuilderLayout() {
 
           <div className="inner-canvas relative flex-1">
             <div className="absolute left-2 top-2 z-20 flex flex-col gap-1">
-            <CanvasWorkflowBar />
               <div className="flex items-center gap-2">
                 
                 <input

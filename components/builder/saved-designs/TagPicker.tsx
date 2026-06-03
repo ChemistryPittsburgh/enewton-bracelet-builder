@@ -47,7 +47,7 @@ export function TagPicker({
   showManage = false,
 }: TagPickerProps) {
   const { data: tags = [] } = useTags();
-  const { isAdmin } = usePermissions();
+  const { canManageComponents } = usePermissions();
 
   const [open, setOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -106,7 +106,7 @@ export function TagPicker({
         {open && (
           <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-neutral-200 bg-white shadow-lg overflow-hidden">
             {/* Header (admin only) */}
-            {isAdmin && showManage && (
+            {canManageComponents && showManage && (
               <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-2">
                 <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
                   Custom Tags

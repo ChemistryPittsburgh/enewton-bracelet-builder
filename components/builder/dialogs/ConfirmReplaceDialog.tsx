@@ -6,6 +6,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type ConfirmStatus = "idle" | "saving" | "error";
 
@@ -24,6 +25,7 @@ export function ConfirmReplaceDialog() {
 
   const { loadDesign }   = useLoadDesign();
   const { save }         = useSaveBracelet();
+  const { canEdit }      = usePermissions();
 
   const [status, setStatus] = useState<ConfirmStatus>("idle");
 
@@ -73,11 +75,18 @@ export function ConfirmReplaceDialog() {
             You have beads on{" "}
             <span className="font-medium text-neutral-700">"{braceletName}"</span>.
             {pendingDesign.id === -1
-              ? " Save before starting a new bracelet?"
-              : <>
-                  {" "}Save it before loading{" "}
-                  <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
-                </>
+              ? canEdit
+                ? " Save before starting a new bracelet?"
+                : " Start a new bracelet?"
+              : canEdit
+                ? <>
+                    {" "}Save it before loading{" "}
+                    <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                  </>
+                : <>
+                    {" "}Load{" "}
+                    <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                  </>
             }
           </p>
         </div>
@@ -90,20 +99,22 @@ export function ConfirmReplaceDialog() {
         )}
 
         <div className="flex flex-col gap-2">
-          <button
-            onClick={handleSaveAndLoad}
-            disabled={status === "saving"}
-            className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors disabled:opacity-50"
-          >
-            {status === "saving" && <Loader2 size={14} className="animate-spin" />}
-            Save &amp; Load
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleSaveAndLoad}
+              disabled={status === "saving"}
+              className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors disabled:opacity-50"
+            >
+              {status === "saving" && <Loader2 size={14} className="animate-spin" />}
+              Save &amp; Load
+            </button>
+          )}
           <button
             onClick={handleDiscardAndLoad}
             disabled={status === "saving"}
-            className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors disabled:opacity-50"
+            className={`rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors disabled:opacity-50 ${!canEdit ? "bg-neutral-900 text-white border-neutral-900 hover:bg-neutral-700 hover:border-neutral-700" : ""}`}
           >
-            Discard &amp; Load
+            {canEdit ? "Discard & Load" : "Load"}
           </button>
           <button
             onClick={handleCancel}
