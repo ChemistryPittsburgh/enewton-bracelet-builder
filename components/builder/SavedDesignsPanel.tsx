@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AlertCircle, Search, X } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { AlertCircle, Search, X, Inbox } from "lucide-react";
+
+import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
@@ -47,6 +49,7 @@ const AVATAR_COLOURS = [
 ];
 
 export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
+  const [isVisible, setIsVisible] = useState(false);
   // ── Status sidebar
   const [selectedStatus, setSelectedStatus] = useState<BraceletStatus | undefined>(undefined);
   const [designToDelete, setDesignToDelete] = useState<Bracelet | null>(null);
@@ -123,8 +126,6 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
     })),
   ];
 
-  if (!isOpen) return null;
-
   // ── Dropdown helpers
   function addMaterial(value: string) {
     if (!value || selectedMaterials.includes(value)) return;
@@ -145,39 +146,66 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
     }
   }
 
+  // -- Panel Open/Close
+    useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+    }
+  }, [isOpen]);
+
+  function handleAnimationEnd() {
+    if (!isOpen) setIsVisible(false);
+  }
+
+  if (!isVisible) return null;
+
   // ── Shared select style
   const selectCls =
-    "w-[175px] rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
+    "w-[150px] rounded-lg border border-neutral-200 bg-white px-2 py-2.5 text-sm text-neutral-700 outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
 
+  // -- Form Label styles
+    const formLabel = "form-label text-xs text-neutral-500 uppercase font-semibold tracking-wide";
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-white">
-
-      {/* ── Top bar ────────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-8 py-4">
-        <h2 className="text-xl font-semibold text-neutral-800">Saved designs</h2>
-        <button
-          onClick={onClose}
-          className="flex items-center gap-2 text-sm font-semibold text-neutral-600 hover:text-neutral-900 transition-colors"
-        >
-          Return to builder <X size={16} />
-        </button>
-      </div>
+    <div 
+      className={cn(
+        "absolute inset-0 z-50 flex flex-col bg-white transition-all",
+        isOpen ? "animate-slide-up" : "animate-slide-down"
+      )} 
+      onAnimationEnd={handleAnimationEnd}
+      >
 
       {/* ── Body ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex max-md:flex-col flex-1 overflow-hidden">
 
         {/* Sidebar — status filters */}
-        <aside className="w-56 shrink-0 overflow-y-auto border-r border-neutral-200 p-4">
-          <nav className="flex flex-col gap-1">
+        <aside className="w-full md:w-[280px] lg:w-[350px] shrink-0 overflow-y-auto bg-neutral-100 py-6 lg:py-10 px-6">
+          {/* Sidebar header */}
+          <div className="flex items-center justify-between pb-8">
+            <button
+              onClick={onClose}
+              className="flex items-center rounded px-4.5 py-3.5 text-sm font-semibold text-neutral-700 bg-neutral-300 hover:bg-neutral-200 transition-colors"
+              aria-label="Close Saved Designs Panel"
+              title="Close Saved Designs Panel"
+            >
+              <Inbox size={24} />
+            </button>
+              <img
+                src={LOGO_SRC}
+                alt={LOGO_ALT}
+                className="header-logo w-48"
+              />
+          </div>
+
+          <nav className="flex max-lg:flex-wrap lg:flex-col gap-3">
             {STATUS_FILTERS.map(({ label, value }) => (
               <button
                 key={label}
                 onClick={() => setSelectedStatus(value)}
                 className={cn(
-                  "rounded-lg px-4 py-2 text-left text-sm font-medium transition-colors",
+                  "rounded-full px-4 py-2 lg:px-6 lg:py-3 text-left text-sm lg:text-md transition-all cursor-pointer pointer-events-auto",
                   selectedStatus === value
-                    ? "bg-neutral-900 text-white"
-                    : "text-neutral-700 hover:bg-neutral-100",
+                    ? "bg-neutral-500 text-white"
+                    : "text-neutral-700 bg-white hover:bg-amber-300",
                 )}
               >
                 {label}
@@ -186,135 +214,182 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
           </nav>
         </aside>
 
+        {/* ── Close Panel ────────────────────────────────────────────────────── */}
+        <button
+            onClick={onClose}
+            className="max-md:ml-auto max-md:pt-2.5 max-md:pb-2.5 max-md:pr-6 md:absolute top-8 right-8 flex items-center gap-2 text-sm font-semibold text-neutral-600 hover:text-neutral-900 transition-colors"
+          >
+            Return to builder <X size={16} />
+        </button>
+
         {/* Main content */}
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col md:pt-14 overflow-scroll lg:overflow-hidden">
+          <div className="designs-panel-header px-6 lg:px-10">
+            <h2 className="text-xl font-semibold text-neutral-800 pb-3 lg:py-6">Saved designs</h2>
 
-          {/* ── Filter bar ─────────────────────────────────────────────── */}
-          <div className="shrink-0 border-b border-neutral-100 px-6 py-3 flex flex-col gap-2">
+            {/* ── Filter bar ─────────────────────────────────────────────── */}
+            <div className="shrink-0 border-b border-neutral-100 flex flex-col gap-1 lg:gap-4 pb-3">
 
-            {/* Row 1: dropdowns · creator avatars · search */}
-            <div className="flex items-center gap-3">
+              {/* Row 1: dropdowns · creator avatars · search */}
+              <div className="flex flex-col lg:flex-wrap lg:flex-row lg:items-center gap-3 lg:gap-6">
 
-              {/* Dropdowns */}
-              <div className="flex items-center gap-2">
-                {/* Material */}
-                <select
-                  value=""
-                  onChange={(e) => addMaterial(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">Material</option>
-                  {allMaterials.map((m) => (
-                    <option key={m} value={m} disabled={selectedMaterials.includes(m)}>
-                      {m ? m.charAt(0).toUpperCase() + m.slice(1) : m}
-                    </option>
-                  ))}
-                </select>
+                {/* Dropdowns */}
+                <div className="flex flex-col gap-2">
+                  <p className={formLabel}>Filter</p>
 
-                {/* Type */}
-                <select
-                  value=""
-                  onChange={(e) => addType(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">Type</option>
-                  {allTypes.map((t) => (
-                    <option key={t} value={t} disabled={selectedTypes.includes(t)}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Collection — placeholder until collections API is built */}
-                <select disabled className={cn(selectCls, "opacity-50 cursor-not-allowed")}>
-                  <option>Collection</option>
-                </select>
-              </div>
-
-              {/* Creator avatar chips */}
-              {allCreators.length > 0 && (
-                <div className="flex items-center gap-1.5 mx-auto">
-                  {allCreators.map((creator, i) => {
-                    const isActive = selectedCreators.includes(creator);
-                    const colour   = AVATAR_COLOURS[i % AVATAR_COLOURS.length];
-                    return (
-                      <button
-                        key={creator}
-                        title={creator}
-                        onClick={() =>
-                          setSelectedCreators((prev) =>
-                            isActive ? prev.filter((c) => c !== creator) : [...prev, creator],
-                          )
-                        }
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white transition-all",
-                          colour,
-                          isActive
-                            ? "ring-2 ring-offset-1 ring-neutral-800 scale-110"
-                            : "opacity-60 hover:opacity-100",
-                        )}
-                      >
-                        {getInitials(creator)}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Search */}
-              <div className="ml-auto flex items-center gap-0 rounded-lg border border-neutral-200 bg-white px-3 focus-within:border-neutral-500 transition-colors">
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search bracelet name"
-                  className="w-48 border-0 bg-transparent py-1.5 text-sm text-neutral-700 outline-none placeholder:text-neutral-400"
-                />
-                <Search size={15} className="shrink-0 text-neutral-400" />
-              </div>
-            </div>
-
-            {/* Row 2: active chips · sort */}
-            <div className="flex items-center gap-2 min-h-[28px]">
-              {/* Active filter chips */}
-              <div className="flex flex-1 flex-wrap items-center gap-1.5">
-                {activeChips.map((chip) => (
-                  <span
-                    key={chip.label}
-                    className="inline-flex items-center gap-1 rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-white"
-                  >
-                    {chip.label}
-                    <button
-                      onClick={chip.onRemove}
-                      className="ml-0.5 rounded-full hover:text-neutral-300 transition-colors"
-                      aria-label={`Remove ${chip.label} filter`}
+                  <div className="flex max-lg:flex-wrap items-center gap-2">
+                    {/* Material */}
+                    <select
+                      value=""
+                      onChange={(e) => addMaterial(e.target.value)}
+                      className={selectCls}
+                      aria-label="Filter Bracelets by Material"
+                      name="Filter Bracelets by Material"
                     >
-                      <X size={11} />
-                    </button>
-                  </span>
-                ))}
+                      <option value="">Material</option>
+                      {allMaterials.map((m) => (
+                        <option key={m} value={m} disabled={selectedMaterials.includes(m)}>
+                          {m ? m.charAt(0).toUpperCase() + m.slice(1) : m}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Type */}
+                    <select
+                      value=""
+                      onChange={(e) => addType(e.target.value)}
+                      className={selectCls}
+                      aria-label="Filter Bracelets by Type"
+                      name="Filter Bracelets by Type"
+                    >
+                      <option value="">Type</option>
+                      {allTypes.map((t) => (
+                        <option key={t} value={t} disabled={selectedTypes.includes(t)}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Collection — placeholder until collections API is built */}
+                    <select disabled
+                      className={cn(selectCls, "opacity-50 cursor-not-allowed")} 
+                      aria-label="Filter Bracelets by Collection"
+                      name="Filter Bracelets by Collection"
+                    >
+                      <option>Collection</option>
+                    </select>
+
+                    {/* Custom Tags — placeholder until custom tags API is built */}
+                    <select disabled
+                      className={cn(selectCls, "opacity-50 cursor-not-allowed")} 
+                      aria-label="Filter Bracelets by Custom Tags"
+                      name="Filter Bracelets by Custom Tags"
+                    >
+                      <option>Custom Tags</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Creator avatar chips */}
+                {allCreators.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <p className={formLabel}>By User</p>
+                    <div className="flex items-center gap-1.5 lg:mx-auto">
+                      {allCreators.map((creator, i) => {
+                        const isActive = selectedCreators.includes(creator);
+                        const colour   = AVATAR_COLOURS[i % AVATAR_COLOURS.length];
+                        return (
+                          <button
+                            key={creator}
+                            title={creator}
+                            aria-label={`Filter bracelets by user ${creator}`}
+                            onClick={() =>
+                              setSelectedCreators((prev) =>
+                                isActive ? prev.filter((c) => c !== creator) : [...prev, creator],
+                              )
+                            }
+                            className={cn(
+                              "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white transition-all",
+                              colour,
+                              isActive
+                                ? "ring-2 ring-offset-1 ring-neutral-800 scale-110"
+                                : "opacity-60 hover:opacity-100",
+                            )}
+                          >
+                            {getInitials(creator)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Search */}
+                <div className="lg:ml-auto max-lg:max-w-[300px] flex flex-col gap-2 min-w-[200px] shrink-0">
+                  <p className={formLabel}>Search</p>
+                  <div className="flex w-full items-center gap-0 rounded-lg border border-neutral-200 bg-white pr-3 focus-within:border-neutral-500 transition-colors">
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Bracelet Name"
+                      aria-label="Search by Bracelet Name"
+                      name="Search by Bracelet Name"
+                      className="w-48 flex-1 border-0 bg-transparent px-2 py-2.5 text-sm text-neutral-700 outline-none ring-0 placeholder:text-neutral-400"
+                    />
+                    <Search size={15} className="shrink-0 text-neutral-400" />
+                  </div>
+                </div>
               </div>
 
-              {/* Sort */}
-              <div className="ml-auto flex shrink-0 items-center gap-1.5 text-sm text-neutral-600">
-                <span className="font-medium">Sort by:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as DesignSortOption)}
-                  className="border-0 bg-transparent text-sm font-medium text-neutral-700 outline-none cursor-pointer hover:text-neutral-900"
-                >
-                  {SORT_OPTIONS.map(({ label, value }) => (
-                    <option key={value} value={value}>{label}</option>
+              {/* Row 2: active chips · sort */}
+              <div className="flex items-center gap-2 min-h-[28px]">
+                {/* Active filter chips */}
+                <div className="flex flex-1 flex-wrap items-center gap-1.5">
+                  {activeChips.map((chip) => (
+                    <span
+                      key={chip.label}
+                      className="inline-flex items-center gap-1 rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-white"
+                    >
+                      {chip.label}
+                      <button
+                        onClick={chip.onRemove}
+                        className="ml-0.5 rounded-full hover:text-neutral-300 transition-colors"
+                        aria-label={`Remove ${chip.label} filter`}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
                   ))}
-                </select>
+                </div>
+
+                {/* Sort */}
+                <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                  <p className={cn(
+                      formLabel,
+                      "py-1"
+                  )} >
+                    Sort by:
+                  </p>
+                  <select
+                    value={sortBy}
+                    aria-label="Sort By Filter"
+                    onChange={(e) => setSortBy(e.target.value as DesignSortOption)}
+                    className="border-0 bg-transparent text-sm py-1 text-neutral-600 outline-none cursor-pointer hover:text-neutral-900"
+                  >
+                    {SORT_OPTIONS.map(({ label, value }) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
+            </div> {/* End filter bar */}
           </div>
 
           {/* ── Card grid ──────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 lg:overflow-y-auto p-6 lg:px-10">
             {isLoading && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="flex flex-col rounded-lg border border-neutral-200 overflow-hidden">
                     <div className="aspect-square w-full bg-neutral-100 animate-pulse" />
@@ -345,7 +420,7 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
             )}
 
             {!isLoading && !isError && designs.length > 0 && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {designs.map((design) => (
                   <DesignCard
                     key={design.id}

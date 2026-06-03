@@ -106,7 +106,7 @@ export function DesignCard({ design, onClick, onDeleteRequest }: DesignCardProps
         </div>
 
       {/* Card footer */}
-      <div className="px-3 py-2.5">
+      <div className="px-3 py-2.5 flex flex-col gap-2">
         <p className="truncate text-sm font-medium text-neutral-800">{design.name}</p>
         {design.created_by_name && (
           <p className="truncate text-xs text-neutral-400">{design.created_by_name}</p>

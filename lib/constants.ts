@@ -23,6 +23,10 @@ export const BRACELET_SIZES: { value: BraceletSize; label: string }[] = [
   { value: "large",   label: "7.25" },
 ];
 
+/** General enewton logo */
+export const LOGO_SRC = "/images/enewton-logo.svg";
+export const LOGO_ALT = "eNewton Logo";
+
 // ─── Scene ────────────────────────────────────────────────────────────────────
 
 /** Default canvas background colour. */

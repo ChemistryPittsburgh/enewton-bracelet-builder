@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import { AlertCircle, Check, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
+import Image from "next/image";
+
+import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
@@ -124,16 +127,16 @@ export function BuilderLayout() {
         <div className="flex flex-1 items-center gap-4">
         <button
           onClick={() => setSavedDesignsOpen(true)}
-          className="flex items-center rounded border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
+          className="flex items-center rounded border border-neutral-300 bg-white px-4.5 py-3.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
           aria-label="Saved Designs"
           title="View All Saved Designs"
         >
-          <Inbox size={20} />
+          <Inbox size={24} />
         </button>
           <img
-            src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png"
-            alt="eNewton Logo"
-            className="header-logo max-w-[200px]"
+            src={LOGO_SRC}
+            alt={LOGO_ALT}
+            className="header-logo w-48"
           />
         </div>
 
