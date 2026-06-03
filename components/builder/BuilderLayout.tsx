@@ -15,7 +15,8 @@ import { CanvasWorkflowBar } from "./CanvasWorkflowBar";
 
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { SavedDesignsPanel } from "./SavedDesignsPanel";
-import { UserPanel, getInitials } from "./UserPanel";
+import { UserPanel } from "./UserPanel";
+import { getInitials } from "@/lib/utils";
 
 import { BeadInfoDialog } from "./BeadInfoDialog";
 import { BandSelector } from "./BandSelector";
@@ -23,6 +24,7 @@ import { BandSelector } from "./BandSelector";
 import { CanvasStatsBar } from "./CanvasStatsBar";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { EditModeToolbar } from "./EditModeToolbar";
+import { CommentsPanel } from "./CommentsPanel";
 
 import { useStore } from "@/lib/store";
 import { useBeads } from "@/hooks/useBeads";
@@ -70,7 +72,8 @@ export function BuilderLayout() {
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
-  const [userPanelOpen, setUserPanelOpen] = useState(false);
+  const [rightPanel, setRightPanel] = useState<"user" | "comments" | null>(null);
+  const rightPanelOpen = rightPanel !== null;
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
 
   // Auto-resize the description textarea whenever its content changes
@@ -145,7 +148,7 @@ export function BuilderLayout() {
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
             <button
-              onClick={() => setUserPanelOpen(true)}
+              onClick={() => setRightPanel("user")}
               className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white transition-colors"
               style={{ backgroundColor: "#7F7F7F" }}
               aria-label="Open user profile"
@@ -172,14 +175,15 @@ export function BuilderLayout() {
 
         <BeadInfoDialog />
 
-        <UserPanel open={userPanelOpen} onClose={() => setUserPanelOpen(false)} />
+        <UserPanel open={rightPanel === "user"} onClose={() => setRightPanel(null)} />
+        <CommentsPanel open={rightPanel === "comments"} onClose={() => setRightPanel(null)} />
 
         {/* Clip container — narrows visible area without resizing the canvas */}
         <div
           className="absolute flex flex-col top-0 bottom-0 overflow-hidden"
           style={{
             left:  braceletPanelOpen ? PANEL_WIDTH : 0,
-            right: userPanelOpen     ? PANEL_WIDTH : 0,
+            right: rightPanelOpen    ? PANEL_WIDTH : 0,
             transition: "left 300ms ease-out, right 300ms ease-out",
           }}
         >
@@ -199,7 +203,10 @@ export function BuilderLayout() {
             <ChevronsRight size={25} />
           </button>
 
-          <CanvasToolbar />
+          <CanvasToolbar
+            commentsOpen={rightPanel === "comments"}
+            onCommentsClick={() => setRightPanel((p) => p === "comments" ? null : "comments")}
+          />
 
           <div className="inner-canvas relative flex-1">
             <div className="absolute left-2 top-2 z-20 flex flex-col gap-1">
@@ -272,11 +279,11 @@ export function BuilderLayout() {
               className="absolute top-0 bottom-0"
               style={{
                 left:  braceletPanelOpen ? -PANEL_WIDTH : 0,
-                right: userPanelOpen     ? -PANEL_WIDTH : 0,
+                right: rightPanelOpen    ? -PANEL_WIDTH : 0,
                 transition: "left 300ms ease-out, right 300ms ease-out",
               }}
             >
-              <Scene panelOpen={braceletPanelOpen} rightPanelOpen={userPanelOpen} />
+              <Scene panelOpen={braceletPanelOpen} rightPanelOpen={rightPanelOpen} />
             </div>
           </div>
         </div>

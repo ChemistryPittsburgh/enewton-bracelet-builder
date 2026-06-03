@@ -6,16 +6,20 @@
  * Toolbar that floats at the top of the 3D canvas.
  * UI Shell only
  *
- * Left:   Undo / Redo
+ * Left:   (empty)
  * Centre: 3D / Line view toggle
- * Right:  Edit button
- * Below:  Light mode dropdown
+ * Right:  Edit + Comments buttons
  */
 
-import { Pencil } from "lucide-react";
+import { List, Pencil } from "lucide-react";
 import { useStore } from "@/lib/store";
 
-export function CanvasToolbar() {
+interface CanvasToolbarProps {
+  commentsOpen?: boolean;
+  onCommentsClick?: () => void;
+}
+
+export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasToolbarProps) {
   const { isEditMode, toggleEditMode, viewMode, setViewMode } = useStore((s) => ({
     isEditMode: s.isEditMode,
     toggleEditMode: s.toggleEditMode,
@@ -49,19 +53,33 @@ export function CanvasToolbar() {
           </div>
         </div>
 
-        {/* Right — Edit */}
-        <button
-          onClick={toggleEditMode}
-          className={`flex border-l min-w-[70px] border-neutral-200 items-center justify-center px-3 py-2.5 transition-colors ${
-            isEditMode
-              ? "bg-blue-50 text-blue-600"
-              : "text-neutral-500 hover:bg-neutral-100"
-          }`}
-          title={isEditMode ? "Exit edit mode" : "Enter edit mode"}
-          aria-label={isEditMode ? "Exit edit mode" : "Enter edit mode"}
-        >
-          <Pencil size={24} />
-        </button>
+        {/* Right — Edit + Comments */}
+        <div className="flex items-center gap-2 border-l border-neutral-200 px-3 py-2">
+          <button
+            onClick={toggleEditMode}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
+              isEditMode
+                ? "border-blue-300 bg-blue-50 text-blue-600"
+                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+            }`}
+            aria-label={isEditMode ? "Exit edit mode" : "Edit bead order"}
+          >
+            <Pencil size={14} />
+            Edit
+          </button>
+          <button
+            onClick={onCommentsClick}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+              commentsOpen
+                ? "bg-neutral-700 text-white"
+                : "bg-neutral-500 text-white hover:bg-neutral-600"
+            }`}
+            aria-label="Open comments"
+          >
+            <List size={14} />
+            Comments
+          </button>
+        </div>
 
       </div>
 

@@ -13,11 +13,13 @@ import {
 
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDesigns } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useStore } from "@/lib/store";
 import { clearToken } from "@/lib/auth";
+import { getInitials } from "@/lib/utils";
 import type { Bracelet, User } from "@/types";
 
 interface UserPanelProps {
@@ -25,11 +27,6 @@ interface UserPanelProps {
   onClose: () => void;
 }
 
-export function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 function getPrimaryRole(permissions: User["permissions"]): string {
   if (permissions.is_admin) return "Admin";
@@ -291,12 +288,7 @@ export function UserPanel({ open, onClose }: UserPanelProps) {
           {/* Identity row */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white shrink-0"
-                style={{ backgroundColor: "#7F7F7F" }}
-              >
-                {user ? getInitials(user.name) : "?"}
-              </div>
+              {user && <Avatar name={user.name} size="lg" />}
               <span className="text-sm font-semibold text-neutral-900">
                 {user ? getPrimaryRole(user.permissions) : ""}
               </span>

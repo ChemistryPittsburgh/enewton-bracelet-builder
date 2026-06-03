@@ -19,6 +19,7 @@ type PersistedState = {
   braceletDescription?: string;
   bandMaterial?: string;
   braceletSize?: string;
+  activeDesignId?: number | null;
 };
 
 interface Store {
@@ -304,7 +305,7 @@ export const useStore = create<Store>()(
     {
       name: "enewton-beads",
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       migrate(persistedState: unknown, fromVersion: number) {
         const s = (persistedState ?? {}) as PersistedState;
         if (fromVersion < 1) {
@@ -318,6 +319,10 @@ export const useStore = create<Store>()(
           // BeadProduct fields changed to snake_case; old persisted beads are incompatible
           s.beads = [];
         }
+        if (fromVersion < 3) {
+          // activeDesignId added to persisted state
+          s.activeDesignId ??= null;
+        }
         return s;
       },
       partialize: (s) => ({
@@ -326,6 +331,7 @@ export const useStore = create<Store>()(
         braceletDescription: s.braceletDescription,
         bandMaterial: s.bandMaterial,
         braceletSize: s.braceletSize,
+        activeDesignId: s.activeDesignId,
       }),
     }
   )
