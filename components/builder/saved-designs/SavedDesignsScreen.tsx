@@ -117,17 +117,35 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
     [allDesigns],
   );
 
-  // Active filter chips = union of all selected filter values
-  const activeChips: { label: string; onRemove: () => void }[] = [
+  // Define chip categories with full static Tailwind class strings
+  const CHIP_STYLES = {
+    material:   { bg: "bg-orange-500", ring: "ring-orange-500",    text: "text-orange-50",   label: "material" },
+    type:       { bg: "bg-emerald-500", ring: "ring-emerald-500",  text: "text-emerald-50", label: "type" },
+    creator:    { bg: "bg-sky-600", ring: "ring-sky-600",    text: "text-sky-50",   label: "user" },
+    tag:        { bg: "bg-yellow-600", ring: "ring-yellow-600",  text: "text-amber-50",  label: "tag" },
+  } as const;
+
+  type ChipCategory = keyof typeof CHIP_STYLES;
+
+  interface ActiveChip {
+    category: ChipCategory;
+    label: string;
+    onRemove: () => void;
+  }
+
+  const activeChips: ActiveChip[] = [
     ...selectedMaterials.map((m) => ({
+      category: "material" as ChipCategory,
       label: m,
       onRemove: () => setSelectedMaterials((prev) => prev.filter((x) => x !== m)),
     })),
     ...selectedTypes.map((t) => ({
+      category: "type" as ChipCategory,
       label: t,
       onRemove: () => setSelectedTypes((prev) => prev.filter((x) => x !== t)),
     })),
     ...selectedCreators.map((c) => ({
+      category: "creator" as ChipCategory,
       label: c,
       onRemove: () => setSelectedCreators((prev) => prev.filter((x) => x !== c)),
     })),
@@ -135,8 +153,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       const tag = allTags.find((t) => t.id === id);
       if (!tag) return [];
       return [{
+        category: "tag" as ChipCategory,
         label: tag.name,
-        color: tag.color,
         onRemove: () => setSelectedTagIds((prev) => prev.filter((x) => x !== id)),
       }];
     }),
@@ -371,22 +389,26 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
               <div className="flex items-center gap-2 min-h-[28px]">
                 {/* Active filter chips */}
                 <div className="flex flex-1 flex-wrap items-center gap-1.5">
-                  {activeChips.map((chip) => (
-                    <span
-                      key={chip.label}
-                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
-                      style={{ backgroundColor: chip.color ?? "#262626" }}
-                    >
-                      {chip.label}
+                  {activeChips.map((chip) => {
+                    const style = CHIP_STYLES[chip.category];
+                    return (
                       <button
                         onClick={chip.onRemove}
-                        className="ml-0.5 rounded-full opacity-70 hover:opacity-100 transition-opacity"
                         aria-label={`Remove ${chip.label} filter`}
+                        title={`Remove ${chip.label} filter`}
+                        key={`${chip.category}-${chip.label}`}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                          "ring-offset-2 hover:ring-2 focus:ring-2",
+                          style.bg, style.text, style.ring, 
+                        )}
                       >
-                        <X size={11} />
+                        <span className="opacity-60">{style.label}:</span>
+                        {chip.label}
+                          <X size={11} className="ml-1.5" />
                       </button>
-                    </span>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Sort */}

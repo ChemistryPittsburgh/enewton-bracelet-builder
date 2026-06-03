@@ -146,7 +146,7 @@ export function TagPicker({
                           type="checkbox"
                           checked={checked}
                           onChange={() => onToggle(tag)}
-                          className="h-3.5 w-3.5 accent-neutral-800 cursor-pointer"
+                          className="h-3.5 w-3.5 accent-neutral-800 text-yellow-600 cursor-pointer ring-yellow-600"
                         />
                       )}
                       <span className="text-sm text-neutral-700">{tag.name}</span>
