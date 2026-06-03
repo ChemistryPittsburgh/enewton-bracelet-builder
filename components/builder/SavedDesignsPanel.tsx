@@ -8,7 +8,7 @@ import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Bracelet, BraceletStatus } from "@/types";
-import { getInitials } from "@/components/builder/UserPanel";
+import { getInitials } from "@/lib/utils";
 
 import { DesignCard } from "./DesignCard";
 

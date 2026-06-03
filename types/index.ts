@@ -161,3 +161,14 @@ export interface PlacedBead {
   instanceId: string;
   product: BeadProduct;
 }
+
+/** A comment posted on a saved bracelet design. */
+export interface DesignComment {
+  id: number;
+  bracelet_id: number;
+  user_id: number;
+  user_name: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
