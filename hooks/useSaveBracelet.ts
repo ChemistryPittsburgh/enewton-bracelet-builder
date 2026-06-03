@@ -6,7 +6,7 @@ import { slugify } from "@/lib/utils";
 
 /**
  * Shared bracelet save logic — capture thumbnail → upload → POST /designs.
- * Used by BraceletExporter (header button) and the SavedDesignsPanel
+ * Used by BraceletExporter (header button) and the SavedDesignsScreens
  * "Save & Load" confirmation flow.
  *
  * After a successful POST the returned design's ID is stored in

@@ -1,21 +1,40 @@
+@import url("https://googleapis.com");
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
+
 
 /* ─── Design Tokens ─────────────────────────────── */
 @theme {
   --color-primary-black: var(--color-slate-900);
   --color-secondary-black: var(--color-slate-600);
   --bracelet-picker-gutter: 2.5em;
+  --font-display: "Playfair Display", serif;
+  --font-regular: "Open Sans", sans-serif;
+  --text-md: 1.2rem;
+  --text-lg: 1.5rem;
+  --text-xl: 1.9rem;
 }
 
 /* ─── Base ──────────────────────────────────────── */
 body {
   overflow: hidden;
+  font-weight: normal;
+  font-style: normal;
+  font-optical-sizing: auto;
+  font-family: var(--font-regular);
 }
 
 canvas {
   display: block;
   touch-action: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-neutral-800);
+  font-weight: normal;
+  font-style: normal;
+  font-optical-sizing: auto;
 }
 
 /* ─── Utilities ──────────── */
@@ -27,6 +46,7 @@ canvas {
 .picker-scroll {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  overflow-y: revert;
 }
 .picker-scroll::-webkit-scrollbar { display: none; }
 
@@ -61,6 +81,24 @@ canvas {
   &.open svg {
     transform: rotate(180deg);
   }
+}
+
+@keyframes slide-down {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.5s ease-in both;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-in both;
 }
 
 /* ─── Bead Picker Swiper ────────────── */

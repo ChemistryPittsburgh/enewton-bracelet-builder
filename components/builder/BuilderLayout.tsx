@@ -3,29 +3,34 @@
 import { useEffect, useRef, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import { AlertCircle, Check, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
+import Image from "next/image";
+
+import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
 
-import { BraceletExporter } from "./BraceletExporter";
-import { ConfirmReplaceDialog } from "./ConfirmReplaceDialog";
-import { BraceletDetailsDialog } from "./BraceletDetailsDialog";
-import { CanvasWorkflowBar } from "./CanvasWorkflowBar";
+import { BraceletExporter } from "./canvas/BraceletExporter";
+import { CanvasWorkflowBar } from "./canvas/CanvasWorkflowBar";
+import { BandSelector } from "./canvas/BandSelector";
+import { CanvasStatsBar } from "./canvas/CanvasStatsBar";
+import { CanvasToolbar } from "./canvas/CanvasToolbar";
+import { EditModeToolbar } from "./canvas/EditModeToolbar";
 
-import { BeadSelectorPanel } from "./BeadSelectorPanel";
-import { SavedDesignsPanel } from "./SavedDesignsPanel";
-import { UserPanel } from "./UserPanel";
-import { UsersAdminPanel } from "./UsersAdminPanel";
+import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
+import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
+import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
+
+import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
+import { CommentsPanel } from "./panels/CommentsPanel";
+
+import { SavedDesignsScreen } from "./saved-designs/SavedDesignsScreen";
+
+import { UserScreen } from "./users/UserScreen";
+import { UsersAdminScreen } from "./users/UsersAdminScreen";
+
 import { getInitials } from "@/lib/utils";
-
-import { BeadInfoDialog } from "./BeadInfoDialog";
-import { BandSelector } from "./BandSelector";
-
-import { CanvasStatsBar } from "./CanvasStatsBar";
-import { CanvasToolbar } from "./CanvasToolbar";
-import { EditModeToolbar } from "./EditModeToolbar";
-import { CommentsPanel } from "./CommentsPanel";
 
 import { useStore } from "@/lib/store";
 import { useBeads } from "@/hooks/useBeads";
@@ -62,7 +67,7 @@ export function BuilderLayout() {
 
   // ── Notification badge (header) ───────────────────────────────────────────
   // Poll every 60 s so the badge stays fresh while the app is open.
-  // When the UserPanel is also open it polls at 30 s; React Query uses the
+  // When the UserScreen is also open it polls at 30 s; React Query uses the
   // shorter of all active intervals so no duplicate requests are made.
   const perms = currentUser?.permissions;
   const { data: inReviewAll = [] } = useDesigns({ status: "in_review", refetchInterval: 60_000 });
@@ -119,23 +124,23 @@ export function BuilderLayout() {
   }, [beads]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col min-h-[500px] overflow-hidden">
 
       {/* Header */}
       <header className="flex shrink-0 items-center gap-4 py-4 border-b border-neutral-200 bg-white px-6">
         <div className="flex flex-1 items-center gap-4">
         <button
           onClick={() => setSavedDesignsOpen(true)}
-          className="flex items-center rounded border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
+          className="flex items-center rounded border border-neutral-300 bg-white px-4.5 py-3.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
           aria-label="Saved Designs"
           title="View All Saved Designs"
         >
-          <Inbox size={20} />
+          <Inbox size={24} />
         </button>
           <img
-            src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png"
-            alt="eNewton Logo"
-            className="header-logo max-w-[200px]"
+            src={LOGO_SRC}
+            alt={LOGO_ALT}
+            className="header-logo w-48"
           />
         </div>
 
@@ -177,7 +182,7 @@ export function BuilderLayout() {
 
         <BeadInfoDialog />
 
-        <UserPanel
+        <UserScreen
           open={rightPanel === "user"}
           onClose={() => setRightPanel(null)}
           onEditUsers={() => { setRightPanel(null); setUsersAdminOpen(true); }}
@@ -296,12 +301,12 @@ export function BuilderLayout() {
 
       </main>
 
-      <SavedDesignsPanel
+      <SavedDesignsScreen
         isOpen={savedDesignsOpen}
         onClose={() => setSavedDesignsOpen(false)}
       />
 
-      <UsersAdminPanel
+      <UsersAdminScreen
         isOpen={usersAdminOpen}
         onClose={() => setUsersAdminOpen(false)}
       />
