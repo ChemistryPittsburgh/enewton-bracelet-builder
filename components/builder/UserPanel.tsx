@@ -20,21 +20,13 @@ import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useStore } from "@/lib/store";
 import { clearToken } from "@/lib/auth";
 import { getInitials } from "@/lib/utils";
-import type { Bracelet, User } from "@/types";
+import { getPrimaryRole } from "@/hooks/usePermissions";
+import type { Bracelet } from "@/types";
 
 interface UserPanelProps {
   open: boolean;
   onClose: () => void;
-}
-
-
-function getPrimaryRole(permissions: User["permissions"]): string {
-  if (permissions.is_admin) return "Admin";
-  if (permissions.is_publisher) return "Publisher";
-  if (permissions.is_reviewer) return "Reviewer";
-  if (permissions.is_bracelet_editor) return "Bracelet Editor";
-  if (permissions.is_component_admin) return "Component Admin";
-  return "User";
+  onEditUsers?: () => void;
 }
 
 function formatEventDate(iso: string): string {
@@ -234,7 +226,7 @@ function HistoryMenu({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function UserPanel({ open, onClose }: UserPanelProps) {
+export function UserPanel({ open, onClose, onEditUsers }: UserPanelProps) {
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
@@ -334,14 +326,20 @@ export function UserPanel({ open, onClose }: UserPanelProps) {
           {user?.permissions.is_admin && (
             <div className="flex flex-col gap-1">
               <p className="text-xs text-neutral-500 mb-1">Administration actions</p>
-              {["Edit users", "View components", "View bracelets"].map((label) => (
-                <a
+              <button
+                onClick={() => onEditUsers?.()}
+                className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+              >
+                Edit users
+              </button>
+              {["View components", "View bracelets"].map((label) => (
+                <button
                   key={label}
-                  href="#"
-                  className="text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+                  disabled
+                  className="text-left text-sm text-neutral-400 underline underline-offset-2 cursor-not-allowed"
                 >
                   {label}
-                </a>
+                </button>
               ))}
             </div>
           )}

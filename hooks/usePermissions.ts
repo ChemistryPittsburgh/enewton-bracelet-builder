@@ -1,4 +1,15 @@
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import type { User } from "@/types";
+
+/** Returns the highest-priority role label for a user's permission set. */
+export function getPrimaryRole(permissions: User["permissions"]): string {
+  if (permissions.is_admin)           return "Admin";
+  if (permissions.is_publisher)       return "Publisher";
+  if (permissions.is_reviewer)        return "Reviewer";
+  if (permissions.is_bracelet_editor) return "Bracelet Editor";
+  if (permissions.is_component_admin) return "Component Admin";
+  return "User";
+}
 
 /**
  * Clean permission booleans derived from the current user.
