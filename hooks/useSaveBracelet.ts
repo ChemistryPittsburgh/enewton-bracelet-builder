@@ -21,17 +21,13 @@ export function useSaveBracelet() {
   const { capture } = useGenerateThumbnail();
 
   async function save(): Promise<void> {
-    const dataUrl = capture();
+    const dataUrl = await capture();  // ← await added
     const filename = `bracelet-${slugify(braceletName)}-${Date.now()}.png`;
-
     let preview_image_url: string | null = null;
     if (dataUrl) {
       preview_image_url = await uploadThumbnail(dataUrl, filename);
     }
-
     const created = await createBracelet({ preview_image_url });
-
-    // Track the ID so BraceletExporter switches to "Update Bracelet"
     setActiveDesignId(created.id);
   }
 

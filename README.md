@@ -21,9 +21,9 @@ Copy `.env.example` to `.env` and fill in all required values before running.
 | Variable | Required | Description |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | Yes | Base URL of the backend API (e.g. `https://api.example.com`) |
-| `AWS_ACCESS_KEY_ID` | Yes | AWS credentials for thumbnail S3 uploads |
-| `AWS_SECRET_ACCESS_KEY` | Yes | AWS credentials for thumbnail S3 uploads |
-| `AWS_REGION` | Yes | AWS region for the S3 bucket |
+| `ENEWTON_AWS_ACCESS_KEY_ID` | Yes | AWS credentials for thumbnail S3 uploads |
+| `ENEWTON_AWS_SECRET_ACCESS_KEY` | Yes | AWS credentials for thumbnail S3 uploads |
+| `ENEWTON_AWS_REGION` | Yes | AWS region for the S3 bucket |
 | `S3_BUCKET_NAME` | Yes | S3 bucket name where thumbnails are stored |
 | `S3_PUBLIC_URL` | No | CloudFront or custom CDN base URL (falls back to direct S3 URL) |
 
