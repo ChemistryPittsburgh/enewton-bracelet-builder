@@ -1,11 +1,10 @@
 "use client";
-
 import { useState } from "react";
 import { AlertCircle, Check, Download, Loader2, RefreshCw } from "lucide-react";
-
 import { Button } from "@/components/ui/Button";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 import { useUpdateBracelet } from "@/hooks/useUpdateBracelet";
+import { useDesign } from "@/hooks/useDesign";
 import { useStore } from "@/lib/store";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -13,16 +12,38 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 export function BraceletExporter() {
   const [status, setStatus] = useState<SaveStatus>("idle");
 
-  const activeDesignId = useStore((s) => s.activeDesignId);
+  const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize } = useStore((s) => ({
+    activeDesignId:      s.activeDesignId,
+    beads:               s.beads,
+    braceletName:        s.braceletName,
+    braceletDescription: s.braceletDescription,
+    bandMaterial:        s.bandMaterial,
+    braceletSize:        s.braceletSize,
+  }));
+
+  const { data: savedDesign } = useDesign(activeDesignId);
   const isUpdate = activeDesignId !== null;
 
-  const { save } = useSaveBracelet();
+  // ── Dirty check ──────────────────────────────────────────────────────────
+  const isDirty = (() => {
+    if (!isUpdate) return true; // always show Save for new bracelets
+    if (!savedDesign) return false; // design not loaded yet — wait
+    
+    const cfg = savedDesign.configuration;
+    if (braceletName        !== savedDesign.name)              return true;
+    if ((braceletDescription || null) !== (savedDesign.description || null)) return true;
+    if (braceletSize        !== cfg.bracelet_size)             return true;
+    if (bandMaterial        !== cfg.band_material)             return true;
+    if (beads.length        !== cfg.beads.length)              return true;
+    return beads.some((b, i) => b.product.id !== cfg.beads[i].product_id);
+  })();
+
+  const { save }              = useSaveBracelet();
   const { update, canUpdate } = useUpdateBracelet();
 
   async function handleClick() {
     if (status === "saving") return;
     setStatus("saving");
-
     try {
       if (isUpdate) {
         await update();
@@ -38,8 +59,10 @@ export function BraceletExporter() {
     }
   }
 
-  const isDisabled = status === "saving" || (isUpdate && !canUpdate);
+  // Hide the Update button entirely when nothing has changed
+  if (isUpdate && !isDirty && status === "idle") return null;
 
+  const isDisabled  = status === "saving" || (isUpdate && !canUpdate);
   const idleLabel   = isUpdate ? "Update Bracelet" : "Save Bracelet";
   const savingLabel = isUpdate ? "Updating…"       : "Saving…";
   const savedLabel  = isUpdate ? "Updated!"        : "Saved!";
@@ -58,14 +81,13 @@ export function BraceletExporter() {
             : ""
       }
     >
-      {status === "saving" && <Loader2   size={14} className="animate-spin" />}
-      {status === "saved"  && <Check     size={14} />}
-      {status === "error"  && <AlertCircle size={14} />}
-      {status === "idle"   && (isUpdate
+      {status === "saving"  && <Loader2    size={14} className="animate-spin" />}
+      {status === "saved"   && <Check      size={14} />}
+      {status === "error"   && <AlertCircle size={14} />}
+      {status === "idle"    && (isUpdate
         ? <RefreshCw size={14} />
         : <Download  size={14} />
       )}
-
       <span>
         {status === "saving" ? savingLabel :
          status === "saved"  ? savedLabel  :

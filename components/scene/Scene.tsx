@@ -32,6 +32,15 @@ function CanvasRegistrar() {
   return null;
 }
 
+function ControlsRegistrar({ controlsRef }: { controlsRef: React.RefObject<CameraControls> }) {
+  const setControlsEl = useStore((s) => s.setControlsEl);
+  useEffect(() => {
+    setControlsEl(controlsRef.current);
+    return () => setControlsEl(null);
+  }, [controlsRef.current, setControlsEl]);
+  return null;
+}
+
 interface SceneProps {
   panelOpen?: boolean;
   rightPanelOpen?: boolean;
@@ -59,6 +68,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps)
         }}
       >
         <CanvasRegistrar />
+        <ControlsRegistrar controlsRef={controlsRef} />
         <ambientLight intensity={0.7} />
         <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.0} castShadow />
         <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.4} />
