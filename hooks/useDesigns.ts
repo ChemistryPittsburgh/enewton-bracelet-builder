@@ -13,6 +13,8 @@ interface UseDesignsParams {
   types?: string[];
   /** Filter to designs created by any of these creator names. */
   creators?: string[];
+  /** Filter to designs that have all of these tag IDs applied. */
+  tagIds?: number[];
   /** Sort order applied after filtering. Defaults to "newest" (updated_at desc). */
   sortBy?: DesignSortOption;
   /**
@@ -67,6 +69,12 @@ export function useDesigns(params?: UseDesignsParams) {
           !params.creators.includes(d.created_by_name)
         )
           return false;
+
+        // Tag IDs — design must have ALL selected tags
+        if (params?.tagIds?.length) {
+          const designTagIds = Array.isArray(d.tags) ? d.tags.map((t) => t.id) : [];
+          if (!params.tagIds.every((id) => designTagIds.includes(id))) return false;
+        }
 
         return true;
       });

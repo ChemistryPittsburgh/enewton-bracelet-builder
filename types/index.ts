@@ -2,7 +2,7 @@
 
 /**
  * Approval / workflow status for a saved bracelet design.
- * Maps to the sidebar filters in SavedDesignsPanel.
+ * Maps to the sidebar filters in SavedDesignsScreen.
  */
 export type BraceletStatus =
   | "draft"          // initial save — shows as "In-progress"
@@ -83,6 +83,8 @@ export interface Bracelet {
   reviewed_by_name: string | null;
   published_by_name: string | null;
   created_by_name: string;
+  /** Tags applied to this design */
+  tags: Tag[];
 }
 
 /** Paginated list response from GET /designs. */
@@ -162,6 +164,25 @@ export interface PlacedBead {
   /** Unique instance ID — same product can appear multiple times */
   instanceId: string;
   product: BeadProduct;
+}
+
+// ─── Tags ─────────────────────────────────────────────────────────────────────
+
+/** A custom label/tag that can be applied to bracelet designs. */
+export interface Tag {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateTagRequest {
+  name: string;
+}
+
+export interface UpdateTagRequest {
+  id: number;
+  name?: string;
 }
 
 /** A comment posted on a saved bracelet design. */

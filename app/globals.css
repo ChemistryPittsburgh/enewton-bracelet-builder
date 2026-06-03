@@ -10,7 +10,7 @@
   --bracelet-picker-gutter: 2.5em;
   --font-display: "Playfair Display", serif;
   --font-regular: "Open Sans", sans-serif;
-  --text-md: 1rem;
+  --text-md: 1.2rem;
   --text-lg: 1.5rem;
   --text-xl: 1.9rem;
 }
@@ -46,6 +46,7 @@ h1, h2, h3, h4, h5, h6 {
 .picker-scroll {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  overflow-y: revert;
 }
 .picker-scroll::-webkit-scrollbar { display: none; }
 

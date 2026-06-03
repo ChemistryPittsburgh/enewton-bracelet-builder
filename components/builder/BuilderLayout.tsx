@@ -11,24 +11,26 @@ import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
 
-import { BraceletExporter } from "./BraceletExporter";
-import { ConfirmReplaceDialog } from "./ConfirmReplaceDialog";
-import { BraceletDetailsDialog } from "./BraceletDetailsDialog";
-import { CanvasWorkflowBar } from "./CanvasWorkflowBar";
+import { BraceletExporter } from "./canvas/BraceletExporter";
+import { CanvasWorkflowBar } from "./canvas/CanvasWorkflowBar";
+import { BandSelector } from "./canvas/BandSelector";
+import { CanvasStatsBar } from "./canvas/CanvasStatsBar";
+import { CanvasToolbar } from "./canvas/CanvasToolbar";
+import { EditModeToolbar } from "./canvas/EditModeToolbar";
 
-import { BeadSelectorPanel } from "./BeadSelectorPanel";
-import { SavedDesignsPanel } from "./SavedDesignsPanel";
-import { UserPanel } from "./UserPanel";
-import { UsersAdminPanel } from "./UsersAdminPanel";
+import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
+import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
+import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
+
+import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
+import { CommentsPanel } from "./panels/CommentsPanel";
+
+import { SavedDesignsScreen } from "./saved-designs/SavedDesignsScreen";
+
+import { UserScreen } from "./users/UserScreen";
+import { UsersAdminScreen } from "./users/UsersAdminScreen";
+
 import { getInitials } from "@/lib/utils";
-
-import { BeadInfoDialog } from "./BeadInfoDialog";
-import { BandSelector } from "./BandSelector";
-
-import { CanvasStatsBar } from "./CanvasStatsBar";
-import { CanvasToolbar } from "./CanvasToolbar";
-import { EditModeToolbar } from "./EditModeToolbar";
-import { CommentsPanel } from "./CommentsPanel";
 
 import { useStore } from "@/lib/store";
 import { useBeads } from "@/hooks/useBeads";
@@ -65,7 +67,7 @@ export function BuilderLayout() {
 
   // ── Notification badge (header) ───────────────────────────────────────────
   // Poll every 60 s so the badge stays fresh while the app is open.
-  // When the UserPanel is also open it polls at 30 s; React Query uses the
+  // When the UserScreen is also open it polls at 30 s; React Query uses the
   // shorter of all active intervals so no duplicate requests are made.
   const perms = currentUser?.permissions;
   const { data: inReviewAll = [] } = useDesigns({ status: "in_review", refetchInterval: 60_000 });
@@ -122,7 +124,7 @@ export function BuilderLayout() {
   }, [beads]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col min-h-[500px] overflow-hidden">
 
       {/* Header */}
       <header className="flex shrink-0 items-center gap-4 py-4 border-b border-neutral-200 bg-white px-6">
@@ -180,7 +182,7 @@ export function BuilderLayout() {
 
         <BeadInfoDialog />
 
-        <UserPanel
+        <UserScreen
           open={rightPanel === "user"}
           onClose={() => setRightPanel(null)}
           onEditUsers={() => { setRightPanel(null); setUsersAdminOpen(true); }}
@@ -299,12 +301,12 @@ export function BuilderLayout() {
 
       </main>
 
-      <SavedDesignsPanel
+      <SavedDesignsScreen
         isOpen={savedDesignsOpen}
         onClose={() => setSavedDesignsOpen(false)}
       />
 
-      <UsersAdminPanel
+      <UsersAdminScreen
         isOpen={usersAdminOpen}
         onClose={() => setUsersAdminOpen(false)}
       />
