@@ -16,6 +16,7 @@ import { CanvasWorkflowBar } from "./CanvasWorkflowBar";
 import { BeadSelectorPanel } from "./BeadSelectorPanel";
 import { SavedDesignsPanel } from "./SavedDesignsPanel";
 import { UserPanel } from "./UserPanel";
+import { UsersAdminPanel } from "./UsersAdminPanel";
 import { getInitials } from "@/lib/utils";
 
 import { BeadInfoDialog } from "./BeadInfoDialog";
@@ -73,6 +74,7 @@ export function BuilderLayout() {
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
   const [rightPanel, setRightPanel] = useState<"user" | "comments" | null>(null);
+  const [usersAdminOpen, setUsersAdminOpen] = useState(false);
   const rightPanelOpen = rightPanel !== null;
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
 
@@ -175,7 +177,11 @@ export function BuilderLayout() {
 
         <BeadInfoDialog />
 
-        <UserPanel open={rightPanel === "user"} onClose={() => setRightPanel(null)} />
+        <UserPanel
+          open={rightPanel === "user"}
+          onClose={() => setRightPanel(null)}
+          onEditUsers={() => { setRightPanel(null); setUsersAdminOpen(true); }}
+        />
         <CommentsPanel open={rightPanel === "comments"} onClose={() => setRightPanel(null)} />
 
         {/* Clip container — narrows visible area without resizing the canvas */}
@@ -293,6 +299,11 @@ export function BuilderLayout() {
       <SavedDesignsPanel
         isOpen={savedDesignsOpen}
         onClose={() => setSavedDesignsOpen(false)}
+      />
+
+      <UsersAdminPanel
+        isOpen={usersAdminOpen}
+        onClose={() => setUsersAdminOpen(false)}
       />
 
       <ConfirmReplaceDialog />
