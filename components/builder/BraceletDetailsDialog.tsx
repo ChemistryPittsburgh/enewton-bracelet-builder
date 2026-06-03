@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Check, Loader2 } from "lucide-react";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
@@ -10,6 +10,7 @@ import { useSubmitDesign } from "@/hooks/useSubmitDesign";
 import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
 import { usePublishDesign } from "@/hooks/usePublishDesign";
+import { useSetDesignSku } from "@/hooks/useSetDesignSku";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
 import type { Bracelet, BraceletStatus } from "@/types";
@@ -100,13 +101,20 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
   const { mutate: approve, isPending: approving,   canApprove } = useApproveDesign();
   const { mutate: reject,  isPending: rejecting,   canReject }  = useRejectDesign();
   const { mutate: publish, isPending: publishing,  canPublish } = usePublishDesign();
+  const { mutate: setSku,  isPending: settingSku,  canSetSku }  = useSetDesignSku();
 
-  // hooks must be called unconditionally — guard the render below
+  const [skuInput, setSkuInput] = useState("");
+  const [skuSaved, setSkuSaved] = useState(false);
+
+  // Sync input with saved value when design loads
+  useEffect(() => {
+    setSkuInput(savedDesign?.shopify_sku ?? "");
+  }, [savedDesign?.shopify_sku]);
+
   if (!savedDesign) return null;
 
   const { status, id } = savedDesign;
 
-  // Off-pipeline statuses: show badge + note only
   if (!PIPELINE_SET.has(status)) {
     return (
       <div>
@@ -125,64 +133,100 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
 
   const currentIndex = PIPELINE.findIndex((s) => s.status === status);
 
-  // Determine whether any action buttons will be shown
   const hasActions =
     (status === "draft"     && canSubmit)  ||
     (status === "in_review" && (canApprove || canReject)) ||
     (status === "approved"  && canPublish);
 
+  const showSkuField = canSetSku && status === "approved";
+
+  function handleSkuSave() {
+    if (!skuInput.trim()) return;
+    setSku({ id, shopify_sku: skuInput.trim() }, {
+      onSuccess: () => {
+        setSkuSaved(true);
+        setTimeout(() => setSkuSaved(false), 2000);
+      },
+    });
+  }
+
   return (
-    <div>
-      <SectionHeading>Status</SectionHeading>
+    <div className="flex flex-col gap-4">
+      <div>
+        <SectionHeading>Status</SectionHeading>
 
-      {/* ── Pipeline stepper ─────────────────────────────── */}
-      <div className="flex items-start">
-        {PIPELINE.map((step, i) => {
-          const isCompleted = i < currentIndex;
-          const isCurrent   = i === currentIndex;
-          const isFuture    = i > currentIndex;
+        {/* Pipeline stepper */}
+        <div className="flex items-start">
+          {PIPELINE.map((step, i) => {
+            const isCompleted = i < currentIndex;
+            const isCurrent   = i === currentIndex;
+            const isFuture    = i > currentIndex;
 
-          return (
-            <div key={step.status} className="flex items-start">
-              {/* Node + label */}
-              <div className="flex flex-col items-center gap-1.5">
-                <div
-                  className={`flex h-5 w-5 items-center justify-center rounded-full ${
-                    isCompleted || isCurrent
-                      ? "bg-neutral-900"
-                      : "border-2 border-neutral-300 bg-white"
-                  }`}
-                >
-                  {isCompleted && <Check size={10} className="text-white" />}
-                  {isCurrent   && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+            return (
+              <div key={step.status} className="flex items-start">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div
+                    className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                      isCompleted || isCurrent
+                        ? "bg-neutral-900"
+                        : "border-2 border-neutral-300 bg-white"
+                    }`}
+                  >
+                    {isCompleted && <Check size={10} className="text-white" />}
+                    {isCurrent   && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                  </div>
+                  <span
+                    className={`w-16 text-center text-[11px] leading-tight ${
+                      isCurrent  ? "font-semibold text-neutral-900"
+                      : isFuture ? "text-neutral-400"
+                      :             "text-neutral-600"
+                    }`}
+                  >
+                    {step.label}
+                  </span>
                 </div>
-                <span
-                  className={`w-16 text-center text-[11px] leading-tight ${
-                    isCurrent  ? "font-semibold text-neutral-900"
-                    : isFuture ? "text-neutral-400"
-                    :             "text-neutral-600"
-                  }`}
-                >
-                  {step.label}
-                </span>
+                {i < PIPELINE.length - 1 && (
+                  <div
+                    className={`mx-1 mt-2.5 h-0.5 w-10 shrink-0 ${
+                      i < currentIndex ? "bg-neutral-900" : "bg-neutral-200"
+                    }`}
+                  />
+                )}
               </div>
-
-              {/* Connector — not after last step */}
-              {i < PIPELINE.length - 1 && (
-                <div
-                  className={`mx-1 mt-2.5 h-0.5 w-10 shrink-0 ${
-                    i < currentIndex ? "bg-neutral-900" : "bg-neutral-200"
-                  }`}
-                />
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* ── Action buttons ───────────────────────────────── */}
+      {/* SKU field — shown for approved designs to publishers/admins */}
+      {showSkuField && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+            Shopify SKU
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={skuInput}
+              onChange={(e) => setSkuInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSkuSave(); }}
+              placeholder="e.g. BB-SUMMER-001"
+              className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors focus:border-neutral-500 placeholder:text-neutral-400"
+            />
+            <button
+              onClick={handleSkuSave}
+              disabled={settingSku || !skuInput.trim()}
+              className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
+            >
+              {skuSaved ? "Saved!" : settingSku ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Action buttons */}
       {hasActions && (
-        <div className="mt-4 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           {status === "draft" && canSubmit && (
             <ActionButton
               label="Submit for Review"

@@ -39,6 +39,9 @@ interface Store {
   /** Remove all beads and close the panel. */
   clearBeads: () => void;
 
+  /** Reset to a blank bracelet — clears beads, name, description, and activeDesignId. */
+  resetBracelet: () => void;
+
   /** Open the info panel for a specific bead. */
   selectBead: (bead: PlacedBead) => void;
 
@@ -175,6 +178,14 @@ export const useStore = create<Store>()(
       clearBeads() {
         set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null });
       },
+
+      resetBracelet: () => set({
+        beads: [],
+        braceletName: "New Bracelet",
+        braceletDescription: "",
+        activeDesignId: null,
+        selectedBead: null,
+      }),
 
       selectBead(bead) {
         set({ selectedBead: bead, selectAllActive: false });

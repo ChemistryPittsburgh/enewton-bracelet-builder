@@ -5,12 +5,14 @@ import { AlertCircle, Search, X } from "lucide-react";
 
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
+import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Bracelet, BraceletStatus } from "@/types";
 import { getInitials } from "@/lib/utils";
 
 import { DesignCard } from "./DesignCard";
+import { DeleteBraceletDialog } from "./DeleteBraceletDialog";
 
 interface SavedDesignsPanelProps {
   isOpen: boolean;
@@ -47,6 +49,8 @@ const AVATAR_COLOURS = [
 export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
   // ── Status sidebar
   const [selectedStatus, setSelectedStatus] = useState<BraceletStatus | undefined>(undefined);
+  const [designToDelete, setDesignToDelete] = useState<Bracelet | null>(null);
+  const { mutate: deleteDesign, isPending: isDeleting } = useDeleteDesign();
 
   // ── Filter bar state
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
@@ -54,6 +58,7 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
   const [selectedCreators,  setSelectedCreators]  = useState<string[]>([]);
   const [sortBy,            setSortBy]            = useState<DesignSortOption>("newest");
   const [search,            setSearch]            = useState("");
+
 
   // ── Data
   // Raw list — drives option derivation (no filters, one network request shared with filtered query)
@@ -346,6 +351,7 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
                     key={design.id}
                     design={design}
                     onClick={() => handleCardClick(design)}
+                    onDeleteRequest={(d) => setDesignToDelete(d)}  // ← add this
                   />
                 ))}
               </div>
@@ -353,6 +359,19 @@ export function SavedDesignsPanel({ isOpen, onClose }: SavedDesignsPanelProps) {
           </div>
         </div>
       </div>
+
+      {designToDelete && (
+        <DeleteBraceletDialog
+          designName={designToDelete.name}
+          isDeleting={isDeleting}
+          onCancel={() => setDesignToDelete(null)}
+          onConfirm={() => {
+            deleteDesign(designToDelete.id, {
+              onSuccess: () => setDesignToDelete(null),
+            });
+          }}
+        />
+      )}
 
     </div>
   );

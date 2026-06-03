@@ -40,6 +40,7 @@ export function EditModeToolbar() {
         onClick={() => reorderBeads(idx, (idx - 1 + n) % n)}
         disabled={!hasSelection}
         label="Move bead back"
+        title="Move bead back"
       >
         <ArrowUp size={22} />
       </EditBtn>
@@ -47,6 +48,7 @@ export function EditModeToolbar() {
         onClick={() => reorderBeads(idx, (idx + 1) % n)}
         disabled={!hasSelection}
         label="Move bead forward"
+        title="Move bead forward"
       >
         <ArrowDown size={22} />
       </EditBtn>
@@ -54,22 +56,25 @@ export function EditModeToolbar() {
         onClick={() => editSelectedBead && duplicateBead(editSelectedBead.instanceId)}
         disabled={!hasSelection}
         label="Duplicate bead"
+        title="Duplicate bead"
       >
         <CopyPlus size={22} />
       </EditBtn>
-      <EditBtn onClick={() => reverseBracelet()} label="Reverse bracelet">
+      <EditBtn onClick={() => reverseBracelet()} label="Reverse bracelet" title="Reverse Bracelet">
         <Repeat2 size={22} />
       </EditBtn>
       <EditBtn
         onClick={() => editSelectedBead && removeBead(editSelectedBead.instanceId)}
         disabled={!hasSelection}
         label="Delete bead"
+        title="Delete bead"
       >
         <Trash2 size={22} />
       </EditBtn>
       <EditBtn
         onClick={toggleEditViewMode}
         label={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
+        title={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
       >
         <SwitchCamera size={22} />
       </EditBtn>
@@ -82,20 +87,23 @@ function EditBtn({
   disabled = false,
   label,
   children,
+  title,
 }: {
   onClick: () => void;
   disabled?: boolean;
   label: string;
   children: React.ReactNode;
+  title: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      title={title}
       className={`flex items-center justify-center px-4 py-3 transition-colors ${
         disabled
-          ? "cursor-not-allowed text-neutral-300"
+          ? "cursor-not-allowed text-neutral-300 pointer-events-none"
           : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800"
       }`}
     >

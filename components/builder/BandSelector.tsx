@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { useStore } from "@/lib/store";
@@ -46,9 +45,10 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
     <FloatingDialog
       title={bandSelectorTitle}
       onOpenChange={setDialogOpen}
+      buttonTitle="Band Settings"
       className={cn(
         "absolute bottom-4 left-4 z-40 transition-all duration-300 ease-out w-auto",
-        !panelOpen && "min-w-65"
+        !panelOpen && "min-w-[16.25rem]"
       )}
     >
       <div className="space-y-4">

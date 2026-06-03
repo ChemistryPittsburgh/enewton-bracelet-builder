@@ -40,6 +40,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
               <button
                 key={mode}
                 onClick={() => setViewMode(mode === "3D" ? "3D" : "line")}
+                title={`${mode} View`}
                 className={`px-5 py-2 flex-1 text-sm font-semibold transition-all ${
                   (mode === "3D" ? "3D" : "line") === viewMode
                     ? "bg-neutral-600 text-white"

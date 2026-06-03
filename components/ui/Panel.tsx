@@ -76,15 +76,6 @@ export function Panel({
 
   return (
     <>
-      {/* Backdrop */}
-      {/*<div
-        aria-hidden
-        onClick={onClose}
-        className={cn(
-          "absolute inset-0 z-20 transition-opacity duration-200",
-          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        )}
-      />*/}
 
       {/* Panel */}
       <div
@@ -111,6 +102,7 @@ function PanelHeader({ title, onClose }: { title: string; onClose: () => void })
         onClick={onClose}
         className="rounded-md p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
         aria-label="Close panel"
+        title="Close panel"
       >
         <X size={16} />
       </button>
