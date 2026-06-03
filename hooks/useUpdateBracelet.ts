@@ -69,7 +69,7 @@ export function useUpdateBracelet() {
     let preview_image_url: string | null = savedDesign?.preview_image_url ?? null;
 
     if (changed) {
-      const dataUrl = capture();
+      const dataUrl = await capture();
       if (dataUrl) {
         const filename = `bracelet-${slugify(braceletName)}-${Date.now()}.png`;
         preview_image_url = await uploadThumbnail(dataUrl, filename);

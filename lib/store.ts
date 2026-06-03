@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import type { CameraControls } from "@react-three/drei";
 
 type PersistedState = {
   beads?: PlacedBead[];
@@ -104,6 +105,9 @@ interface Store {
   canvasEl: HTMLCanvasElement | null;
   setCanvasEl: (el: HTMLCanvasElement | null) => void;
 
+  controlsEl: CameraControls | null;
+  setControlsEl: (controls: CameraControls | null) => void;
+
   /**
    * Ephemeral — not persisted.
    * ID of the design currently on the canvas (set after a successful save or
@@ -152,6 +156,7 @@ export const useStore = create<Store>()(
       activeDesignId: null,
       pendingDesign: null,
       pendingDesignOnLoad: null,
+      controlsEl: null,
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -267,6 +272,10 @@ export const useStore = create<Store>()(
 
       setCanvasEl(el) {
         set({ canvasEl: el });
+      },
+
+      setControlsEl(controls) {
+        set({ controlsEl: controls });
       },
 
       setActiveDesignId(id) {
