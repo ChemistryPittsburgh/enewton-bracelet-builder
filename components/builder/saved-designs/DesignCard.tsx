@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import type { Bracelet } from "@/types";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/usePermissions";
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -22,6 +23,7 @@ interface DesignCardProps {
 export function DesignCard({ design, onClick, onDeleteRequest }: DesignCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { canDeleteBracelet } = usePermissions();
   const [imgState, setImgState] = useState<"loading" | "loaded" | "error" | "empty">(
     design.preview_image_url ? "loading" : "empty",
   );
@@ -68,41 +70,42 @@ export function DesignCard({ design, onClick, onDeleteRequest }: DesignCardProps
             <div className="h-20 w-20 rounded-full border-2 border-dashed border-neutral-300" />
           )}
 
-          {/* ── Three-dot menu ── */}
-          <div
-            ref={menuRef}
-            className="absolute right-2 top-2"
-            onClick={(e) => e.stopPropagation()} // don't trigger card click
-          >
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-neutral-600 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-neutral-900",
-                // always visible when menu is open, otherwise reveal on hover
-                menuOpen
-                  ? "opacity-100"
-                  : "opacity-0 group-hover:opacity-100",
-              )}
-              aria-label="More options"
+          {/* ── Three-dot menu — admin only ── */}
+          {canDeleteBracelet && (
+            <div
+              ref={menuRef}
+              className="absolute right-2 top-2"
+              onClick={(e) => e.stopPropagation()}
             >
-              <MoreHorizontal size={15} />
-            </button>
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-neutral-600 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-neutral-900",
+                  menuOpen
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100",
+                )}
+                aria-label="More options"
+              >
+                <MoreHorizontal size={15} />
+              </button>
 
-            {menuOpen && (
-              <div className="absolute right-0 top-8 z-10 min-w-[160px] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
-                <button
-                  onClick={() => {
+              {menuOpen && (
+                <div className="absolute right-0 top-8 z-10 min-w-[160px] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
+                  <button
+                    onClick={() => {
                       setMenuOpen(false);
                       onDeleteRequest(design);
                     }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 size={14} />
-                  Delete bracelet
-                </button>
-              </div>
-            )}
-          </div>
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    Delete bracelet
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       {/* Card footer */}

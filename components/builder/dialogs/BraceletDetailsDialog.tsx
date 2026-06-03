@@ -1,17 +1,21 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { z } from "zod";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { TagPicker } from "@/components/builder/saved-designs/TagPicker";
 
 import { useStore } from "@/lib/store";
+import { usePermissions } from "@/hooks/usePermissions";
+import { ApiError } from "@/lib/api";
 import { useDesign } from "@/hooks/useDesign";
 import { useSubmitDesign } from "@/hooks/useSubmitDesign";
 import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
 import { usePublishDesign } from "@/hooks/usePublishDesign";
+import { useRevertDesign } from "@/hooks/useRevertDesign";
 import { useSetDesignSku } from "@/hooks/useSetDesignSku";
 import { useApplyTag } from "@/hooks/useApplyTag";
 import { useRemoveTag } from "@/hooks/useRemoveTag";
@@ -82,7 +86,7 @@ function ActionButton({
   label: string;
   isPending: boolean;
   onClick: () => void;
-  variant: "primary" | "danger";
+  variant: "primary" | "danger" | "secondary";
 }) {
   return (
     <button
@@ -91,7 +95,9 @@ function ActionButton({
       className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
         variant === "primary"
           ? "bg-neutral-900 text-white hover:bg-neutral-700"
-          : "border border-red-200 text-red-600 hover:bg-red-50"
+          : variant === "danger"
+            ? "border border-red-200 text-red-600 hover:bg-red-50"
+            : "border border-neutral-300 text-neutral-700 hover:bg-neutral-50"
       }`}
     >
       {isPending && <Loader2 size={13} className="animate-spin" />}
@@ -100,22 +106,38 @@ function ActionButton({
   );
 }
 
+// ── SKU validation schema ─────────────────────────────────────────────────────
+
+const skuSchema = z
+  .string()
+  .min(1, "SKU is required")
+  .max(100, "Must be 100 characters or fewer")
+  .regex(/^[A-Za-z0-9_-]+$/, "Only letters, numbers, hyphens, and underscores");
+
 // ── Workflow section ──────────────────────────────────────────────────────────
 
 function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined }) {
   const { mutate: submit,  isPending: submitting,  canSubmit }  = useSubmitDesign();
   const { mutate: approve, isPending: approving,   canApprove } = useApproveDesign();
   const { mutate: reject,  isPending: rejecting,   canReject }  = useRejectDesign();
-  const { mutate: publish, isPending: publishing,  canPublish } = usePublishDesign();
+  const { mutate: publish, isPending: publishing,  isError: publishFailed, error: publishError, canPublish } = usePublishDesign();
+  const { mutate: revert,  isPending: reverting,   canRevert }  = useRevertDesign();
   const { mutate: setSku,  isPending: settingSku,  canSetSku }  = useSetDesignSku();
 
-  const [skuInput, setSkuInput] = useState("");
-  const [skuSaved, setSkuSaved] = useState(false);
+  const [skuInput,      setSkuInput]      = useState("");
+  const [skuError,      setSkuError]      = useState<string | null>(null);
+  const [skuSaved,      setSkuSaved]      = useState(false);
+  const [confirmRevert, setConfirmRevert] = useState(false);
 
   // Sync input with saved value when design loads
   useEffect(() => {
     setSkuInput(savedDesign?.shopify_sku ?? "");
   }, [savedDesign?.shopify_sku]);
+
+  // Reset amber confirmation panel when the active design changes
+  useEffect(() => {
+    setConfirmRevert(false);
+  }, [savedDesign?.id]);
 
   if (!savedDesign) return null;
 
@@ -142,13 +164,18 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
   const hasActions =
     (status === "draft"     && canSubmit)  ||
     (status === "in_review" && (canApprove || canReject)) ||
-    (status === "approved"  && canPublish);
+    (status === "approved"  && (canPublish || canRevert));
 
   const showSkuField = canSetSku && status === "approved";
 
   function handleSkuSave() {
-    if (!skuInput.trim()) return;
-    setSku({ id, shopify_sku: skuInput.trim() }, {
+    const result = skuSchema.safeParse(skuInput.trim());
+    if (!result.success) {
+      setSkuError(result.error.issues[0].message);
+      return;
+    }
+    setSkuError(null);
+    setSku({ id, shopify_sku: result.data }, {
       onSuccess: () => {
         setSkuSaved(true);
         setTimeout(() => setSkuSaved(false), 2000);
@@ -214,20 +241,36 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
             <input
               type="text"
               value={skuInput}
-              onChange={(e) => setSkuInput(e.target.value)}
+              onChange={(e) => { setSkuInput(e.target.value); setSkuError(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleSkuSave(); }}
               placeholder="e.g. BB-SUMMER-001"
-              className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors focus:border-neutral-500 placeholder:text-neutral-400"
+              className={`flex-1 rounded-lg border px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors placeholder:text-neutral-400 ${
+                skuError ? "border-red-400 focus:border-red-500" : "border-neutral-200 focus:border-neutral-500"
+              }`}
             />
             <button
               onClick={handleSkuSave}
-              disabled={settingSku || !skuInput.trim()}
+              disabled={settingSku}
               className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
             >
               {skuSaved ? "Saved!" : settingSku ? "Saving…" : "Save"}
             </button>
           </div>
+          {skuError && (
+            <p className="flex items-center gap-1.5 text-xs text-red-500">
+              <AlertCircle size={12} className="shrink-0" />
+              {skuError}
+            </p>
+          )}
         </div>
+      )}
+
+      {/* Publish error */}
+      {publishFailed && publishError && (
+        <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+          <AlertCircle size={14} className="shrink-0" />
+          {publishError instanceof ApiError ? publishError.message : (publishError as Error).message}
+        </p>
       )}
 
       {/* Action buttons */}
@@ -257,13 +300,48 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
               variant="danger"
             />
           )}
-          {status === "approved" && canPublish && (
-            <ActionButton
-              label="Publish"
-              isPending={publishing}
-              onClick={() => publish(id)}
-              variant="primary"
-            />
+          {status === "approved" && (canPublish || canRevert) && (
+            confirmRevert ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col gap-3">
+                <p className="text-sm text-amber-800">
+                  Moving this bracelet back to draft will remove its approval and require a new
+                  review cycle. Do you want to continue?
+                </p>
+                <div className="flex items-center gap-2">
+                  <ActionButton
+                    label="Confirm"
+                    isPending={reverting}
+                    onClick={() => revert(id, { onSuccess: () => setConfirmRevert(false) })}
+                    variant="primary"
+                  />
+                  <ActionButton
+                    label="Cancel"
+                    isPending={false}
+                    onClick={() => setConfirmRevert(false)}
+                    variant="secondary"
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                {canPublish && (
+                  <ActionButton
+                    label="Publish"
+                    isPending={publishing}
+                    onClick={() => publish(id)}
+                    variant="primary"
+                  />
+                )}
+                {canRevert && (
+                  <ActionButton
+                    label="Edit bracelet"
+                    isPending={false}
+                    onClick={() => setConfirmRevert(true)}
+                    variant="secondary"
+                  />
+                )}
+              </>
+            )
           )}
         </div>
       )}
@@ -274,49 +352,63 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
 // ── Tags section ──────────────────────────────────────────────────────────────
 
 function TagsSection({ design }: { design: Bracelet }) {
-  const { mutate: applyTag }  = useApplyTag();
-  const { mutate: removeTag } = useRemoveTag();
+  const { canManageComponents } = usePermissions();
+  const { mutate: applyTag }    = useApplyTag();
+  const { mutate: removeTag }   = useRemoveTag();
 
-  // Optimistic local state: starts from server-confirmed tags, updated instantly on toggle.
+  // Optimistic local state — only used when the user can manage tags.
   const [optimisticTags, setOptimisticTags] = useState<Tag[]>(() => design.tags ?? []);
-  // Which tag IDs have an in-flight mutation right now.
-  const [pendingIds, setPendingIds] = useState<number[]>([]);
+  const [pendingIds, setPendingIds]          = useState<number[]>([]);
 
-  // Sync if the server data changes (e.g. after invalidation resolves).
-  // Only update tags that are NOT currently being mutated to avoid flickering.
   useEffect(() => {
     setOptimisticTags((prev) => {
-      const inFlight = new Set(pendingIds);
+      const inFlight   = new Set(pendingIds);
       const serverTags = design.tags ?? [];
-      // Keep optimistic state for pending tags; use server state for settled ones.
-      const settled = serverTags.filter((t) => !inFlight.has(t.id));
-      const pending  = prev.filter((t) => inFlight.has(t.id));
+      const settled    = serverTags.filter((t) => !inFlight.has(t.id));
+      const pending    = prev.filter((t) => inFlight.has(t.id));
       return [...settled, ...pending];
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [design.tags]);
 
+  // Non-managers with no tags → hide section entirely.
+  if (!canManageComponents && (design.tags ?? []).length === 0) return null;
+
+  // Non-managers with tags → read-only chip cloud.
+  if (!canManageComponents) {
+    return (
+      <div>
+        <SectionHeading>Tags</SectionHeading>
+        <div className="flex flex-wrap gap-2">
+          {(design.tags ?? []).map((tag) => (
+            <span
+              key={tag.id}
+              className="inline-flex items-center rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-white"
+            >
+              {tag.name}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Managers — full picker with optimistic updates.
   function handleToggle(tag: Tag) {
     const isApplied = optimisticTags.some((t) => t.id === tag.id);
 
-    // 1. Optimistically update UI immediately.
     setOptimisticTags((prev) =>
       isApplied ? prev.filter((t) => t.id !== tag.id) : [...prev, tag],
     );
     setPendingIds((prev) => [...prev, tag.id]);
 
-    const settle = () =>
-      setPendingIds((prev) => prev.filter((id) => id !== tag.id));
+    const settle = () => setPendingIds((prev) => prev.filter((id) => id !== tag.id));
 
     if (isApplied) {
       removeTag(
         { designId: design.id, tagId: tag.id },
         {
-          onError: () => {
-            // Roll back on error.
-            setOptimisticTags((prev) => [...prev, tag]);
-            settle();
-          },
+          onError: () => { setOptimisticTags((prev) => [...prev, tag]); settle(); },
           onSuccess: settle,
         },
       );
@@ -324,11 +416,7 @@ function TagsSection({ design }: { design: Bracelet }) {
       applyTag(
         { designId: design.id, tagId: tag.id },
         {
-          onError: () => {
-            // Roll back on error.
-            setOptimisticTags((prev) => prev.filter((t) => t.id !== tag.id));
-            settle();
-          },
+          onError: () => { setOptimisticTags((prev) => prev.filter((t) => t.id !== tag.id)); settle(); },
           onSuccess: settle,
         },
       );
@@ -341,14 +429,13 @@ function TagsSection({ design }: { design: Bracelet }) {
     <div>
       <SectionHeading>Tags</SectionHeading>
       <div className="flex flex-wrap items-center gap-2">
-        {/* Optimistic tag chips */}
         {optimisticTags.map((tag) => {
           const isPending = pendingIds.includes(tag.id);
           return (
             <span
               key={tag.id}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
+                "inline-flex items-center gap-1.5 rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
                 isPending && "opacity-50",
               )}
             >
@@ -357,7 +444,6 @@ function TagsSection({ design }: { design: Bracelet }) {
             </span>
           );
         })}
-        {/* Picker */}
         <TagPicker
           selectedIds={appliedIds}
           pendingIds={pendingIds}

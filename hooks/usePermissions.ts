@@ -27,6 +27,7 @@ export function usePermissions() {
   const canReview           = isAdmin || (p?.is_reviewer          ?? false);
   const canPublish          = isAdmin || (p?.is_publisher         ?? false);
   const canManageComponents = isAdmin || (p?.is_component_admin   ?? false);
+  const canDeleteBracelet   = isAdmin;
 
   return {
     isLoading,
@@ -35,6 +36,7 @@ export function usePermissions() {
     canReview,
     canPublish,
     canManageComponents,
+    canDeleteBracelet,
     /** Raw permissions object — use sparingly; prefer the named booleans above. */
     raw: p,
   };

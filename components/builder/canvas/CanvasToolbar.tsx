@@ -13,6 +13,8 @@
 
 import { List, Pencil } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useDesign } from "@/hooks/useDesign";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface CanvasToolbarProps {
   commentsOpen?: boolean;
@@ -20,12 +22,16 @@ interface CanvasToolbarProps {
 }
 
 export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasToolbarProps) {
-  const { isEditMode, toggleEditMode, viewMode, setViewMode } = useStore((s) => ({
+  const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId } = useStore((s) => ({
     isEditMode: s.isEditMode,
     toggleEditMode: s.toggleEditMode,
     viewMode: s.viewMode,
     setViewMode: s.setViewMode,
+    activeDesignId: s.activeDesignId,
   }));
+  const { canEdit } = usePermissions();
+  const { data: savedDesign } = useDesign(activeDesignId);
+  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   return (
     <div className="flex flex-col gap-2 pointer-events-none relative z-20">
@@ -55,18 +61,20 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
 
         {/* Right — Edit + Comments */}
         <div className="flex items-center gap-2 border-l border-neutral-200 px-3 py-2">
-          <button
-            onClick={toggleEditMode}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
-              isEditMode
-                ? "border-blue-300 bg-blue-50 text-blue-600"
-                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-            }`}
-            aria-label={isEditMode ? "Exit edit mode" : "Edit bead order"}
-          >
-            <Pencil size={14} />
-            Edit
-          </button>
+          {canEdit && !isLocked && (
+            <button
+              onClick={toggleEditMode}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                isEditMode
+                  ? "border-blue-300 bg-blue-50 text-blue-600"
+                  : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+              }`}
+              aria-label={isEditMode ? "Exit edit mode" : "Edit bead order"}
+            >
+              <Pencil size={14} />
+              Edit
+            </button>
+          )}
           <button
             onClick={onCommentsClick}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${

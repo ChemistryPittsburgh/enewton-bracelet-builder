@@ -10,6 +10,7 @@ import { useTags } from "@/hooks/useTags";
 import { useCreateTag } from "@/hooks/useCreateTag";
 import { useUpdateTag } from "@/hooks/useUpdateTag";
 import { useDeleteTag } from "@/hooks/useDeleteTag";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { Tag } from "@/types";
 
 // ── Row: view mode ────────────────────────────────────────────────────────────
@@ -19,32 +20,36 @@ function TagRow({
   onEdit,
   onDelete,
   isDeleting,
+  canManage,
 }: {
   tag: Tag;
   onEdit: (tag: Tag) => void;
   onDelete: (id: number) => void;
   isDeleting: boolean;
+  canManage: boolean;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-white px-4 py-3 group">
       <span className="flex-1 text-sm font-medium text-neutral-800">{tag.name}</span>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={() => onEdit(tag)}
-          className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors"
-          title="Edit tag"
-        >
-          <Pencil size={14} />
-        </button>
-        <button
-          onClick={() => onDelete(tag.id)}
-          disabled={isDeleting}
-          className="rounded p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-40"
-          title="Delete tag"
-        >
-          {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-        </button>
-      </div>
+      {canManage && (
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => onEdit(tag)}
+            className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors"
+            title="Edit tag"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={() => onDelete(tag.id)}
+            disabled={isDeleting}
+            className="rounded p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-40"
+            title="Delete tag"
+          >
+            {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -115,6 +120,7 @@ export function ManageTagsDialog({ open, onClose }: ManageTagsDialogProps) {
   const { mutate: createTag, isPending: creating } = useCreateTag();
   const { mutate: updateTag, isPending: updating } = useUpdateTag();
   const { mutate: deleteTag, isPending: deleting } = useDeleteTag();
+  const { canManageComponents } = usePermissions();
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -173,28 +179,31 @@ export function ManageTagsDialog({ open, onClose }: ManageTagsDialogProps) {
                   onEdit={(t) => { setIsCreating(false); setEditingId(t.id); }}
                   onDelete={handleDelete}
                   isDeleting={deleting && deletingId === tag.id}
+                  canManage={canManageComponents}
                 />
               ),
             )}
           </div>
         )}
 
-        {/* Create new */}
-        {isCreating ? (
-          <EditRow
-            initialName=""
-            isSaving={creating}
-            submitLabel="Create tag"
-            onSave={handleCreate}
-            onCancel={() => setIsCreating(false)}
-          />
-        ) : (
-          <button
-            onClick={() => { setEditingId(null); setIsCreating(true); }}
-            className="flex items-center gap-2 self-start rounded-lg border border-dashed border-neutral-300 px-4 py-2 text-sm text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-700"
-          >
-            <Plus size={15} /> New tag
-          </button>
+        {/* Create new — component admins and above only */}
+        {canManageComponents && (
+          isCreating ? (
+            <EditRow
+              initialName=""
+              isSaving={creating}
+              submitLabel="Create tag"
+              onSave={handleCreate}
+              onCancel={() => setIsCreating(false)}
+            />
+          ) : (
+            <button
+              onClick={() => { setEditingId(null); setIsCreating(true); }}
+              className="flex items-center gap-2 self-start rounded-lg border border-dashed border-neutral-300 px-4 py-2 text-sm text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-700"
+            >
+              <Plus size={15} /> New tag
+            </button>
+          )
         )}
       </div>
     </FullScreenDialog>

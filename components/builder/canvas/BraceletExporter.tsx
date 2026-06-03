@@ -6,11 +6,13 @@ import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 import { useUpdateBracelet } from "@/hooks/useUpdateBracelet";
 import { useDesign } from "@/hooks/useDesign";
 import { useStore } from "@/lib/store";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function BraceletExporter() {
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const { canEdit } = usePermissions();
 
   const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize } = useStore((s) => ({
     activeDesignId:      s.activeDesignId,
@@ -59,10 +61,17 @@ export function BraceletExporter() {
     }
   }
 
+  // Non-editors cannot save or update
+  if (!canEdit) return null;
+
   // Hide the Update button entirely when nothing has changed
   if (isUpdate && !isDirty && status === "idle") return null;
 
-  const isDisabled  = status === "saving" || (isUpdate && !canUpdate);
+  const designStatus  = savedDesign?.status;
+  const isLocked      = designStatus === "approved" || designStatus === "published";
+  const lockedTitle   = `This design is ${designStatus} and cannot be edited. Reject it first to make changes.`;
+
+  const isDisabled  = status === "saving" || isLocked || (isUpdate && !canUpdate);
   const idleLabel   = isUpdate ? "Update Bracelet" : "Save Bracelet";
   const savingLabel = isUpdate ? "Updating…"       : "Saving…";
   const savedLabel  = isUpdate ? "Updated!"        : "Saved!";
@@ -72,7 +81,7 @@ export function BraceletExporter() {
       onClick={handleClick}
       variant="black"
       disabled={isDisabled}
-      title={isUpdate && !canUpdate ? "You don't have permission to edit this design." : undefined}
+      title={isLocked ? lockedTitle : (isUpdate && !canUpdate ? "You don't have permission to edit this design." : undefined)}
       className={
         status === "saved"
           ? "bg-green-700 hover:bg-green-700"
