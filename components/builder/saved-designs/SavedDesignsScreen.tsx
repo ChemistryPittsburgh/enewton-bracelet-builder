@@ -8,15 +8,16 @@ import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
+import { useTags } from "@/hooks/useTags";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { Bracelet, BraceletStatus } from "@/types";
+import type { Bracelet, BraceletStatus, Tag } from "@/types";
 import { getInitials } from "@/lib/utils";
 
 import { DesignCard } from "./DesignCard";
 import { TagPicker } from "./TagPicker";
+
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
-import type { Tag } from "@/types";
 
 interface SavedDesignsScreenProps {
   isOpen: boolean;
@@ -83,7 +84,9 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   const { loadDesign }    = useLoadDesign();
   const beads             = useStore((s) => s.beads);
+  const activeDesignId    = useStore((s) => s.activeDesignId);
   const setPendingDesign  = useStore((s) => s.setPendingDesign);
+  const { data: allTags = [] } = useTags();
 
   // ── Derived option lists (from full unfiltered dataset)
   const allMaterials = useMemo(
@@ -128,6 +131,15 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       label: c,
       onRemove: () => setSelectedCreators((prev) => prev.filter((x) => x !== c)),
     })),
+    ...selectedTagIds.flatMap((id) => {
+      const tag = allTags.find((t) => t.id === id);
+      if (!tag) return [];
+      return [{
+        label: tag.name,
+        color: tag.color,
+        onRemove: () => setSelectedTagIds((prev) => prev.filter((x) => x !== id)),
+      }];
+    }),
   ];
 
   // ── Dropdown helpers
@@ -142,6 +154,11 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   // ── Load handler
   function handleCardClick(design: Bracelet) {
+    // Already on this design — just close the panel, nothing to replace.
+    if (design.id === activeDesignId) {
+      onClose();
+      return;
+    }
     if (beads.length > 0) {
       setPendingDesign(design, onClose);
     } else {
@@ -188,8 +205,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
             <button
               onClick={onClose}
               className="flex items-center rounded px-4.5 py-3.5 text-sm font-semibold text-neutral-700 bg-neutral-300 hover:bg-neutral-200 transition-colors"
-              aria-label="Close Saved Designs Panel"
-              title="Close Saved Designs Panel"
+              aria-label="Close Saved Designs Screen"
+              title="Close Saved Designs Screen"
             >
               <Inbox size={24} />
             </button>
@@ -357,12 +374,13 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                   {activeChips.map((chip) => (
                     <span
                       key={chip.label}
-                      className="inline-flex items-center gap-1 rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-white"
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+                      style={{ backgroundColor: chip.color ?? "#262626" }}
                     >
                       {chip.label}
                       <button
                         onClick={chip.onRemove}
-                        className="ml-0.5 rounded-full hover:text-neutral-300 transition-colors"
+                        className="ml-0.5 rounded-full opacity-70 hover:opacity-100 transition-opacity"
                         aria-label={`Remove ${chip.label} filter`}
                       >
                         <X size={11} />
