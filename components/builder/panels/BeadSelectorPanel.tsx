@@ -10,6 +10,7 @@ import type { BeadProduct } from "@/types";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { Plus } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface BeadSelectorPanelProps {
   beads: BeadProduct[];
@@ -50,8 +51,8 @@ function BeadThumbnail({ bead }: { bead: BeadProduct }) {
   }
 }
 
-function BeadCard({ bead, selected, onClick }: {
-  bead: BeadProduct; selected: boolean; onClick: () => void;
+function BeadCard({ bead, selected, onClick, canEdit }: {
+  bead: BeadProduct; selected: boolean; onClick: () => void; canEdit: boolean;
 }) {
   const setDragFromPanel = useStore((s) => s.setDragFromPanel);
   const startRef = useRef<{ x: number; y: number } | null>(null);
@@ -65,7 +66,7 @@ function BeadCard({ bead, selected, onClick }: {
   }
 
   function handlePointerMove(e: React.PointerEvent) {
-    if (!startRef.current || didDragRef.current) return;
+    if (!startRef.current || didDragRef.current || !canEdit) return;
     const dx = e.clientX - startRef.current.x;
     const dy = e.clientY - startRef.current.y;
     if (Math.sqrt(dx * dx + dy * dy) > 5) {
@@ -88,7 +89,7 @@ function BeadCard({ bead, selected, onClick }: {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onClick={handleClick}
-      className={`flex flex-col gap-1 rounded-md border transition-all overflow-hidden cursor-grab active:cursor-grabbing ${
+      className={`flex flex-col gap-1 rounded-md border transition-all overflow-hidden ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${
         selected
           ? "outline-yellow-600 outline-2 border-yellow-600 bg-neutral-50 shadow-sm"
           : "border-neutral-200 bg-white hover:border-neutral-400"
@@ -126,6 +127,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
   const addBead = useStore((s) => s.addBead);
   const queryClient = useQueryClient();
   const isFetching = useIsFetching({ queryKey: ["beads"] });
+  const { canEdit } = usePermissions();
 
   const [search, setSearch] = useState("");
   const [activeMaterial, setActiveMaterial] = useState<string | null>(null);
@@ -262,6 +264,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
                   bead={bead}
                   selected={selectedBead?.id === bead.id}
                   onClick={() => setSelectedBead((prev) => prev?.id === bead.id ? null : bead)}
+                  canEdit={canEdit}
                 />
               ))}
             </div>
@@ -336,13 +339,15 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
 
           {error && <p className="text-xs text-red-500">{error}</p>}
 
-          <button
-            onClick={handleAddToDesign}
-            disabled={!selectedBead}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            ✦ Add to design
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleAddToDesign}
+              disabled={!selectedBead}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ✦ Add to design
+            </button>
+          )}
         </div>
       </div>
     </Panel>

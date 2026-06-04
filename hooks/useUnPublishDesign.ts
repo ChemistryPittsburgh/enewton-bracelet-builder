@@ -4,20 +4,20 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { Bracelet } from "@/types";
 
 /**
- * POST /designs/:id/publish — publish an approved design.
+ * POST /designs/:id/unpublish — move a published design back to "draft".
  * Requires is_publisher or is_admin.
- * Design must be "approved" and have a shopify_sku set.
+ * Removes the published status so the design must go through the review cycle again.
  *
- * Returns the mutation plus `canPublish` for conditional UI rendering.
+ * Returns the mutation plus `canUnPublish` for conditional UI rendering.
  */
-export function usePublishDesign() {
+export function useUnPublishDesign() {
   const queryClient = useQueryClient();
-  const { canPublish } = usePermissions();
+  const { canUnPublish } = usePermissions();
 
   const mutation = useMutation({
     mutationFn(id: number) {
-      if (!canPublish) throw new Error("Permission denied: is_publisher or is_admin required.");
-      return apiFetch<Bracelet>(`/designs/${id}/publish`, { method: "POST" });
+      if (!canUnPublish) throw new Error("Permission denied: is_publisher or is_admin required.");
+      return apiFetch<Bracelet>(`/designs/${id}/unpublish`, { method: "POST" });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["designs", data.id] });
@@ -25,5 +25,5 @@ export function usePublishDesign() {
     },
   });
 
-  return { ...mutation, canPublish };
+  return { ...mutation, canUnPublish };
 }

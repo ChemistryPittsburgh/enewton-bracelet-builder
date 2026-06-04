@@ -27,6 +27,17 @@ export function usePermissions() {
   const canReview           = isAdmin || (p?.is_reviewer          ?? false);
   const canPublish          = isAdmin || (p?.is_publisher         ?? false);
   const canManageComponents = isAdmin || (p?.is_component_admin   ?? false);
+  const canDeleteBracelet   = isAdmin;
+
+  // Workflow action permissions — consumed by mutation hooks so rule changes
+  // only need to be made here.
+  const canSubmit    = canEdit;
+  const canApprove   = canReview;
+  const canReject    = canReview;
+  const canUpdate    = canEdit;
+  const canUnPublish  = canPublish;
+  const canSetSku     = canPublish;
+  const canSendToDraft = canPublish;
 
   return {
     isLoading,
@@ -35,6 +46,14 @@ export function usePermissions() {
     canReview,
     canPublish,
     canManageComponents,
+    canDeleteBracelet,
+    canSubmit,
+    canApprove,
+    canReject,
+    canUpdate,
+    canUnPublish,
+    canSetSku,
+    canSendToDraft,
     /** Raw permissions object — use sparingly; prefer the named booleans above. */
     raw: p,
   };

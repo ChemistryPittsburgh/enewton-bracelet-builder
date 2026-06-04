@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { z } from "zod";
 
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
@@ -10,13 +11,22 @@ import { braceletArc, usedArc } from "@/lib/bead-layout";
 import { CATEGORY_STYLES } from "@/lib/category-colors";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { ConfirmationPanel } from "@/components/ui/ConfirmationPanel";
+import { InfoRow } from "@/components/ui/InfoRow";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/Pickers";
 
+import { usePermissions } from "@/hooks/usePermissions";
+import { ApiError } from "@/lib/api";
 import { useDesign } from "@/hooks/useDesign";
 import { useSubmitDesign } from "@/hooks/useSubmitDesign";
 import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
 import { usePublishDesign } from "@/hooks/usePublishDesign";
+import { useUnPublishDesign } from "@/hooks/useUnPublishDesign";
+import { useSendToDraft } from "@/hooks/useSendToDraft";
 import { useSetDesignSku } from "@/hooks/useSetDesignSku";
 
 import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
@@ -59,49 +69,13 @@ function formatDateTime(iso: string): string {
   }).format(new Date(iso)).toLowerCase();
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-neutral-400">{label}</span>
-      <span className="text-sm text-neutral-700">{value}</span>
-    </div>
-  );
-}
+// ── SKU validation schema ─────────────────────────────────────────────────────
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
-      {children}
-    </h3>
-  );
-}
-
-function ActionButton({
-  label,
-  isPending,
-  onClick,
-  variant,
-}: {
-  label: string;
-  isPending: boolean;
-  onClick: () => void;
-  variant: "primary" | "danger";
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={isPending}
-      className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
-        variant === "primary"
-          ? "bg-neutral-900 text-white hover:bg-neutral-700"
-          : "border border-red-200 text-red-600 hover:bg-red-50"
-      }`}
-    >
-      {isPending && <Loader2 size={13} className="animate-spin" />}
-      {label}
-    </button>
-  );
-}
+const skuSchema = z
+  .string()
+  .min(1, "SKU is required")
+  .max(100, "Must be 100 characters or fewer")
+  .regex(/^[A-Za-z0-9_-]+$/, "Only letters, numbers, hyphens, and underscores");
 
 // ── Workflow section ──────────────────────────────────────────────────────────
 
@@ -109,16 +83,27 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
   const { mutate: submit,  isPending: submitting,  canSubmit }  = useSubmitDesign();
   const { mutate: approve, isPending: approving,   canApprove } = useApproveDesign();
   const { mutate: reject,  isPending: rejecting,   canReject }  = useRejectDesign();
-  const { mutate: publish, isPending: publishing,  canPublish } = usePublishDesign();
-  const { mutate: setSku,  isPending: settingSku,  canSetSku }  = useSetDesignSku();
+  const { mutate: publish, isPending: publishing,  isError: publishFailed, error: publishError, canPublish } = usePublishDesign();
+  const { mutate: unpublish,    isPending: unpublishing,    canUnPublish }   = useUnPublishDesign();
+  const { mutate: sendToDraft,  isPending: sendingToDraft,  canSendToDraft } = useSendToDraft();
+  const { mutate: setSku,       isPending: settingSku,      canSetSku }      = useSetDesignSku();
 
-  const [skuInput, setSkuInput] = useState("");
-  const [skuSaved, setSkuSaved] = useState(false);
+  const [skuInput,           setSkuInput]           = useState("");
+  const [skuError,           setSkuError]           = useState<string | null>(null);
+  const [skuSaved,           setSkuSaved]           = useState(false);
+  const [confirmSendToDraft, setConfirmSendToDraft] = useState(false);
+  const [confirmUnpublish,   setConfirmUnpublish]   = useState(false);
 
   // Sync input with saved value when design loads
   useEffect(() => {
     setSkuInput(savedDesign?.shopify_sku ?? "");
   }, [savedDesign?.shopify_sku]);
+
+  // Reset amber confirmation panels when the active design changes
+  useEffect(() => {
+    setConfirmSendToDraft(false);
+    setConfirmUnpublish(false);
+  }, [savedDesign?.id]);
 
   if (!savedDesign) return null;
 
@@ -145,13 +130,19 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
   const hasActions =
     (status === "draft"     && canSubmit)  ||
     (status === "in_review" && (canApprove || canReject)) ||
-    (status === "approved"  && canPublish);
+    (status === "approved"  && (canPublish || canSendToDraft)) ||
+    (status === "published" && canUnPublish);
 
   const showSkuField = canSetSku && status === "approved";
 
   function handleSkuSave() {
-    if (!skuInput.trim()) return;
-    setSku({ id, shopify_sku: skuInput.trim() }, {
+    const result = skuSchema.safeParse(skuInput.trim());
+    if (!result.success) {
+      setSkuError(result.error.issues[0].message);
+      return;
+    }
+    setSkuError(null);
+    setSku({ id, shopify_sku: result.data }, {
       onSuccess: () => {
         setSkuSaved(true);
         setTimeout(() => setSkuSaved(false), 2000);
@@ -217,20 +208,33 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
             <input
               type="text"
               value={skuInput}
-              onChange={(e) => setSkuInput(e.target.value)}
+              onChange={(e) => { setSkuInput(e.target.value); setSkuError(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleSkuSave(); }}
               placeholder="e.g. BB-SUMMER-001"
-              className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors focus:border-neutral-500 placeholder:text-neutral-400"
+              className={`flex-1 rounded-lg border px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors placeholder:text-neutral-400 ${
+                skuError ? "border-red-400 focus:border-red-500" : "border-neutral-200 focus:border-neutral-500"
+              }`}
             />
             <button
               onClick={handleSkuSave}
-              disabled={settingSku || !skuInput.trim()}
+              disabled={settingSku}
               className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
             >
               {skuSaved ? "Saved!" : settingSku ? "Saving…" : "Save"}
             </button>
           </div>
+          {skuError && (
+            <p className="flex items-center gap-1.5 text-xs text-red-500">
+              <AlertCircle size={12} className="shrink-0" />
+              {skuError}
+            </p>
+          )}
         </div>
+      )}
+
+      {/* Publish error */}
+      {publishFailed && publishError && (
+        <ErrorAlert message={publishError instanceof ApiError ? publishError.message : (publishError as Error).message} />
       )}
 
       {/* Action buttons */}
@@ -260,13 +264,51 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
               variant="danger"
             />
           )}
-          {status === "approved" && canPublish && (
-            <ActionButton
-              label="Publish"
-              isPending={publishing}
-              onClick={() => publish(id)}
-              variant="primary"
-            />
+          {status === "approved" && (canPublish || canSendToDraft) && (
+            confirmSendToDraft ? (
+              <ConfirmationPanel
+                message="Moving this bracelet back to draft will remove its approval and require a new review cycle. Do you want to continue?"
+                isPending={sendingToDraft}
+                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
+                onCancel={() => setConfirmSendToDraft(false)}
+              />
+            ) : (
+              <>
+                {canPublish && (
+                  <ActionButton
+                    label="Publish"
+                    isPending={publishing}
+                    onClick={() => publish(id)}
+                    variant="primary"
+                  />
+                )}
+                {canSendToDraft && (
+                  <ActionButton
+                    label="Edit bracelet"
+                    isPending={false}
+                    onClick={() => setConfirmSendToDraft(true)}
+                    variant="secondary"
+                  />
+                )}
+              </>
+            )
+          )}
+          {status === "published" && canUnPublish && (
+            confirmUnpublish ? (
+              <ConfirmationPanel
+                message="Unpublishing this bracelet will remove it from the published catalog and require a new review cycle. Do you want to continue?"
+                isPending={unpublishing}
+                onConfirm={() => unpublish(id, { onSuccess: () => setConfirmUnpublish(false) })}
+                onCancel={() => setConfirmUnpublish(false)}
+              />
+            ) : (
+              <ActionButton
+                label="Unpublish bracelet"
+                isPending={false}
+                onClick={() => setConfirmUnpublish(true)}
+                variant="secondary"
+              />
+            )
           )}
         </div>
       )}
@@ -361,49 +403,63 @@ function CollectionSection({ design }: { design: Bracelet }) {
 // ── Tags section ──────────────────────────────────────────────────────────────
 
 function TagsSection({ design }: { design: Bracelet }) {
-  const { mutate: applyTag }  = useApplyTag();
-  const { mutate: removeTag } = useRemoveTag();
+  const { canManageComponents } = usePermissions();
+  const { mutate: applyTag }    = useApplyTag();
+  const { mutate: removeTag }   = useRemoveTag();
 
-  // Optimistic local state: starts from server-confirmed tags, updated instantly on toggle.
+  // Optimistic local state — only used when the user can manage tags.
   const [optimisticTags, setOptimisticTags] = useState<Tag[]>(() => design.tags ?? []);
-  // Which tag IDs have an in-flight mutation right now.
-  const [pendingIds, setPendingIds] = useState<number[]>([]);
+  const [pendingIds, setPendingIds]          = useState<number[]>([]);
 
-  // Sync if the server data changes (e.g. after invalidation resolves).
-  // Only update tags that are NOT currently being mutated to avoid flickering.
   useEffect(() => {
     setOptimisticTags((prev) => {
-      const inFlight = new Set(pendingIds);
+      const inFlight   = new Set(pendingIds);
       const serverTags = design.tags ?? [];
-      // Keep optimistic state for pending tags; use server state for settled ones.
-      const settled = serverTags.filter((t) => !inFlight.has(t.id));
-      const pending  = prev.filter((t) => inFlight.has(t.id));
+      const settled    = serverTags.filter((t) => !inFlight.has(t.id));
+      const pending    = prev.filter((t) => inFlight.has(t.id));
       return [...settled, ...pending];
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [design.tags]);
 
+  // Non-managers with no tags → hide section entirely.
+  if (!canManageComponents && (design.tags ?? []).length === 0) return null;
+
+  // Non-managers with tags → read-only chip cloud.
+  if (!canManageComponents) {
+    return (
+      <div>
+        <SectionHeading>Tags</SectionHeading>
+        <div className="flex flex-wrap gap-2">
+          {(design.tags ?? []).map((tag) => (
+            <span
+              key={tag.id}
+              className="inline-flex items-center rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-white"
+            >
+              {tag.name}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Managers — full picker with optimistic updates.
   function handleToggle(tag: Tag) {
     const isApplied = optimisticTags.some((t) => t.id === tag.id);
 
-    // 1. Optimistically update UI immediately.
     setOptimisticTags((prev) =>
       isApplied ? prev.filter((t) => t.id !== tag.id) : [...prev, tag],
     );
     setPendingIds((prev) => [...prev, tag.id]);
 
-    const settle = () =>
-      setPendingIds((prev) => prev.filter((id) => id !== tag.id));
+    const settle = () => setPendingIds((prev) => prev.filter((id) => id !== tag.id));
 
     if (isApplied) {
       removeTag(
         { designId: design.id, tagId: tag.id },
         {
-          onError: () => {
-            // Roll back on error.
-            setOptimisticTags((prev) => [...prev, tag]);
-            settle();
-          },
+          onError: () => { setOptimisticTags((prev) => [...prev, tag]); settle(); },
           onSuccess: settle,
         },
       );
@@ -411,11 +467,7 @@ function TagsSection({ design }: { design: Bracelet }) {
       applyTag(
         { designId: design.id, tagId: tag.id },
         {
-          onError: () => {
-            // Roll back on error.
-            setOptimisticTags((prev) => prev.filter((t) => t.id !== tag.id));
-            settle();
-          },
+          onError: () => { setOptimisticTags((prev) => prev.filter((t) => t.id !== tag.id)); settle(); },
           onSuccess: settle,
         },
       );
@@ -428,7 +480,6 @@ function TagsSection({ design }: { design: Bracelet }) {
     <div>
       <SectionHeading>Tags</SectionHeading>
       <div className="flex flex-wrap items-center gap-2">
-        {/* Optimistic tag chips */}
         {optimisticTags.map((tag) => {
           const isPending = pendingIds.includes(tag.id);
           return (
@@ -437,7 +488,7 @@ function TagsSection({ design }: { design: Bracelet }) {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
                 CATEGORY_STYLES.tag.bg,
-                pendingIds.includes(tag.id) && "opacity-50",
+                isPending && "opacity-50",
               )}
               >
               {isPending && <Loader2 size={10} className="animate-spin" />}
@@ -445,7 +496,6 @@ function TagsSection({ design }: { design: Bracelet }) {
             </span>
           );
         })}
-        {/* Picker */}
         <TagPicker
           selectedIds={appliedIds}
           pendingIds={pendingIds}
@@ -554,15 +604,15 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
         <div>
           <SectionHeading>Configuration</SectionHeading>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
-            <Row label="Band" value={materialLabel} />
-            <Row label="Size" value={sizeLabel} />
-            <Row label="Beads" value={String(placedBeads.length)} />
-            <Row label="Arc used" value={`${usedMm} / ${totalMm} mm (${pct}%)`} />
+            <InfoRow label="Band" value={materialLabel} />
+            <InfoRow label="Size" value={sizeLabel} />
+            <InfoRow label="Beads" value={String(placedBeads.length)} />
+            <InfoRow label="Arc used" value={`${usedMm} / ${totalMm} mm (${pct}%)`} />
             {materialTags.length > 0 && (
-              <Row label="Materials" value={materialTags.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(", ")} />
+              <InfoRow label="Materials" value={materialTags.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(", ")} />
             )}
             {beadTypes.length > 0 && (
-              <Row label="Types" value={beadTypes.join(", ")} />
+              <InfoRow label="Types" value={beadTypes.join(", ")} />
             )}
           </div>
         </div>
@@ -607,25 +657,25 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
           <div>
             <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
-              <Row label="Created"      value={formatDateTime(savedDesign.created_at)} />
+              <InfoRow label="Created"      value={formatDateTime(savedDesign.created_at)} />
               {savedDesign.created_by_name && (
-                <Row label="Created by"   value={savedDesign.created_by_name} />
+                <InfoRow label="Created by"   value={savedDesign.created_by_name} />
               )}
-              <Row label="Last updated" value={formatDateTime(savedDesign.updated_at)} />
+              <InfoRow label="Last updated" value={formatDateTime(savedDesign.updated_at)} />
               {savedDesign.reviewed_at && (
-                <Row label="Reviewed"    value={formatDateTime(savedDesign.reviewed_at)} />
+                <InfoRow label="Reviewed"    value={formatDateTime(savedDesign.reviewed_at)} />
               )}
               {savedDesign.reviewed_by_name && (
-                <Row label="Reviewed by" value={savedDesign.reviewed_by_name} />
+                <InfoRow label="Reviewed by" value={savedDesign.reviewed_by_name} />
               )}
               {savedDesign.published_at && (
-                <Row label="Published"   value={formatDateTime(savedDesign.published_at)} />
+                <InfoRow label="Published"   value={formatDateTime(savedDesign.published_at)} />
               )}
               {savedDesign.published_by_name && (
-                <Row label="Published by" value={savedDesign.published_by_name} />
+                <InfoRow label="Published by" value={savedDesign.published_by_name} />
               )}
               {savedDesign.shopify_sku && (
-                <Row label="Shopify SKU" value={savedDesign.shopify_sku} />
+                <InfoRow label="Shopify SKU" value={savedDesign.shopify_sku} />
               )}
             </div>
           </div>

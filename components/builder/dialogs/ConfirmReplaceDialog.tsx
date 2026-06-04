@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
-import { Button } from "@/components/ui/Button";
+import { usePermissions } from "@/hooks/usePermissions";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 
 type ConfirmStatus = "idle" | "saving" | "error";
 
@@ -25,8 +26,19 @@ export function ConfirmReplaceDialog() {
 
   const { loadDesign }   = useLoadDesign();
   const { save }         = useSaveBracelet();
+  const { canEdit }      = usePermissions();
 
   const [status, setStatus] = useState<ConfirmStatus>("idle");
+
+  // Close on Escape — only when not mid-save
+  useEffect(() => {
+    if (!pendingDesign) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && status !== "saving") handleCancel();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pendingDesign, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!pendingDesign) return null;
 
@@ -79,11 +91,18 @@ export function ConfirmReplaceDialog() {
               You have beads on{" "}
               <span className="font-medium text-neutral-700">"{braceletName}"</span>.
               {pendingDesign.id === -1
-                ? " Save before starting a new bracelet?"
-                : <>
-                    {" "}Save it before loading{" "}
-                    <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
-                  </>
+                ? canEdit
+                  ? " Save before starting a new bracelet?"
+                  : " Start a new bracelet?"
+                : canEdit
+                  ? <>
+                      {" "}Save it before loading{" "}
+                      <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                    </>
+                  : <>
+                      {" "}Load{" "}
+                      <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                    </>
               }
             </p>
           </div>
@@ -98,27 +117,27 @@ export function ConfirmReplaceDialog() {
         </div>
 
         {status === "error" && (
-          <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-            <AlertCircle size={14} className="shrink-0" />
-            Save failed — check your connection and try again.
-          </p>
+          <ErrorAlert message="Save failed — check your connection and try again." />
         )}
 
         <div className="flex flex-col gap-2">
-          <Button
-            onClick={handleSaveAndLoad}
-            disabled={status === "saving"}
-          >
-            {status === "saving" && <Loader2 size={14} className="animate-spin" />}
-            Save Current &amp; Load
-          </Button>
-          <Button
-            variant="black"
+          {canEdit && (
+            <button
+              onClick={handleSaveAndLoad}
+              disabled={status === "saving"}
+              className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors disabled:opacity-50"
+            >
+              {status === "saving" && <Loader2 size={14} className="animate-spin" />}
+              Save &amp; Load
+            </button>
+          )}
+          <button
             onClick={handleDiscardAndLoad}
             disabled={status === "saving"}
+            className={`rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors disabled:opacity-50 ${!canEdit ? "bg-neutral-900 text-white border-neutral-900 hover:bg-neutral-700 hover:border-neutral-700" : ""}`}
           >
-            Discard Current &amp; Load
-          </Button>
+            {canEdit ? "Discard & Load" : "Load"}
+          </button>
           <button
             onClick={handleCancel}
             disabled={status === "saving"}
