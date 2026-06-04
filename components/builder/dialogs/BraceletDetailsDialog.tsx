@@ -434,7 +434,7 @@ function TagsSection({ design }: { design: Bracelet }) {
             <span
               key={tag.id}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
+                "inline-flex items-center gap-1.5 bg-amber-500 rounded-full px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
                 isPending && "opacity-50",
               )}
             >
