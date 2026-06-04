@@ -6,11 +6,9 @@ import { AlertTriangle, Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-r
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { Button } from "@/components/ui/Button";
 
-import { useTags } from "@/hooks/useTags";
 import { useDesigns } from "@/hooks/useDesigns";
-import { useCreateTag } from "@/hooks/useCreateTag";
-import { useUpdateTag } from "@/hooks/useUpdateTag";
-import { useDeleteTag } from "@/hooks/useDeleteTag";
+
+import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/hooks/Tags";
 import type { Tag } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -36,6 +34,13 @@ function TagRow({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-white px-4 py-3 group">
+      {/* Colour dot */}
+      {tag.color && (
+        <span
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ backgroundColor: tag.color }}
+        />
+      )}
 
       <span className="flex-1 text-sm font-medium text-neutral-800">{tag.name}</span>
 

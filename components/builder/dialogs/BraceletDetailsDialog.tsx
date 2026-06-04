@@ -4,7 +4,8 @@ import { useMemo, useState, useEffect } from "react";
 import { Check, Loader2 } from "lucide-react";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
-import { TagPicker } from "@/components/builder/saved-designs/TagPicker";
+import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/Pickers";
+
 
 import { useStore } from "@/lib/store";
 import { useDesign } from "@/hooks/useDesign";
@@ -13,13 +14,15 @@ import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
 import { usePublishDesign } from "@/hooks/usePublishDesign";
 import { useSetDesignSku } from "@/hooks/useSetDesignSku";
-import { useApplyTag } from "@/hooks/useApplyTag";
-import { useRemoveTag } from "@/hooks/useRemoveTag";
+
+import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
+import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
+
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
 import { cn } from "@/lib/utils";
 
-import type { Bracelet, BraceletStatus, Tag } from "@/types";
+import type { Bracelet, BraceletStatus, Collection, Tag } from "@/types";
 
 // ── Status metadata ───────────────────────────────────────────────────────────
 
@@ -271,6 +274,89 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
   );
 }
 
+// ── Collection section ────────────────────────────────────────────────────────
+
+function CollectionSection({ design }: { design: Bracelet }) {
+  const { mutate: applyCollection }  = useApplyCollection();
+  const { mutate: removeCollection } = useRemoveCollection();
+
+  const [optimisticCollections, setOptimisticCollections] = useState<Collection[]>(
+    () => design.collections ?? [],
+  );
+  const [pendingIds, setPendingIds] = useState<number[]>([]);
+
+  // Sync from server once mutations settle
+  useEffect(() => {
+    setOptimisticCollections((prev) => {
+      const inFlight    = new Set(pendingIds);
+      const serverColls = design.collections ?? [];
+      const settled     = serverColls.filter((c) => !inFlight.has(c.id));
+      const pending     = prev.filter((c) => inFlight.has(c.id));
+      return [...settled, ...pending];
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [design.collections]);
+
+  function handleToggle(collection: Collection) {
+    const isApplied = optimisticCollections.some((c) => c.id === collection.id);
+
+    setOptimisticCollections((prev) =>
+      isApplied ? prev.filter((c) => c.id !== collection.id) : [...prev, collection],
+    );
+    setPendingIds((prev) => [...prev, collection.id]);
+
+    const settle = () => setPendingIds((prev) => prev.filter((id) => id !== collection.id));
+
+    if (isApplied) {
+      removeCollection(
+        { designId: design.id, collectionId: collection.id },
+        {
+          onError:   () => { setOptimisticCollections((prev) => [...prev, collection]); settle(); },
+          onSuccess: settle,
+        },
+      );
+    } else {
+      applyCollection(
+        { designId: design.id, collectionId: collection.id },
+        {
+          onError:   () => { setOptimisticCollections((prev) => prev.filter((c) => c.id !== collection.id)); settle(); },
+          onSuccess: settle,
+        },
+      );
+    }
+  }
+
+  const appliedIds = optimisticCollections.map((c) => c.id);
+
+  return (
+    <div>
+      <SectionHeading>Collections</SectionHeading>
+      <div className="flex flex-wrap items-center gap-2">
+        {optimisticCollections.map((c) => (
+          <span
+            key={c.id}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
+              pendingIds.includes(c.id) && "opacity-50",
+            )}
+          >
+            {pendingIds.includes(c.id) && <Loader2 size={10} className="animate-spin" />}
+            {c.name}
+          </span>
+        ))}
+        <CollectionPicker
+          selectedIds={appliedIds}
+          pendingIds={pendingIds}
+          onToggle={handleToggle}
+          variant="assign"
+          placeholder={appliedIds.length > 0 ? "Edit collections" : "Add to collection"}
+          showManage
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Tags section ──────────────────────────────────────────────────────────────
 
 function TagsSection({ design }: { design: Bracelet }) {
@@ -451,6 +537,11 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
         {/* ── Workflow stepper + actions ───────────────────────────────────── */}
         <WorkflowSection savedDesign={savedDesign} />
+
+        {/* ── Collection ──────────────────────────────────────────────────── */}
+        {savedDesign && (
+          <CollectionSection design={savedDesign} />
+        )}
 
         {/* ── Tags ────────────────────────────────────────────────────────── */}
         {savedDesign && (

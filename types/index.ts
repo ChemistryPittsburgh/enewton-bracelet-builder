@@ -2,7 +2,7 @@
 
 /**
  * Approval / workflow status for a saved bracelet design.
- * Maps to the sidebar filters in SavedDesignsScreen.
+ * Maps to the sidebar filters in SavedDesignsPanel.
  */
 export type BraceletStatus =
   | "draft"          // initial save — shows as "In-progress"
@@ -41,7 +41,8 @@ export interface BraceletConfiguration {
  * bead_types    — unique bead type labels (e.g. ["Hope", "Dignity"]).
  *                 Derived client-side from PlacedBead[].product.bead_type.
  *
- * collection_id — TBD; placeholder null until collection logic is defined (see Figma).
+ * collection_id — Legacy FK field. Will be removed once the API migrates to
+ *                 the many-to-many collections junction table.
  *
  * preview_image_url — S3 URL of the generated thumbnail PNG.
  *                     Two-step flow: upload PNG → receive URL → include here.
@@ -69,6 +70,8 @@ export interface Bracelet {
   material_tags: string[];
   bead_types: string[];
   collection_id: number | null;
+  /** Collections this design belongs to (many-to-many, like tags). */
+  collections: Collection[];
   preview_image_url: string | null;
   shopify_sku: string | null;
   status: BraceletStatus;
@@ -166,23 +169,48 @@ export interface PlacedBead {
   product: BeadProduct;
 }
 
-// ─── Tags ─────────────────────────────────────────────────────────────────────
+// ─── Collections ──────────────────────────────────────────────────────────────
 
-/** A custom label/tag that can be applied to bracelet designs. */
-export interface Tag {
+/**
+ * A collection groups bracelet designs (and eventually bead products) together.
+ * A design can belong to multiple collections (many-to-many, like tags).
+ */
+export interface Collection {
   id: number;
   name: string;
   created_at: string;
   updated_at: string;
 }
 
+export interface CreateCollectionRequest {
+  name: string;
+}
+
+export interface UpdateCollectionRequest {
+  id: number;
+  name?: string;
+}
+
+// ─── Tags ─────────────────────────────────────────────────────────────────────
+
+/** A custom label/tag that can be applied to bracelet designs. */
+export interface Tag {
+  id: number;
+  name: string;
+  color: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CreateTagRequest {
   name: string;
+  color?: string | null;
 }
 
 export interface UpdateTagRequest {
   id: number;
   name?: string;
+  color?: string | null;
 }
 
 /** A comment posted on a saved bracelet design. */

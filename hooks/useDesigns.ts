@@ -15,6 +15,8 @@ interface UseDesignsParams {
   creators?: string[];
   /** Filter to designs that have all of these tag IDs applied. */
   tagIds?: number[];
+  /** Filter to designs that belong to any of these collection IDs. */
+  collectionIds?: number[];
   /** Sort order applied after filtering. Defaults to "newest" (updated_at desc). */
   sortBy?: DesignSortOption;
   /**
@@ -74,6 +76,12 @@ export function useDesigns(params?: UseDesignsParams) {
         if (params?.tagIds?.length) {
           const designTagIds = Array.isArray(d.tags) ? d.tags.map((t) => t.id) : [];
           if (!params.tagIds.every((id) => designTagIds.includes(id))) return false;
+        }
+
+        // Collection IDs — design must belong to ALL selected collections
+        if (params?.collectionIds?.length) {
+          const designCollectionIds = Array.isArray(d.collections) ? d.collections.map((c) => c.id) : [];
+          if (!params.collectionIds.every((id) => designCollectionIds.includes(id))) return false;
         }
 
         return true;

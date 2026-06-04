@@ -8,14 +8,16 @@ import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
-import { useTags } from "@/hooks/useTags";
+import { useTags } from "@/hooks/Tags";
+import { useCollections } from "@/hooks/Collections";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { Bracelet, BraceletStatus, Tag } from "@/types";
+import type { Bracelet, BraceletStatus, Collection, Tag } from "@/types";
 import { getInitials } from "@/lib/utils";
 
 import { DesignCard } from "./DesignCard";
-import { TagPicker } from "./TagPicker";
+import { TagPicker, CollectionPicker } from "./Pickers";
+
 
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
 
@@ -62,7 +64,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [selectedTypes,     setSelectedTypes]     = useState<string[]>([]);
   const [selectedCreators,  setSelectedCreators]  = useState<string[]>([]);
-  const [selectedTagIds,    setSelectedTagIds]    = useState<number[]>([]);
+  const [selectedTagIds,       setSelectedTagIds]       = useState<number[]>([]);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<number[]>([]);
   const [sortBy,            setSortBy]            = useState<DesignSortOption>("newest");
   const [search,            setSearch]            = useState("");
 
@@ -73,12 +76,13 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   // Filtered + sorted list — drives the card grid
   const { data: designs = [], isLoading, isError, refetch } = useDesigns({
-    status: selectedStatus,
+    status:       selectedStatus,
     search,
-    materials: selectedMaterials,
-    types:     selectedTypes,
-    creators:  selectedCreators,
-    tagIds:    selectedTagIds,
+    materials:    selectedMaterials,
+    types:        selectedTypes,
+    creators:     selectedCreators,
+    tagIds:        selectedTagIds,
+    collectionIds: selectedCollectionIds,
     sortBy,
   });
 
@@ -86,7 +90,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   const beads             = useStore((s) => s.beads);
   const activeDesignId    = useStore((s) => s.activeDesignId);
   const setPendingDesign  = useStore((s) => s.setPendingDesign);
-  const { data: allTags = [] } = useTags();
+  const { data: allTags = [] }        = useTags();
+  const { data: allCollections = [] } = useCollections();
 
   // ── Derived option lists (from full unfiltered dataset)
   const allMaterials = useMemo(
@@ -117,12 +122,13 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
     [allDesigns],
   );
 
-  // Define chip categories with full static Tailwind class strings
+  // Active filter chips = union of all selected filter values
   const CHIP_STYLES = {
-    material:   { bg: "bg-orange-500", ring: "ring-orange-500",    text: "text-orange-50",   label: "material" },
-    type:       { bg: "bg-emerald-500", ring: "ring-emerald-500",  text: "text-emerald-50", label: "type" },
-    creator:    { bg: "bg-sky-600", ring: "ring-sky-600",    text: "text-sky-50",   label: "user" },
-    tag:        { bg: "bg-yellow-600", ring: "ring-yellow-600",  text: "text-amber-50",  label: "tag" },
+    material:   { bg: "bg-blue-600",    text: "text-blue-50",    label: "material" },
+    type:       { bg: "bg-violet-600",  text: "text-violet-50",  label: "type" },
+    creator:    { bg: "bg-teal-600",    text: "text-teal-50",    label: "user" },
+    tag:        { bg: "bg-amber-500",   text: "text-amber-50",   label: "tag" },
+    collection: { bg: "bg-emerald-600", text: "text-emerald-50", label: "collection" },
   } as const;
 
   type ChipCategory = keyof typeof CHIP_STYLES;
@@ -130,6 +136,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   interface ActiveChip {
     category: ChipCategory;
     label: string;
+    color?: string | null;
     onRemove: () => void;
   }
 
@@ -155,7 +162,17 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       return [{
         category: "tag" as ChipCategory,
         label: tag.name,
+        color: tag.color,
         onRemove: () => setSelectedTagIds((prev) => prev.filter((x) => x !== id)),
+      }];
+    }),
+    ...selectedCollectionIds.flatMap((id) => {
+      const coll = allCollections.find((c) => c.id === id);
+      if (!coll) return [];
+      return [{
+        category: "collection" as ChipCategory,
+        label: coll.name,
+        onRemove: () => setSelectedCollectionIds((prev) => prev.filter((x) => x !== id)),
       }];
     }),
   ];
@@ -309,14 +326,18 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                       ))}
                     </select>
 
-                    {/* Collection — placeholder until collections API is built */}
-                    <select disabled
-                      className={cn(selectCls, "opacity-50 cursor-not-allowed")} 
-                      aria-label="Filter Bracelets by Collection"
-                      name="Filter Bracelets by Collection"
-                    >
-                      <option>Collection</option>
-                    </select>
+                    {/* Collection */}
+                    <CollectionPicker
+                      selectedIds={selectedCollectionIds}
+                      onToggle={(c: Collection) =>
+                        setSelectedCollectionIds((prev) =>
+                          prev.includes(c.id)
+                            ? prev.filter((id) => id !== c.id)
+                            : [...prev, c.id],
+                        )
+                      }
+                      showManage
+                    />
 
                     {/* Custom Tags */}
                     <TagPicker
@@ -391,22 +412,27 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 <div className="flex flex-1 flex-wrap items-center gap-1.5">
                   {activeChips.map((chip) => {
                     const style = CHIP_STYLES[chip.category];
+                    // Tag chips use their DB colour; all others use the Tailwind category colour.
+                    const useInlineColor = chip.category === "tag" && chip.color;
                     return (
-                      <button
-                        onClick={chip.onRemove}
-                        aria-label={`Remove ${chip.label} filter`}
-                        title={`Remove ${chip.label} filter`}
+                      <span
                         key={`${chip.category}-${chip.label}`}
                         className={cn(
                           "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                          "ring-offset-2 hover:ring-2 focus:ring-2",
-                          style.bg, style.text, style.ring, 
+                          useInlineColor ? "text-white" : `${style.bg} ${style.text}`,
                         )}
+                        style={useInlineColor ? { backgroundColor: chip.color! } : undefined}
                       >
                         <span className="opacity-60">{style.label}:</span>
                         {chip.label}
-                          <X size={11} className="ml-1.5" />
-                      </button>
+                        <button
+                          onClick={chip.onRemove}
+                          className="ml-0.5 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                          aria-label={`Remove ${chip.label} filter`}
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
                     );
                   })}
                 </div>

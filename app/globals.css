@@ -1,4 +1,3 @@
-@import url("https://googleapis.com");
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 
@@ -8,8 +7,8 @@
   --color-primary-black: var(--color-slate-900);
   --color-secondary-black: var(--color-slate-600);
   --bracelet-picker-gutter: 2.5em;
-  --font-display: "Playfair Display", serif;
-  --font-regular: "Open Sans", sans-serif;
+  --font-display: var(--font-playfair), serif;
+  --font-regular: var(--font-open-sans), sans-serif;
   --text-md: 1.2rem;
   --text-lg: 1.5rem;
   --text-xl: 1.9rem;
