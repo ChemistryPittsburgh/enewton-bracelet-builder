@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { Bracelet } from "@/types";
 
 /**
@@ -13,9 +13,7 @@ import type { Bracelet } from "@/types";
  */
 export function useSetDesignSku() {
   const queryClient = useQueryClient();
-  const { data: user } = useCurrentUser();
-  const canSetSku =
-    (user?.permissions.is_publisher || user?.permissions.is_admin) ?? false;
+  const { canSetSku } = usePermissions();
 
   const mutation = useMutation({
     mutationFn({ id, shopify_sku }: { id: number; shopify_sku: string }) {

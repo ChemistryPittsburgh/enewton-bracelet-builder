@@ -4,19 +4,19 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { Bracelet } from "@/types";
 
 /**
- * POST /designs/:id/approve — approve a design that is in "in_review" status.
- * Requires is_reviewer or is_admin.
+ * POST /designs/:id/send-to-draft — move a design back to "draft" status.
+ * Requires is_publisher or is_admin.
  *
- * Returns the mutation plus `canApprove` for conditional UI rendering.
+ * Returns the mutation plus `canSendToDraft` for conditional UI rendering.
  */
-export function useApproveDesign() {
+export function useSendToDraft() {
   const queryClient = useQueryClient();
-  const { canApprove } = usePermissions();
+  const { canSendToDraft } = usePermissions();
 
   const mutation = useMutation({
     mutationFn(id: number) {
-      if (!canApprove) throw new Error("Permission denied: is_reviewer or is_admin required.");
-      return apiFetch<Bracelet>(`/designs/${id}/approve`, { method: "POST" });
+      if (!canSendToDraft) throw new Error("Permission denied: is_publisher or is_admin required.");
+      return apiFetch<Bracelet>(`/designs/${id}/send-to-draft`, { method: "POST" });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["designs", data.id] });
@@ -24,5 +24,5 @@ export function useApproveDesign() {
     },
   });
 
-  return { ...mutation, canApprove };
+  return { ...mutation, canSendToDraft };
 }
