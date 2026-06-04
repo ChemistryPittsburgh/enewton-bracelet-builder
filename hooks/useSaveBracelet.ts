@@ -17,6 +17,7 @@ import { slugify } from "@/lib/utils";
 export function useSaveBracelet() {
   const braceletName = useStore((s) => s.braceletName);
   const setActiveDesignId = useStore((s) => s.setActiveDesignId);
+  const markClean = useStore((s) => s.markClean);
   const { mutateAsync: createBracelet } = useCreateBracelet();
   const { capture } = useGenerateThumbnail();
 
@@ -29,6 +30,7 @@ export function useSaveBracelet() {
     }
     const created = await createBracelet({ preview_image_url });
     setActiveDesignId(created.id);
+    markClean();
   }
 
   return { save };

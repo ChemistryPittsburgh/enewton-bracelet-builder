@@ -89,6 +89,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   const { loadDesign }    = useLoadDesign();
   const beads             = useStore((s) => s.beads);
   const activeDesignId    = useStore((s) => s.activeDesignId);
+  const isDirty           = useStore((s) => s.isDirty);
   const setPendingDesign  = useStore((s) => s.setPendingDesign);
   const { data: allTags = [] }        = useTags();
   const { data: allCollections = [] } = useCollections();
@@ -183,7 +184,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       onClose();
       return;
     }
-    if (beads.length > 0) {
+    if (isDirty) {
       setPendingDesign(design, onClose);
     } else {
       loadDesign(design);

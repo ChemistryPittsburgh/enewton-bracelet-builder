@@ -53,6 +53,7 @@ export function useUpdateBracelet() {
   const { data: savedDesign }              = useDesign(activeDesignId);
   const { mutateAsync: updateDesign, canUpdate } = useUpdateDesign();
   const { capture }                        = useGenerateThumbnail();
+  const markClean                          = useStore((s) => s.markClean);
 
   async function update(): Promise<void> {
     if (!activeDesignId) {
@@ -85,6 +86,8 @@ export function useUpdateBracelet() {
       configuration,
       preview_image_url,
     });
+
+    markClean();
   }
 
   return { update, canUpdate };

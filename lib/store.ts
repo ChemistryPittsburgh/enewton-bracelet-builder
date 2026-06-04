@@ -131,6 +131,11 @@ interface Store {
   pendingDesignOnLoad: (() => void) | null;
   setPendingDesign: (design: Bracelet, onLoad: () => void) => void;
   clearPendingDesign: () => void;
+
+  /** True when the bracelet has unsaved changes since the last save/load. */
+  isDirty: boolean;
+  /** Reset the dirty flag — called after a successful save. */
+  markClean: () => void;
 }
 
 /** Persist the store to localStorage.
@@ -157,6 +162,8 @@ export const useStore = create<Store>()(
       pendingDesign: null,
       pendingDesignOnLoad: null,
       controlsEl: null,
+      isDirty: false,
+      markClean: () => set({ isDirty: false }),
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
@@ -165,6 +172,7 @@ export const useStore = create<Store>()(
         }
         set((s) => ({
           beads: [...s.beads, { instanceId: nanoid(), product }],
+          isDirty: true,
         }));
         return null;
       },
@@ -177,11 +185,12 @@ export const useStore = create<Store>()(
           editSelectedBead:
             s.editSelectedBead?.instanceId === instanceId ? null : s.editSelectedBead,
           beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
+          isDirty: true,
         }));
       },
 
       clearBeads() {
-        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, isDirty: false });
       },
 
       resetBracelet: () => set({
@@ -190,6 +199,7 @@ export const useStore = create<Store>()(
         braceletDescription: "",
         activeDesignId: null,
         selectedBead: null,
+        isDirty: false,
       }),
 
       selectBead(bead) {
@@ -208,19 +218,19 @@ export const useStore = create<Store>()(
         const { beads, selectedBead } = get();
         if (!selectedBead) return;
         const filtered = beads.filter((b) => b.product.id !== selectedBead.product.id);
-        set({ beads: filtered, selectedBead: null, selectAllActive: false });
+        set({ beads: filtered, selectedBead: null, selectAllActive: false, isDirty: true });
       },
 
       loadBeads(beads, name) {
-        set({ beads, selectedBead: null, ...(name ? { braceletName: name } : {}) });
+        set({ beads, selectedBead: null, isDirty: false, ...(name ? { braceletName: name } : {}) });
       },
 
       setBraceletName(name) {
-        set({ braceletName: name });
+        set({ braceletName: name, isDirty: true });
       },
 
       setBraceletDescription(description) {
-        set({ braceletDescription: description });
+        set({ braceletDescription: description, isDirty: true });
       },
 
       reorderBeads(fromIndex, toIndex) {
@@ -228,7 +238,7 @@ export const useStore = create<Store>()(
           const arr = [...s.beads];
           const [moved] = arr.splice(fromIndex, 1);
           arr.splice(toIndex, 0, moved);
-          return { beads: arr };
+          return { beads: arr, isDirty: true };
         });
       },
 
@@ -240,15 +250,15 @@ export const useStore = create<Store>()(
         const radius = BRACELET_SIZE_RADIUS[braceletSize];
         if (!beadFits(beads, bead, radius)) return;
         const copy: PlacedBead = { instanceId: nanoid(), product: bead.product };
-        set({ beads: [...beads.slice(0, index + 1), copy, ...beads.slice(index + 1)] });
+        set({ beads: [...beads.slice(0, index + 1), copy, ...beads.slice(index + 1)], isDirty: true });
       },
 
       reverseBracelet() {
-        set((s) => ({ beads: [...s.beads].reverse() }));
+        set((s) => ({ beads: [...s.beads].reverse(), isDirty: true }));
       },
 
-      setbandMaterial: (bandMaterial) => set({ bandMaterial }),
-      setBraceletSize: (braceletSize) => set({ braceletSize }),
+      setbandMaterial: (bandMaterial) => set({ bandMaterial, isDirty: true }),
+      setBraceletSize: (braceletSize) => set({ braceletSize, isDirty: true }),
 
       setEditSelectedBead(bead) {
         set({ editSelectedBead: bead });
@@ -307,7 +317,7 @@ export const useStore = create<Store>()(
         set((s) => {
           const arr = [...s.beads];
           arr.splice(atIndex, 0, newBead);
-          return { beads: arr };
+          return { beads: arr, isDirty: true };
         });
         return null;
       },
