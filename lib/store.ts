@@ -255,7 +255,12 @@ export const useStore = create<Store>()(
       },
 
       toggleEditMode() {
-        set((s) => ({ isEditMode: !s.isEditMode, selectedBead: null, editSelectedBead: null, editViewMode: 'top' }));
+        set((s) => ({
+          isEditMode: !s.isEditMode,
+          selectedBead: null,
+          editSelectedBead: null,
+          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+        }));
       },
 
       toggleEditViewMode() {
@@ -263,7 +268,10 @@ export const useStore = create<Store>()(
       },
 
       setViewMode(mode) {
-        set({ viewMode: mode });
+        set((s) => ({
+          viewMode: mode,
+          editViewMode: s.isEditMode ? (mode === 'line' ? 'side' : 'top') : s.editViewMode,
+        }));
       },
 
       setDragFromPanel(product) {

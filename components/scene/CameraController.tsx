@@ -16,6 +16,19 @@ import {
 import { Vector3 } from "three";
 import type { CameraControls } from "@react-three/drei";
 
+// Free orbit/pan/zoom
+function enableFreeControls(c: CameraControls) {
+  c.mouseButtons.left = 1; c.mouseButtons.right = 2;
+  c.mouseButtons.middle = 16; c.mouseButtons.wheel = 16;
+  c.touches.one = 64; c.touches.two = 4096; c.touches.three = 128;
+}
+// Fully locked (edit mode)
+function lockControls(c: CameraControls) {
+  c.mouseButtons.left = 0; c.mouseButtons.right = 0;
+  c.mouseButtons.middle = 0; c.mouseButtons.wheel = 0;
+  c.touches.one = 0; c.touches.two = 0; c.touches.three = 0;
+}
+
 interface CameraControllerProps {
   controlsRef: React.RefObject<CameraControls>;
 }
@@ -31,70 +44,76 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     selectAllActive: s.selectAllActive,
   }));
 
-  // Track the previous selectedBead
+  const prevViewModeRef     = useRef(viewMode);
+  const prevEditViewModeRef = useRef(editViewMode);
+  const prevIsEditModeRef   = useRef(isEditMode);
   const prevSelectedBeadRef = useRef(selectedBead);
-  const prevSelectAllActiveRef = useRef(selectAllActive);
-  const prevViewModeRef = useRef(viewMode);
+  const prevSelectAllRef    = useRef(selectAllActive);
 
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
 
+    // Snapshot previous state, then sync ALL refs immediately. Every branch
+    // below can return early without worrying about stale transition flags.
+    const prev = {
+      viewMode:        prevViewModeRef.current,
+      editViewMode:    prevEditViewModeRef.current,
+      isEditMode:      prevIsEditModeRef.current,
+      selectedBead:    prevSelectedBeadRef.current,
+      selectAllActive: prevSelectAllRef.current,
+    };
+    prevViewModeRef.current     = viewMode;
+    prevEditViewModeRef.current = editViewMode;
+    prevIsEditModeRef.current   = isEditMode;
+    prevSelectedBeadRef.current = selectedBead;
+    prevSelectAllRef.current    = selectAllActive;
+
     const radius = BRACELET_SIZE_RADIUS[braceletSize];
+
+    // Shared transition flags
+    const enteredEdit      = isEditMode && !prev.isEditMode;
+    const switchedView     = viewMode !== prev.viewMode;
+    const switchedEditView = editViewMode !== prev.editViewMode;
+    const justDeselected   = prev.selectedBead && !selectedBead;
+    const justActivatedAll = selectAllActive && !prev.selectAllActive;
+    const beadChanged      = selectedBead &&
+      (!prev.selectedBead || prev.selectedBead.instanceId !== selectedBead.instanceId);
+    const justSelected     = selectedBead && !selectAllActive && (switchedView || beadChanged);
 
     // ── Line view ─────────────────────────────────────────────────────────────
     if (viewMode === 'line') {
-      controls.minPolarAngle = 0;
-      controls.maxPolarAngle = Math.PI;
-
       const cordLength = braceletArc(radius);
       const camZ = (cordLength / 2) / Math.tan(((CAMERA_FOV / 2) * Math.PI) / 180) * 0.55;
-      const camY = camZ * 0.15;
-      // Zoomed-in Z distance to selected bead - fill canvas
+      const camY = camZ * 0.05;
       const camZZoomed = camZ * 0.55;
 
-      const prevBead = prevSelectedBeadRef.current;
-      const justDeselectedLine = prevBead && !selectedBead;
-      const switchedToLine     = prevViewModeRef.current !== 'line';
-      const justSelectedLine   = selectedBead && !selectAllActive && (
-        switchedToLine || !prevBead || prevBead.instanceId !== selectedBead.instanceId
-      );
+      // Top only when explicitly toggled there — never on fresh entry, so edit
+      // mode always *starts* on the side view.
+      const wantTop        = isEditMode && editViewMode === 'top' && !enteredEdit && !switchedView;
+      const wantEditAdjust = isEditMode && (enteredEdit || switchedView || switchedEditView);
 
-      const justActivatedSelectAll = selectAllActive && !prevSelectAllActiveRef.current;
-
-      if (isEditMode && editViewMode === 'top') {
+      if (wantTop) {
         controls.setLookAt(0, LINE_VIEW_EDIT_HEIGHT, 0, 0, 0, 0, true);
-      } else if (justActivatedSelectAll) {
-        // When Select All activated, snap camera out of focus mode
+      } else if (wantEditAdjust) {
+        controls.setLookAt(0, camY, camZ, 0, 0, 0, true);          // side
+      } else if (justActivatedAll) {
         controls.setLookAt(0, camY, camZ, 0, 0, 0, true);
-      } else if (justSelectedLine) {
-        // When one bead is selected, pan and zoom to it
-        const index = beads.findIndex((b) => b.instanceId === selectedBead.instanceId);
-        if (index !== -1) {
-          const bx = getBeadTransformLine(index, beads).position[0];
+      } else if (justSelected) {
+        const i = beads.findIndex((b) => b.instanceId === selectedBead!.instanceId);
+        if (i !== -1) {
+          const bx = getBeadTransformLine(i, beads).position[0];
           controls.setLookAt(bx, camY, camZZoomed, bx, 0, 0, true);
         }
-      } else if (justDeselectedLine) {
-        // When bead is deselected, unpin focus mode
+      } else if (justDeselected || switchedView) {
         controls.setLookAt(0, camY, camZ, 0, 0, 0, true);
       }
-      // Otherwise don't move camera
+      // else: leave camera where the user put it
 
-      // Line view: allow limited rotation and pan but clamp polar angle so can't flip upside down
-      const polarBuffer = Math.PI * 0.2; // ~36° from top/bottom
+      const polarBuffer = Math.PI * 0.2;                            // ~36° from poles
       controls.minPolarAngle = polarBuffer;
       controls.maxPolarAngle = Math.PI - polarBuffer;
-      controls.mouseButtons.left   = 1;   // rotate
-      controls.mouseButtons.right  = 2;   // pan
-      controls.mouseButtons.middle = 16;  // zoom
-      controls.mouseButtons.wheel  = 16;  // zoom
-      controls.touches.one   = 64;        // rotate
-      controls.touches.two   = 4096;      // zoom
-      controls.touches.three = 128;       // pan
-
-      prevViewModeRef.current = viewMode;
-      prevSelectAllActiveRef.current = selectAllActive;
-      prevSelectedBeadRef.current = selectedBead;
+      enableFreeControls(controls);
       return;
     }
 
@@ -109,6 +128,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
         controls.setLookAt(...CAMERA_EDIT_SIDE_POSITION, 0, 0, 0, true);
       }
 
+      // Lock the camera at its final angle once the animation settles
       function lockOnRest() {
         if (editViewMode === 'top') {
           controls!.minPolarAngle = 0;
@@ -119,83 +139,47 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
           controls!.minPolarAngle = polar;
           controls!.maxPolarAngle = polar;
         }
-        controls!.mouseButtons.left   = 0;
-        controls!.mouseButtons.right  = 0;
-        controls!.mouseButtons.middle = 0;
-        controls!.mouseButtons.wheel  = 0;
-        controls!.touches.one   = 0;
-        controls!.touches.two   = 0;
-        controls!.touches.three = 0;
+        lockControls(controls!);
         controls!.removeEventListener('rest', lockOnRest);
       }
       controls.addEventListener('rest', lockOnRest);
-
-      prevViewModeRef.current = viewMode;
-      prevSelectAllActiveRef.current = selectAllActive;
-      prevSelectedBeadRef.current = selectedBead;
       return () => controls.removeEventListener('rest', lockOnRest);
     }
 
     // ── 3D free mode ──────────────────────────────────────────────────────────
     controls.minPolarAngle = 0;
     controls.maxPolarAngle = Math.PI;
-    controls.mouseButtons.left   = 1;
-    controls.mouseButtons.right  = 2;
-    controls.mouseButtons.middle = 16;
-    controls.mouseButtons.wheel  = 16;
-    controls.touches.one   = 64;
-    controls.touches.two   = 4096;
-    controls.touches.three = 128;
+    enableFreeControls(controls);
 
-    const prevBead = prevSelectedBeadRef.current;
-    const justDeselected = prevBead && !selectedBead;
-    const switchedTo3D   = prevViewModeRef.current !== viewMode;
-    const justSelected   = selectedBead && (
-      switchedTo3D || !prevBead || prevBead.instanceId !== selectedBead.instanceId
-    );
-
-    const justActivatedSelectAll3D = selectAllActive && !prevSelectAllActiveRef.current;
-
-    if (justActivatedSelectAll3D) {
-      // Select All activated, unpin focus mode
-      const currentTarget = controls.getTarget(new Vector3());
-      controls.setTarget(0, currentTarget.y, 0, true);
-
+    if (justActivatedAll) {
+      // Select All — re-centre orbit pivot, leave camera alone
+      const t = controls.getTarget(new Vector3());
+      controls.setTarget(0, t.y, 0, true);
     } else if (justDeselected) {
-      // On Deselect, re-centre orbit pivot, leave camera completely alone 
-      const currentTarget = controls.getTarget(new Vector3());
-      controls.setTarget(0, currentTarget.y, 0, true);
-
-    } else if (justSelected && !selectAllActive) {
-      // On Select one bead, zoom toward the bead, preserving current camera angle 
-      const index = beads.findIndex((b) => b.instanceId === selectedBead.instanceId);
-      if (index !== -1) {
-        const angle = getBeadAngle(index, beads, radius);
+      // Deselect — re-centre orbit pivot, leave camera alone
+      const t = controls.getTarget(new Vector3());
+      controls.setTarget(0, t.y, 0, true);
+    } else if (justSelected) {
+      // Zoom toward the bead, preserving current camera angle
+      const i = beads.findIndex((b) => b.instanceId === selectedBead!.instanceId);
+      if (i !== -1) {
+        const angle = getBeadAngle(i, beads, radius);
         const [bx, by, bz] = getBeadPosition(angle, radius);
-
-        // Direction from bracelet centre → bead (radial unit vector in XZ)
         const radialLen = Math.sqrt(bx * bx + bz * bz);
         const nx = radialLen > 0 ? bx / radialLen : 0;
         const nz = radialLen > 0 ? bz / radialLen : 0;
-
-        // Push to bead's radial direction - fix for back beads
         controls.setLookAt(
           bx + nx * ZOOM_BEAD_RADIAL_DISTANCE,
           by + ZOOM_BEAD_Y_OFFSET,
           bz + nz * ZOOM_BEAD_RADIAL_DISTANCE,
           bx, by, bz,
-          true  // animate
+          true,
         );
       }
-
-    } else if (!selectedBead && !prevBead) {
-      // Init/reset state
+    } else if (!selectedBead && !prev.selectedBead) {
+      // Init / reset
       controls.setLookAt(...CAMERA_DEFAULT_POSITION, 0, 0, 0, true);
     }
-
-    prevViewModeRef.current = viewMode;
-    prevSelectAllActiveRef.current = selectAllActive;
-    prevSelectedBeadRef.current = selectedBead;
   }, [viewMode, isEditMode, editViewMode, selectedBead, beads, braceletSize, controlsRef, selectAllActive]);
 
   return null;
