@@ -5,6 +5,7 @@ import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { z } from "zod";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
+import { ActionButton } from "@/components/ui/ActionButton";
 import { TagPicker } from "@/components/builder/saved-designs/TagPicker";
 
 import { useStore } from "@/lib/store";
@@ -15,7 +16,8 @@ import { useSubmitDesign } from "@/hooks/useSubmitDesign";
 import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
 import { usePublishDesign } from "@/hooks/usePublishDesign";
-import { useRevertDesign } from "@/hooks/useRevertDesign";
+import { useUnPublishDesign } from "@/hooks/useUnPublishDesign";
+import { useSendToDraft } from "@/hooks/useSendToDraft";
 import { useSetDesignSku } from "@/hooks/useSetDesignSku";
 import { useApplyTag } from "@/hooks/useApplyTag";
 import { useRemoveTag } from "@/hooks/useRemoveTag";
@@ -77,35 +79,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ActionButton({
-  label,
-  isPending,
-  onClick,
-  variant,
-}: {
-  label: string;
-  isPending: boolean;
-  onClick: () => void;
-  variant: "primary" | "danger" | "secondary";
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={isPending}
-      className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
-        variant === "primary"
-          ? "bg-neutral-900 text-white hover:bg-neutral-700"
-          : variant === "danger"
-            ? "border border-red-200 text-red-600 hover:bg-red-50"
-            : "border border-neutral-300 text-neutral-700 hover:bg-neutral-50"
-      }`}
-    >
-      {isPending && <Loader2 size={13} className="animate-spin" />}
-      {label}
-    </button>
-  );
-}
-
 // ── SKU validation schema ─────────────────────────────────────────────────────
 
 const skuSchema = z
@@ -121,22 +94,25 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
   const { mutate: approve, isPending: approving,   canApprove } = useApproveDesign();
   const { mutate: reject,  isPending: rejecting,   canReject }  = useRejectDesign();
   const { mutate: publish, isPending: publishing,  isError: publishFailed, error: publishError, canPublish } = usePublishDesign();
-  const { mutate: revert,  isPending: reverting,   canRevert }  = useRevertDesign();
-  const { mutate: setSku,  isPending: settingSku,  canSetSku }  = useSetDesignSku();
+  const { mutate: unpublish,    isPending: unpublishing,    canUnPublish }   = useUnPublishDesign();
+  const { mutate: sendToDraft,  isPending: sendingToDraft,  canSendToDraft } = useSendToDraft();
+  const { mutate: setSku,       isPending: settingSku,      canSetSku }      = useSetDesignSku();
 
-  const [skuInput,      setSkuInput]      = useState("");
-  const [skuError,      setSkuError]      = useState<string | null>(null);
-  const [skuSaved,      setSkuSaved]      = useState(false);
-  const [confirmRevert, setConfirmRevert] = useState(false);
+  const [skuInput,           setSkuInput]           = useState("");
+  const [skuError,           setSkuError]           = useState<string | null>(null);
+  const [skuSaved,           setSkuSaved]           = useState(false);
+  const [confirmSendToDraft, setConfirmSendToDraft] = useState(false);
+  const [confirmUnpublish,   setConfirmUnpublish]   = useState(false);
 
   // Sync input with saved value when design loads
   useEffect(() => {
     setSkuInput(savedDesign?.shopify_sku ?? "");
   }, [savedDesign?.shopify_sku]);
 
-  // Reset amber confirmation panel when the active design changes
+  // Reset amber confirmation panels when the active design changes
   useEffect(() => {
-    setConfirmRevert(false);
+    setConfirmSendToDraft(false);
+    setConfirmUnpublish(false);
   }, [savedDesign?.id]);
 
   if (!savedDesign) return null;
@@ -164,7 +140,8 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
   const hasActions =
     (status === "draft"     && canSubmit)  ||
     (status === "in_review" && (canApprove || canReject)) ||
-    (status === "approved"  && (canPublish || canRevert));
+    (status === "approved"  && (canPublish || canSendToDraft)) ||
+    (status === "published" && canUnPublish);
 
   const showSkuField = canSetSku && status === "approved";
 
@@ -300,9 +277,9 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
               variant="danger"
             />
           )}
-          {status === "approved" && (canPublish || canRevert) && (
-            confirmRevert ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col gap-3">
+          {status === "approved" && (canPublish || canSendToDraft) && (
+            confirmSendToDraft ? (
+              <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col gap-3">
                 <p className="text-sm text-amber-800">
                   Moving this bracelet back to draft will remove its approval and require a new
                   review cycle. Do you want to continue?
@@ -310,14 +287,14 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
                 <div className="flex items-center gap-2">
                   <ActionButton
                     label="Confirm"
-                    isPending={reverting}
-                    onClick={() => revert(id, { onSuccess: () => setConfirmRevert(false) })}
+                    isPending={sendingToDraft}
+                    onClick={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
                     variant="primary"
                   />
                   <ActionButton
                     label="Cancel"
                     isPending={false}
-                    onClick={() => setConfirmRevert(false)}
+                    onClick={() => setConfirmSendToDraft(false)}
                     variant="secondary"
                   />
                 </div>
@@ -332,15 +309,46 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
                     variant="primary"
                   />
                 )}
-                {canRevert && (
+                {canSendToDraft && (
                   <ActionButton
                     label="Edit bracelet"
                     isPending={false}
-                    onClick={() => setConfirmRevert(true)}
+                    onClick={() => setConfirmSendToDraft(true)}
                     variant="secondary"
                   />
                 )}
               </>
+            )
+          )}
+          {status === "published" && canUnPublish && (
+            confirmUnpublish ? (
+              <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col gap-3">
+                <p className="text-sm text-amber-800">
+                  Unpublishing this bracelet will remove it from the published catalog and require a
+                  new review cycle. Do you want to continue?
+                </p>
+                <div className="flex items-center gap-2">
+                  <ActionButton
+                    label="Confirm"
+                    isPending={unpublishing}
+                    onClick={() => unpublish(id, { onSuccess: () => setConfirmUnpublish(false) })}
+                    variant="primary"
+                  />
+                  <ActionButton
+                    label="Cancel"
+                    isPending={false}
+                    onClick={() => setConfirmUnpublish(false)}
+                    variant="secondary"
+                  />
+                </div>
+              </div>
+            ) : (
+              <ActionButton
+                label="Unpublish bracelet"
+                isPending={false}
+                onClick={() => setConfirmUnpublish(true)}
+                variant="secondary"
+              />
             )
           )}
         </div>

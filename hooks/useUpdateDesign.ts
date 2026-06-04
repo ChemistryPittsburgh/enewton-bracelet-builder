@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { Bracelet, UpdateDesignRequest } from "@/types";
 
 /**
@@ -13,9 +13,7 @@ import type { Bracelet, UpdateDesignRequest } from "@/types";
  */
 export function useUpdateDesign() {
   const queryClient = useQueryClient();
-  const { data: user } = useCurrentUser();
-  const canUpdate =
-    (user?.permissions.is_bracelet_editor || user?.permissions.is_admin) ?? false;
+  const { canUpdate } = usePermissions();
 
   const mutation = useMutation({
     mutationFn({ id, ...body }: UpdateDesignRequest) {
