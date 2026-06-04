@@ -13,7 +13,7 @@ export function useRemoveTag() {
       apiFetch<void>(`/designs/${designId}/tags/${tagId}`, { method: "DELETE" }),
     onSuccess: (_data, { designId }) => {
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design", designId] });
+      qc.invalidateQueries({ queryKey: ["designs", designId] });
     },
   });
 }
