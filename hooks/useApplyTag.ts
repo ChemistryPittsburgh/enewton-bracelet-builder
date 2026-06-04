@@ -13,7 +13,7 @@ export function useApplyTag() {
       apiFetch<void>(`/designs/${designId}/tags/${tagId}`, { method: "POST" }),
     onSuccess: (_data, { designId }) => {
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design", designId] });
+      qc.invalidateQueries({ queryKey: ["designs", designId] });
     },
   });
 }

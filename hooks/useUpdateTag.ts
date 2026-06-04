@@ -13,7 +13,6 @@ export function useUpdateTag() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tags"] });
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design"] });
     },
   });
 }

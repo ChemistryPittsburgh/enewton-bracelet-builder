@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 import { usePermissions } from "@/hooks/usePermissions";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 
 type ConfirmStatus = "idle" | "saving" | "error";
 
@@ -92,10 +93,7 @@ export function ConfirmReplaceDialog() {
         </div>
 
         {status === "error" && (
-          <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-            <AlertCircle size={14} className="shrink-0" />
-            Save failed — check your connection and try again.
-          </p>
+          <ErrorAlert message="Save failed — check your connection and try again." />
         )}
 
         <div className="flex flex-col gap-2">

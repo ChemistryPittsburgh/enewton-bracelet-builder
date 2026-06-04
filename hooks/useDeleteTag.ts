@@ -9,7 +9,6 @@ export function useDeleteTag() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tags"] });
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design"] });
     },
   });
 }

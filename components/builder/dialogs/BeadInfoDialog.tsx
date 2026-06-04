@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { Button } from "@/components/ui/Button";
+import { InfoRow } from "@/components/ui/InfoRow";
 import { capitalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -58,26 +59,26 @@ export function BeadInfoDialog() {
           <>
             <div className="p-2 mb-2 space-y-2">
               <h3 className="mb-3">{bead.product.bead_type ? capitalize(bead.product.name) : "Bead Name"}</h3>
-              <DetailRow
+              <InfoRow layout="horizontal"
                 label="Bead Type"
                 value={bead.product.bead_type ? capitalize(bead.product.bead_type) : "—"}
               />
-              <DetailRow
+              <InfoRow layout="horizontal"
                 label="Category"
                 value={bead.product.bead_category ? capitalize(bead.product.bead_category) : "—"}
               />
-              <DetailRow
+              <InfoRow layout="horizontal"
                 label="Material"
                 value={bead.product.material ? capitalize(bead.product.material) : "—"}
               />
-              <DetailRow label="Diameter" value={bead.product.size_mm != null
+              <InfoRow layout="horizontal" label="Diameter" value={bead.product.size_mm != null
                 ? `${bead.product.size_mm} mm`
                 : `${Math.round(bead.product.diameter * 1000)} mm`} />
-              <DetailRow
+              <InfoRow layout="horizontal"
                 label="File"
                 value={bead.product.glb_path.split("/").pop() ?? ""}
               />
-              <DetailRow label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
+              <InfoRow layout="horizontal" label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
             </div>
             {matchCount > 1 && (
               <>
@@ -101,11 +102,3 @@ export function BeadInfoDialog() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-neutral-500">{label}</span>
-      <span className="text-xs font-semibold text-neutral-700">{value}</span>
-    </div>
-  );
-}

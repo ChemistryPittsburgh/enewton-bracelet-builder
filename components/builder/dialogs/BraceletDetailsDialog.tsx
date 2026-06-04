@@ -6,6 +6,10 @@ import { z } from "zod";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { ActionButton } from "@/components/ui/ActionButton";
+import { ConfirmationPanel } from "@/components/ui/ConfirmationPanel";
+import { InfoRow } from "@/components/ui/InfoRow";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { TagPicker } from "@/components/builder/saved-designs/TagPicker";
 
 import { useStore } from "@/lib/store";
@@ -60,23 +64,6 @@ function formatDateTime(iso: string): string {
     minute: "2-digit",
     hour12: true,
   }).format(new Date(iso)).toLowerCase();
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-neutral-400">{label}</span>
-      <span className="text-sm text-neutral-700">{value}</span>
-    </div>
-  );
-}
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
-      {children}
-    </h3>
-  );
 }
 
 // ── SKU validation schema ─────────────────────────────────────────────────────
@@ -244,10 +231,7 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
 
       {/* Publish error */}
       {publishFailed && publishError && (
-        <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-          <AlertCircle size={14} className="shrink-0" />
-          {publishError instanceof ApiError ? publishError.message : (publishError as Error).message}
-        </p>
+        <ErrorAlert message={publishError instanceof ApiError ? publishError.message : (publishError as Error).message} />
       )}
 
       {/* Action buttons */}
@@ -279,26 +263,12 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
           )}
           {status === "approved" && (canPublish || canSendToDraft) && (
             confirmSendToDraft ? (
-              <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col gap-3">
-                <p className="text-sm text-amber-800">
-                  Moving this bracelet back to draft will remove its approval and require a new
-                  review cycle. Do you want to continue?
-                </p>
-                <div className="flex items-center gap-2">
-                  <ActionButton
-                    label="Confirm"
-                    isPending={sendingToDraft}
-                    onClick={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
-                    variant="primary"
-                  />
-                  <ActionButton
-                    label="Cancel"
-                    isPending={false}
-                    onClick={() => setConfirmSendToDraft(false)}
-                    variant="secondary"
-                  />
-                </div>
-              </div>
+              <ConfirmationPanel
+                message="Moving this bracelet back to draft will remove its approval and require a new review cycle. Do you want to continue?"
+                isPending={sendingToDraft}
+                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
+                onCancel={() => setConfirmSendToDraft(false)}
+              />
             ) : (
               <>
                 {canPublish && (
@@ -322,26 +292,12 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
           )}
           {status === "published" && canUnPublish && (
             confirmUnpublish ? (
-              <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col gap-3">
-                <p className="text-sm text-amber-800">
-                  Unpublishing this bracelet will remove it from the published catalog and require a
-                  new review cycle. Do you want to continue?
-                </p>
-                <div className="flex items-center gap-2">
-                  <ActionButton
-                    label="Confirm"
-                    isPending={unpublishing}
-                    onClick={() => unpublish(id, { onSuccess: () => setConfirmUnpublish(false) })}
-                    variant="primary"
-                  />
-                  <ActionButton
-                    label="Cancel"
-                    isPending={false}
-                    onClick={() => setConfirmUnpublish(false)}
-                    variant="secondary"
-                  />
-                </div>
-              </div>
+              <ConfirmationPanel
+                message="Unpublishing this bracelet will remove it from the published catalog and require a new review cycle. Do you want to continue?"
+                isPending={unpublishing}
+                onConfirm={() => unpublish(id, { onSuccess: () => setConfirmUnpublish(false) })}
+                onCancel={() => setConfirmUnpublish(false)}
+              />
             ) : (
               <ActionButton
                 label="Unpublish bracelet"
@@ -555,15 +511,15 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
         <div>
           <SectionHeading>Configuration</SectionHeading>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
-            <Row label="Band" value={materialLabel} />
-            <Row label="Size" value={sizeLabel} />
-            <Row label="Beads" value={String(placedBeads.length)} />
-            <Row label="Arc used" value={`${usedMm} / ${totalMm} mm (${pct}%)`} />
+            <InfoRow label="Band" value={materialLabel} />
+            <InfoRow label="Size" value={sizeLabel} />
+            <InfoRow label="Beads" value={String(placedBeads.length)} />
+            <InfoRow label="Arc used" value={`${usedMm} / ${totalMm} mm (${pct}%)`} />
             {materialTags.length > 0 && (
-              <Row label="Materials" value={materialTags.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(", ")} />
+              <InfoRow label="Materials" value={materialTags.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(", ")} />
             )}
             {beadTypes.length > 0 && (
-              <Row label="Types" value={beadTypes.join(", ")} />
+              <InfoRow label="Types" value={beadTypes.join(", ")} />
             )}
           </div>
         </div>
@@ -608,25 +564,25 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
           <div>
             <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
-              <Row label="Created"      value={formatDateTime(savedDesign.created_at)} />
+              <InfoRow label="Created"      value={formatDateTime(savedDesign.created_at)} />
               {savedDesign.created_by_name && (
-                <Row label="Created by"   value={savedDesign.created_by_name} />
+                <InfoRow label="Created by"   value={savedDesign.created_by_name} />
               )}
-              <Row label="Last updated" value={formatDateTime(savedDesign.updated_at)} />
+              <InfoRow label="Last updated" value={formatDateTime(savedDesign.updated_at)} />
               {savedDesign.reviewed_at && (
-                <Row label="Reviewed"    value={formatDateTime(savedDesign.reviewed_at)} />
+                <InfoRow label="Reviewed"    value={formatDateTime(savedDesign.reviewed_at)} />
               )}
               {savedDesign.reviewed_by_name && (
-                <Row label="Reviewed by" value={savedDesign.reviewed_by_name} />
+                <InfoRow label="Reviewed by" value={savedDesign.reviewed_by_name} />
               )}
               {savedDesign.published_at && (
-                <Row label="Published"   value={formatDateTime(savedDesign.published_at)} />
+                <InfoRow label="Published"   value={formatDateTime(savedDesign.published_at)} />
               )}
               {savedDesign.published_by_name && (
-                <Row label="Published by" value={savedDesign.published_by_name} />
+                <InfoRow label="Published by" value={savedDesign.published_by_name} />
               )}
               {savedDesign.shopify_sku && (
-                <Row label="Shopify SKU" value={savedDesign.shopify_sku} />
+                <InfoRow label="Shopify SKU" value={savedDesign.shopify_sku} />
               )}
             </div>
           </div>
