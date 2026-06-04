@@ -169,9 +169,10 @@ function EditRow({
 interface ManageCollectionsDialogProps {
   open: boolean;
   onClose: () => void;
+  includeBackDropBlur?: boolean;
 }
 
-export function ManageCollectionsDialog({ open, onClose }: ManageCollectionsDialogProps) {
+export function ManageCollectionsDialog({ open, onClose, includeBackDropBlur = true }: ManageCollectionsDialogProps) {
   const { data: collections = [], isLoading } = useCollections();
   const { data: allDesigns = [] }             = useDesigns();
 
@@ -227,7 +228,7 @@ export function ManageCollectionsDialog({ open, onClose }: ManageCollectionsDial
   }
 
   return (
-    <FullScreenDialog open={open} onClose={handleClose} title="Manage Collections" className="max-w-lg">
+    <FullScreenDialog open={open} onClose={handleClose} title="Manage Collections" className="max-w-lg" includeBackDropBlur={includeBackDropBlur}>
       <div className="flex flex-col gap-4">
         <p className="text-sm text-neutral-500">
           Collections group bracelet designs together. A design can belong to multiple collections.

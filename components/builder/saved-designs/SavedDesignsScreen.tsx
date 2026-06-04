@@ -3,22 +3,22 @@
 import { useMemo, useState, useEffect } from "react";
 import { AlertCircle, Search, X, Inbox } from "lucide-react";
 
+import { useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
+import { CATEGORY_STYLES, type CategoryKey } from "@/lib/category-colors";
 
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { useTags } from "@/hooks/Tags";
 import { useCollections } from "@/hooks/Collections";
-import { useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+
 import type { Bracelet, BraceletStatus, Collection, Tag } from "@/types";
-import { getInitials } from "@/lib/utils";
 
 import { DesignCard } from "./DesignCard";
 import { TagPicker, CollectionPicker } from "./Pickers";
-
-
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
 
 interface SavedDesignsScreenProps {
@@ -122,19 +122,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
     [allDesigns],
   );
 
-  // Active filter chips = union of all selected filter values
-  const CHIP_STYLES = {
-    material:   { bg: "bg-blue-600",    text: "text-blue-50",    label: "material" },
-    type:       { bg: "bg-violet-600",  text: "text-violet-50",  label: "type" },
-    creator:    { bg: "bg-teal-600",    text: "text-teal-50",    label: "user" },
-    tag:        { bg: "bg-amber-500",   text: "text-amber-50",   label: "tag" },
-    collection: { bg: "bg-emerald-600", text: "text-emerald-50", label: "collection" },
-  } as const;
-
-  type ChipCategory = keyof typeof CHIP_STYLES;
-
   interface ActiveChip {
-    category: ChipCategory;
+    category: CategoryKey;
     label: string;
     color?: string | null;
     onRemove: () => void;
@@ -142,17 +131,17 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   const activeChips: ActiveChip[] = [
     ...selectedMaterials.map((m) => ({
-      category: "material" as ChipCategory,
+      category: "material" as CategoryKey,
       label: m,
       onRemove: () => setSelectedMaterials((prev) => prev.filter((x) => x !== m)),
     })),
     ...selectedTypes.map((t) => ({
-      category: "type" as ChipCategory,
+      category: "type" as CategoryKey,
       label: t,
       onRemove: () => setSelectedTypes((prev) => prev.filter((x) => x !== t)),
     })),
     ...selectedCreators.map((c) => ({
-      category: "creator" as ChipCategory,
+      category: "creator" as CategoryKey,
       label: c,
       onRemove: () => setSelectedCreators((prev) => prev.filter((x) => x !== c)),
     })),
@@ -160,7 +149,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       const tag = allTags.find((t) => t.id === id);
       if (!tag) return [];
       return [{
-        category: "tag" as ChipCategory,
+        category: "tag" as CategoryKey,
         label: tag.name,
         color: tag.color,
         onRemove: () => setSelectedTagIds((prev) => prev.filter((x) => x !== id)),
@@ -170,7 +159,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       const coll = allCollections.find((c) => c.id === id);
       if (!coll) return [];
       return [{
-        category: "collection" as ChipCategory,
+        category: "collection" as CategoryKey,
         label: coll.name,
         onRemove: () => setSelectedCollectionIds((prev) => prev.filter((x) => x !== id)),
       }];
@@ -411,7 +400,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 {/* Active filter chips */}
                 <div className="flex flex-1 flex-wrap items-center gap-1.5">
                   {activeChips.map((chip) => {
-                    const style = CHIP_STYLES[chip.category];
+                    const style = CATEGORY_STYLES[chip.category];
                     // Tag chips use their DB colour; all others use the Tailwind category colour.
                     const useInlineColor = chip.category === "tag" && chip.color;
                     return (

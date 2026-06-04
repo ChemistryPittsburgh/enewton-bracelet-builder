@@ -3,11 +3,15 @@
 import { useMemo, useState, useEffect } from "react";
 import { Check, Loader2 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store";
+import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
+import { braceletArc, usedArc } from "@/lib/bead-layout";
+import { CATEGORY_STYLES } from "@/lib/category-colors";
+
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/Pickers";
 
-
-import { useStore } from "@/lib/store";
 import { useDesign } from "@/hooks/useDesign";
 import { useSubmitDesign } from "@/hooks/useSubmitDesign";
 import { useApproveDesign } from "@/hooks/useApproveDesign";
@@ -17,10 +21,6 @@ import { useSetDesignSku } from "@/hooks/useSetDesignSku";
 
 import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
 import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
-
-import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
-import { braceletArc, usedArc } from "@/lib/bead-layout";
-import { cn } from "@/lib/utils";
 
 import type { Bracelet, BraceletStatus, Collection, Tag } from "@/types";
 
@@ -336,7 +336,8 @@ function CollectionSection({ design }: { design: Bracelet }) {
           <span
             key={c.id}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
+              CATEGORY_STYLES.collection.bg,
               pendingIds.includes(c.id) && "opacity-50",
             )}
           >
@@ -434,10 +435,11 @@ function TagsSection({ design }: { design: Bracelet }) {
             <span
               key={tag.id}
               className={cn(
-                "inline-flex items-center gap-1.5 bg-amber-500 rounded-full px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
-                isPending && "opacity-50",
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
+                CATEGORY_STYLES.tag.bg,
+                pendingIds.includes(tag.id) && "opacity-50",
               )}
-            >
+              >
               {isPending && <Loader2 size={10} className="animate-spin" />}
               {tag.name}
             </span>

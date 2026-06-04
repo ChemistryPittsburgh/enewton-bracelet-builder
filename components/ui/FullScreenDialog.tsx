@@ -10,6 +10,7 @@ interface FullScreenDialogProps {
   title?: string;
   children: React.ReactNode;
   className?: string;
+  includeBackDropBlur?: boolean;
 }
 
 export function FullScreenDialog({
@@ -18,6 +19,7 @@ export function FullScreenDialog({
   title,
   children,
   className,
+  includeBackDropBlur = true,
 }: FullScreenDialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -34,8 +36,11 @@ export function FullScreenDialog({
     <>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 z-50 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
+        className={cn(
+          "dialog-backdrop absolute inset-0 z-50",
+          includeBackDropBlur ? "backdrop-blur-sm bg-black/30" : "bg-black/10",
+        )}
       />
       {/* Panel */}
       <div

@@ -190,9 +190,10 @@ function EditRow({
 interface ManageTagsDialogProps {
   open: boolean;
   onClose: () => void;
+  includeBackDropBlur?: boolean;
 }
 
-export function ManageTagsDialog({ open, onClose }: ManageTagsDialogProps) {
+export function ManageTagsDialog({ open, onClose, includeBackDropBlur = true }: ManageTagsDialogProps) {
   const { data: tags = [], isLoading } = useTags();
   const { data: allDesigns = [] } = useDesigns();
 
@@ -272,7 +273,7 @@ export function ManageTagsDialog({ open, onClose }: ManageTagsDialogProps) {
   }
 
   return (
-    <FullScreenDialog open={open} onClose={handleClose} title="Manage Tags" className="max-w-lg">
+    <FullScreenDialog open={open} onClose={handleClose} title="Manage Tags" className="max-w-lg" includeBackDropBlur={includeBackDropBlur}>
       <div className="flex flex-col gap-4">
         <p className="text-sm text-neutral-500">
           Create and manage custom tags to organise saved bracelet designs.

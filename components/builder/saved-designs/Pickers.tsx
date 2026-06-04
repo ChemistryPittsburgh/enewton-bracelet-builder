@@ -116,7 +116,7 @@ export function TagPicker({
           </div>
         )}
       </div>
-      <ManageTagsDialog open={manageOpen} onClose={() => setManageOpen(false)} />
+      <ManageTagsDialog open={manageOpen} onClose={() => setManageOpen(false)} includeBackDropBlur={variant !== 'assign'} />
     </>
   );
 }
@@ -207,7 +207,7 @@ export function CollectionPicker({
           </div>
         )}
       </div>
-      <ManageCollectionsDialog open={manageOpen} onClose={() => setManageOpen(false)} />
+      <ManageCollectionsDialog open={manageOpen} onClose={() => setManageOpen(false)} includeBackDropBlur={variant !== 'assign'} />
     </>
   );
 }
