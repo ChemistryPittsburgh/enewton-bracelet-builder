@@ -14,6 +14,9 @@ import { COMMENT_MAX_LENGTH } from "@/lib/sanitize";
 import { formatTimestamp } from "@/lib/utils";
 import type { DesignComment } from "@/types";
 
+import { useDesign } from "@/hooks/useDesign";
+import { usePermissions } from "@/hooks/usePermissions";
+
 interface CommentsPanelProps {
   open: boolean;
   onClose: () => void;
@@ -23,7 +26,6 @@ interface CommentsPanelProps {
 export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
   const activeDesignId = useStore((s) => s.activeDesignId);
   const { data: currentUser } = useCurrentUser();
-
   const { data: comments = [], isLoading, isError, refetch } = useComments(activeDesignId, { enabled: open });
   const { mutate: addComment, isPending: adding } = useAddComment();
   const { mutate: deleteComment } = useDeleteComment();
@@ -33,6 +35,10 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+
+  const { canEdit } = usePermissions();
+  const { data: savedDesign } = useDesign(activeDesignId);
+  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   useEffect(() => {
     if (comments.length > 0) {
@@ -174,41 +180,43 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
         </div>
 
         {/* Composer */}
-        <div className={`shrink-0 border-t border-neutral-200 px-6 py-5 transition-opacity ${!canInteract ? "opacity-40 pointer-events-none" : ""}`}>
-          <p className="text-sm font-semibold text-neutral-700 mb-3">Leave a comment</p>
-          <div className="flex gap-3 rounded-lg border border-neutral-300 px-3 py-3 focus-within:border-neutral-400 transition-colors">
-            {currentUser && <Avatar name={currentUser.name} size="sm" />}
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSubmit(); }
-              }}
-              placeholder="Write a comment…"
-              rows={4}
-              maxLength={COMMENT_MAX_LENGTH}
-              disabled={!canInteract}
-              className="flex-1 resize-none bg-transparent text-sm text-neutral-700 outline-none placeholder:text-neutral-400 border-none"
-            />
+        {canEdit && !isLocked && (
+          <div className={`shrink-0 border-t border-neutral-200 px-6 py-5 transition-opacity ${!canInteract ? "opacity-40 pointer-events-none" : ""}`}>
+            <p className="text-sm font-semibold text-neutral-700 mb-3">Leave a comment</p>
+            <div className="flex gap-3 rounded-lg border border-neutral-300 px-3 py-3 focus-within:border-neutral-400 transition-colors">
+              {currentUser && <Avatar name={currentUser.name} size="sm" />}
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSubmit(); }
+                }}
+                placeholder="Write a comment…"
+                rows={4}
+                maxLength={COMMENT_MAX_LENGTH}
+                disabled={!canInteract}
+                className="flex-1 resize-none bg-transparent text-sm text-neutral-700 outline-none placeholder:text-neutral-400 border-none"
+              />
+            </div>
+            <div className="flex items-center justify-between mt-3">
+              {draft.length > 0 ? (
+                <span className={`text-[11px] ${draft.length >= COMMENT_MAX_LENGTH ? "text-red-400" : "text-neutral-400"}`}>
+                  {draft.length} / {COMMENT_MAX_LENGTH}
+                </span>
+              ) : (
+                <span />
+              )}
+              <button
+                onClick={handleSubmit}
+                disabled={!draft.trim() || adding || !canInteract}
+                className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-5 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-40 transition-colors"
+              >
+                {adding && <Loader2 size={13} className="animate-spin" />}
+                Comment
+              </button>
+            </div>
           </div>
-          <div className="flex items-center justify-between mt-3">
-            {draft.length > 0 ? (
-              <span className={`text-[11px] ${draft.length >= COMMENT_MAX_LENGTH ? "text-red-400" : "text-neutral-400"}`}>
-                {draft.length} / {COMMENT_MAX_LENGTH}
-              </span>
-            ) : (
-              <span />
-            )}
-            <button
-              onClick={handleSubmit}
-              disabled={!draft.trim() || adding || !canInteract}
-              className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-5 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-40 transition-colors"
-            >
-              {adding && <Loader2 size={13} className="animate-spin" />}
-              Comment
-            </button>
-          </div>
-        </div>
+        )}
 
       </div>
     </Panel>

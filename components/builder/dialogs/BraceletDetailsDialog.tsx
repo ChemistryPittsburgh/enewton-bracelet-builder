@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Check, Loader2, Pencil, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
@@ -13,8 +14,10 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/Pickers";
 
 import { useDesign } from "@/hooks/useDesign";
+import { useUpdateDesign } from "@/hooks/useUpdateDesign";
 import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
 import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
+import { usePermissions } from "@/hooks/usePermissions";
 
 import { WorkflowSection, STATUS_META } from "@/components/builder/sections/WorkflowSection";
 import { AssignmentSection } from "@/components/builder/sections/AssignmentSection";
@@ -29,27 +32,71 @@ interface BraceletDetailsDialogProps {
 }
 
 export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogProps) {
-  const braceletName   = useStore((s) => s.braceletName);
-  const description    = useStore((s) => s.braceletDescription);
-  const bandMaterial   = useStore((s) => s.bandMaterial);
-  const braceletSize   = useStore((s) => s.braceletSize);
-  const placedBeads    = useStore((s) => s.beads);
-  const activeDesignId = useStore((s) => s.activeDesignId);
+  const {
+    braceletName,
+    braceletDescription,
+    bandMaterial,
+    braceletSize,
+    placedBeads,
+    activeDesignId,
+    setBraceletName,
+    setBraceletDescription,
+  } = useStore((s) => ({
+    braceletName:            s.braceletName,
+    braceletDescription:     s.braceletDescription,
+    bandMaterial:            s.bandMaterial,
+    braceletSize:            s.braceletSize,
+    placedBeads:             s.beads,
+    activeDesignId:          s.activeDesignId,
+    setBraceletName:         s.setBraceletName,
+    setBraceletDescription:  s.setBraceletDescription,
+  }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
 
-  // ── Arc / capacity
+  // ── Name / description edit state ───────────────────────────────────────────
+  const [isEditing,        setIsEditing]        = useState(false);
+  const [localName,        setLocalName]        = useState(braceletName);
+  const [localDescription, setLocalDescription] = useState(braceletDescription ?? "");
+
+  const { mutate: updateDesign, isPending: saving } = useUpdateDesign();
+
+  const handleEdit = () => {
+    setLocalName(braceletName);
+    setLocalDescription(braceletDescription ?? "");
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => setIsEditing(false);
+
+  const handleSave = () => {
+    if (!savedDesign) return;
+    const trimmedName = localName.trim();
+    if (!trimmedName) return;
+    updateDesign(
+      { id: savedDesign.id, name: trimmedName, description: localDescription.trim() },
+      {
+        onSuccess: () => {
+          setBraceletName(trimmedName);
+          setBraceletDescription(localDescription.trim());
+          setIsEditing(false);
+        },
+      },
+    );
+  };
+
+  // ── Arc / capacity ───────────────────────────────────────────────────────────
   const radius  = BRACELET_SIZE_RADIUS[braceletSize];
   const totalMm = Math.round(braceletArc(radius) * 1000);
   const usedMm  = Math.round(usedArc(placedBeads) * 1000);
   const pct     = totalMm > 0 ? Math.round((usedMm / totalMm) * 100) : 0;
 
-  // ── Labels
+  // ── Labels ───────────────────────────────────────────────────────────────────
   const materialLabel = BRACELET_MATERIALS.find((m) => m.value === bandMaterial)?.label ?? bandMaterial;
   const sizeEntry     = BRACELET_SIZES.find((s) => s.value === braceletSize);
   const sizeLabel     = sizeEntry ? `${sizeEntry.label}" (${braceletSize})` : braceletSize;
 
-  // ── Derived tag lists
+  // ── Derived tag lists ────────────────────────────────────────────────────────
   const materialTags = useMemo(
     () => [...new Set(placedBeads.map((b) => b.product.material).filter(Boolean))] as string[],
     [placedBeads],
@@ -59,18 +106,26 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     [placedBeads],
   );
 
-  const statusMeta = savedDesign?.is_discontinued === 1
+  const isDiscontinued = savedDesign?.is_discontinued === 1;
+
+  const statusMeta = isDiscontinued
     ? STATUS_META.discontinued
     : savedDesign?.status
       ? STATUS_META[savedDesign.status]
       : null;
 
+
+  const { canEdit } = usePermissions();
+  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
+
   return (
-    <FullScreenDialog open={open} onClose={onClose} title={braceletName} className="max-w-3xl">
+    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl">
       <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
 
-        {/* ── Preview + status badge + description ─────────────────────── */}
+        {/* ── Preview + status + name + description ────────────────────── */}
         <div className="flex items-start gap-4">
+
+          {/* Thumbnail */}
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-neutral-100 flex items-center justify-center">
             {savedDesign?.preview_image_url ? (
               <img src={savedDesign.preview_image_url} alt={braceletName} className="h-full w-full object-cover" />
@@ -78,20 +133,77 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
               <div className="h-10 w-10 rounded-full border-2 border-dashed border-neutral-300" />
             )}
           </div>
+
+          {/* Info column */}
           <div className="flex flex-1 flex-col gap-2">
+
+            {/* Status badge */}
             {statusMeta && (
               <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusMeta.cls}`}>
                 {statusMeta.label}
               </span>
             )}
-            {description
-              ? <p className="text-sm text-neutral-600 leading-relaxed">{description}</p>
-              : <p className="text-sm italic text-neutral-400">No description</p>
-            }
+
+            {/* Name / description */}
+            {isEditing ? (
+              <div className="flex flex-col gap-2">
+                <input
+                  value={localName}
+                  onChange={(e) => setLocalName(e.target.value)}
+                  placeholder="Bracelet name"
+                  autoFocus
+                  className="w-full rounded-md border border-neutral-300 px-3 py-1.5 text-base font-semibold text-neutral-900 focus:border-neutral-500 focus:outline-none"
+                />
+                <textarea
+                  value={localDescription}
+                  onChange={(e) => setLocalDescription(e.target.value)}
+                  placeholder="Add a description…"
+                  rows={3}
+                  className="w-full resize-none rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 focus:border-neutral-500 focus:outline-none"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !localName.trim()}
+                    className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
+                  >
+                    {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                  >
+                    <X size={13} />
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="group flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-neutral-900">{braceletName}</h2>
+                  {savedDesign && !isLocked && canEdit && (
+                    <button
+                      onClick={handleEdit}
+                      className="rounded p-0.5 text-neutral-400 opacity-0 transition-opacity hover:text-neutral-600 group-hover:opacity-100"
+                      aria-label="Edit name and description"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  )}
+                </div>
+                {braceletDescription
+                  ? <p className="text-sm text-neutral-600 leading-relaxed">{braceletDescription}</p>
+                  : <p className="text-sm italic text-neutral-400">No description</p>
+                }
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── Workflow ─────────────────────────────────────────────────── */}
+        {/* ── Workflow (includes reactivate for discontinued designs) ───── */}
         <WorkflowSection savedDesign={savedDesign} />
 
         {/* ── Collections ─────────────────────────────────────────────── */}
@@ -104,9 +216,9 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
         <div>
           <SectionHeading>Configuration</SectionHeading>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
-            <InfoRow label="Band" value={materialLabel} />
-            <InfoRow label="Size" value={sizeLabel} />
-            <InfoRow label="Beads" value={String(placedBeads.length)} />
+            <InfoRow label="Band"     value={materialLabel} />
+            <InfoRow label="Size"     value={sizeLabel} />
+            <InfoRow label="Beads"    value={String(placedBeads.length)} />
             <InfoRow label="Arc used" value={`${usedMm} / ${totalMm} mm (${pct}%)`} />
             {materialTags.length > 0 && (
               <InfoRow label="Materials" value={materialTags.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(", ")} />
@@ -157,14 +269,14 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
           <div>
             <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
-              <InfoRow label="Created" value={formatDateTime(savedDesign.created_at)} />
-              {savedDesign.created_by_name && <InfoRow label="Created by" value={savedDesign.created_by_name} />}
-              <InfoRow label="Last updated" value={formatDateTime(savedDesign.updated_at)} />
-              {savedDesign.reviewed_at && <InfoRow label="Reviewed" value={formatDateTime(savedDesign.reviewed_at)} />}
-              {savedDesign.reviewed_by_name && <InfoRow label="Reviewed by" value={savedDesign.reviewed_by_name} />}
-              {savedDesign.published_at && <InfoRow label="Published" value={formatDateTime(savedDesign.published_at)} />}
-              {savedDesign.published_by_name && <InfoRow label="Published by" value={savedDesign.published_by_name} />}
-              {savedDesign.shopify_sku && <InfoRow label="Shopify SKU" value={savedDesign.shopify_sku} />}
+              <InfoRow label="Created"       value={formatDateTime(savedDesign.created_at)} />
+              {savedDesign.created_by_name   && <InfoRow label="Created by"   value={savedDesign.created_by_name} />}
+              <InfoRow label="Last updated"  value={formatDateTime(savedDesign.updated_at)} />
+              {savedDesign.reviewed_at       && <InfoRow label="Reviewed"      value={formatDateTime(savedDesign.reviewed_at)} />}
+              {savedDesign.reviewed_by_name  && <InfoRow label="Reviewed by"   value={savedDesign.reviewed_by_name} />}
+              {savedDesign.published_at      && <InfoRow label="Published"     value={formatDateTime(savedDesign.published_at)} />}
+              {savedDesign.published_by_name && <InfoRow label="Published by"  value={savedDesign.published_by_name} />}
+              {savedDesign.shopify_sku       && <InfoRow label="Shopify SKU"   value={savedDesign.shopify_sku} />}
             </div>
           </div>
         )}
@@ -174,7 +286,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
   );
 }
 
-// ── Thin wrappers that wire mutations into AssignmentSection ───────────────────
+// ── Assignment section wrappers ───────────────────────────────────────────────
 
 function CollectionsSection({ design }: { design: Bracelet }) {
   const { mutateAsync: apply }  = useApplyCollection();

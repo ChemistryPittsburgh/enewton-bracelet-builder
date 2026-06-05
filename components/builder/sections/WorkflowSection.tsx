@@ -18,6 +18,7 @@ import { useUnPublishDesign } from "@/hooks/useUnPublishDesign";
 import { useSendToDraft } from "@/hooks/useSendToDraft";
 import { useSetDesignSku } from "@/hooks/useSetDesignSku";
 import { useDiscontinueDesign } from "@/hooks/useDiscontinueDesign";
+import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
 
 import type { Bracelet, BraceletStatus } from "@/types";
 
@@ -28,7 +29,6 @@ export const STATUS_META: Record<BraceletStatus, { label: string; cls: string }>
   in_review:      { label: "In Review",      cls: "bg-amber-100 text-amber-700" },
   approved:       { label: "Approved",       cls: "bg-blue-100 text-blue-700" },
   published:      { label: "Published",      cls: "bg-green-100 text-green-700" },
-  design_concept: { label: "Design Concept", cls: "bg-violet-100 text-violet-700" },
   discontinued:   { label: "Discontinued",   cls: "bg-red-100 text-red-600" },
 };
 
@@ -54,21 +54,23 @@ const skuSchema = z
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined }) {
-  const { mutate: submit,  isPending: submitting,  canSubmit }  = useSubmitDesign();
-  const { mutate: approve, isPending: approving,   canApprove } = useApproveDesign();
-  const { mutate: reject,  isPending: rejecting,   canReject }  = useRejectDesign();
-  const { mutate: publish, isPending: publishing,  isError: publishFailed, error: publishError, canPublish } = usePublishDesign();
-  const { mutate: unpublish,    isPending: unpublishing,    canUnPublish }   = useUnPublishDesign();
-  const { mutate: sendToDraft,  isPending: sendingToDraft,  canSendToDraft } = useSendToDraft();
-  const { mutate: setSku,       isPending: settingSku,      canSetSku }      = useSetDesignSku();
-  const { mutate: discontinue,  isPending: discontinuing,   canDiscontinue } = useDiscontinueDesign();
+  const { mutate: submit,      isPending: submitting,    canSubmit }    = useSubmitDesign();
+  const { mutate: approve,     isPending: approving,     canApprove }   = useApproveDesign();
+  const { mutate: reject,      isPending: rejecting,     canReject }    = useRejectDesign();
+  const { mutate: publish,     isPending: publishing,    isError: publishFailed, error: publishError, canPublish } = usePublishDesign();
+  const { mutate: unpublish,   isPending: unpublishing,  canUnPublish } = useUnPublishDesign();
+  const { mutate: sendToDraft, isPending: sendingToDraft, canSendToDraft } = useSendToDraft();
+  const { mutate: setSku,      isPending: settingSku,    canSetSku }    = useSetDesignSku();
+  const { mutate: discontinue, isPending: discontinuing, canDiscontinue } = useDiscontinueDesign();
+  const { mutate: undiscontinue, isPending: undiscontinuing, canUndiscontinue } = useUndiscontinueDesign();
 
-  const [skuInput,           setSkuInput]           = useState("");
-  const [skuError,           setSkuError]           = useState<string | null>(null);
-  const [skuSaved,           setSkuSaved]           = useState(false);
-  const [confirmSendToDraft, setConfirmSendToDraft] = useState(false);
-  const [confirmUnpublish,   setConfirmUnpublish]   = useState(false);
-  const [confirmDiscontinue, setConfirmDiscontinue] = useState(false);
+  const [skuInput,            setSkuInput]            = useState("");
+  const [skuError,            setSkuError]            = useState<string | null>(null);
+  const [skuSaved,            setSkuSaved]            = useState(false);
+  const [confirmSendToDraft,  setConfirmSendToDraft]  = useState(false);
+  const [confirmUnpublish,    setConfirmUnpublish]    = useState(false);
+  const [confirmDiscontinue,  setConfirmDiscontinue]  = useState(false);
+  const [confirmReactivate,   setConfirmReactivate]   = useState(false);
 
   useEffect(() => {
     setSkuInput(savedDesign?.shopify_sku ?? "");
@@ -78,25 +80,46 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
     setConfirmSendToDraft(false);
     setConfirmUnpublish(false);
     setConfirmDiscontinue(false);
+    setConfirmReactivate(false);
   }, [savedDesign?.id]);
 
   if (!savedDesign) return null;
 
   const { status, id } = savedDesign;
 
-  // Discontinued — show badge, no actions available.
+  // ── Discontinued ───────────────────────────────────────────────────────────
   if (savedDesign.is_discontinued === 1) {
     return (
-      <div>
+      <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-xs text-neutral-800 font-bold">
+          <span className="text-xs font-bold text-neutral-800">
             This design has been discontinued.
           </span>
         </div>
+        {canUndiscontinue && (
+          confirmReactivate ? (
+            <ConfirmationPanel
+              message="This will reactivate the bracelet and return it to Published status."
+              isPending={undiscontinuing}
+              onConfirm={() => undiscontinue(id, { onSuccess: () => setConfirmReactivate(false) })}
+              onCancel={() => setConfirmReactivate(false)}
+            />
+          ) : (
+            <div className="flex items-center gap-2">
+              <ActionButton
+                label="Reactivate"
+                isPending={false}
+                onClick={() => setConfirmReactivate(true)}
+                variant="primary"
+              />
+            </div>
+          )
+        )}
       </div>
     );
   }
 
+  // ── Out-of-pipeline statuses ───────────────────────────────────────────────
   if (!PIPELINE_SET.has(status)) {
     return (
       <div>

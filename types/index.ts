@@ -3,14 +3,19 @@
 /**
  * Approval / workflow status for a saved bracelet design.
  * Maps to the sidebar filters in SavedDesignsPanel.
+ *
+ * Note: "discontinued" is not a real DB column value — it is a derived UI
+ * status computed from `is_discontinued === 1`. The status column for a
+ * discontinued design remains "published". It is included here so that
+ * STATUS_META, STATUS_CLS, and similar record maps can be typed exhaustively
+ * without a separate DerivedBraceletStatus union.
  */
 export type BraceletStatus =
-  | "draft"          // initial save — shows as "In-progress"
-  | "in_review"      // submitted for review — shows as "In-review"
-  | "approved"       // approved by reviewer — shows as "Approved"
-  | "published"      // live — shows as "Published"
-  | "design_concept" // concept stage — shows as "Design concepts"
-  | "discontinued";  // retired — shows as "Discontinued (vintage)"
+  | "draft"           // initial save — shows as "In-progress"
+  | "in_review"       // submitted for review — shows as "In-review"
+  | "approved"        // approved by reviewer — shows as "Approved"
+  | "published"       // live — shows as "Published"
+  | "discontinued";   // derived: is_discontinued === 1, status column = "published"
 
 /** One bead slot as stored in the bracelet configuration. */
 export interface BraceletConfigBead {
@@ -74,7 +79,11 @@ export interface Bracelet {
   collections: Collection[];
   preview_image_url: string | null;
   shopify_sku: string | null;
-  status: BraceletStatus;
+  /**
+   * The status column value from the DB. Never "discontinued" — use
+   * `is_discontinued` to check that state.
+   */
+  status: Exclude<BraceletStatus, "discontinued">;
   reviewed_by: number | null;
   reviewed_at: string | null;
   published_by: number | null;
@@ -88,7 +97,7 @@ export interface Bracelet {
   created_by_name: string;
   /** Tags applied to this design */
   tags: Tag[];
-  /** 1 = permanently discontinued (irreversible). */
+  /** 1 = discontinued (admins can reactivate). */
   is_discontinued: number;
 }
 
@@ -133,7 +142,7 @@ export interface User {
 }
 
 export type BandMaterial = "wire" | "cord" | "elastic";
-export type BraceletSize =  "x-small" | "small" | "large";
+export type BraceletSize = "x-small" | "small" | "large";
 
 /**
  * A bead/charm product the user can add to their bracelet.

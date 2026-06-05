@@ -43,7 +43,7 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
 
 
   const isDiscontinued = design.is_discontinued === 1;
-  const showMenu = canDeleteBracelet || (isAdmin && design.status === "published" && !isDiscontinued);
+  const showMenu = canDeleteBracelet && isAdmin && design.status === "published" && !isDiscontinued;
 
   return (
     <div

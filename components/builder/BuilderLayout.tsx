@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useGLTF } from "@react-three/drei";
-import { AlertCircle, Check, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
-import Image from "next/image";
+import { AlertCircle, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 
@@ -43,9 +42,7 @@ export function BuilderLayout() {
   const {
     placedBeads,
     braceletName,
-    setBraceletName,
     braceletDescription,
-    setBraceletDescription,
     clearSelectedBead,
     selectedBead,
     dragFromPanel,
@@ -53,17 +50,15 @@ export function BuilderLayout() {
     setPendingDesign,
     activeDesignId,
   } = useStore((s) => ({
-    placedBeads: s.beads,
-    braceletName: s.braceletName,
-    setBraceletName: s.setBraceletName,
-    braceletDescription: s.braceletDescription,
-    setBraceletDescription: s.setBraceletDescription,
-    clearSelectedBead: s.clearSelectedBead,
-    selectedBead: s.selectedBead,
-    dragFromPanel: s.dragFromPanel,
-    resetBracelet: s.resetBracelet,
-    setPendingDesign: s.setPendingDesign,
-    activeDesignId: s.activeDesignId,
+    placedBeads:          s.beads,
+    braceletName:         s.braceletName,
+    braceletDescription:  s.braceletDescription,
+    clearSelectedBead:    s.clearSelectedBead,
+    selectedBead:         s.selectedBead,
+    dragFromPanel:        s.dragFromPanel,
+    resetBracelet:        s.resetBracelet,
+    setPendingDesign:     s.setPendingDesign,
+    activeDesignId:       s.activeDesignId,
   }));
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
@@ -82,22 +77,15 @@ export function BuilderLayout() {
   const notificationCount =
     ((perms?.is_reviewer || perms?.is_admin) ? inReviewAll.length : 0) +
     ((perms?.is_publisher || perms?.is_admin) ? approvedAll.length  : 0);
-  const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
-  const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
+
+  const [braceletPanelOpen,   setBraceletPanelOpen]   = useState(false);
+  const [savedDesignsOpen,    setSavedDesignsOpen]    = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
-  const [rightPanel, setRightPanel] = useState<"user" | "comments" | null>(null);
-  const [usersAdminOpen, setUsersAdminOpen] = useState(false);
+  const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
+  const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
+
   const rightPanelOpen = rightPanel !== null;
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
-
-  // Auto-resize the description textarea whenever its content changes
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    const el = descriptionRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [braceletDescription]);
 
   useEffect(() => {
     if (!dragFromPanel) return;
@@ -110,18 +98,20 @@ export function BuilderLayout() {
     };
   }, [!!dragFromPanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
-
   // Close the bead selector panel if the user loses edit permission or the design becomes locked
   useEffect(() => {
     if (!canEdit || isLocked) setBraceletPanelOpen(false);
   }, [canEdit, isLocked]);
 
-  // When BraceletPanel opens, clear selected bead (closes BeadInfoDialog)
+  // Preload GLBs whenever the catalog updates
+  useEffect(() => {
+    beads.forEach((b) => useGLTF.preload(b.glb_path));
+  }, [beads]);
+
   function openBraceletPanel() {
     setBraceletPanelOpen((o) => !o);
   }
 
-  // reset to New Bracelet
   function handleNewBracelet() {
     if (placedBeads.length > 0) {
       setPendingDesign({ id: -1, name: "New Bracelet" } as any, () => resetBracelet());
@@ -130,25 +120,20 @@ export function BuilderLayout() {
     }
   }
 
-  // Preload GLBs whenever the catalog updates
-  useEffect(() => {
-    beads.forEach((b) => useGLTF.preload(b.glb_path));
-  }, [beads]);
-
   return (
     <div className="flex h-screen flex-col min-h-[500px] overflow-hidden">
 
       {/* Header */}
       <header className="flex shrink-0 items-center gap-4 py-4 border-b border-neutral-200 bg-white px-6">
         <div className="flex flex-1 items-center gap-4">
-        <button
-          onClick={() => setSavedDesignsOpen(true)}
-          className="flex items-center rounded border border-neutral-300 bg-white px-4.5 py-3.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
-          aria-label="Saved Designs"
-          title="View All Saved Designs"
-        >
-          <Inbox size={24} />
-        </button>
+          <button
+            onClick={() => setSavedDesignsOpen(true)}
+            className="flex items-center rounded border border-neutral-300 bg-white px-4.5 py-3.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
+            aria-label="Saved Designs"
+            title="View All Saved Designs"
+          >
+            <Inbox size={24} />
+          </button>
           <img
             src={LOGO_SRC}
             alt={LOGO_ALT}
@@ -157,9 +142,7 @@ export function BuilderLayout() {
         </div>
 
         <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide text-neutral-700">
-          <Button
-            onClick={handleNewBracelet}
-          >
+          <Button onClick={handleNewBracelet}>
             <Plus size={14} />
             New Bracelet
           </Button>
@@ -233,30 +216,13 @@ export function BuilderLayout() {
           />
 
           <div className="inner-canvas relative flex-1">
-          
-            {/* Bracelet Info on Canvas */}
-            <div className="absolute left-2 lg:left-4 top-2 z-20 flex flex-col gap-1">
+
+            {/* Bracelet info overlay — read-only; edit via "view bracelet details" */}
+            <div className="absolute left-2 lg:left-4 top-2 z-20 flex flex-col gap-0.5">
               <CanvasWorkflowBar />
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={braceletName}
-                  onChange={(e) => setBraceletName(e.target.value)}
-                  className="bracelet-panel-name-input flex-1 rounded border-transparent bg-transparent px-2 py-2 font-semibold text-neutral-700 outline-none transition-all hover:bg-neutral-100 focus:border-yellow-600"
-                  aria-label="Bracelet name"
-                />
-                <Check size={20} />
-              </div>
-              <textarea
-                ref={descriptionRef}
-                value={braceletDescription}
-                onChange={(e) => setBraceletDescription(e.target.value)}
-                placeholder="Add a description…"
-                rows={5}
-                cols={50}
-                className="bracelet-panel-name-input w-full resize-none overflow-hidden rounded border-transparent bg-transparent px-2 py-1 text-xs leading-relaxed text-neutral-500 outline-none transition-all placeholder:text-neutral-400 hover:bg-neutral-100 focus:border-yellow-600"
-                aria-label="Bracelet description"
-              />
+              <p className="px-2 py-1.5 font-semibold text-neutral-700 leading-snug">
+                <span className="text-neutral-500 font-display">Bracelet Name:</span> {braceletName}
+              </p>
               <button
                 className="text-left px-2 text-xs underline hover:no-underline w-fit rounded focus:ring-2 focus:ring-neutral-600"
                 onClick={() => setBraceletDetailsOpen(true)}
@@ -271,7 +237,10 @@ export function BuilderLayout() {
             <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-lg">
               <EditModeToolbar />
             </div>
-            <BandSelector panelOpen={braceletPanelOpen} />
+
+            {canEdit && !isLocked && (
+              <BandSelector panelOpen={braceletPanelOpen} />
+            )}
 
             {/* Beads loading overlay */}
             {beadsLoading && (
@@ -337,7 +306,7 @@ export function BuilderLayout() {
           style={{
             position: "fixed",
             left: ghostPos.x + 12,
-            top: ghostPos.y + 12,
+            top:  ghostPos.y + 12,
             pointerEvents: "none",
             zIndex: 9999,
           }}
