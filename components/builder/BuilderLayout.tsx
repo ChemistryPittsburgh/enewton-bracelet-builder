@@ -67,7 +67,7 @@ export function BuilderLayout() {
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
   const { data: currentUser } = useCurrentUser();
-  const { canEdit } = usePermissions();
+  const { canEdit, canReview, canPublish } = usePermissions();
   const { data: savedDesign } = useDesign(activeDesignId);
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
@@ -75,12 +75,11 @@ export function BuilderLayout() {
   // Poll every 60 s so the badge stays fresh while the app is open.
   // When the UserScreen is also open it polls at 30 s; React Query uses the
   // shorter of all active intervals so no duplicate requests are made.
-  const perms = currentUser?.permissions;
   const { data: inReviewAll = [] } = useDesigns({ status: "in_review", refetchInterval: 60_000 });
   const { data: approvedAll  = [] } = useDesigns({ status: "approved",  refetchInterval: 60_000 });
   const notificationCount =
-    ((perms?.is_reviewer || perms?.is_admin) ? inReviewAll.length : 0) +
-    ((perms?.is_publisher || perms?.is_admin) ? approvedAll.length  : 0);
+    (canReview  ? inReviewAll.length : 0) +
+    (canPublish ? approvedAll.length  : 0);
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);

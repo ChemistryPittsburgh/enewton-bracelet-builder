@@ -126,7 +126,7 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
 
   const hasActions =
     (status === "draft"     && canSubmit)  ||
-    (status === "in_review" && (canApprove || canReject)) ||
+    (status === "in_review" && (canApprove || canReject || canSendToDraft)) ||
     (status === "approved"  && (canPublish || canSendToDraft)) ||
     (status === "published" && canUnPublish);
 
@@ -261,6 +261,23 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
               variant="danger"
             />
           )}
+          {status === "in_review" && canSendToDraft && (
+            confirmSendToDraft ? (
+              <ConfirmationPanel
+                message="Recalling this bracelet will remove it from review and require resubmission. Do you want to continue?"
+                isPending={sendingToDraft}
+                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
+                onCancel={() => setConfirmSendToDraft(false)}
+              />
+            ) : (
+              <ActionButton
+                label="Recall for editing"
+                isPending={false}
+                onClick={() => setConfirmSendToDraft(true)}
+                variant="secondary"
+              />
+            )
+          )}
           {status === "approved" && (canPublish || canSendToDraft) && (
             confirmSendToDraft ? (
               <ConfirmationPanel
@@ -316,11 +333,11 @@ function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined })
 // ── Tags section ──────────────────────────────────────────────────────────────
 
 function TagsSection({ design }: { design: Bracelet }) {
-  const { canManageComponents } = usePermissions();
+  const { canEdit, canManageComponents } = usePermissions();
   const { mutate: applyTag }    = useApplyTag();
   const { mutate: removeTag }   = useRemoveTag();
 
-  // Optimistic local state — only used when the user can manage tags.
+  // Optimistic local state — only used when the user can apply/remove tags.
   const [optimisticTags, setOptimisticTags] = useState<Tag[]>(() => design.tags ?? []);
   const [pendingIds, setPendingIds]          = useState<number[]>([]);
 
@@ -335,11 +352,14 @@ function TagsSection({ design }: { design: Bracelet }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [design.tags]);
 
-  // Non-managers with no tags → hide section entirely.
-  if (!canManageComponents && (design.tags ?? []).length === 0) return null;
+  // canEdit = is_bracelet_editor (apply/remove tags); canManageComponents = is_component_admin (create/edit/delete tags)
+  const canApplyTags = canEdit;
 
-  // Non-managers with tags → read-only chip cloud.
-  if (!canManageComponents) {
+  // No capability + no tags → hide section.
+  if (!canApplyTags && !canManageComponents && (design.tags ?? []).length === 0) return null;
+
+  // Read-only chip cloud for users who can neither apply tags nor manage tag entities.
+  if (!canApplyTags && !canManageComponents) {
     return (
       <div>
         <SectionHeading>Tags</SectionHeading>
@@ -357,7 +377,7 @@ function TagsSection({ design }: { design: Bracelet }) {
     );
   }
 
-  // Managers — full picker with optimistic updates.
+  // Editors and component admins — full picker with optimistic updates.
   function handleToggle(tag: Tag) {
     const isApplied = optimisticTags.some((t) => t.id === tag.id);
 
@@ -414,7 +434,7 @@ function TagsSection({ design }: { design: Bracelet }) {
           onToggle={handleToggle}
           variant="assign"
           placeholder={appliedIds.length > 0 ? "Edit tags" : "Add tags"}
-          showManage
+          showManage={canManageComponents}
         />
       </div>
     </div>

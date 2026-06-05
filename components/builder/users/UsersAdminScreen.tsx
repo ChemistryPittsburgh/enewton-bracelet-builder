@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, ChevronDown, Copy, Loader2, Plus, Search, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Check, ChevronDown, Loader2, Plus, Search, Trash2, X } from "lucide-react";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { useUsers } from "@/hooks/useUsers";
-import { useCreateUser, type CreateUserResponse } from "@/hooks/useCreateUser";
 import { useUpdateUser } from "@/hooks/useUpdateUser";
 import { useDeleteUser } from "@/hooks/useDeleteUser";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getPrimaryRole } from "@/hooks/usePermissions";
+import { PermissionsDropdown, PERMISSION_FIELDS } from "./PermissionsDropdown";
+import { CreateUserDialog } from "./CreateUserDialog";
+import { CreateOtpUserDialog } from "./CreateOtpUserDialog";
+import { OtpCreatedModal } from "./OtpCreatedModal";
+import { TokenModal } from "./TokenModal";
+import type { CreateUserResponse } from "@/hooks/useCreateUser";
 import type { User } from "@/types";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -23,14 +28,6 @@ const ROLE_TABS: { label: string; value: RoleFilter }[] = [
   { label: "Publisher", value: "publisher" },
   { label: "Editor",    value: "editor" },
   { label: "Inactive",  value: "inactive" },
-];
-
-const PERMISSION_FIELDS: { key: keyof User["permissions"]; label: string }[] = [
-  { key: "is_bracelet_editor", label: "Bracelet Editor" },
-  { key: "is_reviewer",        label: "Reviewer" },
-  { key: "is_publisher",       label: "Publisher" },
-  { key: "is_component_admin", label: "Component Admin" },
-  { key: "is_admin",           label: "Admin" },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -281,247 +278,6 @@ function UserRow({
   );
 }
 
-// ── Create user dialog ────────────────────────────────────────────────────────
-
-function PermissionsDropdown({
-  selected,
-  onChange,
-  disabled = false,
-}: {
-  selected: Set<keyof User["permissions"]>;
-  onChange: (next: Set<keyof User["permissions"]>) => void;
-  disabled?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
-  function toggle(key: keyof User["permissions"]) {
-    if (disabled) return;
-    const next = new Set(selected);
-    next.has(key) ? next.delete(key) : next.add(key);
-    onChange(next);
-  }
-
-  const label =
-    selected.size === 0
-      ? "No permissions"
-      : PERMISSION_FIELDS.filter((f) => selected.has(f.key))
-          .map((f) => f.label)
-          .join(", ");
-
-  return (
-    <div ref={ref} className={`relative ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
-      <button
-        type="button"
-        onClick={() => !disabled && setOpen((o) => !o)}
-        onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-        className="flex w-full items-center justify-between rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-neutral-600 transition-colors"
-      >
-        <span className="truncate text-left text-sm" title={label}>
-          {label}
-        </span>
-        <ChevronDown size={14} className={`ml-2 shrink-0 text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div className="absolute z-10 mt-1 w-full rounded-lg border border-neutral-200 bg-white shadow-lg py-1">
-          {PERMISSION_FIELDS.map(({ key, label: pLabel }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => toggle(key)}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
-            >
-              <span
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                  selected.has(key)
-                    ? "border-neutral-800 bg-neutral-800"
-                    : "border-neutral-300 bg-white"
-                }`}
-              >
-                {selected.has(key) && <Check size={10} className="text-white" />}
-              </span>
-              {pLabel}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CreateUserDialog({
-  onClose,
-  onCreated,
-}: {
-  onClose: () => void;
-  onCreated: (result: CreateUserResponse) => void;
-}) {
-  const [name,        setName]        = useState("");
-  const [email,       setEmail]       = useState("");
-  const [permissions, setPermissions] = useState<Set<keyof User["permissions"]>>(new Set());
-  const [sendEmail,   setSendEmail]   = useState(true);
-  const { mutate, isPending, error } = useCreateUser();
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
-    const perms = Object.fromEntries(
-      PERMISSION_FIELDS.map(({ key }) => [key, permissions.has(key)]),
-    ) as User["permissions"];
-    mutate({ name: name.trim(), email: email.trim(), permissions: perms }, { onSuccess: onCreated });
-  }
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30">
-      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white shadow-xl p-6 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-neutral-900">Add user</h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-neutral-100 text-neutral-400">
-            <X size={16} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="create-name" className="text-xs font-medium text-neutral-600">Name</label>
-            <input
-              id="create-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600 transition-colors"
-              placeholder="Full name"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="create-email" className="text-xs font-medium text-neutral-600">Email</label>
-            <input
-              id="create-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600 transition-colors"
-              placeholder="user@example.com"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="create-permissions" className="text-xs font-medium text-neutral-600">Permissions</label>
-            <PermissionsDropdown selected={permissions} onChange={setPermissions} />
-          </div>
-
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <span
-              className={`relative flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                sendEmail ? "bg-neutral-800" : "bg-neutral-300"
-              }`}
-            >
-              <span
-                className={`absolute h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
-                  sendEmail ? "translate-x-[18px]" : "translate-x-[3px]"
-                }`}
-              />
-              <input
-                type="checkbox"
-                checked={sendEmail}
-                onChange={(e) => setSendEmail(e.target.checked)}
-                className="sr-only"
-              />
-            </span>
-            <span className="text-sm text-neutral-700">Send email code.</span>
-          </label>
-
-          {error && (
-            <p className="text-xs text-red-600">{error instanceof Error ? error.message : "Failed to create user"}</p>
-          )}
-
-          <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={isPending || !name.trim() || !email.trim()}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-neutral-800 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50 transition-colors"
-            >
-              {isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-              Create
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ── Token display modal (one-time) ────────────────────────────────────────────
-
-function TokenModal({ result, onClose }: { result: CreateUserResponse; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-
-  function handleCopy() {
-    navigator.clipboard.writeText(result.token)
-      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
-      .catch(() => {});
-  }
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30">
-      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white shadow-xl p-6 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-neutral-900">User created</h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-neutral-100 text-neutral-400">
-            <X size={16} />
-          </button>
-        </div>
-
-        <p className="text-sm text-neutral-700">
-          <span className="font-semibold">{result.name}</span> has been created. Copy their login token now — it will not be shown again.
-        </p>
-
-        <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
-          <code className="flex-1 text-xs font-mono text-neutral-800 break-all select-all">
-            {result.token}
-          </code>
-          <button
-            onClick={handleCopy}
-            className="shrink-0 rounded p-1.5 hover:bg-neutral-200 transition-colors text-neutral-500"
-            title="Copy token"
-          >
-            {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-          </button>
-        </div>
-
-        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          This token will not be shown again. Make sure the user saves it before closing.
-        </p>
-
-        <button
-          onClick={onClose}
-          className="w-full rounded-lg bg-neutral-800 py-2 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
-        >
-          Done
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 interface UsersAdminScreenProps {
@@ -536,8 +292,10 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
   const [roleFilter, setRoleFilter]     = useState<RoleFilter>("all");
   const [search, setSearch]             = useState("");
   const [editingId, setEditingId]       = useState<number | null>(null);
-  const [showCreate, setShowCreate]     = useState(false);
-  const [tokenResult, setTokenResult]   = useState<CreateUserResponse | null>(null);
+  const [showCreate, setShowCreate]       = useState(false);
+  const [tokenResult, setTokenResult]     = useState<CreateUserResponse | null>(null);
+  const [showCreateOtp, setShowCreateOtp] = useState(false);
+  const [otpCreatedUser, setOtpCreatedUser] = useState<User | null>(null);
 
   const filtered = filterUsers(users, roleFilter, search);
 
@@ -546,6 +304,11 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
   function handleCreated(result: CreateUserResponse) {
     setShowCreate(false);
     setTokenResult(result);
+  }
+
+  function handleOtpCreated(result: User) {
+    setShowCreateOtp(false);
+    setOtpCreatedUser(result);
   }
 
   if (!isOpen) return null;
@@ -610,7 +373,16 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
           )}
         </div>
 
-        {/* Add user */}
+        {/* Add OTP user */}
+        <button
+          onClick={() => setShowCreateOtp(true)}
+          className="flex items-center gap-1.5 rounded-lg bg-neutral-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-neutral-500 transition-colors"
+        >
+          <Plus size={13} />
+          Add OTP user
+        </button>
+
+        {/* Add user (legacy) */}
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-neutral-700 transition-colors"
@@ -673,6 +445,15 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
       )}
       {tokenResult && (
         <TokenModal result={tokenResult} onClose={() => setTokenResult(null)} />
+      )}
+      {showCreateOtp && (
+        <CreateOtpUserDialog
+          onClose={() => setShowCreateOtp(false)}
+          onCreated={handleOtpCreated}
+        />
+      )}
+      {otpCreatedUser && (
+        <OtpCreatedModal user={otpCreatedUser} onClose={() => setOtpCreatedUser(null)} />
       )}
     </div>
   );

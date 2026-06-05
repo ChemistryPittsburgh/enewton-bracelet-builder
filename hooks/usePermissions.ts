@@ -37,7 +37,7 @@ export function usePermissions() {
   const canUpdate    = canEdit;
   const canUnPublish  = canPublish;
   const canSetSku     = canPublish;
-  const canSendToDraft = canPublish;
+  const canSendToDraft = canEdit;    // PERMISSIONS.md: POST /designs/:id/send-to-draft → is_bracelet_editor
 
   return {
     isLoading,

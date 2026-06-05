@@ -5,6 +5,7 @@ import { Loader2, MessageSquare, Pencil, X } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useComments } from "@/hooks/useComments";
 import { useAddComment } from "@/hooks/useAddComment";
 import { useDeleteComment } from "@/hooks/useDeleteComment";
@@ -23,6 +24,7 @@ interface CommentsPanelProps {
 export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
   const activeDesignId = useStore((s) => s.activeDesignId);
   const { data: currentUser } = useCurrentUser();
+  const { isAdmin } = usePermissions();
 
   const { data: comments = [], isLoading, isError, refetch } = useComments(activeDesignId, { enabled: open });
   const { mutate: addComment, isPending: adding } = useAddComment();
@@ -70,7 +72,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
   }
 
   const isOwnComment = (c: DesignComment) =>
-    c.user_id === currentUser?.id || currentUser?.permissions.is_admin;
+    c.user_id === currentUser?.id || isAdmin;
 
   return (
     <Panel open={open} onClose={onClose} direction="right">

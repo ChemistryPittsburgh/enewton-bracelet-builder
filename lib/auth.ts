@@ -1,4 +1,4 @@
-export const TOKEN_KEY = "enewton-token";
+export const TOKEN_KEY = process.env.NEXT_PUBLIC_TOKEN_KEY!;
 
 export const getToken = (): string | null =>
   typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;

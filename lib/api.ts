@@ -1,3 +1,5 @@
+import { TOKEN_KEY } from "@/lib/auth";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export class ApiError extends Error {
@@ -12,7 +14,7 @@ export class ApiError extends Error {
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("enewton-token") : null;
+    typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
