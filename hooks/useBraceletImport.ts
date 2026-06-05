@@ -9,8 +9,9 @@ type ImportStatus = { message: string; warnings: string[] } | null;
 export function useBraceletImport() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<ImportStatus>(null);
-  const { beads, loadBeads } = useStore((s) => ({
+  const { beads, isDirty, loadBeads } = useStore((s) => ({
     beads: s.beads,
+    isDirty: s.isDirty,
     loadBeads: s.loadBeads,
   }));
 
@@ -33,7 +34,7 @@ export function useBraceletImport() {
       return;
     }
 
-    if (beads.length > 0) {
+    if (isDirty) {
       const confirmed = window.confirm(
         `This will replace your current ${beads.length} bead${beads.length !== 1 ? "s" : ""} with the ${result.beads.length} beads from the imported file. Continue?`
       );

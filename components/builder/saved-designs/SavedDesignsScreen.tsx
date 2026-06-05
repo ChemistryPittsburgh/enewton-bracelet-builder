@@ -3,20 +3,25 @@
 import { useMemo, useState, useEffect } from "react";
 import { AlertCircle, Search, X, Inbox } from "lucide-react";
 
+import { useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
+import { CATEGORY_STYLES, type CategoryKey } from "@/lib/category-colors";
 
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
-import { useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
-import type { Bracelet, BraceletStatus } from "@/types";
-import { getInitials } from "@/lib/utils";
+import { useDiscontinueDesign } from "@/hooks/useDiscontinueDesign";
+import { useTags } from "@/hooks/Tags";
+import { useCollections } from "@/hooks/Collections";
+
+import type { Bracelet, BraceletStatus, Collection, Tag } from "@/types";
 
 import { DesignCard } from "./DesignCard";
-import { TagPicker } from "./TagPicker";
+import { TagPicker, CollectionPicker } from "./Pickers";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
-import type { Tag } from "@/types";
+import { DiscontinueBraceletDialog } from "@/components/builder/dialogs/DiscontinueBraceletDialog";
 
 interface SavedDesignsScreenProps {
   isOpen: boolean;
@@ -57,11 +62,15 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   const [designToDelete, setDesignToDelete] = useState<Bracelet | null>(null);
   const { mutate: deleteDesign, isPending: isDeleting } = useDeleteDesign();
 
+  const [designToDiscontinue, setDesignToDiscontinue] = useState<Bracelet | null>(null);
+  const { mutate: discontinueDesign, isPending: isDiscontinuing } = useDiscontinueDesign();
+
   // ── Filter bar state
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [selectedTypes,     setSelectedTypes]     = useState<string[]>([]);
   const [selectedCreators,  setSelectedCreators]  = useState<string[]>([]);
-  const [selectedTagIds,    setSelectedTagIds]    = useState<number[]>([]);
+  const [selectedTagIds,       setSelectedTagIds]       = useState<number[]>([]);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<number[]>([]);
   const [sortBy,            setSortBy]            = useState<DesignSortOption>("newest");
   const [search,            setSearch]            = useState("");
 
@@ -72,18 +81,23 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   // Filtered + sorted list — drives the card grid
   const { data: designs = [], isLoading, isError, refetch } = useDesigns({
-    status: selectedStatus,
+    status:       selectedStatus,
     search,
-    materials: selectedMaterials,
-    types:     selectedTypes,
-    creators:  selectedCreators,
-    tagIds:    selectedTagIds,
+    materials:    selectedMaterials,
+    types:        selectedTypes,
+    creators:     selectedCreators,
+    tagIds:        selectedTagIds,
+    collectionIds: selectedCollectionIds,
     sortBy,
   });
 
   const { loadDesign }    = useLoadDesign();
   const beads             = useStore((s) => s.beads);
+  const activeDesignId    = useStore((s) => s.activeDesignId);
+  const isDirty           = useStore((s) => s.isDirty);
   const setPendingDesign  = useStore((s) => s.setPendingDesign);
+  const { data: allTags = [] }        = useTags();
+  const { data: allCollections = [] } = useCollections();
 
   // ── Derived option lists (from full unfiltered dataset)
   const allMaterials = useMemo(
@@ -114,20 +128,48 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
     [allDesigns],
   );
 
-  // Active filter chips = union of all selected filter values
-  const activeChips: { label: string; onRemove: () => void }[] = [
+  interface ActiveChip {
+    category: CategoryKey;
+    label: string;
+    color?: string | null;
+    onRemove: () => void;
+  }
+
+  const activeChips: ActiveChip[] = [
     ...selectedMaterials.map((m) => ({
+      category: "material" as CategoryKey,
       label: m,
       onRemove: () => setSelectedMaterials((prev) => prev.filter((x) => x !== m)),
     })),
     ...selectedTypes.map((t) => ({
+      category: "type" as CategoryKey,
       label: t,
       onRemove: () => setSelectedTypes((prev) => prev.filter((x) => x !== t)),
     })),
     ...selectedCreators.map((c) => ({
+      category: "creator" as CategoryKey,
       label: c,
       onRemove: () => setSelectedCreators((prev) => prev.filter((x) => x !== c)),
     })),
+    ...selectedTagIds.flatMap((id) => {
+      const tag = allTags.find((t) => t.id === id);
+      if (!tag) return [];
+      return [{
+        category: "tag" as CategoryKey,
+        label: tag.name,
+        color: tag.color,
+        onRemove: () => setSelectedTagIds((prev) => prev.filter((x) => x !== id)),
+      }];
+    }),
+    ...selectedCollectionIds.flatMap((id) => {
+      const coll = allCollections.find((c) => c.id === id);
+      if (!coll) return [];
+      return [{
+        category: "collection" as CategoryKey,
+        label: coll.name,
+        onRemove: () => setSelectedCollectionIds((prev) => prev.filter((x) => x !== id)),
+      }];
+    }),
   ];
 
   // ── Dropdown helpers
@@ -142,7 +184,12 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   // ── Load handler
   function handleCardClick(design: Bracelet) {
-    if (beads.length > 0) {
+    // Already on this design — just close the panel, nothing to replace.
+    if (design.id === activeDesignId) {
+      onClose();
+      return;
+    }
+    if (isDirty) {
       setPendingDesign(design, onClose);
     } else {
       loadDesign(design);
@@ -188,8 +235,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
             <button
               onClick={onClose}
               className="flex items-center rounded px-4.5 py-3.5 text-sm font-semibold text-neutral-700 bg-neutral-300 hover:bg-neutral-200 transition-colors"
-              aria-label="Close Saved Designs Panel"
-              title="Close Saved Designs Panel"
+              aria-label="Close Saved Designs Screen"
+              title="Close Saved Designs Screen"
             >
               <Inbox size={24} />
             </button>
@@ -274,14 +321,18 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                       ))}
                     </select>
 
-                    {/* Collection — placeholder until collections API is built */}
-                    <select disabled
-                      className={cn(selectCls, "opacity-50 cursor-not-allowed")} 
-                      aria-label="Filter Bracelets by Collection"
-                      name="Filter Bracelets by Collection"
-                    >
-                      <option>Collection</option>
-                    </select>
+                    {/* Collection */}
+                    <CollectionPicker
+                      selectedIds={selectedCollectionIds}
+                      onToggle={(c: Collection) =>
+                        setSelectedCollectionIds((prev) =>
+                          prev.includes(c.id)
+                            ? prev.filter((id) => id !== c.id)
+                            : [...prev, c.id],
+                        )
+                      }
+                      showManage
+                    />
 
                     {/* Custom Tags */}
                     <TagPicker
@@ -354,21 +405,31 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
               <div className="flex items-center gap-2 min-h-[28px]">
                 {/* Active filter chips */}
                 <div className="flex flex-1 flex-wrap items-center gap-1.5">
-                  {activeChips.map((chip) => (
-                    <span
-                      key={chip.label}
-                      className="inline-flex items-center gap-1 rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-white"
-                    >
-                      {chip.label}
-                      <button
-                        onClick={chip.onRemove}
-                        className="ml-0.5 rounded-full hover:text-neutral-300 transition-colors"
-                        aria-label={`Remove ${chip.label} filter`}
+                  {activeChips.map((chip) => {
+                    const style = CATEGORY_STYLES[chip.category];
+                    // Tag chips use their DB colour; all others use the Tailwind category colour.
+                    const useInlineColor = chip.category === "tag" && chip.color;
+                    return (
+                      <span
+                        key={`${chip.category}-${chip.label}`}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                          useInlineColor ? "text-white" : `${style.bg} ${style.text}`,
+                        )}
+                        style={useInlineColor ? { backgroundColor: chip.color! } : undefined}
                       >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
+                        <span className="opacity-60">{style.label}:</span>
+                        {chip.label}
+                        <button
+                          onClick={chip.onRemove}
+                          className="ml-0.5 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                          aria-label={`Remove ${chip.label} filter`}
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
 
                 {/* Sort */}
@@ -434,7 +495,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                     key={design.id}
                     design={design}
                     onClick={() => handleCardClick(design)}
-                    onDeleteRequest={(d) => setDesignToDelete(d)}  // ← add this
+                    onDeleteRequest={(d) => setDesignToDelete(d)}
+                    onDiscontinueRequest={(d) => setDesignToDiscontinue(d)}
                   />
                 ))}
               </div>
@@ -451,6 +513,19 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
           onConfirm={() => {
             deleteDesign(designToDelete.id, {
               onSuccess: () => setDesignToDelete(null),
+            });
+          }}
+        />
+      )}
+
+      {designToDiscontinue && (
+        <DiscontinueBraceletDialog
+          designName={designToDiscontinue.name}
+          isDiscontinuing={isDiscontinuing}
+          onCancel={() => setDesignToDiscontinue(null)}
+          onConfirm={() => {
+            discontinueDesign(designToDiscontinue.id, {
+              onSuccess: () => setDesignToDiscontinue(null),
             });
           }}
         />

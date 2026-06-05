@@ -16,6 +16,7 @@ import { BandSelector } from "./canvas/BandSelector";
 import { CanvasStatsBar } from "./canvas/CanvasStatsBar";
 import { CanvasToolbar } from "./canvas/CanvasToolbar";
 import { EditModeToolbar } from "./canvas/EditModeToolbar";
+import { CanvasWorkflowBar } from "./canvas/CanvasWorkflowBar";
 
 import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
@@ -231,9 +232,11 @@ export function BuilderLayout() {
           />
 
           <div className="inner-canvas relative flex-1">
-            <div className="absolute left-2 top-2 z-20 flex flex-col gap-1">
+          
+            {/* Bracelet Info on Canvas */}
+            <div className="absolute left-2 lg:left-4 top-2 z-20 flex flex-col gap-1">
+              <CanvasWorkflowBar />
               <div className="flex items-center gap-2">
-                
                 <input
                   type="text"
                   value={braceletName}
@@ -264,7 +267,7 @@ export function BuilderLayout() {
             <CanvasStatsBar />
 
             {/* Edit mode action toolbar — floats upper-right over canvas */}
-            <div className="absolute right-4 z-20 pointer-events-none shadow-sm rounded-lg">
+            <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-lg">
               <EditModeToolbar />
             </div>
             <BandSelector panelOpen={braceletPanelOpen} />

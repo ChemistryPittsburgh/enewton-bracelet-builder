@@ -44,7 +44,8 @@ export function CanvasWorkflowBar() {
 
   if (!savedDesign) return null;
 
-  const { status, id } = savedDesign;
+  const { status: rawStatus, id } = savedDesign;
+  const status = savedDesign.is_discontinued === 1 ? "discontinued" as BraceletStatus : rawStatus;
 
   const showSubmit  = status === "draft"     && canSubmit;
   const showApprove = status === "in_review" && canApprove;
@@ -53,7 +54,7 @@ export function CanvasWorkflowBar() {
   const hasActions  = showSubmit || showApprove || showReject || showPublish;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2 pt-1">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1">
       {/* Status badge */}
       <span
         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_CLS[status]}`}

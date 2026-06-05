@@ -239,6 +239,7 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
   const { loadDesign }    = useLoadDesign();
 
   const beads            = useStore((s) => s.beads);
+  const isDirty          = useStore((s) => s.isDirty);
   const setPendingDesign = useStore((s) => s.setPendingDesign);
 
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
@@ -249,9 +250,9 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
   const showReview = !!(perms?.is_reviewer || perms?.is_admin);
   const showPublish= !!(perms?.is_publisher || perms?.is_admin);
 
-  // ── Design selection — delegate to global ConfirmReplaceDialog if canvas has beads ──
+  // ── Design selection — delegate to global ConfirmReplaceDialog if canvas has unsaved changes ──
   function requestLoad(design: Bracelet) {
-    if (beads.length > 0) {
+    if (isDirty) {
       setPendingDesign(design, onClose);
     } else {
       loadDesign(design);

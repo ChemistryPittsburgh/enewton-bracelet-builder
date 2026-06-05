@@ -15,6 +15,8 @@ interface UseDesignsParams {
   creators?: string[];
   /** Filter to designs that have all of these tag IDs applied. */
   tagIds?: number[];
+  /** Filter to designs that belong to any of these collection IDs. */
+  collectionIds?: number[];
   /** Sort order applied after filtering. Defaults to "newest" (updated_at desc). */
   sortBy?: DesignSortOption;
   /**
@@ -43,7 +45,15 @@ export function useDesigns(params?: UseDesignsParams) {
 
       let result = list.filter((d) => {
         // Status filter
-        if (params?.status && d.status !== params.status) return false;
+        // Status filter — "discontinued" checks is_discontinued flag,
+        // all other statuses exclude discontinued designs.
+        if (params?.status === "discontinued") {
+          if (d.is_discontinued !== 1) return false;
+        } else {
+          // Hide discontinued designs from all other tabs
+          if (d.is_discontinued === 1) return false;
+          if (params?.status && d.status !== params.status) return false;
+        }
 
         // Full-text search on name (guard against null name)
         if (params?.search) {
@@ -74,6 +84,12 @@ export function useDesigns(params?: UseDesignsParams) {
         if (params?.tagIds?.length) {
           const designTagIds = Array.isArray(d.tags) ? d.tags.map((t) => t.id) : [];
           if (!params.tagIds.every((id) => designTagIds.includes(id))) return false;
+        }
+
+        // Collection IDs — design must belong to ALL selected collections
+        if (params?.collectionIds?.length) {
+          const designCollectionIds = Array.isArray(d.collections) ? d.collections.map((c) => c.id) : [];
+          if (!params.collectionIds.every((id) => designCollectionIds.includes(id))) return false;
         }
 
         return true;

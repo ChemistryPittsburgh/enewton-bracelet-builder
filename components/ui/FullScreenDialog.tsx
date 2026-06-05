@@ -1,4 +1,6 @@
 "use client";
+
+import { useEffect } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +10,7 @@ interface FullScreenDialogProps {
   title?: string;
   children: React.ReactNode;
   className?: string;
+  includeBackDropBlur?: boolean;
 }
 
 export function FullScreenDialog({
@@ -16,17 +19,29 @@ export function FullScreenDialog({
   title,
   children,
   className,
+  includeBackDropBlur = true,
 }: FullScreenDialogProps) {
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 z-50 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
+        className={cn(
+          "dialog-backdrop absolute inset-0 z-50",
+          includeBackDropBlur ? "backdrop-blur-sm bg-black/30" : "bg-black/10",
+        )}
       />
-
       {/* Panel */}
       <div
         className={cn(
@@ -38,7 +53,7 @@ export function FullScreenDialog({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
           {title && (
-            <span className="text-sm font-bold text-neutral-900">{title}</span>
+            <h3 className="text-md font-bold text-neutral-900">{title}</h3>
           )}
           <button
             onClick={onClose}
@@ -47,7 +62,6 @@ export function FullScreenDialog({
             <X size={16} />
           </button>
         </div>
-
         {/* Body */}
         <div className="px-5 py-4">{children}</div>
       </div>

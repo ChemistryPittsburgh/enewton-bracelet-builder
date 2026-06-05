@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
@@ -29,6 +29,16 @@ export function ConfirmReplaceDialog() {
   const { canEdit }      = usePermissions();
 
   const [status, setStatus] = useState<ConfirmStatus>("idle");
+
+  // Close on Escape — only when not mid-save
+  useEffect(() => {
+    if (!pendingDesign) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && status !== "saving") handleCancel();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pendingDesign, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!pendingDesign) return null;
 
@@ -66,30 +76,44 @@ export function ConfirmReplaceDialog() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+      onClick={(e) => { if (e.target === e.currentTarget && status !== "saving") handleCancel(); }}
+    >
       <div className="w-[360px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-5">
-        <div>
-          <h3 className="text-base text-md font-semibold text-neutral-900">
-            Replace current bracelet?
-          </h3>
-          <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
-            You have beads on{" "}
-            <span className="font-medium text-neutral-700">"{braceletName}"</span>.
-            {pendingDesign.id === -1
-              ? canEdit
-                ? " Save before starting a new bracelet?"
-                : " Start a new bracelet?"
-              : canEdit
-                ? <>
-                    {" "}Save it before loading{" "}
-                    <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
-                  </>
-                : <>
-                    {" "}Load{" "}
-                    <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
-                  </>
-            }
-          </p>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-md font-semibold text-neutral-900">
+              Replace current bracelet?
+            </h3>
+            <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
+              You have beads on{" "}
+              <span className="font-medium text-neutral-700">"{braceletName}"</span>.
+              {pendingDesign.id === -1
+                ? canEdit
+                  ? " Save before starting a new bracelet?"
+                  : " Start a new bracelet?"
+                : canEdit
+                  ? <>
+                      {" "}Save it before loading{" "}
+                      <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                    </>
+                  : <>
+                      {" "}Load{" "}
+                      <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                    </>
+              }
+            </p>
+          </div>
+          <button
+            onClick={handleCancel}
+            disabled={status === "saving"}
+            className="mt-0.5 shrink-0 rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors disabled:opacity-40"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {status === "error" && (
@@ -117,7 +141,7 @@ export function ConfirmReplaceDialog() {
           <button
             onClick={handleCancel}
             disabled={status === "saving"}
-            className="rounded-lg text-sm font-medium text-neutral-400 hover:text-neutral-700 transition-colors disabled:opacity-50 hover:underline"
+            className="rounded-lg text-sm font-medium text-neutral-400 hover:text-neutral-700 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
