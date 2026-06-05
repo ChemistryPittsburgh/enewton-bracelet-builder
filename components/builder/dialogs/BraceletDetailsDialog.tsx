@@ -70,9 +70,18 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
   const handleCancel = () => setIsEditing(false);
 
   const handleSave = () => {
-    if (!savedDesign) return;
     const trimmedName = localName.trim();
     if (!trimmedName) return;
+
+    // New bracelet — no API record exists yet. Update the store directly;
+    // the name will be included when the user clicks "Save Bracelet".
+    if (!savedDesign) {
+      setBraceletName(trimmedName);
+      setBraceletDescription(localDescription.trim());
+      setIsEditing(false);
+      return;
+    }
+
     updateDesign(
       { id: savedDesign.id, name: trimmedName, description: localDescription.trim() },
       {
@@ -113,7 +122,6 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     : savedDesign?.status
       ? STATUS_META[savedDesign.status]
       : null;
-
 
   const { canEdit } = usePermissions();
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
@@ -184,7 +192,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
               <div className="group flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-semibold text-neutral-900">{braceletName}</h2>
-                  {savedDesign && !isLocked && canEdit && (
+                  {!isLocked && canEdit && (
                     <button
                       onClick={handleEdit}
                       className="rounded p-0.5 text-neutral-400 opacity-0 transition-opacity hover:text-neutral-600 group-hover:opacity-100"

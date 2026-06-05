@@ -5,6 +5,7 @@ import { useGLTF } from "@react-three/drei";
 import { AlertCircle, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
@@ -38,6 +39,9 @@ import { useDesign } from "@/hooks/useDesign";
 import { useDesigns } from "@/hooks/useDesigns";
 import { usePermissions } from "@/hooks/usePermissions";
 
+/** Matches the default name assigned to every new bracelet. */
+const DEFAULT_BRACELET_NAME = "New Bracelet";
+
 export function BuilderLayout() {
   const {
     placedBeads,
@@ -49,6 +53,7 @@ export function BuilderLayout() {
     resetBracelet,
     setPendingDesign,
     activeDesignId,
+    isDirty,
   } = useStore((s) => ({
     placedBeads:          s.beads,
     braceletName:         s.braceletName,
@@ -59,6 +64,7 @@ export function BuilderLayout() {
     resetBracelet:        s.resetBracelet,
     setPendingDesign:     s.setPendingDesign,
     activeDesignId:       s.activeDesignId,
+    isDirty:              s.isDirty,
   }));
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
@@ -67,10 +73,7 @@ export function BuilderLayout() {
   const { data: savedDesign } = useDesign(activeDesignId);
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
-  // ── Notification badge (header) ───────────────────────────────────────────
-  // Poll every 60 s so the badge stays fresh while the app is open.
-  // When the UserScreen is also open it polls at 30 s; React Query uses the
-  // shorter of all active intervals so no duplicate requests are made.
+  // ── Notification badge ────────────────────────────────────────────────────
   const perms = currentUser?.permissions;
   const { data: inReviewAll = [] } = useDesigns({ status: "in_review", refetchInterval: 60_000 });
   const { data: approvedAll  = [] } = useDesigns({ status: "approved",  refetchInterval: 60_000 });
@@ -83,6 +86,18 @@ export function BuilderLayout() {
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
   const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
+
+  // ── Name-required highlight ───────────────────────────────────────────────
+  // Activated by BraceletExporter when the user tries to save without a name.
+  // Auto-clears once the bracelet name is changed from the default.
+  const [highlightDetailsBtn, setHighlightDetailsBtn] = useState(false);
+
+  useEffect(() => {
+    const trimmed = braceletName.trim();
+    if (trimmed !== "" && trimmed !== DEFAULT_BRACELET_NAME) {
+      setHighlightDetailsBtn(false);
+    }
+  }, [braceletName]);
 
   const rightPanelOpen = rightPanel !== null;
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
@@ -98,12 +113,10 @@ export function BuilderLayout() {
     };
   }, [!!dragFromPanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Close the bead selector panel if the user loses edit permission or the design becomes locked
   useEffect(() => {
     if (!canEdit || isLocked) setBraceletPanelOpen(false);
   }, [canEdit, isLocked]);
 
-  // Preload GLBs whenever the catalog updates
   useEffect(() => {
     beads.forEach((b) => useGLTF.preload(b.glb_path));
   }, [beads]);
@@ -113,11 +126,16 @@ export function BuilderLayout() {
   }
 
   function handleNewBracelet() {
-    if (placedBeads.length > 0) {
-      setPendingDesign({ id: -1, name: "New Bracelet" } as any, () => resetBracelet());
+    if (isDirty) {
+      setPendingDesign({ id: -1, name: DEFAULT_BRACELET_NAME } as any, () => resetBracelet());
     } else {
       resetBracelet();
     }
+  }
+
+  function handleDetailsClick() {
+    setBraceletDetailsOpen(true);
+    setHighlightDetailsBtn(false);
   }
 
   return (
@@ -146,7 +164,7 @@ export function BuilderLayout() {
             <Plus size={14} />
             New Bracelet
           </Button>
-          <BraceletExporter />
+          <BraceletExporter onNameRequired={() => setHighlightDetailsBtn(true)} />
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
             <button
@@ -184,7 +202,7 @@ export function BuilderLayout() {
         />
         <CommentsPanel open={rightPanel === "comments"} onClose={() => setRightPanel(null)} />
 
-        {/* Clip container — narrows visible area without resizing the canvas */}
+        {/* Clip container */}
         <div
           className="absolute flex flex-col top-0 bottom-0 overflow-hidden"
           style={{
@@ -193,7 +211,6 @@ export function BuilderLayout() {
             transition: "left 300ms ease-out, right 300ms ease-out",
           }}
         >
-
           {canEdit && !isLocked && (
             <button
               onClick={openBraceletPanel}
@@ -217,23 +234,30 @@ export function BuilderLayout() {
 
           <div className="inner-canvas relative flex-1">
 
-            {/* Bracelet info overlay — read-only; edit via "view bracelet details" */}
+            {/* Bracelet info overlay */}
             <div className="absolute left-2 lg:left-4 top-2 z-20 flex flex-col gap-0.5">
               <CanvasWorkflowBar />
               <p className="px-2 py-1.5 font-semibold text-neutral-700 leading-snug">
                 <span className="text-neutral-500 font-display">Bracelet Name:</span> {braceletName}
               </p>
+
+              {/* "view bracelet details" — highlights when a name is required */}
               <button
-                className="text-left px-2 text-xs underline hover:no-underline w-fit rounded focus:ring-2 focus:ring-neutral-600"
-                onClick={() => setBraceletDetailsOpen(true)}
+                onClick={handleDetailsClick}
+                className={cn(
+                  "text-left text-xs w-fit rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-600",
+                  highlightDetailsBtn
+                    ? "px-2.5 py-1 bg-amber-100 text-amber-700 font-semibold border border-amber-300 animate-pulse"
+                    : "px-2 underline hover:no-underline text-neutral-500",
+                )}
               >
-                view bracelet details
+                {highlightDetailsBtn ? "Set a bracelet name →" : "view bracelet details"}
               </button>
             </div>
 
             <CanvasStatsBar />
 
-            {/* Edit mode action toolbar — floats upper-right over canvas */}
+            {/* Edit mode action toolbar */}
             <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-lg">
               <EditModeToolbar />
             </div>
@@ -242,7 +266,6 @@ export function BuilderLayout() {
               <BandSelector panelOpen={braceletPanelOpen} />
             )}
 
-            {/* Beads loading overlay */}
             {beadsLoading && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
                 <div className="flex flex-col items-center gap-3 text-neutral-500">
@@ -252,7 +275,6 @@ export function BuilderLayout() {
               </div>
             )}
 
-            {/* Beads error overlay */}
             {beadsError && !beadsLoading && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
                 <div className="flex flex-col items-center gap-3">
@@ -268,7 +290,6 @@ export function BuilderLayout() {
               </div>
             )}
 
-            {/* Inner canvas — always full screen width, clipped by parent */}
             <div
               className="absolute top-0 bottom-0"
               style={{
@@ -281,7 +302,6 @@ export function BuilderLayout() {
             </div>
           </div>
         </div>
-
       </main>
 
       <SavedDesignsScreen
