@@ -45,7 +45,15 @@ export function useDesigns(params?: UseDesignsParams) {
 
       let result = list.filter((d) => {
         // Status filter
-        if (params?.status && d.status !== params.status) return false;
+        // Status filter — "discontinued" checks is_discontinued flag,
+        // all other statuses exclude discontinued designs.
+        if (params?.status === "discontinued") {
+          if (d.is_discontinued !== 1) return false;
+        } else {
+          // Hide discontinued designs from all other tabs
+          if (d.is_discontinued === 1) return false;
+          if (params?.status && d.status !== params.status) return false;
+        }
 
         // Full-text search on name (guard against null name)
         if (params?.search) {

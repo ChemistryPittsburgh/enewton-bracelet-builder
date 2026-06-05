@@ -35,7 +35,7 @@ const STATUS_FILTERS: { label: string; value: BraceletStatus | undefined }[] = [
   { label: "Approved",               value: "approved" },
   { label: "Published",              value: "published" },
   { label: "Design concepts",        value: "design_concept" },
-  { label: "Discontinued", value: "discontinued" },
+  { label: "Discontinued (vintage)", value: "discontinued" },
 ];
 
 const SORT_OPTIONS: { label: string; value: DesignSortOption }[] = [

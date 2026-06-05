@@ -14,9 +14,8 @@ export function useDiscontinueDesign() {
   const mutation = useMutation({
     mutationFn(id: number) {
       if (!isAdmin) throw new Error("Permission denied: admin required.");
-      return apiFetch<Bracelet>(`/designs/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({ is_discontinued: 1 }),
+      return apiFetch<Bracelet>(`/designs/${id}/discontinue`, {
+        method: "POST",
       });
     },
     onSuccess: () => {

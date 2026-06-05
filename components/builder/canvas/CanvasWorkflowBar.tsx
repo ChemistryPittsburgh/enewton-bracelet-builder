@@ -44,7 +44,8 @@ export function CanvasWorkflowBar() {
 
   if (!savedDesign) return null;
 
-  const { status, id } = savedDesign;
+  const { status: rawStatus, id } = savedDesign;
+  const status = savedDesign.is_discontinued === 1 ? "discontinued" as BraceletStatus : rawStatus;
 
   const showSubmit  = status === "draft"     && canSubmit;
   const showApprove = status === "in_review" && canApprove;

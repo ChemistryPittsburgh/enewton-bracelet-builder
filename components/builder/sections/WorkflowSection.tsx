@@ -84,6 +84,19 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
 
   const { status, id } = savedDesign;
 
+  // Discontinued — show badge, no actions available.
+  if (savedDesign.is_discontinued === 1) {
+    return (
+      <div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-neutral-800 font-bold">
+            This design has been discontinued.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   if (!PIPELINE_SET.has(status)) {
     return (
       <div>
@@ -252,7 +265,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
           {status === "published" && canDiscontinue && !confirmUnpublish && (
             confirmDiscontinue ? (
               <ConfirmationPanel
-                message="Discontinuing this bracelet is permanent and cannot be undone. Do you want to continue?"
+                message="Discontinuing this bracelet is permanent and cannot be undone. The bracelet will be moved to the Discontinued (vintage) tab. Do you want to continue?"
                 isPending={discontinuing}
                 onConfirm={() => discontinue(id, { onSuccess: () => setConfirmDiscontinue(false) })}
                 onCancel={() => setConfirmDiscontinue(false)}

@@ -59,7 +59,11 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     [placedBeads],
   );
 
-  const statusMeta = savedDesign?.status ? STATUS_META[savedDesign.status] : null;
+  const statusMeta = savedDesign?.is_discontinued === 1
+    ? STATUS_META.discontinued
+    : savedDesign?.status
+      ? STATUS_META[savedDesign.status]
+      : null;
 
   return (
     <FullScreenDialog open={open} onClose={onClose} title={braceletName} className="max-w-3xl">
