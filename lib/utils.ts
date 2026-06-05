@@ -52,3 +52,15 @@ export function formatTimestamp(isoString: string): string {
     year: "numeric",
   }).format(date);
 }
+
+/** Formats an ISO datetime as "mm/dd/yyyy, h:mm am/pm". */
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(iso)).toLowerCase();
+}

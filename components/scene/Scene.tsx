@@ -48,10 +48,11 @@ interface SceneProps {
 
 export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
-  const { isEditMode, clearSelectedBead, setEditSelectedBead } = useStore((s) => ({
+  const { isEditMode, clearSelectedBead, setEditSelectedBead, viewMode } = useStore((s) => ({
     isEditMode: s.isEditMode,
     clearSelectedBead: s.clearSelectedBead,
     setEditSelectedBead: s.setEditSelectedBead,
+    viewMode: s.viewMode,
   }));
   return (
     <div className="relative h-full w-full">
@@ -70,7 +71,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps)
         <CanvasRegistrar />
         <ControlsRegistrar controlsRef={controlsRef} />
         <ambientLight intensity={0.7} />
-        <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.0} castShadow />
+        <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.0} castShadow={viewMode !== 'line'} />
         <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.4} />
         <Environment preset="studio" />
 
@@ -80,13 +81,16 @@ export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps)
           <CameraController controlsRef={controlsRef} />
         </Suspense>
 
-        <ContactShadows
-          position={[0, -0.005, 0]}
-          opacity={0.25}
-          scale={0.15}
-          blur={1}
-          far={0.02}
-        />
+        {viewMode !== 'line' && (
+          <ContactShadows
+            position={[0, -0.005, 0]}
+            opacity={0.25}
+            scale={0.15}
+            blur={1}
+            far={0.02}
+          />
+        )}
+
         <CameraOffset
           leftPanelOpen={panelOpen}
           rightPanelOpen={rightPanelOpen}

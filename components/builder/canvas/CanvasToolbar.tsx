@@ -33,14 +33,17 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
   const { data: savedDesign } = useDesign(activeDesignId);
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
+  const canvasToolbarRightWidth = canEdit ? 150 : 250;
+
   return (
     <div className="flex flex-col gap-2 pointer-events-none relative z-20">
 
       {/* Main toolbar row */}
-      <div className="flex justify-between pointer-events-auto bg-white shadow-sm">
+      <div className="relative flex justify-between pointer-events-auto bg-white shadow-sm">
 
-        {/* Centre — 3D / Line toggle */}
-        <div className="flex items-center justify-center py-3 flex-1">
+        {/* 3D / Line toggle */}
+        <div className="flex items-center justify-center py-3 flex-1"
+        style={{ paddingLeft: canvasToolbarRightWidth }}>
           <div className="flex rounded-xl border border-neutral-200 bg-white min-w-[140px] overflow-hidden">
             {(["3D", "Line"] as const).map((mode) => (
               <button
@@ -60,7 +63,8 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
         </div>
 
         {/* Right — Edit + Comments */}
-        <div className="flex items-center gap-2 border-l border-neutral-200 px-3 py-2">
+        <div className="flex items-center gap-2 shrink-0 justify-end border-l border-neutral-200 px-3 lg:pr-6 py-2"
+        style={{ minWidth: canvasToolbarRightWidth }}>
           {canEdit && !isLocked && (
             <button
               onClick={toggleEditMode}
