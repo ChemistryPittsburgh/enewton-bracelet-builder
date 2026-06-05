@@ -6,6 +6,7 @@ import { Panel } from "@/components/ui/Panel";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useDesign } from "@/hooks/useDesign";
 import { useComments } from "@/hooks/useComments";
 import { useAddComment } from "@/hooks/useAddComment";
 import { useDeleteComment } from "@/hooks/useDeleteComment";
@@ -41,6 +42,9 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
       listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
     }
   }, [comments.length]);
+
+  const { data: savedDesign } = useDesign(activeDesignId);
+  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   const canInteract = activeDesignId !== null;
 
@@ -176,7 +180,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
         </div>
 
         {/* Composer */}
-        <div className={`shrink-0 border-t border-neutral-200 px-6 py-5 transition-opacity ${!canInteract ? "opacity-40 pointer-events-none" : ""}`}>
+        {!isLocked && <div className={`shrink-0 border-t border-neutral-200 px-6 py-5 transition-opacity ${!canInteract ? "opacity-40 pointer-events-none" : ""}`}>
           <p className="text-sm font-semibold text-neutral-700 mb-3">Leave a comment</p>
           <div className="flex gap-3 rounded-lg border border-neutral-300 px-3 py-3 focus-within:border-neutral-400 transition-colors">
             {currentUser && <Avatar name={currentUser.name} size="sm" />}
@@ -210,7 +214,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
               Comment
             </button>
           </div>
-        </div>
+        </div>}
 
       </div>
     </Panel>
