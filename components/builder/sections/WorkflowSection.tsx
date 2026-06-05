@@ -254,7 +254,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
               <ConfirmationPanel
                 message="Discontinuing this bracelet is permanent and cannot be undone. Do you want to continue?"
                 isPending={discontinuing}
-                onConfirm={() => discontinue({ id, name: savedDesign.name }, { onSuccess: () => setConfirmDiscontinue(false) })}
+                onConfirm={() => discontinue(id, { onSuccess: () => setConfirmDiscontinue(false) })}
                 onCancel={() => setConfirmDiscontinue(false)}
               />
             ) : (

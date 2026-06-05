@@ -524,7 +524,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
           isDiscontinuing={isDiscontinuing}
           onCancel={() => setDesignToDiscontinue(null)}
           onConfirm={() => {
-            discontinueDesign({ id: designToDiscontinue.id, name: designToDiscontinue.name }, {
+            discontinueDesign(designToDiscontinue.id, {
               onSuccess: () => setDesignToDiscontinue(null),
             });
           }}
