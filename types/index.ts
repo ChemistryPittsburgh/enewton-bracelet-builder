@@ -88,6 +88,8 @@ export interface Bracelet {
   created_by_name: string;
   /** Tags applied to this design */
   tags: Tag[];
+  /** 1 = permanently discontinued (irreversible). */
+  is_discontinued: number;
 }
 
 /** Paginated list response from GET /designs. */

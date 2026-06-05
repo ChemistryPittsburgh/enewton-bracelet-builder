@@ -12,6 +12,7 @@ import { CATEGORY_STYLES, type CategoryKey } from "@/lib/category-colors";
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
+import { useDiscontinueDesign } from "@/hooks/useDiscontinueDesign";
 import { useTags } from "@/hooks/Tags";
 import { useCollections } from "@/hooks/Collections";
 
@@ -20,6 +21,7 @@ import type { Bracelet, BraceletStatus, Collection, Tag } from "@/types";
 import { DesignCard } from "./DesignCard";
 import { TagPicker, CollectionPicker } from "./Pickers";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
+import { DiscontinueBraceletDialog } from "@/components/builder/dialogs/DiscontinueBraceletDialog";
 
 interface SavedDesignsScreenProps {
   isOpen: boolean;
@@ -33,7 +35,7 @@ const STATUS_FILTERS: { label: string; value: BraceletStatus | undefined }[] = [
   { label: "Approved",               value: "approved" },
   { label: "Published",              value: "published" },
   { label: "Design concepts",        value: "design_concept" },
-  { label: "Discontinued (vintage)", value: "discontinued" },
+  { label: "Discontinued", value: "discontinued" },
 ];
 
 const SORT_OPTIONS: { label: string; value: DesignSortOption }[] = [
@@ -59,6 +61,9 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   const [selectedStatus, setSelectedStatus] = useState<BraceletStatus | undefined>(undefined);
   const [designToDelete, setDesignToDelete] = useState<Bracelet | null>(null);
   const { mutate: deleteDesign, isPending: isDeleting } = useDeleteDesign();
+
+  const [designToDiscontinue, setDesignToDiscontinue] = useState<Bracelet | null>(null);
+  const { mutate: discontinueDesign, isPending: isDiscontinuing } = useDiscontinueDesign();
 
   // ── Filter bar state
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
@@ -490,7 +495,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                     key={design.id}
                     design={design}
                     onClick={() => handleCardClick(design)}
-                    onDeleteRequest={(d) => setDesignToDelete(d)}  // ← add this
+                    onDeleteRequest={(d) => setDesignToDelete(d)}
+                    onDiscontinueRequest={(d) => setDesignToDiscontinue(d)}
                   />
                 ))}
               </div>
@@ -507,6 +513,19 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
           onConfirm={() => {
             deleteDesign(designToDelete.id, {
               onSuccess: () => setDesignToDelete(null),
+            });
+          }}
+        />
+      )}
+
+      {designToDiscontinue && (
+        <DiscontinueBraceletDialog
+          designName={designToDiscontinue.name}
+          isDiscontinuing={isDiscontinuing}
+          onCancel={() => setDesignToDiscontinue(null)}
+          onConfirm={() => {
+            discontinueDesign({ id: designToDiscontinue.id, name: designToDiscontinue.name }, {
+              onSuccess: () => setDesignToDiscontinue(null),
             });
           }}
         />
