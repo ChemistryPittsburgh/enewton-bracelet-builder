@@ -3,10 +3,8 @@
 /**
  * CanvasToolbar.tsx
  *
- * Toolbar that floats at the top of the 3D canvas.
- *
  * Left:   Workflow action buttons (Submit / Approve / Reject / Publish / Reactivate)
- * Centre: 3D / Line view toggle  (absolutely centred — not affected by side widths)
+ * Centre: 3D / Line view toggle  (absolutely centred)
  * Right:  Edit + Comments buttons
  */
 
@@ -23,12 +21,16 @@ import { usePublishDesign } from "@/hooks/usePublishDesign";
 import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
 import type { BraceletStatus } from "@/types";
 
+import { Button } from "@/components/ui/Button";
+
 interface CanvasToolbarProps {
   commentsOpen?: boolean;
   onCommentsClick?: () => void;
+  /** Called when the user tries to publish without a Shopify SKU set. */
+  onPublishBlocked?: () => void;
 }
 
-export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasToolbarProps) {
+export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked }: CanvasToolbarProps) {
   const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId } = useStore((s) => ({
     isEditMode:      s.isEditMode,
     toggleEditMode:  s.toggleEditMode,
@@ -58,8 +60,28 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
   const showPublish       = status === "approved"     && canPublish;
   const showUndiscontinue = status === "discontinued" && canUndiscontinue;
 
-  // ── Inline reactivation confirmation ───────────────────────────────────────
+  // ── Publish SKU gate ───────────────────────────────────────────────────────
+  // Shows an inline warning for a few seconds when the user tries to publish
+  // without a Shopify SKU, then auto-dismisses so they can try again.
+  const [publishBlocked, setPublishBlocked] = useState(false);
+
+  function handlePublishClick() {
+    if (!savedDesign) return;
+    if (!savedDesign.shopify_sku?.trim()) {
+      setPublishBlocked(true);
+      onPublishBlocked?.();
+      setTimeout(() => setPublishBlocked(false), 5000);
+      return;
+    }
+    publish(savedDesign.id);
+  }
+
+  // ── Reactivate confirmation ────────────────────────────────────────────────
   const [confirmingReactivate, setConfirmingReactivate] = useState(false);
+
+  // ── Reject with reason ────────────────────────────────────────────────────
+  const [confirmingReject, setConfirmingReject] = useState(false);
+  const [rejectReason,     setRejectReason]     = useState("");
 
   function handleConfirmReactivate() {
     if (!savedDesign) return;
@@ -70,8 +92,6 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
 
   return (
     <div className="flex flex-col gap-2 pointer-events-none relative z-20">
-
-      {/* Main toolbar row */}
       <div className="relative flex items-center pointer-events-auto bg-white shadow-sm px-3 lg:px-6 py-2">
 
         {/* ── Left — workflow actions ──────────────────────────────────── */}
@@ -83,41 +103,87 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
                   label="Submit for Review"
                   isPending={submitting}
                   onClick={() => submit(savedDesign.id)}
-                  variant="primary"
+                  variant="ghost"
                 />
               )}
-              {showApprove && (
+              {showApprove && !confirmingReject && (
                 <WorkflowButton
                   label="Approve"
                   isPending={approving}
                   onClick={() => approve(savedDesign.id)}
-                  variant="primary"
+                  variant="ghost"
                 />
               )}
               {showReject && (
-                <WorkflowButton
-                  label="Reject"
-                  isPending={rejecting}
-                  onClick={() => reject(savedDesign.id)}
-                  variant="danger"
-                />
-              )}
-              {showPublish && (
-                <WorkflowButton
-                  label="Publish"
-                  isPending={publishing}
-                  onClick={() => publish(savedDesign.id)}
-                  variant="primary"
-                />
+                confirmingReject ? (
+                  <div className="flex flex-col gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Reason for rejection (optional)…"
+                      rows={2}
+                      autoFocus
+                      className="w-56 resize-none rounded border border-rose-200 bg-white px-2 py-1 text-xs text-neutral-700 outline-none focus:border-rose-400 placeholder:text-neutral-400"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() =>
+                          reject(
+                            { id: savedDesign.id, reason: rejectReason.trim() || undefined },
+                            { onSuccess: () => { setConfirmingReject(false); setRejectReason(""); } },
+                          )
+                        }
+                        disabled={rejecting}
+                        className="flex items-center gap-1 rounded-md bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+                      >
+                        {rejecting && <Loader2 size={11} className="animate-spin" />}
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => { setConfirmingReject(false); setRejectReason(""); }}
+                        disabled={rejecting}
+                        className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <WorkflowButton
+                    label="Reject"
+                    isPending={false}
+                    onClick={() => setConfirmingReject(true)}
+                    variant="danger"
+                  />
+                )
               )}
 
-              {/* Reactivate — shows inline confirmation before mutating */}
+              {/* Publish — gated on Shopify SKU being set */}
+              {showPublish && (
+                publishBlocked ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
+                    <AlertTriangle size={13} className="shrink-0 text-amber-500" />
+                    <span className="text-xs font-medium text-amber-700">
+                      A Shopify SKU is required to publish.
+                    </span>
+                  </div>
+                ) : (
+                  <WorkflowButton
+                    label="Publish"
+                    isPending={publishing}
+                    onClick={handlePublishClick}
+                    variant="primary"
+                  />
+                )
+              )}
+
+              {/* Reactivate — two-step confirmation */}
               {showUndiscontinue && (
                 confirmingReactivate ? (
                   <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
                     <AlertTriangle size={13} className="shrink-0 text-amber-500" />
                     <span className="text-xs font-medium text-amber-700">
-                      This will reactivate the bracelet.
+                      Reactivating this bracelet will move it to Published.
                     </span>
                     <button
                       onClick={handleConfirmReactivate}
@@ -148,7 +214,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
           )}
         </div>
 
-        {/* ── Centre — 3D / Line toggle (truly centred, independent of sides) ── */}
+        {/* ── Centre — 3D / Line toggle ────────────────────────────────── */}
         <div className="absolute left-1/2 -translate-x-1/2">
           <div className="flex rounded-xl border border-neutral-200 bg-white min-w-[140px] overflow-hidden">
             {(["3D", "Line"] as const).map((mode) => (
@@ -203,8 +269,6 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick }: CanvasT
   );
 }
 
-// ── Shared button for workflow actions ────────────────────────────────────────
-
 function WorkflowButton({
   label,
   isPending,
@@ -214,20 +278,16 @@ function WorkflowButton({
   label: string;
   isPending: boolean;
   onClick: () => void;
-  variant: "primary" | "danger";
+  variant: "primary" | "danger" | "ghost";
 }) {
   return (
-    <button
+    <Button
       onClick={onClick}
       disabled={isPending}
-      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
-        variant === "primary"
-          ? "bg-neutral-800 text-white hover:bg-neutral-700"
-          : "border border-red-300 bg-white text-red-600 hover:bg-red-50"
-      }`}
+      variant={variant}
     >
       {isPending && <Loader2 size={13} className="animate-spin" />}
       {label}
-    </button>
+    </Button>
   );
 }

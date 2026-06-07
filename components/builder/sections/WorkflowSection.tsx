@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AlertCircle, Check } from "lucide-react";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { z } from "zod";
 
 import { ActionButton } from "@/components/ui/ActionButton";
@@ -10,6 +10,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 
 import { ApiError } from "@/lib/api";
+import { STATUS_META } from "@/lib/category-colors";
 import { useSubmitDesign } from "@/hooks/useSubmitDesign";
 import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
@@ -19,18 +20,15 @@ import { useSendToDraft } from "@/hooks/useSendToDraft";
 import { useSetDesignSku } from "@/hooks/useSetDesignSku";
 import { useDiscontinueDesign } from "@/hooks/useDiscontinueDesign";
 import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
+import { useReopenDesign } from "@/hooks/useReopenDesign";
 
 import type { Bracelet, BraceletStatus } from "@/types";
 
 // ── Status metadata (exported — also used by BraceletDetailsDialog) ───────────
 
-export const STATUS_META: Record<BraceletStatus, { label: string; cls: string }> = {
-  draft:          { label: "In Progress",    cls: "bg-neutral-100 text-neutral-600" },
-  in_review:      { label: "In Review",      cls: "bg-amber-100 text-amber-700" },
-  approved:       { label: "Approved",       cls: "bg-blue-100 text-blue-700" },
-  published:      { label: "Published",      cls: "bg-green-100 text-green-700" },
-  discontinued:   { label: "Discontinued",   cls: "bg-red-100 text-red-600" },
-};
+// STATUS_META is defined in @/lib/category-colors — imported above and re-exported
+// so existing importers (BraceletDetailsDialog, CanvasWorkflowBar, etc.) need no path change.
+export { STATUS_META } from "@/lib/category-colors";
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 
@@ -61,8 +59,9 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   const { mutate: unpublish,   isPending: unpublishing,  canUnPublish } = useUnPublishDesign();
   const { mutate: sendToDraft, isPending: sendingToDraft, canSendToDraft } = useSendToDraft();
   const { mutate: setSku,      isPending: settingSku,    canSetSku }    = useSetDesignSku();
-  const { mutate: discontinue, isPending: discontinuing, canDiscontinue } = useDiscontinueDesign();
+  const { mutate: discontinue,   isPending: discontinuing,   canDiscontinue }   = useDiscontinueDesign();
   const { mutate: undiscontinue, isPending: undiscontinuing, canUndiscontinue } = useUndiscontinueDesign();
+  const { mutate: reopen,        isPending: reopening,       canReopen }        = useReopenDesign();
 
   const [skuInput,            setSkuInput]            = useState("");
   const [skuError,            setSkuError]            = useState<string | null>(null);
@@ -71,6 +70,8 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   const [confirmUnpublish,    setConfirmUnpublish]    = useState(false);
   const [confirmDiscontinue,  setConfirmDiscontinue]  = useState(false);
   const [confirmReactivate,   setConfirmReactivate]   = useState(false);
+  const [confirmReject,       setConfirmReject]       = useState(false);
+  const [rejectReason,        setRejectReason]        = useState("");
 
   useEffect(() => {
     setSkuInput(savedDesign?.shopify_sku ?? "");
@@ -81,6 +82,8 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
     setConfirmUnpublish(false);
     setConfirmDiscontinue(false);
     setConfirmReactivate(false);
+    setConfirmReject(false);
+    setRejectReason("");
   }, [savedDesign?.id]);
 
   if (!savedDesign) return null;
@@ -114,6 +117,29 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
               />
             </div>
           )
+        )}
+      </div>
+    );
+  }
+
+  // ── Rejected ───────────────────────────────────────────────────────────────
+  if (status === "rejected") {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold text-neutral-800">
+            This design was rejected and needs revision before resubmitting.
+          </span>
+        </div>
+        {canReopen && (
+          <div className="flex items-center gap-2">
+            <ActionButton
+              label="Return to Draft"
+              isPending={reopening}
+              onClick={() => reopen(id)}
+              variant="secondary"
+            />
+          </div>
         )}
       </div>
     );
@@ -171,16 +197,16 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
             const isCurrent   = i === currentIndex;
             const isFuture    = i > currentIndex;
             return (
-              <div key={step.status} className="flex items-start">
+              <div key={step.status} className="flex items-start flex-1">
                 <div className="flex flex-col items-center gap-1.5">
                   <div
-                    className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                    className={`flex h-7 w-7 items-center justify-center rounded-full ${
                       isCompleted || isCurrent
                         ? "bg-neutral-900"
                         : "border-2 border-neutral-300 bg-white"
                     }`}
                   >
-                    {isCompleted && <Check size={10} className="text-white" />}
+                    {isCompleted && <Check size={15} className="text-white" />}
                     {isCurrent   && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                   </div>
                   <span
@@ -195,7 +221,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
                 </div>
                 {i < PIPELINE.length - 1 && (
                   <div
-                    className={`mx-1 mt-2.5 h-0.5 w-10 shrink-0 ${
+                    className={`mx-1 mt-2.5 h-0.5 flex-1 w-10 shrink-0 ${
                       i < currentIndex ? "bg-neutral-900" : "bg-neutral-200"
                     }`}
                   />
@@ -206,44 +232,48 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
         </div>
       </div>
 
-      {showSkuField && (
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-            Shopify SKU
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={skuInput}
-              onChange={(e) => { setSkuInput(e.target.value); setSkuError(null); }}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSkuSave(); }}
-              placeholder="e.g. BB-SUMMER-001"
-              className={`flex-1 rounded-lg border px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors placeholder:text-neutral-400 ${
-                skuError ? "border-red-400 focus:border-red-500" : "border-neutral-200 focus:border-neutral-500"
-              }`}
-            />
-            <button
-              onClick={handleSkuSave}
-              disabled={settingSku}
-              className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
-            >
-              {skuSaved ? "Saved!" : settingSku ? "Saving…" : "Save"}
-            </button>
-          </div>
-          {skuError && (
-            <p className="flex items-center gap-1.5 text-xs text-red-500">
-              <AlertCircle size={12} className="shrink-0" />
-              {skuError}
-            </p>
-          )}
-        </div>
-      )}
-
       {publishFailed && publishError && (
         <ErrorAlert message={publishError instanceof ApiError ? publishError.message : (publishError as Error).message} />
       )}
 
-      {hasActions && (
+      {/* Rejection reason form — replaces the action row while open */}
+      {status === "in_review" && canReject && confirmReject && (
+        <div className="flex flex-col gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
+          <p className="text-xs font-semibold text-rose-700">Reason for rejection</p>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Describe why this design is being rejected…"
+            rows={3}
+            autoFocus
+            className="w-full resize-none rounded-md border border-rose-200 bg-white px-3 py-2 text-sm text-neutral-700 outline-none focus:border-rose-400 placeholder:text-neutral-400"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() =>
+                reject(
+                  { id, reason: rejectReason.trim() || undefined },
+                  { onSuccess: () => { setConfirmReject(false); setRejectReason(""); } },
+                )
+              }
+              disabled={rejecting}
+              className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+            >
+              {rejecting && <Loader2 size={13} className="animate-spin" />}
+              Confirm Rejection
+            </button>
+            <button
+              onClick={() => { setConfirmReject(false); setRejectReason(""); }}
+              disabled={rejecting}
+              className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-700 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {hasActions && !confirmReject && (
         <div className="flex items-center gap-2">
           {status === "draft" && canSubmit && (
             <ActionButton label="Submit for Review" isPending={submitting} onClick={() => submit(id)} variant="primary" />
@@ -252,7 +282,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
             <ActionButton label="Approve" isPending={approving} onClick={() => approve(id)} variant="primary" />
           )}
           {status === "in_review" && canReject && (
-            <ActionButton label="Reject" isPending={rejecting} onClick={() => reject(id)} variant="danger" />
+            <ActionButton label="Reject" isPending={false} onClick={() => setConfirmReject(true)} variant="danger" />
           )}
           {status === "approved" && (canPublish || canSendToDraft) && (
             confirmSendToDraft ? (
@@ -296,6 +326,39 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
             ) : (
               <ActionButton label="Discontinue" isPending={false} onClick={() => setConfirmDiscontinue(true)} variant="danger" />
             )
+          )}
+        </div>
+      )}
+
+      {showSkuField && (
+        <div className="flex flex-col gap-1.5">
+          <SectionHeading>
+            Shopify SKU
+          </SectionHeading>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={skuInput}
+              onChange={(e) => { setSkuInput(e.target.value); setSkuError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSkuSave(); }}
+              placeholder="e.g. BB-SUMMER-001"
+              className={`flex-1 rounded-lg max-w-[250px] border px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors placeholder:text-neutral-400 ${
+                skuError ? "border-red-400 focus:border-red-500" : "border-neutral-200 focus:border-neutral-500"
+              }`}
+            />
+            <button
+              onClick={handleSkuSave}
+              disabled={settingSku}
+              className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
+            >
+              {skuSaved ? "Saved!" : settingSku ? "Saving…" : "Save"}
+            </button>
+          </div>
+          {skuError && (
+            <p className="flex items-center gap-1.5 text-xs text-red-500">
+              <AlertCircle size={12} className="shrink-0" />
+              {skuError}
+            </p>
           )}
         </div>
       )}

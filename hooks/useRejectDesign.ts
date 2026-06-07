@@ -4,26 +4,29 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { Bracelet } from "@/types";
 
 /**
- * POST /designs/:id/reject — reject a design that is in "in_review" status.
- * Requires is_reviewer or is_admin.
- * TODO: add comment/reason field once backend supports it.
+ * POST /designs/:id/reject
+ * Moves a design from in_review → rejected.
+ * Accepts an optional reason that is stored and surfaced to the designer.
  *
- * Returns the mutation plus `canReject` for conditional UI rendering.
+ * Clinton: the endpoint should accept { reason?: string | null } in the body
+ * and write it to the rejection_reason column alongside rejected_at / rejected_by.
  */
 export function useRejectDesign() {
   const queryClient = useQueryClient();
-  const { canReject } = usePermissions();
+  const { isAdmin, canReview } = usePermissions();
 
   const mutation = useMutation({
-    mutationFn(id: number) {
-      if (!canReject) throw new Error("Permission denied: is_reviewer or is_admin required.");
-      return apiFetch<Bracelet>(`/designs/${id}/reject`, { method: "POST" });
+    mutationFn({ id, reason }: { id: number; reason?: string }) {
+      return apiFetch<Bracelet>(`/designs/${id}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ reason: reason ?? null }),
+      });
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["designs", data.id] });
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["designs"] });
+      queryClient.invalidateQueries({ queryKey: ["design"] });
     },
   });
 
-  return { ...mutation, canReject };
+  return { ...mutation, canReject: isAdmin || canReview };
 }

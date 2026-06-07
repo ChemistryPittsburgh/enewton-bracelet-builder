@@ -11,6 +11,7 @@ interface FullScreenDialogProps {
   children: React.ReactNode;
   className?: string;
   includeBackDropBlur?: boolean;
+  bodyClasses?: string;
 }
 
 export function FullScreenDialog({
@@ -20,6 +21,7 @@ export function FullScreenDialog({
   children,
   className,
   includeBackDropBlur = true,
+  bodyClasses,
 }: FullScreenDialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -63,7 +65,12 @@ export function FullScreenDialog({
           </button>
         </div>
         {/* Body */}
-        <div className="px-5 py-4">{children}</div>
+        <div
+          className={cn(
+            bodyClasses ? bodyClasses : "px-5 py-4" 
+          )}>
+          {children}
+        </div>
       </div>
     </>
   );

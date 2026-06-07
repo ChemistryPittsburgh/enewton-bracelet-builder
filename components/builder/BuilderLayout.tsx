@@ -90,14 +90,23 @@ export function BuilderLayout() {
   // ── Name-required highlight ───────────────────────────────────────────────
   // Activated by BraceletExporter when the user tries to save without a name.
   // Auto-clears once the bracelet name is changed from the default.
-  const [highlightDetailsBtn, setHighlightDetailsBtn] = useState(false);
+  const [highlightReason, setHighlightReason] = useState<"name" | "sku" | null>(null);
 
   useEffect(() => {
     const trimmed = braceletName.trim();
+    if (highlightReason !== "name") return;
     if (trimmed !== "" && trimmed !== DEFAULT_BRACELET_NAME) {
-      setHighlightDetailsBtn(false);
+      setHighlightReason(null);
     }
   }, [braceletName]);
+
+  // Auto-clear the SKU highlight once a SKU is saved on the active design
+  useEffect(() => {
+    if (highlightReason !== "sku") return;
+    if (savedDesign?.shopify_sku?.trim()) {
+      setHighlightReason(null);
+    }
+  }, [savedDesign?.shopify_sku, highlightReason]);
 
   const rightPanelOpen = rightPanel !== null;
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
@@ -135,7 +144,7 @@ export function BuilderLayout() {
 
   function handleDetailsClick() {
     setBraceletDetailsOpen(true);
-    setHighlightDetailsBtn(false);
+    setHighlightReason(null);
   }
 
   return (
@@ -164,7 +173,7 @@ export function BuilderLayout() {
             <Plus size={14} />
             New Bracelet
           </Button>
-          <BraceletExporter onNameRequired={() => setHighlightDetailsBtn(true)} />
+          <BraceletExporter onNameRequired={() => setHighlightReason("name")} />
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
             <button
@@ -230,6 +239,7 @@ export function BuilderLayout() {
           <CanvasToolbar
             commentsOpen={rightPanel === "comments"}
             onCommentsClick={() => setRightPanel((p) => p === "comments" ? null : "comments")}
+            onPublishBlocked={() => setHighlightReason("sku")}
           />
 
           <div className="inner-canvas relative flex-1">
@@ -237,6 +247,11 @@ export function BuilderLayout() {
             {/* Bracelet info overlay */}
             <div className="absolute left-2 lg:left-4 top-2 z-20 flex flex-col gap-0.5">
               <CanvasWorkflowBar />
+              {savedDesign?.status === "rejected" && savedDesign?.rejection_reason && (
+                <p className="max-w-[240px] px-2 py-0.5 text-xs leading-relaxed text-rose-600 italic">
+                  &ldquo;{savedDesign.rejection_reason}&rdquo;
+                </p>
+              )}
               <p className="px-2 py-1.5 font-semibold text-neutral-700 leading-snug">
                 <span className="text-neutral-500 font-display">Bracelet Name:</span> {braceletName}
               </p>
@@ -246,12 +261,12 @@ export function BuilderLayout() {
                 onClick={handleDetailsClick}
                 className={cn(
                   "text-left text-xs w-fit rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-600",
-                  highlightDetailsBtn
+                  highlightReason !== null
                     ? "px-2.5 py-1 bg-amber-100 text-amber-700 font-semibold border border-amber-300 animate-pulse"
                     : "px-2 underline hover:no-underline text-neutral-500",
                 )}
               >
-                {highlightDetailsBtn ? "Set a bracelet name →" : "view bracelet details"}
+                {highlightReason === "name" ? "Set a bracelet name →" : highlightReason === "sku" ? "Add a Shopify SKU →" : "view bracelet details"}
               </button>
             </div>
 

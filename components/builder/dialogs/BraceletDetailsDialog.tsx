@@ -17,9 +17,9 @@ import { useDesign } from "@/hooks/useDesign";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
 import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
 import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
-import { usePermissions } from "@/hooks/usePermissions";
 
-import { WorkflowSection, STATUS_META } from "@/components/builder/sections/WorkflowSection";
+import { WorkflowSection } from "@/components/builder/sections/WorkflowSection";
+import { STATUS_META } from "@/lib/category-colors";
 import { AssignmentSection } from "@/components/builder/sections/AssignmentSection";
 
 import type { Bracelet } from "@/types";
@@ -123,12 +123,9 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
       ? STATUS_META[savedDesign.status]
       : null;
 
-  const { canEdit } = usePermissions();
-  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
-
   return (
-    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl">
-      <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
+    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl" bodyClasses="py-0 px-0">
+      <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto px-4 lg:px-6 py-4 lg:py-6">
 
         {/* ── Preview + status + name + description ────────────────────── */}
         <div className="flex items-start gap-4">
@@ -192,7 +189,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
               <div className="group flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-semibold text-neutral-900">{braceletName}</h2>
-                  {!isLocked && canEdit && (
+                  {savedDesign && (
                     <button
                       onClick={handleEdit}
                       className="rounded p-0.5 text-neutral-400 opacity-0 transition-opacity hover:text-neutral-600 group-hover:opacity-100"
@@ -272,6 +269,33 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
           </div>
         )}
 
+        {/* ── History ─────────────────────────────────────────────────── */}
+        {savedDesign && (
+          <div>
+            <SectionHeading>History</SectionHeading>
+            <div className="flex flex-col">
+              {buildDesignHistory(savedDesign).map((event, i, arr) => (
+                <div key={event.key} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-neutral-300" />
+                    {i < arr.length - 1 && <div className="my-1 w-px flex-1 bg-neutral-100" />}
+                  </div>
+                  <div className="pb-3">
+                    <p className="text-sm font-medium text-neutral-800">{event.label}</p>
+                    <p className="text-xs text-neutral-400">
+                      {formatDateTime(event.date)}
+                      {event.byName && ` · ${event.byName}`}
+                    </p>
+                    {event.note && (
+                      <p className="mt-0.5 text-xs italic text-rose-600">"{event.note}"</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ── Saved design metadata ───────────────────────────────────── */}
         {savedDesign && (
           <div>
@@ -292,6 +316,60 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
       </div>
     </FullScreenDialog>
   );
+}
+
+// ── Per-design history ────────────────────────────────────────────────────────
+// Derived from the timestamp fields already on Bracelet — no extra API call.
+// Richer event-level history (e.g. multiple review cycles) would require a
+// dedicated audit-log endpoint from Clinton.
+
+type HistoryEvent = {
+  key: string;
+  label: string;
+  date: string;
+  byName: string | null;
+  note?: string | null;
+};
+
+function buildDesignHistory(design: Bracelet): HistoryEvent[] {
+  const events: HistoryEvent[] = [
+    {
+      key:    "created",
+      label:  "Created",
+      date:   design.created_at,
+      byName: design.created_by_name,
+    },
+  ];
+
+  if (design.reviewed_at) {
+    events.push({
+      key:    "submitted",
+      label:  "Submitted for review",
+      date:   design.reviewed_at,
+      byName: design.reviewed_by_name,
+    });
+  }
+
+  if (design.rejected_at) {
+    events.push({
+      key:    "rejected",
+      label:  "Rejected",
+      date:   design.rejected_at,
+      byName: design.rejected_by_name,
+      note:   design.rejection_reason,
+    });
+  }
+
+  if (design.published_at) {
+    events.push({
+      key:    "published",
+      label:  "Published",
+      date:   design.published_at,
+      byName: design.published_by_name,
+    });
+  }
+
+  return events.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // ── Assignment section wrappers ───────────────────────────────────────────────

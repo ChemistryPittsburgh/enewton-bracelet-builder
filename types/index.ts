@@ -15,6 +15,7 @@ export type BraceletStatus =
   | "in_review"       // submitted for review — shows as "In-review"
   | "approved"        // approved by reviewer — shows as "Approved"
   | "published"       // live — shows as "Published"
+  | "rejected"        // rejected during review — requires revision before resubmitting
   | "discontinued";   // derived: is_discontinued === 1, status column = "published"
 
 /** One bead slot as stored in the bracelet configuration. */
@@ -99,6 +100,10 @@ export interface Bracelet {
   tags: Tag[];
   /** 1 = discontinued (admins can reactivate). */
   is_discontinued: number;
+  /** Reason provided by the reviewer when the design was rejected. */
+  rejection_reason: string | null;
+  rejected_at: string | null;
+  rejected_by_name: string | null;
 }
 
 /** Paginated list response from GET /designs. */
