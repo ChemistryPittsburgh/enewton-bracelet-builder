@@ -318,7 +318,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
           {status === "published" && canDiscontinue && !confirmUnpublish && (
             confirmDiscontinue ? (
               <ConfirmationPanel
-                message="Discontinuing this bracelet is permanent and cannot be undone. The bracelet will be moved to the Discontinued (vintage) tab. Do you want to continue?"
+                message="Discontinuing this bracelet is will remove it from inventory. This can only be reversed by an admin. Do you want to continue?"
                 isPending={discontinuing}
                 onConfirm={() => discontinue(id, { onSuccess: () => setConfirmDiscontinue(false) })}
                 onCancel={() => setConfirmDiscontinue(false)}

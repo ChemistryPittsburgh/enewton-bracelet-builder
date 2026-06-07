@@ -11,6 +11,10 @@ function formatDate(dateStr: string): string {
     month: "long",
     day: "2-digit",
     year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+    timeZone: "America/New_York",
   }).format(new Date(dateStr));
 }
 
@@ -43,13 +47,18 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
 
 
   const isDiscontinued = design.is_discontinued === 1;
+  const wasRejected    = design.status === "draft"
+    && !!design.rejected_at
+    && design.rejected_at !== "0000-00-00 00:00:00";
   const showMenu = canDeleteBracelet && isAdmin && !isDiscontinued;
 
   return (
     <div
       className={cn(
-        "group flex flex-col rounded-lg border border-neutral-200 overflow-hidden cursor-pointer hover:border-neutral-300 hover:shadow-sm transition-all",
-        isDiscontinued && "opacity-50 grayscale pointer-events-auto",
+        "group flex flex-col rounded-lg border overflow-hidden cursor-pointer hover:shadow-sm transition-all",
+        isDiscontinued ? "border-neutral-200 opacity-50 grayscale pointer-events-auto" :
+        wasRejected    ? "border-rose-300 hover:border-rose-400" :
+                         "border-neutral-200 hover:border-neutral-300",
       )}
       onClick={onClick}
     >
@@ -58,6 +67,12 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
         {isDiscontinued && (
           <div className="absolute left-2 top-2 z-10 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
             Discontinued
+          </div>
+        )}
+        {/* Rejected badge — clears once the design is edited and re-saved */}
+        {wasRejected && (
+          <div className="absolute left-2 top-2 z-10 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+            Rejected
           </div>
         )}
         {/* Pulse skeleton — visible while the image is loading */}
@@ -138,8 +153,13 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
       {/* Card footer */}
       <div className="px-3 py-2.5 flex flex-col gap-2">
         <p className="truncate text-sm font-medium text-neutral-800">{design.name}</p>
-        {design.created_by_name && (
-          <p className="truncate text-xs text-neutral-400">{design.created_by_name}</p>
+        {design.updated_at && (
+          <p className="truncate text-xs text-neutral-400"><span className="text-neutral-600">Last Updated: </span>{formatDate(design.updated_at)}</p>
+        )}
+        {wasRejected && design.rejection_reason && (
+          <p className="truncate text-xs italic text-rose-500">
+            &ldquo;{design.rejection_reason}&rdquo;
+          </p>
         )}
       </div>
     </div>

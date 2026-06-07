@@ -23,7 +23,6 @@ export function useReopenDesign() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["designs"] });
-      queryClient.invalidateQueries({ queryKey: ["design"] });
     },
   });
 

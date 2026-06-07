@@ -15,6 +15,7 @@ import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/
 
 import { useDesign } from "@/hooks/useDesign";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
 import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
 
@@ -53,6 +54,8 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
+  const { canEdit } = usePermissions();
+  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   // ── Name / description edit state ───────────────────────────────────────────
   const [isEditing,        setIsEditing]        = useState(false);
@@ -124,8 +127,8 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
       : null;
 
   return (
-    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl" bodyClasses="py-0 px-0">
-      <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto px-4 lg:px-6 py-4 lg:py-6">
+    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl">
+      <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
 
         {/* ── Preview + status + name + description ────────────────────── */}
         <div className="flex items-start gap-4">
@@ -189,7 +192,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
               <div className="group flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-semibold text-neutral-900">{braceletName}</h2>
-                  {savedDesign && (
+                  {(!savedDesign || (canEdit && !isLocked)) && (
                     <button
                       onClick={handleEdit}
                       className="rounded p-0.5 text-neutral-400 opacity-0 transition-opacity hover:text-neutral-600 group-hover:opacity-100"
@@ -320,8 +323,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
 // ── Per-design history ────────────────────────────────────────────────────────
 // Derived from the timestamp fields already on Bracelet — no extra API call.
-// Richer event-level history (e.g. multiple review cycles) would require a
-// dedicated audit-log endpoint from Clinton.
+// Richer event-level history (e.g. multiple review cycles) would require a specific end-point
 
 type HistoryEvent = {
   key: string;
@@ -347,6 +349,15 @@ function buildDesignHistory(design: Bracelet): HistoryEvent[] {
       label:  "Submitted for review",
       date:   design.reviewed_at,
       byName: design.reviewed_by_name,
+    });
+  }
+
+  if (design.approved_at) {
+    events.push({
+      key:    "approved",
+      label:  "Approved",
+      date:   design.approved_at,
+      byName: design.approved_by_name ?? null,
     });
   }
 

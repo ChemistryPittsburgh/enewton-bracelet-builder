@@ -33,7 +33,6 @@ export function useUpdateTag() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tags"] });
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design"] });
     },
   });
 }
@@ -45,7 +44,6 @@ export function useDeleteTag() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tags"] });
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design"] });
     },
   });
 }
@@ -61,7 +59,7 @@ export function useApplyTag() {
       apiFetch<void>(`/designs/${designId}/tags/${tagId}`, { method: "POST" }),
     onSuccess: (_data, { designId }) => {
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design", designId] });
+      qc.invalidateQueries({ queryKey: ["designs", designId] });
     },
   });
 }
@@ -73,7 +71,7 @@ export function useRemoveTag() {
       apiFetch<void>(`/designs/${designId}/tags/${tagId}`, { method: "DELETE" }),
     onSuccess: (_data, { designId }) => {
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design", designId] });
+      qc.invalidateQueries({ queryKey: ["designs", designId] });
     },
   });
 }

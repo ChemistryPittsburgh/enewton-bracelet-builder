@@ -59,7 +59,7 @@ export function ConfirmReplaceDialog() {
   }
 
   function handleDiscardAndLoad() {
-    if (!pendingDesign) return null;
+    if (!pendingDesign) return;
     if (pendingDesign.id === -1) {
       // New bracelet — just reset, don't load a design
     } else {

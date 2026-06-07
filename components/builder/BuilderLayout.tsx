@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import { AlertCircle, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
 
-import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
+import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 import { Scene } from "@/components/scene/Scene";
@@ -38,9 +38,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDesign } from "@/hooks/useDesign";
 import { useDesigns } from "@/hooks/useDesigns";
 import { usePermissions } from "@/hooks/usePermissions";
-
-/** Matches the default name assigned to every new bracelet. */
-const DEFAULT_BRACELET_NAME = "New Bracelet";
 
 export function BuilderLayout() {
   const {
@@ -98,7 +95,7 @@ export function BuilderLayout() {
     if (trimmed !== "" && trimmed !== DEFAULT_BRACELET_NAME) {
       setHighlightReason(null);
     }
-  }, [braceletName]);
+  }, [braceletName, highlightReason]);
 
   // Auto-clear the SKU highlight once a SKU is saved on the active design
   useEffect(() => {

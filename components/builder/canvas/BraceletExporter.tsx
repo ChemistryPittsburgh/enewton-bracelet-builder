@@ -3,15 +3,14 @@
 import { useState } from "react";
 import { AlertCircle, Check, Download, Loader2, RefreshCw } from "lucide-react";
 
+import { DEFAULT_BRACELET_NAME } from "@/lib/constants";
+
 import { Button } from "@/components/ui/Button";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 import { useUpdateBracelet } from "@/hooks/useUpdateBracelet";
 import { useDesign } from "@/hooks/useDesign";
 import { useStore } from "@/lib/store";
 import { usePermissions } from "@/hooks/usePermissions";
-
-/** The name assigned to every new bracelet before the user sets one. */
-const DEFAULT_BRACELET_NAME = "New Bracelet";
 
 /** Returns true when the user hasn't given the bracelet a real name yet. */
 function isDefaultName(name: string) {

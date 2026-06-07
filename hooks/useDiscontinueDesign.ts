@@ -4,7 +4,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { Bracelet } from "@/types";
 
 /**
- * PUT /designs/:id — sets is_discontinued = 1.
+ * POST /designs/:id — sets is_discontinued = 1.
  * Admin-only. Irreversible.
  */
 export function useDiscontinueDesign() {
@@ -20,7 +20,6 @@ export function useDiscontinueDesign() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["designs"] });
-      queryClient.invalidateQueries({ queryKey: ["design"] });
     },
   });
 
