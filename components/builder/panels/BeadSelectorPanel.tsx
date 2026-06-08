@@ -9,6 +9,7 @@ import type { BeadProduct } from "@/types";
 
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Plus } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -91,16 +92,16 @@ function BeadCard({ bead, selected, onClick, canEdit }: {
       onClick={handleClick}
       className={`flex flex-col gap-1 rounded-md border transition-all overflow-hidden ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${
         selected
-          ? "outline-yellow-600 outline-2 border-yellow-600 bg-neutral-50 shadow-sm"
-          : "border-neutral-200 bg-white hover:border-neutral-400"
+          ? "ring-2 ring-gold border-gold shadow-sm"
+          : "border-default bg-white hover:border-neutral-400"
       }`}
     >
-      <div className="bg-neutral-100 p-2 min-h-[55px] w-full items-center flex justify-center">
+      <div className="bg-light-grey p-2 min-h-[70px] w-full items-center flex justify-center">
         <BeadThumbnail bead={bead} />
       </div>
       <div className="flex flex-col pt-[2px] pb-2 text-left px-2">
-        <span className="text-[12px] text-neutral-800">{bead.bead_type}</span>
-        <span className="text-[10px] leading-tight text-neutral-500">{size}mm</span>
+        <span className="text-[12px]">{bead.bead_type}</span>
+        <span className="text-[10px] leading-tight text-color-base/70">{size}mm</span>
       </div>
     </button>
   );
@@ -114,8 +115,8 @@ function MaterialPill({ label, active, onClick }: {
         onClick={onClick}
         className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm transition-all ${
           active
-            ? "border-neutral-800 bg-white font-medium text-neutral-900"
-            : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-400"
+            ? "border-navy bg-navy text-white font-medium"
+            : "border-default bg-white text-color-base hover:border-navy hover:bg-mint"
         }`}
       >
         {label}
@@ -197,19 +198,19 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
               placeholder="Search item name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-4 pr-16 text-sm outline-none placeholder:text-neutral-400 focus:border-neutral-400"
+              className="w-full rounded-lg border border-default py-2.5 pl-4 pr-16 text-sm outline-none placeholder:text-color-base/70 focus:outline-gold focus:ring-gold"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button
                 onClick={() => queryClient.invalidateQueries({ queryKey: ["beads"] })}
                 disabled={isFetching > 0}
-                className="rounded p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200 disabled:opacity-40 transition-colors"
+                className="rounded p-1 text-text-base/50 hover:text-text-base hover:bg-light-grey disabled:opacity-40 transition-colors"
                 aria-label="Refresh beads"
                 title="Refresh beads"
               >
                 <RotateCcw size={13} className={isFetching > 0 ? "animate-spin" : ""} />
               </button>
-              <Search size={16} className="text-neutral-400 mr-1" />
+              <Search size={16} className="text-text-base/50 mr-1" />
             </div>
           </div>
         </div>
@@ -241,7 +242,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
             aria-label="Filter Beads by Bead Type"
             value={activeType}
             onChange={(e) => setActiveType(e.target.value)}
-            className="rounded-lg border border-neutral-200 bg-white px-3 py-2 pr-6 min-w-[150px] text-sm text-neutral-600 outline-none focus:border-neutral-400"
+            className="rounded-lg border border-default bg-white px-3 py-2 pr-6 min-w-[150px] text-sm text-text-base/70 outline-none focus:border-neutral-400"
           >
             <option value="">Filter by type</option>
             {bead_types.map((type) => (
@@ -253,7 +254,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
         {/* Bead grid */}
         <div className="flex-1 px-5 pb-4 overflow-visible">
           {filteredBeads.length === 0 ? (
-            <p className="text-xs text-neutral-400 text-center py-8">
+            <p className="text-xs text-text-base/50 text-center py-8">
               No beads match your filters.
             </p>
           ) : (
@@ -272,16 +273,16 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
         </div>
 
         {/* Bottom bar */}
-        <div className="shrink-0 border-t border-neutral-100 px-5 pt-4 pb-5 space-y-3">
+        <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
 
-          <p className="text-[12px] tracking-wider uppercase font-bold text-neutral-500 mb-1">
+          <p className="text-[12px] tracking-wider uppercase font-bold text-text-base/70 mb-1">
             {selectedBead?.name ? "Item Selected" : "Select a bead"}
           </p>
 
           <div className="flex items-center gap-3">
 
             {/* Preview */}
-            {/*<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50">
+            {/*<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-default bg-neutral-50">
               {selectedBead ? (
                 <div
                   className="rounded-full"
@@ -292,16 +293,16 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
                   }}
                 />
               ) : (
-                <div className="h-4 w-4 rounded-full bg-neutral-200" />
+                <div className="h-4 w-4 rounded-full bg-light-grey" />
               )}
             </div>*/}
 
             {/* Bead name + size */}
             <div className="flex-1 min-w-0">
-              <p className="truncate text-[15px] font-medium text-neutral-800">
+              <p className="truncate text-[15px] font-medium  ">
                 {selectedBead?.bead_type ?? ""}
               </p>
-              <p className="text-[12px] text-neutral-500">
+              <p className="text-[12px] text-text-base/70">
                 {selectedBead?.size_mm ? `${selectedBead.size_mm}mm` : "—"}
               </p>
             </div>
@@ -309,19 +310,19 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
             { selectedBead && (
               <>
               {/* Fill entire bracelet checkbox */}
-              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-neutral-600 mr-1">
+              <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-text-base/70 mr-1">
                 <input
                   type="checkbox"
                   checked={fillFull}
                   onChange={(e) => setFillFull(e.target.checked)}
-                  className="form-checkbox rounded-xs w-4 h-4 bg-neutral-200 border-none text-yellow-600 focus:ring-neutral-600 focus:ring-1"
+                  className="form-checkbox rounded-xs w-4 h-4 bg-grey border-none text-navy focus:ring-grey focus:ring-1"
                 />
                 Fill full bracelet?
               </label>
 
               {/* Quantity input */}
               {!fillFull && (
-                <div className="flex shrink-0 items-center gap-1.5 text-xs text-neutral-600">
+                <div className="flex shrink-0 items-center gap-1.5 text-xs text-text-base/70">
                   <span>Quantity</span>
                   <input
                     type="number"
@@ -329,7 +330,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
                     max={20}
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, Math.min(20, Number(e.target.value))))}
-                    className="w-14 rounded border border-neutral-200 px-2 py-1.5 text-center text-sm outline-none focus:border-neutral-400"
+                    className="w-14 rounded border border-default px-2 py-1.5 text-center text-sm outline-none focus:border-default/50"
                   />
                 </div>
               )}
@@ -337,16 +338,17 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
             )}
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <ErrorAlert message={error} />}
 
           {canEdit && (
-            <button
+            <Button
               onClick={handleAddToDesign}
               disabled={!selectedBead}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
+              variant="secondary"
+              className="flex w-full items-center justify-center gap-2 disabled"
             >
               ✦ Add to design
-            </button>
+            </Button>
           )}
         </div>
       </div>

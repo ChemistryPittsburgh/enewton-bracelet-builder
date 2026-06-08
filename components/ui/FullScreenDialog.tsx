@@ -11,6 +11,7 @@ interface FullScreenDialogProps {
   children: React.ReactNode;
   className?: string;
   includeBackDropBlur?: boolean;
+  bodyClasses?: string;
 }
 
 export function FullScreenDialog({
@@ -20,6 +21,7 @@ export function FullScreenDialog({
   children,
   className,
   includeBackDropBlur = true,
+  bodyClasses,
 }: FullScreenDialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -51,19 +53,24 @@ export function FullScreenDialog({
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-default">
           {title && (
-            <h3 className="text-md font-bold text-neutral-900">{title}</h3>
+            <h2 className="font-bold text-neutral-900">{title}</h2>
           )}
           <button
             onClick={onClose}
-            className="ml-auto flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 text-neutral-400 hover:bg-neutral-50 hover:ring-2 transition-all"
+            className="ml-auto flex h-7 w-7 items-center justify-center rounded-full border border-default text-color-base/70 hover:bg-neutral-50 hover:ring-2 transition-all"
           >
             <X size={16} />
           </button>
         </div>
         {/* Body */}
-        <div className="px-5 py-4">{children}</div>
+        <div
+          className={cn(
+            bodyClasses ? bodyClasses : "px-5 py-4" 
+          )}>
+          {children}
+        </div>
       </div>
     </>
   );

@@ -33,7 +33,6 @@ export function useUpdateCollection() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["collections"] });
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design"] });
     },
   });
 }
@@ -45,7 +44,6 @@ export function useDeleteCollection() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["collections"] });
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design"] });
     },
   });
 }
@@ -61,7 +59,7 @@ export function useApplyCollection() {
       apiFetch<void>(`/designs/${designId}/collections/${collectionId}`, { method: "POST" }),
     onSuccess: (_data, { designId }) => {
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design", designId] });
+      qc.invalidateQueries({ queryKey: ["designs", designId] });
     },
   });
 }
@@ -73,7 +71,7 @@ export function useRemoveCollection() {
       apiFetch<void>(`/designs/${designId}/collections/${collectionId}`, { method: "DELETE" }),
     onSuccess: (_data, { designId }) => {
       qc.invalidateQueries({ queryKey: ["designs"] });
-      qc.invalidateQueries({ queryKey: ["design", designId] });
+      qc.invalidateQueries({ queryKey: ["designs", designId] });
     },
   });
 }

@@ -13,8 +13,8 @@ import type { Collection, Tag } from "@/types";
 // ── Shared internals ──────────────────────────────────────────────────────────
 
 const triggerCls = {
-  filter: "w-[150px] rounded-lg border border-neutral-200 bg-white px-2 py-2.5 text-sm text-neutral-700 outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer flex items-center justify-between gap-1",
-  assign: "flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-700 transition-colors hover:border-neutral-400 cursor-pointer",
+  filter: "w-[150px] rounded-lg border border-default bg-white px-2 py-2.5 text-sm outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer flex items-center justify-between gap-1",
+  assign: "flex items-center gap-1.5 rounded-lg border border-default bg-white px-3 py-1.5 text-sm min-w-[200px] justify-between transition-colors hover:border-neutral-400 cursor-pointer",
 } as const;
 
 function useDropdown() {
@@ -73,16 +73,16 @@ export function TagPicker({
             {selectedIds.length > 0 ? `${placeholder} (${selectedIds.length})` : placeholder}
           </span>
           {isBusy
-            ? <Loader2 size={14} className="shrink-0 animate-spin text-neutral-400" />
-            : <ChevronDown size={14} className={cn("shrink-0 text-neutral-400 transition-transform", open && "rotate-180")} />
+            ? <Loader2 size={14} className="shrink-0 animate-spin text-color-base/70" />
+            : <ChevronDown size={14} className={cn("shrink-0 text-color-base/70 transition-transform", open && "rotate-180")} />
           }
         </button>
 
         {open && (
-          <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-neutral-200 bg-white shadow-lg overflow-hidden">
+          <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-default bg-white shadow-lg overflow-hidden">
             {isAdmin && showManage && (
               <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-2">
-                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Custom Tags</span>
+                <span className="text-xs font-semibold text-color-base/70 uppercase tracking-wide">Custom Tags</span>
                 <button
                   onClick={() => { setOpen(false); setManageOpen(true); }}
                   className="flex items-center gap-1 text-xs text-yellow-600 hover:text-yellow-800 transition-colors"
@@ -93,7 +93,7 @@ export function TagPicker({
             )}
             <div className="max-h-60 overflow-y-auto py-1">
               {tags.length === 0 ? (
-                <p className="px-3 py-4 text-center text-xs text-neutral-400">No tags yet.</p>
+                <p className="px-3 py-4 text-center text-xs text-color-base/70">No tags yet.</p>
               ) : tags.map((tag) => {
                 const isPending = pendingIds.includes(tag.id);
                 return (
@@ -105,10 +105,10 @@ export function TagPicker({
                     )}
                   >
                     {isPending
-                      ? <Loader2 size={13} className="shrink-0 animate-spin text-neutral-400" />
+                      ? <Loader2 size={13} className="shrink-0 animate-spin text-color-base/70" />
                       : <input type="checkbox" checked={selectedIds.includes(tag.id)} onChange={() => onToggle(tag)} className="h-3.5 w-3.5 text-yellow-600 ring-yellow-600 accent-neutral-800 cursor-pointer" />
                     }
-                    <span className="text-sm text-neutral-700">{tag.name}</span>
+                    <span className="text-sm  ">{tag.name}</span>
                   </label>
                 );
               })}
@@ -164,19 +164,19 @@ export function CollectionPicker({
             {selectedIds.length > 0 ? `${placeholder} (${selectedIds.length})` : placeholder}
           </span>
           {isBusy
-            ? <Loader2 size={14} className="shrink-0 animate-spin text-neutral-400" />
-            : <ChevronDown size={14} className={cn("shrink-0 text-neutral-400 transition-transform", open && "rotate-180")} />
+            ? <Loader2 size={14} className="shrink-0 animate-spin text-color-base/70" />
+            : <ChevronDown size={14} className={cn("shrink-0 text-color-base/70 transition-transform", open && "rotate-180")} />
           }
         </button>
 
         {open && (
-          <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-neutral-200 bg-white shadow-lg overflow-hidden">
+          <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-default bg-white shadow-lg overflow-hidden">
             {isAdmin && showManage && (
               <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-2">
-                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Collections</span>
+                <span className="text-xs font-semibold text-color-base/70 uppercase tracking-wide">Collections</span>
                 <button
                   onClick={() => { setOpen(false); setManageOpen(true); }}
-                  className="flex items-center gap-1 text-xs text-yellow-600 hover:text-yellow-800 transition-colors"
+                  className="flex items-center gap-1 text-xs text-gold hover:text-gold/80 transition-colors"
                 >
                   <Settings size={12} /> Manage
                 </button>
@@ -184,7 +184,7 @@ export function CollectionPicker({
             )}
             <div className="max-h-60 overflow-y-auto py-1">
               {collections.length === 0 ? (
-                <p className="px-3 py-4 text-center text-xs text-neutral-400">No collections yet.</p>
+                <p className="px-3 py-4 text-center text-xs text-color-base/70">No collections yet.</p>
               ) : collections.map((c) => {
                 const isPending = pendingIds.includes(c.id);
                 return (
@@ -192,14 +192,14 @@ export function CollectionPicker({
                     key={c.id}
                     className={cn(
                       "flex items-center gap-2.5 px-3 py-2 transition-colors",
-                      isPending ? "cursor-default opacity-60" : "cursor-pointer hover:bg-neutral-50",
+                      isPending ? "cursor-default opacity-60" : "cursor-pointer hover:bg-light-grey",
                     )}
                   >
                     {isPending
-                      ? <Loader2 size={13} className="shrink-0 animate-spin text-neutral-400" />
-                      : <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => onToggle(c)} className="h-3.5 w-3.5 text-yellow-600 accent-neutral-800 ring-yellow-600 cursor-pointer" />
+                      ? <Loader2 size={13} className="shrink-0 animate-spin text-color-base/70" />
+                      : <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => onToggle(c)} className="h-3.5 w-3.5 text-yellow-600 accent-grey ring-gold cursor-pointer" />
                     }
-                    <span className="text-sm text-neutral-700">{c.name}</span>
+                    <span className="text-sm  ">{c.name}</span>
                   </label>
                 );
               })}

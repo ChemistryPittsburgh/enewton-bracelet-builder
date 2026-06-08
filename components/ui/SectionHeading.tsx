@@ -7,7 +7,7 @@ interface SectionHeadingProps {
 
 export function SectionHeading({ children, className }: SectionHeadingProps) {
   return (
-    <h3 className={cn("text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3", className)}>
+    <h3 className={cn("text-[13.5px] font-semibold uppercase tracking-wider text-black mb-2", className)}>
       {children}
     </h3>
   );
