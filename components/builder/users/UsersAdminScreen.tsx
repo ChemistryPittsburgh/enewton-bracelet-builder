@@ -3,15 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, ChevronDown, Copy, Loader2, Plus, Search, Trash2, X } from "lucide-react";
 
+import { AVATAR_COLORS } from "@/hooks/useCreateUser";
+import { PERMISSION_FIELDS } from "@/lib/category-colors";
+
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+
 import { useUsers } from "@/hooks/useUsers";
 import { useCreateUser, type CreateUserResponse } from "@/hooks/useCreateUser";
 import { useUpdateUser } from "@/hooks/useUpdateUser";
 import { useDeleteUser } from "@/hooks/useDeleteUser";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getPrimaryRole } from "@/hooks/usePermissions";
+
 import type { User } from "@/types";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -25,14 +30,6 @@ const ROLE_TABS: { label: string; value: RoleFilter }[] = [
   { label: "Publisher", value: "publisher" },
   { label: "Editor",    value: "editor" },
   { label: "Inactive",  value: "inactive" },
-];
-
-const PERMISSION_FIELDS: { key: keyof User["permissions"]; label: string }[] = [
-  { key: "is_bracelet_editor", label: "Bracelet Editor" },
-  { key: "is_reviewer",        label: "Reviewer" },
-  { key: "is_publisher",       label: "Publisher" },
-  { key: "is_component_admin", label: "Component Admin" },
-  { key: "is_admin",           label: "Admin" },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -97,7 +94,7 @@ function UserEditor({
             type="text"
             value={draftName}
             onChange={(e) => setDraftName(e.target.value)}
-            className="rounded-lg border border-default bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-600 transition-colors"
+            className="rounded-[2px] border border-default bg-white px-3 py-1.5 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
           />
         </div>
         <div className="flex flex-1 flex-col gap-1">
@@ -107,7 +104,7 @@ function UserEditor({
             type="email"
             value={draftEmail}
             onChange={(e) => setDraftEmail(e.target.value)}
-            className="rounded-lg border border-default bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-600 transition-colors"
+            className="rounded-[2px] border border-default bg-white px-3 py-1.5 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
           />
         </div>
       </div>
@@ -117,7 +114,7 @@ function UserEditor({
         <label htmlFor={`edit-perms-${user.id}`} className="text-xs font-medium text-color-base/70">Permissions</label>
         <PermissionsDropdown selected={draftPerms} onChange={setDraftPerms} disabled={isSelf} />
         {isSelf && (
-          <p className="text-xs text-amber-600">You cannot change your own permissions.</p>
+          <p className="text-xs text-error/80">You cannot change your own permissions.</p>
         )}
       </div>
 
@@ -162,7 +159,7 @@ function UserRow({
   onCancelEdit: () => void;
 }) {
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser();
-  const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
+  const { mutate: deleteUser, isPending: isDeleting, isError: deleteError, error: deleteErr, reset: resetDelete } = useDeleteUser();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isEditing = editingId === user.id;
@@ -180,6 +177,11 @@ function UserRow({
     deleteUser(user.id, { onSuccess: () => setConfirmDelete(false) });
   }
 
+  function handleCancelDelete() {
+    setConfirmDelete(false);
+    resetDelete();
+  }
+
   const rowBg = index % 2 === 0 ? "bg-white" : "bg-neutral-50";
 
   return (
@@ -195,11 +197,11 @@ function UserRow({
         {/* Expand chevron */}
         <ChevronDown
           size={14}
-          className={`shrink-0 text-color-base50 transition-transform ${isEditing ? "rotate-180" : ""}`}
+          className={`shrink-0 text-color-base/80 transition-transform ${isEditing ? "rotate-180" : ""}`}
         />
 
         {/* Avatar */}
-        <Avatar name={user.name} size="md" />
+        <Avatar name={user.name} color={user.color} size="md" />
 
         {/* Name + email */}
         <div className="flex flex-col min-w-0 flex-1">
@@ -207,17 +209,23 @@ function UserRow({
           <span className="text-xs text-color-base/70 truncate">{user.email}</span>
         </div>
 
-        {/* Role badge */}
-        <span className="shrink-0 rounded-full border border-default bg-neutral-100 px-2 py-0.5 text-xs font-medium text-color-base/70">
-          {getPrimaryRole(user.permissions)}
-        </span>
+        {/* Role badge — colour driven by PERMISSION_FIELDS in category-colors */}
+        {(() => {
+          const role  = getPrimaryRole(user.permissions);
+          const entry = PERMISSION_FIELDS.find((f) => f.label === role);
+          return (
+            <span className={`shrink-0 text-center rounded-[2px] border border-navy px-3 py-0.5 text-xs font-medium ${entry?.color ?? "bg-gold/30"}`}>
+              {role}
+            </span>
+          );
+          })()}
 
         {/* Active chip */}
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
             isActive
               ? "bg-green/20 text-green border border-green"
-              : "bg-light-grey/20 text-error border border-error"
+              : "bg-error/10 text-error border border-error"
           }`}
         >
           {isActive ? "Active" : "Inactive"}
@@ -226,20 +234,22 @@ function UserRow({
         {/* Actions — stop propagation so they don't toggle the row */}
         <div className="shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           {/* Activate / deactivate */}
-          <button
-            onClick={handleToggleActive}
-            disabled={isUpdating || isSelf}
-            title={isActive ? "Deactivate user" : "Activate user"}
-            className="rounded-lg border border-default p-1.5 text-color-base/70 hover:bg-light-grey disabled:opacity-40 transition-colors"
-          >
-            {isUpdating ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : isActive ? (
-              <X size={13} />
-            ) : (
-              <Check size={13} />
-            )}
-          </button>
+          {!confirmDelete && (
+            <button
+              onClick={handleToggleActive}
+              disabled={isUpdating || isSelf}
+              title={isActive ? "Deactivate user" : "Activate user"}
+              className="rounded-lg border border-default p-1.5 text-color-base/70 hover:bg-light-grey disabled:opacity-40 transition-colors"
+            >
+              {isUpdating ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : isActive ? (
+                <X size={13} />
+              ) : (
+                <Check size={13} />
+              )}
+            </button>
+          )}
 
           {/* Delete */}
           {confirmDelete ? (
@@ -253,7 +263,7 @@ function UserRow({
                 {isDeleting ? <Loader2 size={12} className="animate-spin" /> : "Confirm"}
               </Button>
               <Button
-                onClick={() => setConfirmDelete(false)}
+                onClick={handleCancelDelete}
                 variant="ghost"
                 size="xs"
               >
@@ -271,6 +281,16 @@ function UserRow({
             </button>
           )}
         </div>
+
+        {/* Delete error */}
+          {deleteError && (
+            <div className="bg-red-50 border-t border-red-200 px-8 py-2">
+              <p className="text-xs text-red-700">
+                Delete failed
+                {deleteErr instanceof Error && deleteErr.message ? `: ${deleteErr.message}` : " — check the browser Network tab for details."}
+              </p>
+            </div>
+          )}
       </div>
 
       {/* Inline user editor */}
@@ -330,12 +350,12 @@ function PermissionsDropdown({
         type="button"
         onClick={() => !disabled && setOpen((o) => !o)}
         onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-        className="flex w-full items-center justify-between rounded-lg border border-default bg-white px-3 py-2 text-sm outline-none focus:border-neutral-600 transition-colors"
+        className="flex w-full items-center justify-between rounded-[2px] border border-default bg-white px-3 py-2 text-sm outline-none focus:border-neutral-600 transition-colors"
       >
         <span className="truncate text-left text-sm" title={label}>
           {label}
         </span>
-        <ChevronDown size={14} className={`ml-2 shrink-0 text-color-base50 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={14} className={`ml-2 shrink-0 text-color-base/80 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
@@ -345,12 +365,12 @@ function PermissionsDropdown({
               key={key}
               type="button"
               onClick={() => toggle(key)}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm   hover:bg-neutral-50 transition-colors"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm hover:bg-light-grey/80 transition-colors"
             >
               <span
                 className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
                   selected.has(key)
-                    ? "border-neutral-800 bg-neutral-800"
+                    ? "border-navy bg-navy color-white"
                     : "border-default bg-white"
                 }`}
               >
@@ -374,6 +394,9 @@ function CreateUserDialog({
 }) {
   const [name,        setName]        = useState("");
   const [email,       setEmail]       = useState("");
+  const [color] = useState<string>(
+    () => AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+  );
   const [permissions, setPermissions] = useState<Set<keyof User["permissions"]>>(new Set());
   const [sendEmail,   setSendEmail]   = useState(true);
   const { mutate, isPending, error } = useCreateUser();
@@ -384,7 +407,7 @@ function CreateUserDialog({
     const perms = Object.fromEntries(
       PERMISSION_FIELDS.map(({ key }) => [key, permissions.has(key)]),
     ) as User["permissions"];
-    mutate({ name: name.trim(), email: email.trim(), permissions: perms }, { onSuccess: onCreated });
+    mutate({ name: name.trim(), email: email.trim(), color, permissions: perms }, { onSuccess: onCreated });
   }
 
   return (
@@ -392,7 +415,7 @@ function CreateUserDialog({
       <div className="w-full max-w-sm rounded-xl border border-default bg-white shadow-xl p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2>Add user</h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-light-grey/60 text-color-base50">
+          <button onClick={onClose} className="rounded p-1 hover:bg-mint border border-white hover:border-navy hover:text-navy text-color-base/50">
             <X size={16} />
           </button>
         </div>
@@ -406,7 +429,7 @@ function CreateUserDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="rounded-lg border border-default px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600 transition-colors"
+              className="rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
               placeholder="Full name"
             />
           </div>
@@ -418,7 +441,7 @@ function CreateUserDialog({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="rounded-lg border border-default px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600 transition-colors"
+              className="rounded-[2px] border border-default px-3 py-2 text-sm text-neutral-900 outline-none focus:border-navy focus:ring-navy transition-colors"
               placeholder="user@example.com"
             />
           </div>
@@ -430,7 +453,7 @@ function CreateUserDialog({
           <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <span
               className={`relative flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                sendEmail ? "bg-neutral-800" : "bg-light-grey"
+                sendEmail ? "bg-navy" : "bg-grey"
               }`}
             >
               <span
@@ -445,7 +468,7 @@ function CreateUserDialog({
                 className="sr-only"
               />
             </span>
-            <span className="text-sm  ">Send email code.</span>
+            <span className="text-sm ">Send email code.</span>
           </label>
 
           {error && (
@@ -494,7 +517,7 @@ function TokenModal({ result, onClose }: { result: CreateUserResponse; onClose: 
       <div className="w-full max-w-sm rounded-xl border border-default bg-white shadow-xl p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-neutral-900">User created</h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-light-grey/60 text-color-base50">
+          <button onClick={onClose} className="rounded p-1 hover:bg-light-grey/60 text-color-base/80">
             <X size={16} />
           </button>
         </div>
@@ -566,7 +589,7 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
 
       {/* Top bar */}
       <div className="flex shrink-0 items-center justify-between border-b border-default px-6 py-4">
-        <h1 className="text-lg font-semibold text-neutral-900">Users</h1>
+        <h1>Users</h1>
         <button
           onClick={onClose}
           className="flex items-center gap-1.5 text-sm text-color-base/70 hover:text-text-base transition-colors"
@@ -575,19 +598,18 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
           Return to builder
         </button>
       </div>
-
-      {/* Filter / search bar */}
-      <div className="flex shrink-0 items-center gap-3 border-b border-neutral-100 px-6 py-3">
+     {/* Filter / search bar */}
+      <div className="flex shrink-0 items-center gap-4 border-b border-default bg-light-grey/50 px-6 py-4">
         {/* Role tabs */}
         <div className="flex items-center gap-1">
           {ROLE_TABS.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setRoleFilter(tab.value)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-[2px] px-3 py-1.5 text-xs border border-navy font-medium transition-colors ${
                 roleFilter === tab.value
-                  ? "bg-neutral-800 text-white"
-                  : "text-color-base/70 hover:bg-light-grey/60"
+                  ? "bg-navy text-white"
+                  : "text-color-base/70 hover:bg-mint"
               }`}
             >
               {tab.label}
@@ -599,17 +621,17 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
         <div className="flex-1" />
 
         {/* Count */}
-        <span className="text-xs text-color-base50">{filtered.length} user{filtered.length !== 1 ? "s" : ""}</span>
+        <span className="text-sm text-color-base/80">{filtered.length} user{filtered.length !== 1 ? "s" : ""}</span>
 
         {/* Search */}
         <div className="relative">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-color-base50 pointer-events-none" />
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-color-base/50 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name or email…"
-            className="rounded-lg border border-default bg-white pl-7 pr-3 py-1.5 text-xs   outline-none focus:border-neutral-500 transition-colors w-52"
+            className="rounded-[2px] border border-default bg-white pl-7 pr-3 py-1.5 text-sm outline-none focus:border-navy focus:ring-navy transition-colors w-52"
           />
           {search && (
             <button
@@ -644,23 +666,24 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
         {isError && !isLoading && (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-color-base/70">
             <p className="text-sm">Failed to load users.</p>
-            <button
+            <Button
               onClick={() => refetch()}
-              className="rounded-lg border border-default px-4 py-2 text-sm hover:bg-neutral-50 transition-colors"
+              size="sm"
+              variant="ghost"
             >
               Try again
-            </button>
+            </Button>
           </div>
         )}
 
         {!isLoading && !isError && filtered.length === 0 && (
-          <div className="flex items-center justify-center py-16 text-sm text-color-base50">
+          <div className="flex items-center justify-center py-16 text-sm text-color-base/80">
             No users match your filters.
           </div>
         )}
 
         {!isLoading && !isError && filtered.length > 0 && (
-          <div className="divide-y divide-neutral-100">
+          <div className="divide-y divide-default">
             {filtered.map((user, i) => (
               <UserRow
                 key={user.id}

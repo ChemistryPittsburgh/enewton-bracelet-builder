@@ -54,9 +54,19 @@ h1, h2, h3, h4, h5, h6 {
   font-optical-sizing: auto;
 }
 
+h1 {
+  font-size: 26px;
+  font-weight: 600;
+  font-family: var(--font-headline);
+  color: var(--color-color-base);
+  letter-spacing: 0.025em;
+}
+
 h2 {
   font-size: 20px;
+  font-weight: 600;
   font-family: var(--font-headline);
+  letter-spacing: 0.025em;
 }
 
 .font-headline {

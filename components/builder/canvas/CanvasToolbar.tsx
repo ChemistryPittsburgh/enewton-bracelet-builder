@@ -229,7 +229,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
                 className={`px-5 py-2 flex-1 text-sm font-semibold transition-all ${
                   (mode === "3D" ? "3D" : "line") === viewMode
                     ? "bg-navy text-white"
-                    : "text-color-base/70 hover:text-navy/70"
+                    : "hover:bg-mint"
                 }`}
               >
                 {mode}
@@ -246,7 +246,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
                 isEditMode
                   ? "border-navy/30 bg-shell text-navy"
-                  : "border-default bg-white   hover:bg-shell"
+                  : "border-default bg-white   hover:bg-mint"
               }`}
               aria-label={isEditMode ? "Exit edit mode" : "Enter Edit Mode"}
             >

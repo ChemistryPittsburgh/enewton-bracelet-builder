@@ -349,7 +349,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                         key={`${chip.category}-${chip.label}`}
                         className={cn(
                           "inline-flex items-center gap-1.5 rounded-[2px] border border-navy px-2.5 py-1 text-xs font-medium",
-                          useInlineColor ? "text-navy" : `${style.bg} ${style.text}`,
+                          useInlineColor ? "text-navy" : `${style.bg}`,
                         )}
                         style={useInlineColor ? { backgroundColor: chip.color! } : undefined}
                       >

@@ -93,6 +93,9 @@ export interface Bracelet {
   active: number;
   created_at: string;
   updated_at: string;
+  approved_at: string | null;
+  approved_by: string | null;
+  approved_by_name: string | null;
   reviewed_by_name: string | null;
   published_by_name: string | null;
   created_by_name: string;
@@ -144,6 +147,7 @@ export interface User {
   active: number;
   created_at: string;
   updated_at: string;
+  color?: string;
 }
 
 export type BandMaterial = "wire" | "cord" | "elastic";
