@@ -107,8 +107,6 @@ export interface Bracelet {
   rejection_reason: string | null;
   rejected_at: string | null;
   rejected_by_name: string | null;
-  approved_at: string | null;
-  approved_by_name: string | null;
 }
 
 /** Paginated list response from GET /designs. */
