@@ -351,4 +351,17 @@ export function BuilderLayout() {
 
     </div>
   );
+} ghostPos.y + 12,
+            pointerEvents: "none",
+            zIndex: 9999,
+          }}
+          className="rounded-lg border border-default bg-white shadow-lg px-2 py-1 text-sm flex items-center gap-1.5"
+        >
+          <span className="text-color-base/70">＋</span>
+          {dragFromPanel.bead_type ?? dragFromPanel.name}
+        </div>
+      )}
+
+    </div>
+  );
 }

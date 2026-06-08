@@ -75,7 +75,7 @@ export function AssignmentSection<T extends { id: number; name: string }>({
             <span
               key={item.id}
               className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-white",
+                "inline-flex items-center rounded-[3px] px-2.5 py-0.5 border border-navy text-xs font-medium text-navy",
                 style.bg,
               )}
             >
@@ -91,15 +91,19 @@ export function AssignmentSection<T extends { id: number; name: string }>({
   return (
     <div className={assignmentSectionClass} >
       <SectionHeading>{title}</SectionHeading>
-      <div className="flex flex-col gap-4 py-1">
-        <div class="flex flex-wrap gap-2 items-center">
+      <div
+        className={cn(
+          "flex flex-col py-1",
+          items.length > 0 && 'gap-4',
+        )} >
+        <div className="flex flex-wrap gap-2 items-center">
           {items.map((item) => {
             const isPending = pendingIds.includes(item.id);
             return (
               <span
                 key={item.id}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm min-w-20 justify-center font-medium text-white transition-opacity",
+                  "inline-flex items-center gap-1.5 rounded-[3px] border border-navy px-2.5 py-0.5 text-sm min-w-20 justify-center font-medium text-navy transition-opacity",
                   style.bg,
                   isPending && "opacity-50",
                 )}

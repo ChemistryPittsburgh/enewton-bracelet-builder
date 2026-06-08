@@ -93,7 +93,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   if (savedDesign.is_discontinued === 1) {
     return (
       <div className={workflowSectionClasses}>
-        <p className="text-xs font-semibold  ">
+        <p className="text-sm font-semibold  ">
           This design has been discontinued.
         </p>
         {canUndiscontinue && (
@@ -119,11 +119,11 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   if (status === "rejected") {
     return (
       <div className={workflowSectionClasses}>
-        <p className="text-xs font-semibold  ">
+        <p className="text-sm font-semibold  ">
           This design was rejected and needs revision before resubmitting.
         </p>
         {canReopen && (
-          <Button size="sm" variant="ghost" onClick={() => reopen(id)} disabled={reopening}>
+          <Button size="sm" variant="ghost" className="w-fit" onClick={() => reopen(id)} disabled={reopening}>
             {reopening && <Loader2 size={12} className="animate-spin" />}
             Return to Draft
           </Button>
@@ -141,7 +141,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_META[status].cls}`}>
             {STATUS_META[status].label}
           </span>
-          <span className="text-xs text-color-base/70">
+          <span className="text-sm text-color-base/70">
             This design is not in the standard review pipeline.
           </span>
         </div>
@@ -186,7 +186,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
             const isFuture    = i > currentIndex;
             return (
               <div key={step.status}
-                className={`flex items-start ${
+                className={`flex items-start pt-2 ${
                       step.label !== 'Published' && 'flex-1'
                     }`} >
                 <div className="flex flex-col items-center gap-1.5">
@@ -201,10 +201,10 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
                     {isCurrent   && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                   </div>
                   <span
-                    className={`w-16 text-center text-[11px] leading-tight ${
+                    className={`w-16 text-center text-[12px] leading-tight ${
                       isCurrent  ? "font-semibold text-navy"
                       : isFuture ? "text-color-base/70"
-                      :             "text-color-base/70"
+                      :             "text-navy"
                     }`}
                   >
                     {step.label}
@@ -229,7 +229,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
 
       {/* Rejection reason form */}
       {status === "in_review" && canReject && confirmReject && (
-        <div className="flex flex-col gap-2 rounded-lg border border-blush bg-blush/30 p-3">
+        <div className="flex flex-col gap-2 rounded-lg border border-error bg-light-grey/30 p-3">
           <p className="text-xs font-semibold text-[#8b3040]">Reason for rejection</p>
           <textarea
             value={rejectReason}

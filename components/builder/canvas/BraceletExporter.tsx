@@ -114,9 +114,9 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
       }
       className={
         status === "saved"
-          ? "bg-green hover:bg-green"
+          ? "bg-green hover:bg-green/50 text-white border-green"
           : status === "error" || status === "name_required"
-            ? "bg-error hover:bg-error"
+            ? "bg-error hover:bg-error/60 border-error text-white"
             : ""
       }
     >
