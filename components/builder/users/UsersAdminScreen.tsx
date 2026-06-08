@@ -379,6 +379,16 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
           )}
         </div>
 
+        {/* Add OTP user */}
+        <Button
+          onClick={() => setShowCreateOtp(true)}
+          variant="secondary"
+          size="xs"
+        >
+          <Plus size={13} />
+          Add OTP user
+        </Button>
+
         {/* Add user */}
         <Button
           onClick={() => setShowCreate(true)}
