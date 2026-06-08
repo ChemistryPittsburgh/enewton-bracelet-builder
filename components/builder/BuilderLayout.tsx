@@ -182,7 +182,7 @@ export function BuilderLayout() {
               {currentUser ? getInitials(currentUser.name) : "?"}
             </button>
             {notificationCount > 0 && (
-              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-error/500 px-1 text-[10px] font-bold leading-none text-white">
+              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold leading-none text-white">
                 {notificationCount > 99 ? "99+" : notificationCount}
               </span>
             )}
