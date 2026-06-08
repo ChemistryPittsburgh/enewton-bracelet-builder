@@ -3,8 +3,8 @@ import { Loader2 } from "lucide-react";
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
 const variants = {
-  primary:    "bg-navy text-white hover:bg-navy/90",
-  secondary:  "bg-gold text-white hover:bg-gold/90",
+  primary:    "bg-navy border-navy border text-white hover:bg-white hover:text-navy",
+  secondary:  "bg-mint border-navy border text-navy hover:bg-white",
   ghost:      "border bg-white border-stone/40 text-color-base/80 hover:border-stone hover:bg-mint hover:text-color-base",
   danger:     "bg-error text-white hover:bg-error/90",
   softDanger: "bg-blush text-[#8b3040] hover:bg-blush/80",
@@ -32,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-[3px]",
+          "inline-flex items-center justify-center gap-2 rounded-[2px]",
           "font-medium uppercase tracking-wider",
           "transition-all duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30",

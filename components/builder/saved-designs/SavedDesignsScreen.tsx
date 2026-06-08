@@ -216,7 +216,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                   "rounded-full px-4 py-2 lg:px-6 lg:py-3 text-left text-sm lg:text-base transition-all cursor-pointer",
                   selectedStatus === value
                     ? "bg-navy text-white"
-                    : "  bg-white hover:bg-gold hover:text-white",
+                    : "bg-white hover:bg-gold hover:text-white",
                 )}
               >
                 {label}
@@ -236,7 +236,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
         {/* ── Main content ──────────────────────────────────────────────── */}
         <div className="flex flex-1 flex-col md:pt-14 overflow-scroll lg:overflow-hidden">
           <div className="designs-panel-header px-6 lg:px-10">
-            <h2 className="text-xl font-semibold   pb-3 lg:py-6">Saved designs</h2>
+            <h2 className="text-xl pb-3 lg:py-6">Saved designs</h2>
 
             {/* Filter bar */}
             <div className="shrink-0 border-b border-neutral-100 flex flex-col gap-1 lg:gap-4 pb-3">
@@ -311,7 +311,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                             "px-4 py-2 text-sm font-semibold transition-all",
                             braceletState === value
                               ? "bg-neutral-600 text-white"
-                              : "text-color-base/70 hover:bg-light-grey ",
+                              : "text-color-base/70 hover:bg-mint",
                           )}
                         >
                           {label}
@@ -348,12 +348,12 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                       <span
                         key={`${chip.category}-${chip.label}`}
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                          useInlineColor ? "text-white" : `${style.bg} ${style.text}`,
+                          "inline-flex items-center gap-1.5 rounded-[2px] border border-navy px-2.5 py-1 text-xs font-medium",
+                          useInlineColor ? "text-navy" : `${style.bg} ${style.text}`,
                         )}
                         style={useInlineColor ? { backgroundColor: chip.color! } : undefined}
                       >
-                        <span className="opacity-60">{style.label}:</span>
+                        <span className="opacity-40">{style.label}:</span>
                         {chip.label}
                         <button
                           onClick={chip.onRemove}

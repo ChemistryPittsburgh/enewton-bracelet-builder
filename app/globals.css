@@ -8,6 +8,7 @@
   --color-shell: #f6f3ee;
   --color-mint: #e2ffff;
   --color-light-mint: #D8F0ED;
+  --color-light-blue: #dfe8ef;
   --color-navy: #1F3A5F;
   --color-light-grey: #f1f3f5;
   --color-grey: #efeff0;
@@ -23,7 +24,7 @@
   --color-default: #e1e2e3;
 
   --bracelet-picker-gutter: 2.5em;
-  --font-headline: var(--font-playfair-display), serif;
+  --font-headline: var(--font-italiana), serif;
   --font-display: var(--font-square-peg), sans-serif;
   --font-regular: var(--font-inter), sans-serif;
   --text-sm: 13.5px;
@@ -49,14 +50,13 @@ canvas {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-headline);
-  font-weight: normal;
   font-style: normal;
   font-optical-sizing: auto;
 }
 
 h2 {
   font-size: 20px;
+  font-family: var(--font-headline);
 }
 
 .font-headline {

@@ -196,7 +196,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
             ) : (
               <div className="group flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base font-semibold text-neutral-900">{braceletName}</h2>
+                  <h3 className="text-base font-bold ">{braceletName}</h3>
                   {(!savedDesign || (canEdit && !isLocked)) && (
                     <button
                       onClick={handleEdit}
