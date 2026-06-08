@@ -1,4 +1,6 @@
-export const TOKEN_KEY = "enewton-token";
+const key = process.env.NEXT_PUBLIC_TOKEN_KEY;
+if (!key) throw new Error("NEXT_PUBLIC_TOKEN_KEY is not set");
+export const TOKEN_KEY: string = key;
 
 export const getToken = (): string | null =>
   typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;

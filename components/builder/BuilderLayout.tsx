@@ -66,25 +66,28 @@ export function BuilderLayout() {
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
   const { data: currentUser } = useCurrentUser();
-  const { canEdit } = usePermissions();
+  const { canEdit, canReview, canPublish } = usePermissions();
   const { data: savedDesign } = useDesign(activeDesignId);
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
-  // ── Notification badge ────────────────────────────────────────────────────
-  const perms = currentUser?.permissions;
+  // ── Notification badge (header) ───────────────────────────────────────────
+  // Poll every 60 s so the badge stays fresh while the app is open.
+  // When the UserScreen is also open it polls at 30 s; React Query uses the
+  // shorter of all active intervals so no duplicate requests are made.
   const { data: inReviewAll = [] } = useDesigns({ status: "in_review", refetchInterval: 60_000 });
   const { data: approvedAll  = [] } = useDesigns({ status: "approved",  refetchInterval: 60_000 });
   const notificationCount =
-    ((perms?.is_reviewer || perms?.is_admin) ? inReviewAll.length : 0) +
-    ((perms?.is_publisher || perms?.is_admin) ? approvedAll.length  : 0);
-
-  const [braceletPanelOpen,   setBraceletPanelOpen]   = useState(false);
-  const [savedDesignsOpen,    setSavedDesignsOpen]    = useState(false);
+    (canReview  ? inReviewAll.length : 0) +
+    (canPublish ? approvedAll.length  : 0);
+  const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
+  const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
   const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
 
-  // ── Name / SKU highlight ──────────────────────────────────────────────────
+  // ── Name-required highlight ───────────────────────────────────────────────
+  // Activated by BraceletExporter when the user tries to save without a name.
+  // Auto-clears once the bracelet name is changed from the default.
   const [highlightReason, setHighlightReason] = useState<"name" | "sku" | null>(null);
 
   useEffect(() => {
@@ -95,6 +98,7 @@ export function BuilderLayout() {
     }
   }, [braceletName, highlightReason]);
 
+  // Auto-clear the SKU highlight once a SKU is saved on the active design
   useEffect(() => {
     if (highlightReason !== "sku") return;
     if (savedDesign?.shopify_sku?.trim()) {
@@ -168,22 +172,17 @@ export function BuilderLayout() {
             New Bracelet
           </Button>
           <BraceletExporter onNameRequired={() => setHighlightReason("name")} />
-
-          {/* Profile icon + notification badge — click toggles the panel */}
+          {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
             <button
-              onClick={() => setRightPanel((p) => p === "user" ? null : "user")}
+              onClick={() => setRightPanel("user")}
+              className="flex h-9 w-9 bg-mint items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors"
               aria-label="Open user profile"
-              className={`flex h-9 w-9 bg-mint items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors ${
-                rightPanel === "user"
-                  ? "ring ring-navy shadow-sm"
-                  : "border-default bg-white hover:bg-mint"
-              }`}
             >
               {currentUser ? getInitials(currentUser.name) : "?"}
             </button>
             {notificationCount > 0 && (
-              <span className="pointer-events-none absolute -right-1 -top-1 bg-error flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white">
+              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold leading-none text-white">
                 {notificationCount > 99 ? "99+" : notificationCount}
               </span>
             )}
@@ -245,8 +244,7 @@ export function BuilderLayout() {
             {/* Bracelet info overlay */}
             <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
               <CanvasWorkflowBar />
-              {/* Show rejection reason when the design is back in draft after being rejected */}
-              {savedDesign?.rejected_at && savedDesign?.rejection_reason && savedDesign?.status === "draft" && (
+              {savedDesign?.status === "rejected" && savedDesign?.rejection_reason && (
                 <p className="max-w-[240px] px-2 py-0.5 text-xs leading-relaxed text-rose-600 italic">
                   &ldquo;{savedDesign.rejection_reason}&rdquo;
                 </p>
@@ -255,7 +253,7 @@ export function BuilderLayout() {
                 <span className="text-color-base/70 font-headline">Bracelet Name:</span> {braceletName}
               </p>
 
-              {/* "view bracelet details" — highlights when a name or SKU is required */}
+              {/* "view bracelet details" — highlights when a name is required */}
               <button
                 onClick={handleDetailsClick}
                 className={cn(
@@ -293,10 +291,10 @@ export function BuilderLayout() {
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
                 <div className="flex flex-col items-center gap-3">
                   <AlertCircle size={28} className="text-error/70" />
-                  <p className="text-sm font-medium">Failed to load bead catalog.</p>
+                  <p className="text-sm font-medium  ">Failed to load bead catalog.</p>
                   <button
                     onClick={() => refetchBeads()}
-                    className="rounded-lg border border-default bg-white px-4 py-2 text-sm font-medium hover:bg-light-grey/60 transition-colors"
+                    className="rounded-lg border border-default bg-white px-4 py-2 text-sm font-medium   hover:bg-light-grey/60 transition-colors"
                   >
                     Try again
                   </button>

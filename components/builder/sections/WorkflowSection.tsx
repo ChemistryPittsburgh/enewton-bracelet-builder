@@ -153,7 +153,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
 
   const hasActions =
     (status === "draft"     && canSubmit)  ||
-    (status === "in_review" && (canApprove || canReject)) ||
+    (status === "in_review" && (canApprove || canReject || canSendToDraft)) ||
     (status === "approved"  && (canPublish || canSendToDraft)) ||
     (status === "published" && (canUnPublish || canDiscontinue));
 
@@ -285,13 +285,27 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
               Reject
             </Button>
           )}
+          {status === "in_review" && canSendToDraft && (
+            confirmSendToDraft ? (
+              <ConfirmationPanel
+                message="Recalling this bracelet will remove it from review and require resubmission. Do you want to continue?"
+                isPending={sendingToDraft}
+                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false), onError: () => setConfirmSendToDraft(false) })}
+                onCancel={() => setConfirmSendToDraft(false)}
+              />
+            ) : (
+              <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => setConfirmSendToDraft(true)}>
+                Recall for editing
+              </Button>
+            )
+          )}
           {status === "approved" && (canPublish || canSendToDraft) && (
             confirmSendToDraft ? (
               <ConfirmationPanel
                 message="Moving this bracelet back to draft will remove its approval and require a new review cycle. Continue?"
                 isPending={sendingToDraft}
                 confirmVariant="ghost"
-                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
+                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false), onError: () => setConfirmSendToDraft(false) })}
                 onCancel={() => setConfirmSendToDraft(false)}
               />
             ) : (

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { useStore } from "@/lib/store";
+import { useDesign } from "@/hooks/useDesign";
 import { BRACELET_MATERIALS, BRACELET_SIZES, BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { usedArc, braceletArc } from "@/lib/bead-layout";
 
@@ -22,16 +23,22 @@ const toggleClass = (active: boolean, disabled = false) =>
   );
 
 export function BandSelector({ panelOpen = false }: BandSelectorProps) {
-  const { bandMaterial, braceletSize, setbandMaterial, setBraceletSize, beads } =
+  const { bandMaterial, braceletSize, setbandMaterial, setBraceletSize, beads, activeDesignId } =
     useStore((s) => ({
       bandMaterial: s.bandMaterial,
       braceletSize: s.braceletSize,
       setbandMaterial: s.setbandMaterial,
       setBraceletSize: s.setBraceletSize,
       beads: s.beads,
+      activeDesignId: s.activeDesignId,
     }));
 
+  const { data: savedDesign, isLoading: designLoading } = useDesign(activeDesignId);
+  const isLocked = designLoading || savedDesign?.status === "approved" || savedDesign?.status === "published";
+
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  if (isLocked) return null;
 
   const arc = usedArc(beads);
 

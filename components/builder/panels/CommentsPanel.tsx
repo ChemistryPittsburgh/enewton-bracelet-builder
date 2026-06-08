@@ -6,6 +6,8 @@ import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useDesign } from "@/hooks/useDesign";
 import { useComments } from "@/hooks/useComments";
 import { useAddComment } from "@/hooks/useAddComment";
 import { useDeleteComment } from "@/hooks/useDeleteComment";
@@ -14,9 +16,6 @@ import { Avatar } from "@/components/ui/Avatar";
 import { COMMENT_MAX_LENGTH } from "@/lib/sanitize";
 import { formatTimestamp } from "@/lib/utils";
 import type { DesignComment } from "@/types";
-
-import { useDesign } from "@/hooks/useDesign";
-import { usePermissions } from "@/hooks/usePermissions";
 
 interface CommentsPanelProps {
   open: boolean;
@@ -77,7 +76,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
   }
 
   const isOwnComment = (c: DesignComment) =>
-    c.user_id === currentUser?.id || currentUser?.permissions.is_admin;
+    c.user_id === currentUser?.id || !!currentUser?.permissions?.is_admin;
 
   return (
     <Panel open={open} onClose={onClose} direction="right">
