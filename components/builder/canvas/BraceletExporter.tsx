@@ -92,7 +92,7 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
   if (isUpdate && !isDirty && status === "idle") return null;
 
   const designStatus = savedDesign?.status;
-  const isLocked     = designStatus === "approved" || designStatus === "published";
+  const isLocked     = designStatus === 'in_review' || designStatus === "approved" || designStatus === "published";
   const lockedTitle  = `This design is ${designStatus} and cannot be edited. Reject it first to make changes.`;
   const isDisabled   = status === "saving" || isLocked || (isUpdate && !canUpdate);
 
@@ -103,20 +103,20 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
   return (
     <Button
       onClick={handleClick}
-      variant="black"
+      variant="secondary"
       disabled={isDisabled}
       title={
         isLocked
           ? lockedTitle
           : isUpdate && !canUpdate
             ? "You don't have permission to edit this design."
-            : undefined
+            : lockedTitle
       }
       className={
         status === "saved"
-          ? "bg-green-700 hover:bg-green-700"
+          ? "bg-green hover:bg-green"
           : status === "error" || status === "name_required"
-            ? "bg-amber-600 hover:bg-amber-600"
+            ? "bg-error hover:bg-error"
             : ""
       }
     >

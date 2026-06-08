@@ -8,6 +8,7 @@ import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 import { usePermissions } from "@/hooks/usePermissions";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { Button } from "@/components/ui/Button";
 
 type ConfirmStatus = "idle" | "saving" | "error";
 
@@ -84,12 +85,12 @@ export function ConfirmReplaceDialog() {
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-md font-semibold text-neutral-900">
+            <h3 className="text-md font-semibold">
               Replace current bracelet?
             </h3>
-            <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
+            <p className="mt-2 text-sm text-color-base/80 leading-relaxed">
               You have beads on{" "}
-              <span className="font-medium text-neutral-700">"{braceletName}"</span>.
+              <span className="font-medium  ">"{braceletName}"</span>.
               {pendingDesign.id === -1
                 ? canEdit
                   ? " Save before starting a new bracelet?"
@@ -97,11 +98,11 @@ export function ConfirmReplaceDialog() {
                 : canEdit
                   ? <>
                       {" "}Save it before loading{" "}
-                      <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                      <span className="font-medium">"{pendingDesign.name}"</span>?
                     </>
                   : <>
                       {" "}Load{" "}
-                      <span className="font-medium text-neutral-700">"{pendingDesign.name}"</span>?
+                      <span className="font-medium">"{pendingDesign.name}"</span>?
                     </>
               }
             </p>
@@ -109,7 +110,7 @@ export function ConfirmReplaceDialog() {
           <button
             onClick={handleCancel}
             disabled={status === "saving"}
-            className="mt-0.5 shrink-0 rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors disabled:opacity-40"
+            className="mt-0.5 shrink-0 rounded-full p-1 text-color-base/70 hover:bg-default/50 hover:text-color-base transition-colors disabled:opacity-40"
             aria-label="Close"
           >
             <X size={16} />
@@ -122,29 +123,34 @@ export function ConfirmReplaceDialog() {
 
         <div className="flex flex-col gap-2">
           {canEdit && (
-            <button
+            <Button
               onClick={handleSaveAndLoad}
               disabled={status === "saving"}
-              className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors disabled:opacity-50"
+              variant="primary"
+              size="sm"
+              className="w-full"
             >
               {status === "saving" && <Loader2 size={14} className="animate-spin" />}
               Save &amp; Load
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             onClick={handleDiscardAndLoad}
             disabled={status === "saving"}
-            className={`rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors disabled:opacity-50 ${!canEdit ? "bg-neutral-900 text-white border-neutral-900 hover:bg-neutral-700 hover:border-neutral-700" : ""}`}
+            variant={canEdit ? "ghost" : "primary"}
+            size="sm"
+            className="w-full"
           >
             {canEdit ? "Discard & Load" : "Load"}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleCancel}
             disabled={status === "saving"}
-            className="rounded-lg text-sm font-medium text-neutral-400 hover:text-neutral-700 transition-colors disabled:opacity-50"
+            variant="danger"
+            size="sm"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     </div>

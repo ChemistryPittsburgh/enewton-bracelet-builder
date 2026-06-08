@@ -9,6 +9,7 @@ import { braceletArc, usedArc } from "@/lib/bead-layout";
 import { formatDateTime } from "@/lib/utils";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
+import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/Pickers";
@@ -120,6 +121,8 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
   const isDiscontinued = savedDesign?.is_discontinued === 1;
 
+  const dialogSectionClass = "border-b border-default pb-3";
+
   const statusMeta = isDiscontinued
     ? STATUS_META.discontinued
     : savedDesign?.status
@@ -127,18 +130,18 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
       : null;
 
   return (
-    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl">
-      <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
+    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl" bodyClasses="py-0 px-0">
+      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto py-4 px-4 lg:py-8 md:px-6 lg:px-8">
 
         {/* ── Preview + status + name + description ────────────────────── */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4  border-b border-default pb-6">
 
           {/* Thumbnail */}
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-neutral-100 flex items-center justify-center">
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-light-grey/80 flex items-center justify-center">
             {savedDesign?.preview_image_url ? (
               <img src={savedDesign.preview_image_url} alt={braceletName} className="h-full w-full object-cover" />
             ) : (
-              <div className="h-10 w-10 rounded-full border-2 border-dashed border-neutral-300" />
+              <div className="h-10 w-10 rounded-full border-2 border-dashed" />
             )}
           </div>
 
@@ -154,38 +157,40 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
             {/* Name / description */}
             {isEditing ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 pt-1">
                 <input
                   value={localName}
                   onChange={(e) => setLocalName(e.target.value)}
                   placeholder="Bracelet name"
                   autoFocus
-                  className="w-full rounded-md border border-neutral-300 px-3 py-1.5 text-base font-semibold text-neutral-900 focus:border-neutral-500 focus:outline-none"
+                  className="w-full rounded-md border border-default px-3 py-1.5 text-base font-semibold text-neutral-900 focus:border-neutral-500 focus:outline-none"
                 />
                 <textarea
                   value={localDescription}
                   onChange={(e) => setLocalDescription(e.target.value)}
                   placeholder="Add a description…"
                   rows={3}
-                  className="w-full resize-none rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 focus:border-neutral-500 focus:outline-none"
+                  className="w-full resize-none rounded-md border border-default px-3 py-1.5 text-sm text-color-base/70 focus:border-neutral-500 focus:outline-none"
                 />
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     onClick={handleSave}
                     disabled={saving || !localName.trim()}
-                    className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
+                    variant="primary"
+                    size="sm"
                   >
                     {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                     Save
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleCancel}
                     disabled={saving}
-                    className="flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                    variant="ghost"
+                    size="sm"
                   >
                     <X size={13} />
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -195,7 +200,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
                   {(!savedDesign || (canEdit && !isLocked)) && (
                     <button
                       onClick={handleEdit}
-                      className="rounded p-0.5 text-neutral-400 opacity-0 transition-opacity hover:text-neutral-600 group-hover:opacity-100"
+                      className="rounded p-0.5 text-color-base/70 opacity-0 transition-opacity hover:text-color-base/70 group-hover:opacity-100"
                       aria-label="Edit name and description"
                     >
                       <Pencil size={13} />
@@ -203,8 +208,8 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
                   )}
                 </div>
                 {braceletDescription
-                  ? <p className="text-sm text-neutral-600 leading-relaxed">{braceletDescription}</p>
-                  : <p className="text-sm italic text-neutral-400">No description</p>
+                  ? <p className="text-sm text-color-base/70 leading-relaxed">{braceletDescription}</p>
+                  : <p className="text-sm italic text-color-base/70">No description</p>
                 }
               </div>
             )}
@@ -221,9 +226,9 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
         {savedDesign && <TagsSection design={savedDesign} />}
 
         {/* ── Configuration ───────────────────────────────────────────── */}
-        <div>
+        <div className={dialogSectionClass}>
           <SectionHeading>Configuration</SectionHeading>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3 pb-2">
             <InfoRow label="Band"     value={materialLabel} />
             <InfoRow label="Size"     value={sizeLabel} />
             <InfoRow label="Beads"    value={String(placedBeads.length)} />
@@ -239,12 +244,12 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
         {/* ── Bead list ───────────────────────────────────────────────── */}
         {placedBeads.length > 0 && (
-          <div>
+          <div className={dialogSectionClass} >
             <SectionHeading>Beads ({placedBeads.length})</SectionHeading>
-            <div className="overflow-hidden rounded-lg border border-neutral-100">
+            <div className="overflow-hidden rounded-lg border border-black/50 mb-4">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-neutral-50 text-left text-xs text-neutral-500">
+                  <tr className="bg-mint/80 text-left text-xs text-color-base/80">
                     <th className="w-8 px-3 py-2 font-medium">#</th>
                     <th className="px-3 py-2 font-medium">Name</th>
                     <th className="px-3 py-2 font-medium">Material</th>
@@ -252,14 +257,14 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
                     <th className="px-3 py-2 text-right font-medium">Size</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-50">
+                <tbody className="divide-y divide-default">
                   {placedBeads.map((b, i) => (
-                    <tr key={b.instanceId} className="transition-colors hover:bg-neutral-50">
-                      <td className="px-3 py-2 text-neutral-400">{i + 1}</td>
-                      <td className="px-3 py-2 font-medium text-neutral-800">{b.product.name}</td>
-                      <td className="px-3 py-2 capitalize text-neutral-500">{b.product.material ?? "—"}</td>
-                      <td className="px-3 py-2 text-neutral-500">{b.product.bead_type ?? "—"}</td>
-                      <td className="px-3 py-2 text-right text-neutral-500">
+                    <tr key={b.instanceId} className="transition-colors">
+                      <td className="px-3 py-2 text-color-base/70">{i + 1}</td>
+                      <td className="px-3 py-2 font-medium">{b.product.name}</td>
+                      <td className="px-3 py-2 capitalize text-color-base/70">{b.product.material ?? "—"}</td>
+                      <td className="px-3 py-2 text-color-base/70">{b.product.bead_type ?? "—"}</td>
+                      <td className="px-3 py-2 text-right text-color-base/70">
                         {b.product.size_mm != null
                           ? `${b.product.size_mm} mm`
                           : `${Math.round(b.product.diameter * 1000)} mm`}
@@ -274,18 +279,18 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
         {/* ── History ─────────────────────────────────────────────────── */}
         {savedDesign && (
-          <div>
+          <div className={dialogSectionClass} >
             <SectionHeading>History</SectionHeading>
             <div className="flex flex-col">
               {buildDesignHistory(savedDesign).map((event, i, arr) => (
                 <div key={event.key} className="flex gap-3">
                   <div className="flex flex-col items-center">
-                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-neutral-300" />
-                    {i < arr.length - 1 && <div className="my-1 w-px flex-1 bg-neutral-100" />}
+                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-navy" />
+                    {i < arr.length - 1 && <div className="my-1 w-px flex-1 bg-black/50" />}
                   </div>
                   <div className="pb-3">
-                    <p className="text-sm font-medium text-neutral-800">{event.label}</p>
-                    <p className="text-xs text-neutral-400">
+                    <p className="text-sm font-medium  ">{event.label}</p>
+                    <p className="text-xs text-color-base/70">
                       {formatDateTime(event.date)}
                       {event.byName && ` · ${event.byName}`}
                     </p>
@@ -301,7 +306,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
         {/* ── Saved design metadata ───────────────────────────────────── */}
         {savedDesign && (
-          <div>
+          <div className="pb-6">
             <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
               <InfoRow label="Created"       value={formatDateTime(savedDesign.created_at)} />

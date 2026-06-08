@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { AlertTriangle, Loader2, List, Pencil } from "lucide-react";
+import { AlertTriangle, Loader2, List, Pencil, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { useDesign } from "@/hooks/useDesign";
@@ -92,7 +92,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
   return (
     <div className="flex flex-col gap-2 pointer-events-none relative z-20">
-      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm px-3 lg:px-6 py-2">
+      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm px-3 lg:px-6 py-3.5">
 
         {/* ── Left — workflow actions ──────────────────────────────────── */}
         <div className="flex flex-1 items-center gap-1.5">
@@ -103,7 +103,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
                   label="Submit for Review"
                   isPending={submitting}
                   onClick={() => submit(savedDesign.id)}
-                  variant="ghost"
+                  variant="secondary"
                 />
               )}
               {showApprove && !confirmingReject && (
@@ -111,41 +111,43 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
                   label="Approve"
                   isPending={approving}
                   onClick={() => approve(savedDesign.id)}
-                  variant="ghost"
+                  variant="positive"
                 />
               )}
               {showReject && (
                 confirmingReject ? (
-                  <div className="flex flex-col gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                  <div className="flex flex-col gap-1.5 rounded-lg border border-blush bg-blush/20 px-3 py-2">
                     <textarea
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
                       placeholder="Reason for rejection (optional)…"
                       rows={2}
                       autoFocus
-                      className="w-56 resize-none rounded border border-rose-200 bg-white px-2 py-1 text-xs text-neutral-700 outline-none focus:border-rose-400 placeholder:text-neutral-400"
+                      className="w-56 resize-none rounded border border-blush bg-white px-2 py-1 text-xs   outline-none focus:border-[#8b3040]/50 placeholder:text-color-base/70"
                     />
                     <div className="flex items-center gap-1.5">
-                      <button
+                      <Button
+                        size="xs"
+                        variant="softDanger"
+                        disabled={rejecting}
                         onClick={() =>
                           reject(
                             { id: savedDesign.id, reason: rejectReason.trim() || undefined },
                             { onSuccess: () => { setConfirmingReject(false); setRejectReason(""); } },
                           )
                         }
-                        disabled={rejecting}
-                        className="flex items-center gap-1 rounded-md bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
                       >
                         {rejecting && <Loader2 size={11} className="animate-spin" />}
                         Confirm
-                      </button>
-                      <button
-                        onClick={() => { setConfirmingReject(false); setRejectReason(""); }}
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="ghost"
                         disabled={rejecting}
-                        className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                        onClick={() => { setConfirmingReject(false); setRejectReason(""); }}
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -153,7 +155,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
                     label="Reject"
                     isPending={false}
                     onClick={() => setConfirmingReject(true)}
-                    variant="danger"
+                    variant="softDanger"
                   />
                 )
               )}
@@ -185,28 +187,30 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
                     <span className="text-xs font-medium text-amber-700">
                       Reactivating this bracelet will move it to Published.
                     </span>
-                    <button
-                      onClick={handleConfirmReactivate}
+                    <Button
+                      size="xs"
+                      variant="positive"
                       disabled={undiscontinuing}
-                      className="flex items-center gap-1 rounded-md bg-neutral-800 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
+                      onClick={handleConfirmReactivate}
                     >
                       {undiscontinuing && <Loader2 size={11} className="animate-spin" />}
                       Confirm
-                    </button>
-                    <button
-                      onClick={() => setConfirmingReactivate(false)}
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="ghost"
                       disabled={undiscontinuing}
-                      className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                      onClick={() => setConfirmingReactivate(false)}
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <WorkflowButton
                     label="Reactivate"
                     isPending={false}
                     onClick={() => setConfirmingReactivate(true)}
-                    variant="primary"
+                    variant="positive"
                   />
                 )
               )}
@@ -216,7 +220,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
         {/* ── Centre — 3D / Line toggle ────────────────────────────────── */}
         <div className="absolute left-1/2 -translate-x-1/2">
-          <div className="flex rounded-xl border border-neutral-200 bg-white min-w-[140px] overflow-hidden">
+          <div className="flex rounded-xl border border-default bg-white min-w-[140px] overflow-hidden">
             {(["3D", "Line"] as const).map((mode) => (
               <button
                 key={mode}
@@ -224,8 +228,8 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
                 title={`${mode} View`}
                 className={`px-5 py-2 flex-1 text-sm font-semibold transition-all ${
                   (mode === "3D" ? "3D" : "line") === viewMode
-                    ? "bg-neutral-600 text-white"
-                    : "text-neutral-500 hover:text-neutral-700"
+                    ? "bg-navy text-white"
+                    : "text-color-base/70 hover:text-navy/70"
                 }`}
               >
                 {mode}
@@ -235,18 +239,22 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
         </div>
 
         {/* ── Right — Edit + Comments ──────────────────────────────────── */}
-        <div className="flex flex-1 items-center gap-2 justify-end border-l border-neutral-200 pl-3 lg:pl-6 ml-3">
+        <div className="flex flex-1 items-center gap-2 justify-end border-l border-default pl-3 lg:pl-6 ml-3">
           {canEdit && !isLocked && (
             <button
               onClick={toggleEditMode}
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
                 isEditMode
-                  ? "border-blue-300 bg-blue-50 text-blue-600"
-                  : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                  ? "border-navy/30 bg-shell text-navy"
+                  : "border-default bg-white   hover:bg-shell"
               }`}
-              aria-label={isEditMode ? "Exit edit mode" : "Edit bead order"}
+              aria-label={isEditMode ? "Exit edit mode" : "Enter Edit Mode"}
             >
-              <Pencil size={14} />
+              {isEditMode ? (
+                <X size={14} />
+              ): (
+                <Pencil size={14} />
+              )}
               Edit
             </button>
           )}
@@ -254,12 +262,16 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
             onClick={onCommentsClick}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
               commentsOpen
-                ? "bg-neutral-700 text-white"
-                : "bg-neutral-500 text-white hover:bg-neutral-600"
+                ? "bg-stone text-white"
+                : "bg-grey text-black hover:bg-stone hover:text-white"
             }`}
             aria-label="Open comments"
           >
-            <List size={14} />
+            {commentsOpen ? (
+                <X size={14} />
+              ) : (
+                <List size={14} />
+              )}
             Comments
           </button>
         </div>
@@ -278,7 +290,7 @@ function WorkflowButton({
   label: string;
   isPending: boolean;
   onClick: () => void;
-  variant: "primary" | "danger" | "ghost";
+  variant: "primary" | "secondary" | "positive" | "softDanger" | "danger" | "ghost";
 }) {
   return (
     <Button

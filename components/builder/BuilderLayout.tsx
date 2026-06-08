@@ -148,11 +148,11 @@ export function BuilderLayout() {
     <div className="flex h-screen flex-col min-h-[500px] overflow-hidden">
 
       {/* Header */}
-      <header className="flex shrink-0 items-center gap-4 py-4 border-b border-neutral-200 bg-white px-6">
+      <header className="flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-6">
         <div className="flex flex-1 items-center gap-4">
           <button
             onClick={() => setSavedDesignsOpen(true)}
-            className="flex items-center rounded border border-neutral-300 bg-white px-4.5 py-3.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
+            className="flex items-center rounded border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
             aria-label="Saved Designs"
             title="View All Saved Designs"
           >
@@ -165,7 +165,7 @@ export function BuilderLayout() {
           />
         </div>
 
-        <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide text-neutral-700">
+        <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide">
           <Button onClick={handleNewBracelet}>
             <Plus size={14} />
             New Bracelet
@@ -175,14 +175,13 @@ export function BuilderLayout() {
           <div className="relative ml-2 shrink-0">
             <button
               onClick={() => setRightPanel("user")}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white transition-colors"
-              style={{ backgroundColor: "#7F7F7F" }}
+              className="flex h-9 w-9 bg-mint items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors"
               aria-label="Open user profile"
             >
               {currentUser ? getInitials(currentUser.name) : "?"}
             </button>
             {notificationCount > 0 && (
-              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-error/500 px-1 text-[10px] font-bold leading-none text-white">
                 {notificationCount > 99 ? "99+" : notificationCount}
               </span>
             )}
@@ -221,10 +220,10 @@ export function BuilderLayout() {
             <button
               onClick={openBraceletPanel}
               className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit
-              rounded-br-lg rounded-tr-lg bg-neutral-700 text-white
+              rounded-br-lg rounded-tr-lg bg-navy text-white
               px-1 py-2
               transition-all
-              hover:bg-neutral-600 hover:pl-2
+              hover:bg-navy/80 hover:pl-2
               ${braceletPanelOpen ? "open" : ""}`}
               title={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
               aria-label={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
@@ -242,15 +241,15 @@ export function BuilderLayout() {
           <div className="inner-canvas relative flex-1">
 
             {/* Bracelet info overlay */}
-            <div className="absolute left-2 lg:left-4 top-2 z-20 flex flex-col gap-0.5">
+            <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
               <CanvasWorkflowBar />
               {savedDesign?.status === "rejected" && savedDesign?.rejection_reason && (
                 <p className="max-w-[240px] px-2 py-0.5 text-xs leading-relaxed text-rose-600 italic">
                   &ldquo;{savedDesign.rejection_reason}&rdquo;
                 </p>
               )}
-              <p className="px-2 py-1.5 font-semibold text-neutral-700 leading-snug">
-                <span className="text-neutral-500 font-display">Bracelet Name:</span> {braceletName}
+              <p className="py-2 font-semibold leading-snug">
+                <span className="text-color-base/70 font-headline">Bracelet Name:</span> {braceletName}
               </p>
 
               {/* "view bracelet details" — highlights when a name is required */}
@@ -259,8 +258,8 @@ export function BuilderLayout() {
                 className={cn(
                   "text-left text-xs w-fit rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-600",
                   highlightReason !== null
-                    ? "px-2.5 py-1 bg-amber-100 text-amber-700 font-semibold border border-amber-300 animate-pulse"
-                    : "px-2 underline hover:no-underline text-neutral-500",
+                    ? "px-2.5 py-1 bg-mint text-navy font-semibold border border-navy animate-pulse"
+                    : "underline hover:no-underline text-color-base/70",
                 )}
               >
                 {highlightReason === "name" ? "Set a bracelet name →" : highlightReason === "sku" ? "Add a Shopify SKU →" : "view bracelet details"}
@@ -275,12 +274,12 @@ export function BuilderLayout() {
             </div>
 
             {canEdit && !isLocked && (
-              <BandSelector panelOpen={braceletPanelOpen} />
+              <BandSelector panelOpen={braceletPanelOpen || rightPanelOpen} />
             )}
 
             {beadsLoading && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
-                <div className="flex flex-col items-center gap-3 text-neutral-500">
+                <div className="flex flex-col items-center gap-3 text-color-base/70">
                   <Loader2 size={28} className="animate-spin" />
                   <span className="text-sm font-medium">Loading beads…</span>
                 </div>
@@ -290,11 +289,11 @@ export function BuilderLayout() {
             {beadsError && !beadsLoading && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
                 <div className="flex flex-col items-center gap-3">
-                  <AlertCircle size={28} className="text-red-400" />
-                  <p className="text-sm font-medium text-neutral-700">Failed to load bead catalog.</p>
+                  <AlertCircle size={28} className="text-error/70" />
+                  <p className="text-sm font-medium  ">Failed to load bead catalog.</p>
                   <button
                     onClick={() => refetchBeads()}
-                    className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+                    className="rounded-lg border border-default bg-white px-4 py-2 text-sm font-medium   hover:bg-light-grey/60 transition-colors"
                   >
                     Try again
                   </button>
@@ -342,9 +341,9 @@ export function BuilderLayout() {
             pointerEvents: "none",
             zIndex: 9999,
           }}
-          className="rounded-lg border border-neutral-300 bg-white shadow-lg px-2 py-1 text-xs text-neutral-800 flex items-center gap-1.5"
+          className="rounded-lg border border-default bg-white shadow-lg px-2 py-1 text-sm flex items-center gap-1.5"
         >
-          <span className="text-neutral-400">＋</span>
+          <span className="text-color-base/70">＋</span>
           {dragFromPanel.bead_type ?? dragFromPanel.name}
         </div>
       )}

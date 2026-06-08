@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, MessageSquare, Pencil, X } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useComments } from "@/hooks/useComments";
@@ -84,23 +85,23 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
 
         {/* Header */}
         <div className="shrink-0 px-6 pt-6 pb-2">
-          <h2 className="text-2xl font-semibold text-neutral-800">Comments</h2>
+          <h2 className="text-2xl font-semibold  ">Comments</h2>
         </div>
 
         {/* Comment list */}
         <div ref={listRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
           {isLoading && (
-            <div className="flex items-center justify-center pt-16 text-neutral-400">
+            <div className="flex items-center justify-center pt-16 text-color-base/70">
               <Loader2 size={22} className="animate-spin" />
             </div>
           )}
 
           {isError && !isLoading && (
-            <div className="flex flex-col items-center gap-3 pt-16 text-neutral-400">
+            <div className="flex flex-col items-center gap-3 pt-16 text-color-base/70">
               <p className="text-sm">Failed to load comments.</p>
               <button
                 onClick={() => refetch()}
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+                className="rounded-lg border border-default bg-white px-3 py-1.5 text-xs font-medium hover:bg-light-grey/60 transition-colors"
               >
                 Try again
               </button>
@@ -108,7 +109,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
           )}
 
           {!isLoading && !isError && comments.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-neutral-400 pt-16">
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-color-base/70 pt-16">
               <MessageSquare size={32} strokeWidth={1.5} />
               <p className="text-sm">No comments yet</p>
               {!activeDesignId && (
@@ -135,43 +136,44 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
                       rows={3}
                       autoFocus
                       maxLength={COMMENT_MAX_LENGTH}
-                      className="w-full resize-none rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700 outline-none focus:border-neutral-400"
+                      className="w-full resize-none rounded-lg border border-default bg-neutral-50 px-3 py-2 text-sm outline-none focus-visible:border-stone"
                     />
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={cancelEdit} className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors">
+                      <button onClick={cancelEdit} className="text-xs text-color-base/70 hover:text-color-base/70 transition-colors">
                         Cancel
                       </button>
-                      <button
+                      <Button
+                        size="xs"
+                        variant="primary"
                         onClick={() => handleSaveEdit(comment)}
                         disabled={!editDraft.trim() || saving}
-                        className="flex items-center gap-1 rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-neutral-700 disabled:opacity-40 transition-colors"
                       >
                         {saving && <Loader2 size={10} className="animate-spin" />}
                         Save
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
                   <>
                     <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-sm font-semibold text-neutral-800">{comment.user_name}</span>
-                      <span className="text-xs text-neutral-400">{formatTimestamp(comment.created_at)}</span>
+                      <span className="text-sm font-semibold  ">{comment.user_name}</span>
+                      <span className="text-xs text-color-base/70">{formatTimestamp(comment.created_at)}</span>
                       {isOwnComment(comment) && (
                         <span className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => startEdit(comment)} className="rounded p-0.5 text-neutral-400 hover:text-neutral-600" aria-label="Edit">
-                            <Pencil size={11} />
+                          <button onClick={() => startEdit(comment)} className="rounded p-0.5 text-color-base/70 hover:text-color-base/70" aria-label="Edit">
+                            <Pencil size={14} />
                           </button>
                           <button
                             onClick={() => activeDesignId && deleteComment({ designId: activeDesignId, commentId: comment.id })}
-                            className="rounded p-0.5 text-neutral-400 hover:text-red-500"
+                            className="rounded p-0.5 text-color-base/70 hover:text-error/80"
                             aria-label="Delete"
                           >
-                            <X size={11} />
+                            <X size={14} />
                           </button>
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-neutral-600 leading-relaxed whitespace-pre-wrap">{comment.body}</p>
+                    <p className="text-sm text-color-base/70 leading-relaxed whitespace-pre-wrap">{comment.body}</p>
                   </>
                 )}
               </div>
@@ -181,9 +183,9 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
 
         {/* Composer */}
         {canEdit && !isLocked && (
-          <div className={`shrink-0 border-t border-neutral-200 px-6 py-5 transition-opacity ${!canInteract ? "opacity-40 pointer-events-none" : ""}`}>
-            <p className="text-sm font-semibold text-neutral-700 mb-3">Leave a comment</p>
-            <div className="flex gap-3 rounded-lg border border-neutral-300 px-3 py-3 focus-within:border-neutral-400 transition-colors">
+          <div className={`shrink-0 border-t border-default px-6 py-5 transition-opacity ${!canInteract ? "opacity-40 pointer-events-none" : ""}`}>
+            <p className="text-sm font-semibold   mb-3">Leave a comment</p>
+            <div className="flex gap-3 rounded-lg border border-default px-3 py-3 focus-within:border-gold transition-colors">
               {currentUser && <Avatar name={currentUser.name} size="sm" />}
               <textarea
                 value={draft}
@@ -195,25 +197,26 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
                 rows={4}
                 maxLength={COMMENT_MAX_LENGTH}
                 disabled={!canInteract}
-                className="flex-1 resize-none bg-transparent text-sm text-neutral-700 outline-none placeholder:text-neutral-400 border-none"
+                className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-color-base/70 border-none focus:ring-0 p-0 pt-1"
               />
             </div>
             <div className="flex items-center justify-between mt-3">
               {draft.length > 0 ? (
-                <span className={`text-[11px] ${draft.length >= COMMENT_MAX_LENGTH ? "text-red-400" : "text-neutral-400"}`}>
+                <span className={`text-[11px] ${draft.length >= COMMENT_MAX_LENGTH ? "text-error/70" : "text-color-base/70"}`}>
                   {draft.length} / {COMMENT_MAX_LENGTH}
                 </span>
               ) : (
                 <span />
               )}
-              <button
+              <Button
+                size="sm"
+                variant="primary"
                 onClick={handleSubmit}
                 disabled={!draft.trim() || adding || !canInteract}
-                className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-5 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-40 transition-colors"
               >
                 {adding && <Loader2 size={13} className="animate-spin" />}
                 Comment
-              </button>
+              </Button>
             </div>
           </div>
         )}

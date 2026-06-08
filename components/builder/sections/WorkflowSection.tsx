@@ -4,31 +4,30 @@ import { useState, useEffect } from "react";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { z } from "zod";
 
-import { ActionButton } from "@/components/ui/ActionButton";
+import { Button } from "@/components/ui/Button";
 import { ConfirmationPanel } from "@/components/ui/ConfirmationPanel";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 
 import { ApiError } from "@/lib/api";
 import { STATUS_META } from "@/lib/category-colors";
-import { useSubmitDesign } from "@/hooks/useSubmitDesign";
-import { useApproveDesign } from "@/hooks/useApproveDesign";
-import { useRejectDesign } from "@/hooks/useRejectDesign";
-import { usePublishDesign } from "@/hooks/usePublishDesign";
-import { useUnPublishDesign } from "@/hooks/useUnPublishDesign";
-import { useSendToDraft } from "@/hooks/useSendToDraft";
-import { useSetDesignSku } from "@/hooks/useSetDesignSku";
-import { useDiscontinueDesign } from "@/hooks/useDiscontinueDesign";
+import { useSubmitDesign }       from "@/hooks/useSubmitDesign";
+import { useApproveDesign }      from "@/hooks/useApproveDesign";
+import { useRejectDesign }       from "@/hooks/useRejectDesign";
+import { usePublishDesign }      from "@/hooks/usePublishDesign";
+import { useUnPublishDesign }    from "@/hooks/useUnPublishDesign";
+import { useSendToDraft }        from "@/hooks/useSendToDraft";
+import { useSetDesignSku }       from "@/hooks/useSetDesignSku";
+import { useDiscontinueDesign }  from "@/hooks/useDiscontinueDesign";
 import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
-import { useReopenDesign } from "@/hooks/useReopenDesign";
+import { useReopenDesign }       from "@/hooks/useReopenDesign";
 
 import type { Bracelet, BraceletStatus } from "@/types";
 
-// ── Status metadata (exported — also used by BraceletDetailsDialog) ───────────
-
-// STATUS_META is defined in @/lib/category-colors — imported above and re-exported
-// so existing importers (BraceletDetailsDialog, CanvasWorkflowBar, etc.) need no path change.
 export { STATUS_META } from "@/lib/category-colors";
+
+const workflowSectionClasses = "flex flex-col gap-4 border-b border-default pb-5";
+const actionBtnClasses = "min-w-[150px]";
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 
@@ -63,15 +62,15 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   const { mutate: undiscontinue, isPending: undiscontinuing, canUndiscontinue } = useUndiscontinueDesign();
   const { mutate: reopen,        isPending: reopening,       canReopen }        = useReopenDesign();
 
-  const [skuInput,            setSkuInput]            = useState("");
-  const [skuError,            setSkuError]            = useState<string | null>(null);
-  const [skuSaved,            setSkuSaved]            = useState(false);
-  const [confirmSendToDraft,  setConfirmSendToDraft]  = useState(false);
-  const [confirmUnpublish,    setConfirmUnpublish]    = useState(false);
-  const [confirmDiscontinue,  setConfirmDiscontinue]  = useState(false);
-  const [confirmReactivate,   setConfirmReactivate]   = useState(false);
-  const [confirmReject,       setConfirmReject]       = useState(false);
-  const [rejectReason,        setRejectReason]        = useState("");
+  const [skuInput,           setSkuInput]           = useState("");
+  const [skuError,           setSkuError]           = useState<string | null>(null);
+  const [skuSaved,           setSkuSaved]           = useState(false);
+  const [confirmSendToDraft, setConfirmSendToDraft] = useState(false);
+  const [confirmUnpublish,   setConfirmUnpublish]   = useState(false);
+  const [confirmDiscontinue, setConfirmDiscontinue] = useState(false);
+  const [confirmReactivate,  setConfirmReactivate]  = useState(false);
+  const [confirmReject,      setConfirmReject]      = useState(false);
+  const [rejectReason,       setRejectReason]       = useState("");
 
   useEffect(() => {
     setSkuInput(savedDesign?.shopify_sku ?? "");
@@ -93,29 +92,23 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   // ── Discontinued ───────────────────────────────────────────────────────────
   if (savedDesign.is_discontinued === 1) {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-neutral-800">
-            This design has been discontinued.
-          </span>
-        </div>
+      <div className={workflowSectionClasses}>
+        <p className="text-xs font-semibold  ">
+          This design has been discontinued.
+        </p>
         {canUndiscontinue && (
           confirmReactivate ? (
             <ConfirmationPanel
               message="This will reactivate the bracelet and return it to Published status."
               isPending={undiscontinuing}
+              confirmVariant="positive"
               onConfirm={() => undiscontinue(id, { onSuccess: () => setConfirmReactivate(false) })}
               onCancel={() => setConfirmReactivate(false)}
             />
           ) : (
-            <div className="flex items-center gap-2">
-              <ActionButton
-                label="Reactivate"
-                isPending={false}
-                onClick={() => setConfirmReactivate(true)}
-                variant="primary"
-              />
-            </div>
+            <Button size="sm" variant="positive" className="w-fit" onClick={() => setConfirmReactivate(true)}>
+              Reactivate
+            </Button>
           )
         )}
       </div>
@@ -125,21 +118,15 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   // ── Rejected ───────────────────────────────────────────────────────────────
   if (status === "rejected") {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-neutral-800">
-            This design was rejected and needs revision before resubmitting.
-          </span>
-        </div>
+      <div className={workflowSectionClasses}>
+        <p className="text-xs font-semibold  ">
+          This design was rejected and needs revision before resubmitting.
+        </p>
         {canReopen && (
-          <div className="flex items-center gap-2">
-            <ActionButton
-              label="Return to Draft"
-              isPending={reopening}
-              onClick={() => reopen(id)}
-              variant="secondary"
-            />
-          </div>
+          <Button size="sm" variant="ghost" onClick={() => reopen(id)} disabled={reopening}>
+            {reopening && <Loader2 size={12} className="animate-spin" />}
+            Return to Draft
+          </Button>
         )}
       </div>
     );
@@ -154,7 +141,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_META[status].cls}`}>
             {STATUS_META[status].label}
           </span>
-          <span className="text-xs text-neutral-400">
+          <span className="text-xs text-color-base/70">
             This design is not in the standard review pipeline.
           </span>
         </div>
@@ -188,7 +175,8 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={workflowSectionClasses}>
+      {/* Pipeline stepper */}
       <div>
         <SectionHeading>Status</SectionHeading>
         <div className="flex items-start">
@@ -197,13 +185,16 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
             const isCurrent   = i === currentIndex;
             const isFuture    = i > currentIndex;
             return (
-              <div key={step.status} className="flex items-start flex-1">
+              <div key={step.status}
+                className={`flex items-start ${
+                      step.label !== 'Published' && 'flex-1'
+                    }`} >
                 <div className="flex flex-col items-center gap-1.5">
                   <div
                     className={`flex h-7 w-7 items-center justify-center rounded-full ${
                       isCompleted || isCurrent
-                        ? "bg-neutral-900"
-                        : "border-2 border-neutral-300 bg-white"
+                        ? "bg-navy"
+                        : "border-2 border-default bg-white"
                     }`}
                   >
                     {isCompleted && <Check size={15} className="text-white" />}
@@ -211,9 +202,9 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
                   </div>
                   <span
                     className={`w-16 text-center text-[11px] leading-tight ${
-                      isCurrent  ? "font-semibold text-neutral-900"
-                      : isFuture ? "text-neutral-400"
-                      :             "text-neutral-600"
+                      isCurrent  ? "font-semibold text-navy"
+                      : isFuture ? "text-color-base/70"
+                      :             "text-color-base/70"
                     }`}
                   >
                     {step.label}
@@ -222,7 +213,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
                 {i < PIPELINE.length - 1 && (
                   <div
                     className={`mx-1 mt-2.5 h-0.5 flex-1 w-10 shrink-0 ${
-                      i < currentIndex ? "bg-neutral-900" : "bg-neutral-200"
+                      i < currentIndex ? "bg-navy" : "bg-light-grey"
                     }`}
                   />
                 )}
@@ -236,69 +227,85 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
         <ErrorAlert message={publishError instanceof ApiError ? publishError.message : (publishError as Error).message} />
       )}
 
-      {/* Rejection reason form — replaces the action row while open */}
+      {/* Rejection reason form */}
       {status === "in_review" && canReject && confirmReject && (
-        <div className="flex flex-col gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
-          <p className="text-xs font-semibold text-rose-700">Reason for rejection</p>
+        <div className="flex flex-col gap-2 rounded-lg border border-blush bg-blush/30 p-3">
+          <p className="text-xs font-semibold text-[#8b3040]">Reason for rejection</p>
           <textarea
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="Describe why this design is being rejected…"
             rows={3}
             autoFocus
-            className="w-full resize-none rounded-md border border-rose-200 bg-white px-3 py-2 text-sm text-neutral-700 outline-none focus:border-rose-400 placeholder:text-neutral-400"
+            className="w-full resize-none rounded-md border border-blush bg-white px-3 py-2 text-sm   outline-none focus:border-[#8b3040]/50 placeholder:text-color-base/70"
           />
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              size="sm"
+              variant="softDanger"
+              disabled={rejecting}
               onClick={() =>
                 reject(
                   { id, reason: rejectReason.trim() || undefined },
                   { onSuccess: () => { setConfirmReject(false); setRejectReason(""); } },
                 )
               }
-              disabled={rejecting}
-              className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
             >
-              {rejecting && <Loader2 size={13} className="animate-spin" />}
-              Confirm Rejection
-            </button>
-            <button
+              {rejecting && <Loader2 size={12} className="animate-spin" />}
+              {rejecting ? "Rejecting…" : "Confirm Rejection"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => { setConfirmReject(false); setRejectReason(""); }}
-              disabled={rejecting}
-              className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-700 disabled:opacity-50"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
+      {/* Action buttons */}
       {hasActions && !confirmReject && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
           {status === "draft" && canSubmit && (
-            <ActionButton label="Submit for Review" isPending={submitting} onClick={() => submit(id)} variant="primary" />
+            <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => submit(id)} disabled={submitting}>
+              {submitting && <Loader2 size={12} className="animate-spin" />}
+              Submit for Review
+            </Button>
           )}
           {status === "in_review" && canApprove && (
-            <ActionButton label="Approve" isPending={approving} onClick={() => approve(id)} variant="primary" />
+            <Button className={actionBtnClasses} size="sm" variant="positive" onClick={() => approve(id)} disabled={approving}>
+              {approving && <Loader2 size={12} className="animate-spin" />}
+              Approve
+            </Button>
           )}
           {status === "in_review" && canReject && (
-            <ActionButton label="Reject" isPending={false} onClick={() => setConfirmReject(true)} variant="danger" />
+            <Button className={actionBtnClasses} size="sm" variant="softDanger" onClick={() => setConfirmReject(true)}>
+              Reject
+            </Button>
           )}
           {status === "approved" && (canPublish || canSendToDraft) && (
             confirmSendToDraft ? (
               <ConfirmationPanel
-                message="Moving this bracelet back to draft will remove its approval and require a new review cycle. Do you want to continue?"
+                message="Moving this bracelet back to draft will remove its approval and require a new review cycle. Continue?"
                 isPending={sendingToDraft}
+                confirmVariant="ghost"
                 onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
                 onCancel={() => setConfirmSendToDraft(false)}
               />
             ) : (
               <>
                 {canPublish && (
-                  <ActionButton label="Publish" isPending={publishing} onClick={() => publish(id)} variant="primary" />
+                  <Button className={actionBtnClasses} size="sm" variant="primary" onClick={() => publish(id)} disabled={publishing}>
+                    {publishing && <Loader2 size={12} className="animate-spin" />}
+                    Publish
+                  </Button>
                 )}
                 {canSendToDraft && (
-                  <ActionButton label="Edit bracelet" isPending={false} onClick={() => setConfirmSendToDraft(true)} variant="secondary" />
+                  <Button className={actionBtnClasses} size="sm" variant="ghost" onClick={() => setConfirmSendToDraft(true)}>
+                    Edit bracelet
+                  </Button>
                 )}
               </>
             )
@@ -306,35 +313,40 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
           {status === "published" && canUnPublish && !confirmDiscontinue && (
             confirmUnpublish ? (
               <ConfirmationPanel
-                message="Unpublishing this bracelet will remove it from the published catalog and require a new review cycle. Do you want to continue?"
+                message="Unpublishing will remove this bracelet from the catalog and require a new review cycle. Continue?"
                 isPending={unpublishing}
+                confirmVariant="softDanger"
                 onConfirm={() => unpublish(id, { onSuccess: () => setConfirmUnpublish(false) })}
                 onCancel={() => setConfirmUnpublish(false)}
               />
             ) : (
-              <ActionButton label="Unpublish bracelet" isPending={false} onClick={() => setConfirmUnpublish(true)} variant="secondary" />
+              <Button className={actionBtnClasses} size="sm" variant="ghost" onClick={() => setConfirmUnpublish(true)}>
+                Unpublish
+              </Button>
             )
           )}
           {status === "published" && canDiscontinue && !confirmUnpublish && (
             confirmDiscontinue ? (
               <ConfirmationPanel
-                message="Discontinuing this bracelet is will remove it from inventory. This can only be reversed by an admin. Do you want to continue?"
+                message="Discontinuing will remove this bracelet from inventory. This can only be reversed by an admin. Continue?"
                 isPending={discontinuing}
+                confirmVariant="softDanger"
                 onConfirm={() => discontinue(id, { onSuccess: () => setConfirmDiscontinue(false) })}
                 onCancel={() => setConfirmDiscontinue(false)}
               />
             ) : (
-              <ActionButton label="Discontinue" isPending={false} onClick={() => setConfirmDiscontinue(true)} variant="danger" />
+              <Button className={actionBtnClasses} size="sm" variant="softDanger" onClick={() => setConfirmDiscontinue(true)}>
+                Discontinue
+              </Button>
             )
           )}
         </div>
       )}
 
+      {/* SKU input */}
       {showSkuField && (
         <div className="flex flex-col gap-1.5">
-          <SectionHeading>
-            Shopify SKU
-          </SectionHeading>
+          <SectionHeading>Shopify SKU</SectionHeading>
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -342,20 +354,17 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
               onChange={(e) => { setSkuInput(e.target.value); setSkuError(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleSkuSave(); }}
               placeholder="e.g. BB-SUMMER-001"
-              className={`flex-1 rounded-lg max-w-[250px] border px-3 py-1.5 text-sm text-neutral-700 outline-none transition-colors placeholder:text-neutral-400 ${
-                skuError ? "border-red-400 focus:border-red-500" : "border-neutral-200 focus:border-neutral-500"
+              className={`flex-1 rounded-[3px] max-w-[250px] border px-3 py-1.5 text-sm outline-none transition-colors placeholder:text-color-base/70 ${
+                skuError ? "border-error/50 focus:border-error" : "border-default focus:border-navy"
               }`}
             />
-            <button
-              onClick={handleSkuSave}
-              disabled={settingSku}
-              className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
-            >
-              {skuSaved ? "Saved!" : settingSku ? "Saving…" : "Save"}
-            </button>
+            <Button className={actionBtnClasses} size="sm" variant="primary" onClick={handleSkuSave} disabled={settingSku}>
+              {settingSku && <Loader2 size={12} className="animate-spin" />}
+              {skuSaved ? "Saved!" : "Save"}
+            </Button>
           </div>
           {skuError && (
-            <p className="flex items-center gap-1.5 text-xs text-red-500">
+            <p className="flex items-center gap-1.5 text-xs text-error/80">
               <AlertCircle size={12} className="shrink-0" />
               {skuError}
             </p>

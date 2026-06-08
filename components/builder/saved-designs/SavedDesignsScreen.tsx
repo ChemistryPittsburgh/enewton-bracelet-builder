@@ -180,9 +180,9 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   // ── Shared styles ──────────────────────────────────────────────────────────
   const selectCls =
-    "w-[150px] rounded-lg border border-neutral-200 bg-white px-2 py-2.5 text-sm text-neutral-700 outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
+    "w-[150px] rounded-lg border border-default bg-white px-2 py-2.5 text-sm   outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
   const formLabel =
-    "form-label text-xs text-neutral-500 uppercase font-semibold tracking-wide";
+    "form-label text-xs text-color-base/70 uppercase font-semibold tracking-wide";
 
   return (
     <div
@@ -195,11 +195,11 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       <div className="flex max-md:flex-col flex-1 overflow-hidden">
 
         {/* ── Sidebar — status filters ───────────────────────────────────── */}
-        <aside className="w-full md:w-[280px] lg:w-[350px] shrink-0 overflow-y-auto bg-neutral-100 py-6 lg:py-10 px-6">
+        <aside className="w-full md:w-[280px] lg:w-[350px] shrink-0 overflow-y-auto bg-light-grey/80 py-6 lg:py-10 px-6">
           <div className="flex items-center justify-between pb-8">
             <button
               onClick={onClose}
-              className="flex items-center rounded px-4.5 py-3.5 text-sm font-semibold text-neutral-700 bg-neutral-300 hover:bg-neutral-200 transition-colors"
+              className="flex items-center rounded px-4.5 py-3.5 text-sm font-semibold border border-default bg-white hover:bg-mint hover:border-black transition-colors"
               aria-label="Close Saved Designs Screen"
             >
               <Inbox size={24} />
@@ -215,8 +215,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 className={cn(
                   "rounded-full px-4 py-2 lg:px-6 lg:py-3 text-left text-sm lg:text-base transition-all cursor-pointer",
                   selectedStatus === value
-                    ? "bg-neutral-500 text-white"
-                    : "text-neutral-700 bg-white hover:bg-amber-300",
+                    ? "bg-navy text-white"
+                    : "  bg-white hover:bg-gold hover:text-white",
                 )}
               >
                 {label}
@@ -228,7 +228,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
         {/* ── Close button ──────────────────────────────────────────────── */}
         <button
           onClick={onClose}
-          className="max-md:ml-auto max-md:pt-2.5 max-md:pb-2.5 max-md:pr-6 md:absolute top-8 right-8 flex items-center gap-2 text-sm font-semibold text-neutral-600 hover:text-neutral-900 transition-colors"
+          className="max-md:ml-auto max-md:pt-2.5 max-md:pb-2.5 max-md:pr-6 md:absolute top-8 right-8 flex items-center gap-2 text-sm font-semibold text-color-base/70 hover:text-neutral-900 transition-colors"
         >
           Return to builder <X size={16} />
         </button>
@@ -236,7 +236,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
         {/* ── Main content ──────────────────────────────────────────────── */}
         <div className="flex flex-1 flex-col md:pt-14 overflow-scroll lg:overflow-hidden">
           <div className="designs-panel-header px-6 lg:px-10">
-            <h2 className="text-xl font-semibold text-neutral-800 pb-3 lg:py-6">Saved designs</h2>
+            <h2 className="text-xl font-semibold   pb-3 lg:py-6">Saved designs</h2>
 
             {/* Filter bar */}
             <div className="shrink-0 border-b border-neutral-100 flex flex-col gap-1 lg:gap-4 pb-3">
@@ -302,7 +302,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 {selectedStatus !== "draft" && selectedStatus !== "in_review" && selectedStatus !== "approved" && (
                   <div className="flex flex-col gap-2">
                     <p className={formLabel}>Bracelet State</p>
-                    <div className="flex rounded-xl border border-neutral-200 bg-white overflow-hidden w-fit">
+                    <div className="flex rounded-xl border border-default bg-white overflow-hidden w-fit">
                       {BRACELET_STATE_OPTIONS.map(({ label, value }) => (
                         <button
                           key={value}
@@ -311,7 +311,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                             "px-4 py-2 text-sm font-semibold transition-all",
                             braceletState === value
                               ? "bg-neutral-600 text-white"
-                              : "text-neutral-500 hover:text-neutral-700",
+                              : "text-color-base/70 hover:bg-light-grey ",
                           )}
                         >
                           {label}
@@ -324,16 +324,16 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 {/* Search */}
                 <div className="lg:ml-auto max-lg:max-w-[300px] flex flex-col gap-2 min-w-[200px] shrink-0">
                   <p className={formLabel}>Search</p>
-                  <div className="flex w-full items-center gap-0 rounded-lg border border-neutral-200 bg-white pr-3 focus-within:border-neutral-500 transition-colors">
+                  <div className="flex w-full items-center gap-0 rounded-lg border border-default bg-white pr-3 focus-within:border-neutral-500 transition-colors">
                     <input
                       type="text"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Bracelet Name"
                       aria-label="Search by Bracelet Name"
-                      className="w-48 flex-1 border-0 bg-transparent px-2 py-2.5 text-sm text-neutral-700 outline-none ring-0 placeholder:text-neutral-400"
+                      className="w-48 flex-1 border-0 bg-transparent px-2 py-2.5 text-sm   outline-none ring-0 placeholder:text-color-base/70"
                     />
-                    <Search size={15} className="shrink-0 text-neutral-400" />
+                    <Search size={15} className="shrink-0 text-color-base/70" />
                   </div>
                 </div>
               </div>
@@ -372,7 +372,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as DesignSortOption)}
-                    className="border-0 bg-transparent text-sm py-1 text-neutral-600 outline-none cursor-pointer hover:text-neutral-900"
+                    className="border-0 bg-transparent text-sm py-1 text-color-base/70 outline-none cursor-pointer hover:text-neutral-900"
                   >
                     {SORT_OPTIONS.map(({ label, value }) => (
                       <option key={value} value={value}>{label}</option>
@@ -388,11 +388,11 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
             {isLoading && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex flex-col rounded-lg border border-neutral-200 overflow-hidden">
-                    <div className="aspect-square w-full bg-neutral-100 animate-pulse" />
+                  <div key={i} className="flex flex-col rounded-lg border border-default overflow-hidden">
+                    <div className="aspect-square w-full bg-light-grey/80 animate-pulse" />
                     <div className="px-3 py-2.5 flex flex-col gap-1.5">
-                      <div className="h-3.5 w-3/4 rounded bg-neutral-100 animate-pulse" />
-                      <div className="h-3 w-1/2 rounded bg-neutral-100 animate-pulse" />
+                      <div className="h-3.5 w-3/4 rounded bg-light-grey/80 animate-pulse" />
+                      <div className="h-3 w-1/2 rounded bg-light-grey/80 animate-pulse" />
                     </div>
                   </div>
                 ))}
@@ -401,11 +401,11 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
             {isError && (
               <div className="flex flex-col items-center gap-3 py-16 text-center">
-                <AlertCircle size={24} className="text-neutral-400" />
-                <p className="text-sm text-neutral-500">Failed to load designs.</p>
+                <AlertCircle size={24} className="text-color-base/70" />
+                <p className="text-sm text-color-base/70">Failed to load designs.</p>
                 <button
                   onClick={() => refetch()}
-                  className="text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
+                  className="text-sm font-medium   underline hover:text-neutral-900"
                 >
                   Try again
                 </button>
@@ -413,7 +413,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
             )}
 
             {!isLoading && !isError && designs.length === 0 && (
-              <p className="text-sm text-neutral-400 py-8 text-center">No designs found.</p>
+              <p className="text-sm text-color-base/70 py-8 text-center">No designs found.</p>
             )}
 
             {!isLoading && !isError && designs.length > 0 && (

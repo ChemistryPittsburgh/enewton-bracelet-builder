@@ -35,7 +35,7 @@ export function EditModeToolbar() {
   const hasSelection = idx !== -1;
 
   return (
-    <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-lg overflow-hidden divide-x divide-neutral-200">
+    <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-lg overflow-hidden divide-x divide-default">
       <EditBtn
         onClick={() => reorderBeads(idx, (idx - 1 + n) % n)}
         disabled={!hasSelection}
@@ -103,8 +103,8 @@ function EditBtn({
       title={title}
       className={`flex items-center justify-center px-4 py-3 transition-colors ${
         disabled
-          ? "cursor-not-allowed text-neutral-300 pointer-events-none"
-          : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800"
+          ? "cursor-not-allowed text-grey pointer-events-none"
+          : "text-color-base/70 hover:bg-light-grey/50 hover:text-color-base"
       }`}
     >
       {children}

@@ -162,6 +162,149 @@ Filter chips in `SavedDesignsScreen` are colour-coded by category using `CATEGOR
 
 ---
 
+## UI Standardization & Reusable Components
+ 
+The app uses several standardized UI components to maintain consistency and reduce code duplication across dialogs and error displays.
+ 
+### StandardConfirmDialog
+ 
+A reusable confirmation dialog for destructive actions, used in delete and discontinue workflows.
+ 
+```tsx
+import { StandardConfirmDialog } from "@/components/ui/StandardConfirmDialog";
+ 
+<StandardConfirmDialog
+  title="Delete bracelet"
+  message={
+    <>
+      <span className="font-semibold">"{designName}"</span> will be permanently removed from the library. This cannot be undone.
+    </>
+  }
+  icon={<AlertTriangle size={16} />}
+  iconBgClass="bg-error/50"
+  iconColorClass="text-error/80"
+  confirmLabel="Delete bracelet"
+  confirmVariant="danger"
+  isLoading={isDeleting}
+  onConfirm={onConfirm}
+  onCancel={onCancel}
+/>
+```
+ 
+**Props:**
+| Prop | Type | Description |
+|------|------|-------------|
+| `title` | string | Dialog title |
+| `message` | ReactNode | Main warning message (can include JSX) |
+| `icon` | ReactNode | Icon element (optional) |
+| `iconBgClass` | string | Icon background color class (e.g., "bg-error/50") |
+| `iconColorClass` | string | Icon text color class (e.g., "text-error/80") |
+| `confirmLabel` | string | Confirm button label (default: "Confirm") |
+| `confirmVariant` | ButtonVariant | Button variant (primary \| secondary \| danger \| softDanger \| positive \| ghost) |
+| `cancelLabel` | string | Cancel button label (default: "Cancel") |
+| `isLoading` | boolean | Shows spinner during async action (default: false) |
+| `onConfirm` | () => void | Confirm button callback |
+| `onCancel` | () => void | Cancel button callback |
+ 
+**Used in:**
+- `DeleteBraceletDialog` — Removes designs permanently
+- `DiscontinueBraceletDialog` — Marks designs as discontinued (reversible)
+**Design Pattern:**
+- Customizable icon, colors, and labels for different severity levels
+- Manual `Loader2` spinner via `isLoading` prop (not Button's internal loading state)
+- Consistent layout: icon + message + action buttons
+- Reduces duplication across multiple confirmation dialogs
+
+
+### ErrorAlert
+ 
+A standardized error display component with icon and consistent styling. Used throughout the app for validation errors, network failures, and other user-facing errors.
+ 
+```tsx
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
+ 
+{error && <ErrorAlert message={error} />}
+```
+ 
+**Props:**
+| Prop | Type | Description |
+|------|------|-------------|
+| `message` | string | Error message to display |
+| `className` | string | Optional additional CSS classes |
+ 
+**Visual Style:**
+- Icon: `AlertCircle` from lucide-react
+- Background: `bg-error/50` (muted error red)
+- Text: `text-error` (prominent error red)
+- Padding: `px-3 py-2` with `gap-2` between icon and message
+- Border radius: `rounded-lg`
+**Used in:**
+- `BeadSelectorPanel` — Bead add failures
+- `UsersAdminScreen` (CreateUserDialog) — User creation failures
+- `WorkflowSection` — Publish and workflow action failures
+- `ConfirmReplaceDialog` — Save failures during design replacement
+- `app/login/page.tsx` — Authentication token validation errors
+**Design Pattern:**
+- Replaces all custom `<p className="text-xs text-error">` error displays
+- Provides visual hierarchy with icon
+- Consistent spacing and styling across all error scenarios
+- Single source of truth for error appearance
+---
+ 
+## Styling Conventions
+ 
+### Color Tokens
+ 
+The app uses a curated set of color tokens for UI consistency:
+ 
+| Token | Usage | Examples |
+|-------|-------|----------|
+| `text-color-base` | Primary text | Metadata, descriptions, input labels |
+| `text-color-base/70` | Secondary text | Muted labels, hints, disabled states |
+| `text-error` | Errors and warnings | ErrorAlert component, rejection reasons |
+| `bg-error/50` | Error backgrounds | ErrorAlert background |
+| `border-error` | Error borders | Error field outlines (when needed) |
+| `bg-blush` / `border-blush` | Soft danger (reject) | Reject confirmation panel, softDanger button variant |
+| `bg-navy` | Primary interactive | Primary button background |
+| `bg-gold` | Secondary interactive | Secondary button background |
+| `bg-light-mint` | Positive action | Positive button variant, confirm states |
+| `bg-light-grey/80` | Muted backgrounds | Alternate row backgrounds, editor panels |
+ 
+**Key Principle:** Never use dynamic Tailwind class names (e.g., `` `bg-${color}-500` ``). All color classes must be fully specified in the source code. Tailwind v4 purges unused classes at build time.
+ 
+### Button Component
+ 
+The `Button` component supports manual loading state:
+ 
+```tsx
+<Button variant="danger" size="sm" disabled={isLoading}>
+  {isLoading && <Loader2 size={13} className="animate-spin" />}
+  Confirm Delete
+</Button>
+```
+ 
+Components like `StandardConfirmDialog` prefer manual `Loader2` spinners for explicit control over timing and animation sizes, rather than Button's built-in `loading` prop.
+ 
+---
+ 
+## Component Architecture
+ 
+### Dialog Hierarchy
+ 
+- **StandardConfirmDialog** — Base reusable component for all confirmation dialogs
+  - DeleteBraceletDialog (extends with "danger" styling)
+  - DiscontinueBraceletDialog (extends with "softDanger" styling)
+- **FullScreenDialog** — Base modal component (custom modals extend this)
+- **FloatingDialog** — Non-modal floating panel (e.g., bead info)
+### Error Display Hierarchy
+ 
+- **ErrorAlert** — Standard error message component (used everywhere)
+  - Always paired with `{error && <ErrorAlert ... />}`
+  - Includes icon, padding, and consistent styling
+  - Replaces all custom error `<p>` tags
+
+---
+
 ## Thumbnail Generation
 
 When a design is saved or updated, a thumbnail is captured automatically:
