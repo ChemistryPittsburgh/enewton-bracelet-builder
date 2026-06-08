@@ -209,6 +209,8 @@ import { StandardConfirmDialog } from "@/components/ui/StandardConfirmDialog";
 **Used in:**
 - `DeleteBraceletDialog` — Removes designs permanently
 - `DiscontinueBraceletDialog` — Marks designs as discontinued (reversible)
+
+
 **Design Pattern:**
 - Customizable icon, colors, and labels for different severity levels
 - Manual `Loader2` spinner via `isLoading` prop (not Button's internal loading state)
@@ -238,12 +240,16 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 - Text: `text-error` (prominent error red)
 - Padding: `px-3 py-2` with `gap-2` between icon and message
 - Border radius: `rounded-lg`
+
+
 **Used in:**
 - `BeadSelectorPanel` — Bead add failures
 - `UsersAdminScreen` (CreateUserDialog) — User creation failures
 - `WorkflowSection` — Publish and workflow action failures
 - `ConfirmReplaceDialog` — Save failures during design replacement
 - `app/login/page.tsx` — Authentication token validation errors
+
+
 **Design Pattern:**
 - Replaces all custom `<p className="text-xs text-error">` error displays
 - Provides visual hierarchy with icon
@@ -296,6 +302,8 @@ Components like `StandardConfirmDialog` prefer manual `Loader2` spinners for exp
   - DiscontinueBraceletDialog (extends with "softDanger" styling)
 - **FullScreenDialog** — Base modal component (custom modals extend this)
 - **FloatingDialog** — Non-modal floating panel (e.g., bead info)
+
+
 ### Error Display Hierarchy
  
 - **ErrorAlert** — Standard error message component (used everywhere)
