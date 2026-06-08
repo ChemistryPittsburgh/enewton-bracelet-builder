@@ -290,16 +290,13 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
               <ConfirmationPanel
                 message="Recalling this bracelet will remove it from review and require resubmission. Do you want to continue?"
                 isPending={sendingToDraft}
-                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
+                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false), onError: () => setConfirmSendToDraft(false) })}
                 onCancel={() => setConfirmSendToDraft(false)}
               />
             ) : (
-              <ActionButton
-                label="Recall for editing"
-                isPending={false}
-                onClick={() => setConfirmSendToDraft(true)}
-                variant="secondary"
-              />
+              <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => setConfirmSendToDraft(true)}>
+                Recall for editing
+              </Button>
             )
           )}
           {status === "approved" && (canPublish || canSendToDraft) && (
@@ -308,7 +305,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
                 message="Moving this bracelet back to draft will remove its approval and require a new review cycle. Continue?"
                 isPending={sendingToDraft}
                 confirmVariant="ghost"
-                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false) })}
+                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false), onError: () => setConfirmSendToDraft(false) })}
                 onCancel={() => setConfirmSendToDraft(false)}
               />
             ) : (

@@ -39,6 +39,7 @@ export default function LoginNewPage() {
     }
     setEmailError(null);
     resetRequest();
+    setEmail(result.data);
     requestCode({ email: result.data }, {
       onSuccess: () => setStep("code"),
     });

@@ -5,7 +5,7 @@ import type { Bracelet } from "@/types";
 
 /**
  * POST /designs/:id/send-to-draft — move a design back to "draft" status.
- * Requires is_publisher or is_admin.
+ * Requires is_bracelet_editor or is_admin.
  *
  * Returns the mutation plus `canSendToDraft` for conditional UI rendering.
  */
@@ -15,7 +15,7 @@ export function useSendToDraft() {
 
   const mutation = useMutation({
     mutationFn(id: number) {
-      if (!canSendToDraft) throw new Error("Permission denied: is_publisher or is_admin required.");
+      if (!canSendToDraft) throw new Error("Permission denied: is_bracelet_editor or is_admin required.");
       return apiFetch<Bracelet>(`/designs/${id}/send-to-draft`, { method: "POST" });
     },
     onSuccess: (data) => {

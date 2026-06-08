@@ -33,8 +33,8 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
       activeDesignId: s.activeDesignId,
     }));
 
-  const { data: savedDesign } = useDesign(activeDesignId);
-  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
+  const { data: savedDesign, isLoading: designLoading } = useDesign(activeDesignId);
+  const isLocked = designLoading || savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   const [dialogOpen, setDialogOpen] = useState(false);
 
