@@ -196,7 +196,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
             ) : (
               <div className="group flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base font-semibold text-neutral-900">{braceletName}</h2>
+                  <h3 className="text-base font-bold ">{braceletName}</h3>
                   {(!savedDesign || (canEdit && !isLocked)) && (
                     <button
                       onClick={handleEdit}
@@ -286,19 +286,19 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
                 <div key={event.key} className="flex gap-3">
                   <div className="flex flex-col items-center">
                     <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-navy" />
-                    {i < arr.length - 1 && <div className="my-1 w-px flex-1 bg-black/50" />}
+                      {i < arr.length - 1 && <div className="my-1 w-px flex-1 bg-black/50" />}
+                    </div>
+                    <div className="pb-3">
+                      <p className="text-sm font-medium  ">{event.label}</p>
+                      <p className="text-xs text-color-base/70">
+                        {formatDateTime(event.date)}
+                        {event.byName && ` · ${event.byName}`}
+                      </p>
+                      {event.note && (
+                        <p className="mt-0.5 text-xs italic text-rose-600">"{event.note}"</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="pb-3">
-                    <p className="text-sm font-medium  ">{event.label}</p>
-                    <p className="text-xs text-color-base/70">
-                      {formatDateTime(event.date)}
-                      {event.byName && ` · ${event.byName}`}
-                    </p>
-                    {event.note && (
-                      <p className="mt-0.5 text-xs italic text-rose-600">"{event.note}"</p>
-                    )}
-                  </div>
-                </div>
               ))}
             </div>
           </div>

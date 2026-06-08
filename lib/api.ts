@@ -23,12 +23,18 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     },
   });
 
-  // 204 No Content — successful delete, no body
+  // 204 No Content — successful delete/action, no body
   if (res.status === 204) return undefined as T;
 
-  const json = await res.json();
+  let json: any;
+  try {
+    json = await res.json();
+  } catch {
+    // Server returned a non-JSON body (e.g. an HTML error page from Apache/PHP)
+    throw new ApiError(res.status, `HTTP ${res.status}`);
+  }
 
-  if (!json.success) {
+  if (!res.ok || !json.success) {
     throw new ApiError(res.status, json.error ?? "Unknown error");
   }
 

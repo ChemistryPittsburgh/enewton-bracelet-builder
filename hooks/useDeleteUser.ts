@@ -11,5 +11,8 @@ export function useDeleteUser() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
+    onError: (err) => {
+      console.error("[useDeleteUser]", err);
+    },
   });
 }

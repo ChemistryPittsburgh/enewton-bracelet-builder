@@ -3,9 +3,9 @@ import { Loader2 } from "lucide-react";
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
 const variants = {
-  primary:    "bg-navy text-white hover:bg-navy/90",
-  secondary:  "bg-gold text-white hover:bg-gold/90",
-  ghost:      "border bg-white border-stone/40 text-color-base/80 hover:border-stone hover:bg-mint hover:text-color-base",
+  primary:    "bg-navy border-navy border text-white hover:bg-white hover:text-navy",
+  secondary:  "bg-mint border-navy border text-navy hover:bg-white",
+  ghost:      "border bg-white border-stone/40 text-color-base/80 hover:border-stone hover:bg-shell hover:text-color-base",
   danger:     "bg-error text-white hover:bg-error/90",
   softDanger: "bg-blush text-[#8b3040] hover:bg-blush/80",
   positive:   "bg-light-mint text-[#0d5c52] hover:bg-light-mint/80",
@@ -19,20 +19,27 @@ const sizes = {
   icon: "h-9 w-9",
 };
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
   loading?: boolean;
+  /**
+   * Optional accessible label.
+   * - Always applied as `aria-label` for screen readers.
+   * - Rendered as visible text when no `children` are provided.
+   */
+  label?: string;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = "primary", size = "md", loading, disabled, className, children, ...props }, ref) => {
+  ({ variant = "primary", size = "md", loading, disabled, className, children, label, ...props }, ref) => {
     return (
       <button
         ref={ref}
         disabled={disabled || loading}
+        aria-label={label}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-[3px]",
+          "inline-flex items-center justify-center gap-2 rounded-[2px]",
           "font-medium uppercase tracking-wider",
           "transition-all duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30",

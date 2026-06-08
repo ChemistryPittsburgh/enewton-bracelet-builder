@@ -55,7 +55,7 @@ export function FullScreenDialog({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-default">
           {title && (
-            <h2 className="font-bold text-neutral-900">{title}</h2>
+            <h2>{title}</h2>
           )}
           <button
             onClick={onClose}
