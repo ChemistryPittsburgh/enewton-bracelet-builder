@@ -16,10 +16,10 @@ const toggleClass = (active: boolean, disabled = false) =>
   cn(
     "rounded-lg border px-2 py-1 text-[11px] font-medium transition-all",
     disabled
-      ? "border-neutral-200 bg-neutral-50 text-neutral-300 cursor-not-allowed"
+      ? "border-default bg-neutral-50 text-light-grey cursor-not-allowed"
       : active
-        ? "border-neutral-900 bg-neutral-900 text-white"
-        : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+        ? "border-navy bg-navy text-white"
+        : "border-default bg-white text-color-base/70 hover:border-neutral-400"
   );
 
 export function BandSelector({ panelOpen = false }: BandSelectorProps) {
@@ -62,7 +62,7 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
 
         {/* Material */}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-neutral-500">Material</span>
+          <span className="text-xs text-color-base/70">Material</span>
           <div className="flex gap-1.5">
             {BRACELET_MATERIALS.map(({ value, label }) => (
               <button
@@ -78,7 +78,7 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
 
         {/* Bracelet size — disabled if current beads won't fit */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-neutral-500">Bracelet size</span>
+          <span className="text-xs text-color-base/70">Bracelet size</span>
           <div className="flex gap-2">
             {BRACELET_SIZES.map(({ value, label }) => {
               const isDisabled = arc > braceletArc(BRACELET_SIZE_RADIUS[value]);

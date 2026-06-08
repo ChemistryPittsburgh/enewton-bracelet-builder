@@ -146,7 +146,7 @@ export const useStore = create<Store>()(
     (set, get) => ({
       beads: [],
       selectedBead: null,
-      braceletName: "My Bracelet",
+      braceletName: "New Bracelet",
       braceletDescription: "",
       bandMaterial: "cord" as BandMaterial,
       braceletSize: "small" as BraceletSize,

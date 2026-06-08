@@ -60,13 +60,15 @@ export function AssignmentSection<T extends { id: number; name: string }>({
   const isPublished = design.status === "published";
   const style = CATEGORY_STYLES[categoryKey];
 
+  const assignmentSectionClass = "border-b border-default pb-3";
+
   // Nothing to show and no way to add → hide entirely.
   if (items.length === 0 && (!canManageComponents || isPublished)) return null;
 
   // Non-managers → read-only chip cloud.
   if (!canManageComponents) {
     return (
-      <div>
+      <div className={assignmentSectionClass} >
         <SectionHeading>{title}</SectionHeading>
         <div className="flex flex-wrap gap-2">
           {serverItems.map((item) => (
@@ -87,25 +89,27 @@ export function AssignmentSection<T extends { id: number; name: string }>({
 
   // Managers — full picker with optimistic updates.
   return (
-    <div>
+    <div className={assignmentSectionClass} >
       <SectionHeading>{title}</SectionHeading>
-      <div className="flex flex-wrap items-center gap-2">
-        {items.map((item) => {
-          const isPending = pendingIds.includes(item.id);
-          return (
-            <span
-              key={item.id}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white transition-opacity",
-                style.bg,
-                isPending && "opacity-50",
-              )}
-            >
-              {isPending && <Loader2 size={10} className="animate-spin" />}
-              {item.name}
-            </span>
-          );
-        })}
+      <div className="flex flex-col gap-4 py-1">
+        <div class="flex flex-wrap gap-2 items-center">
+          {items.map((item) => {
+            const isPending = pendingIds.includes(item.id);
+            return (
+              <span
+                key={item.id}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm min-w-20 justify-center font-medium text-white transition-opacity",
+                  style.bg,
+                  isPending && "opacity-50",
+                )}
+              >
+                {isPending && <Loader2 size={10} className="animate-spin" />}
+                {item.name}
+              </span>
+            );
+          })}
+        </div>
         {!isPublished && (
           <Picker
             selectedIds={appliedIds}

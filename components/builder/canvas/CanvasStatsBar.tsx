@@ -40,8 +40,8 @@ export function CanvasStatsBar() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <span className="rounded-full bg-neutral-100 px-4 py-1 text-xs text-neutral-700">
-      {label} <span className="text-sm font-semibold ml-2">{value}</span>
+    <span className="rounded-full bg-light-grey px-4 py-1 text-xs">
+      <span className="text-[11px] tracking-wide uppercase text-black/80">{label}</span> <span className="text-sm font-semibold ml-2">{value}</span>
     </span>
   );
 }

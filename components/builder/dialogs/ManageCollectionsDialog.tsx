@@ -33,12 +33,12 @@ function CollectionRow({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-white px-4 py-3 group">
-      <span className="flex-1 text-sm font-medium text-neutral-800">{collection.name}</span>
-      <span className="text-xs text-neutral-400 tabular-nums shrink-0">{braceletWord(count)}</span>
+      <span className="flex-1 text-sm font-medium  ">{collection.name}</span>
+      <span className="text-sm text-color-base/70 tabular-nums shrink-0">{braceletWord(count)}</span>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => onEdit(collection)}
-          className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors"
+          className="rounded p-1 text-color-base/70 hover:bg-light-grey hover:text-color-base transition-colors"
           title="Edit collection"
         >
           <Pencil size={14} />
@@ -46,7 +46,7 @@ function CollectionRow({
         <button
           onClick={() => onDelete(collection)}
           disabled={isDeleting}
-          className="rounded p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-40"
+          className="rounded p-1 text-color-base/70 hover:bg-error/10 hover:text-error transition-colors disabled:opacity-40"
           title="Delete collection"
         >
           {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
@@ -72,35 +72,36 @@ function DeleteConfirmRow({
   isDeleting: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col gap-3">
+    <div className="rounded-lg border border-error bg-light-grey/50 p-4 flex flex-col gap-3">
       <div className="flex items-start gap-2">
-        <AlertTriangle size={15} className="shrink-0 mt-0.5 text-red-500" />
+        <AlertTriangle size={15} className="shrink-0 mt-0.5 text-error/80" />
         <div>
-          <p className="text-sm font-medium text-red-800">Delete &ldquo;{collection.name}&rdquo;?</p>
+          <p className="text-sm font-medium text-error">Delete &ldquo;{collection.name}&rdquo;?</p>
           {count > 0 && (
-            <p className="mt-0.5 text-xs text-red-600">
-              {braceletWord(count)} are in this collection. Deleting it will
+            <p className="mt-0.5 text-sm">
+              {braceletWord(count)} are in this collection. Deleting this collection will
               remove them all from it.
             </p>
           )}
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button
+        <Button
           onClick={onConfirm}
           disabled={isDeleting}
-          className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+          variant="danger"
+          size="xs"
         >
           {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
           Delete collection
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={onCancel}
           disabled={isDeleting}
-          className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
-        >
+          size="xs"
+          variant="ghost"        >
           <X size={12} /> Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -127,7 +128,7 @@ function EditRow({
   const isDirty = name.trim() !== initialName;
 
   return (
-    <div className="rounded-lg border border-neutral-300 bg-white p-4 flex flex-col gap-3 shadow-sm">
+    <div className="rounded-sm border border-default bg-white p-4 flex flex-col gap-3 shadow-sm">
       <input
         autoFocus
         type="text"
@@ -138,11 +139,11 @@ function EditRow({
           if (e.key === "Escape") onCancel();
         }}
         placeholder="Collection name"
-        className="w-full rounded border border-neutral-200 px-3 py-1.5 text-sm text-neutral-800 outline-none focus:border-neutral-500 transition-colors"
+        className="w-full rounded border border-default px-3 py-1.5 text-sm outline-none focus:border-grey transition-colors"
       />
       {affectedCount > 0 && isDirty && (
-        <p className="flex items-center gap-1.5 text-xs text-amber-700">
-          <AlertTriangle size={12} className="shrink-0" />
+        <p className="flex items-center gap-1.5 text-sm text-gold">
+          <AlertTriangle size={15} className="shrink-0" />
           This rename will update the collection on {braceletWord(affectedCount)}.
         </p>
       )}
@@ -151,12 +152,13 @@ function EditRow({
           onClick={() => { if (name.trim()) onSave(name.trim()); }}
           disabled={isSaving || !name.trim()}
           size="sm"
-          variant="black"
+          variant="secondary"
+          label="Submit New Collection"
         >
           {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
           {submitLabel}
         </Button>
-        <Button variant="ghost" size="sm" onClick={onCancel} className="text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100">
+        <Button variant="ghost" size="sm" onClick={onCancel}>
           <X size={12} /> Cancel
         </Button>
       </div>
@@ -230,16 +232,16 @@ export function ManageCollectionsDialog({ open, onClose, includeBackDropBlur = t
   return (
     <FullScreenDialog open={open} onClose={handleClose} title="Manage Collections" className="max-w-lg" includeBackDropBlur={includeBackDropBlur}>
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-color-base/70">
           Collections group bracelet designs together. A design can belong to multiple collections.
         </p>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={20} className="animate-spin text-neutral-400" />
+            <Loader2 size={20} className="animate-spin text-color-base/70" />
           </div>
         ) : collections.length === 0 && !isCreating ? (
-          <p className="py-4 text-center text-sm text-neutral-400">No collections yet.</p>
+          <p className="py-4 text-center text-sm text-color-base/70">No collections yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {collections.map((c) => {
@@ -298,7 +300,7 @@ export function ManageCollectionsDialog({ open, onClose, includeBackDropBlur = t
         ) : (
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 self-start rounded-lg border border-dashed border-neutral-300 px-4 py-2 text-sm text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-700"
+            className="flex items-center gap-2 self-start rounded-sm border border-dashed px-4 py-2 text-sm text-color-base transition-colors hover:border-navy hover:border-solid hover:bg-light-grey/60"
           >
             <Plus size={15} /> New collection
           </button>

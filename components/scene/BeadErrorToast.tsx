@@ -18,13 +18,13 @@ export function BeadErrorToast() {
           className="flex items-start gap-2 rounded-lg bg-white/90 backdrop-blur-sm shadow px-3 py-2 text-xs"
         >
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-orange-500 m-0">Model not found</p>
-            <p className="text-neutral-600 truncate m-0">{err.name}</p>
-            <p className="text-neutral-400 truncate m-0">{err.filename}</p>
+            <p className="font-semibold text-orange m-0">Model not found</p>
+            <p className="text-color-base/70 truncate m-0">{err.name}</p>
+            <p className="text-color-base/70 truncate m-0">{err.filename}</p>
           </div>
           <button
             onClick={() => removeBead(err.instanceId)}
-            className="text-neutral-400 hover:text-neutral-700 shrink-0 leading-none"
+            className="text-color-base/70 hover:text-color-base shrink-0 leading-none"
           >
             ✕
           </button>

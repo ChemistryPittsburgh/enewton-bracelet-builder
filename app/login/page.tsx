@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getToken, setToken } from "@/lib/auth";
+import { Button } from "@/components/ui/Button";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,25 +53,22 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-sm rounded-xl border border-default bg-white p-8 shadow-sm">
         <img
-          src="https://enewtondesign.com/cdn/shop/files/enewton_header_logo.png"
-          alt="eNewton Design"
-          className="mx-auto mb-6 max-w-[160px]"
-        />
-        <h1 className="mb-1 text-center text-lg font-semibold text-neutral-800">
+            src={LOGO_SRC}
+            alt={LOGO_ALT}
+            className="header-logo w-48 mx-auto"
+          />
+        <h1 className="mb-1 text-center text-lg font-semibold">
           Bracelet Builder
         </h1>
-        <p className="mb-6 text-center text-sm text-neutral-500">
+        <p className="mb-6 text-center text-sm text-color-base/70">
           Enter your access token to continue.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label
-              htmlFor="token"
-              className="text-sm font-medium text-neutral-700"
-            >
+            <label htmlFor="token" className="text-sm font-medium">
               Access Token
             </label>
             <input
@@ -77,22 +78,23 @@ export default function LoginPage() {
               onChange={(e) => setTokenValue(e.target.value)}
               placeholder="Paste your token here"
               autoComplete="current-password"
-              className="rounded border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
+              className="rounded border border-default px-3 py-2 text-sm outline-none transition focus:border-gold focus:ring-1 focus:ring-gold"
               disabled={loading}
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+          {error && <ErrorAlert message={error} />}
 
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            size="md"
+            loading={loading}
             disabled={loading || !token.trim()}
-            className="rounded bg-neutral-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700 disabled:opacity-50"
+            className="w-full"
           >
-            {loading ? "Signing in…" : "Sign In"}
-          </button>
+            Sign In
+          </Button>
         </form>
       </div>
     </div>

@@ -83,9 +83,9 @@ export function BeadInfoDialog() {
             {matchCount > 1 && (
               <>
                 {selectAllActive ? (
-                  <p className="text-sm font-semibold text-neutral-700 mb-3 px-2">All {bead.product.name} {bead.product.bead_category}s selected</p>
+                  <p className="text-sm font-semibold   mb-3 px-2">All {bead.product.name} {bead.product.bead_category}s selected</p>
                 ) : (
-                  <Button onClick={() => selectAllOfType()} className="w-full mb-2">
+                  <Button onClick={() => selectAllOfType()} variant="ghost" className="w-full mb-2">
                   Select All ({matchCount})
                   </Button>
                 )}

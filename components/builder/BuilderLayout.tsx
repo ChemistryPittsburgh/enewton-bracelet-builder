@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useGLTF } from "@react-three/drei";
-import { AlertCircle, Check, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
-import Image from "next/image";
+import { AlertCircle, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
 
-import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
+import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
@@ -43,27 +43,25 @@ export function BuilderLayout() {
   const {
     placedBeads,
     braceletName,
-    setBraceletName,
     braceletDescription,
-    setBraceletDescription,
     clearSelectedBead,
     selectedBead,
     dragFromPanel,
     resetBracelet,
     setPendingDesign,
     activeDesignId,
+    isDirty,
   } = useStore((s) => ({
-    placedBeads: s.beads,
-    braceletName: s.braceletName,
-    setBraceletName: s.setBraceletName,
-    braceletDescription: s.braceletDescription,
-    setBraceletDescription: s.setBraceletDescription,
-    clearSelectedBead: s.clearSelectedBead,
-    selectedBead: s.selectedBead,
-    dragFromPanel: s.dragFromPanel,
-    resetBracelet: s.resetBracelet,
-    setPendingDesign: s.setPendingDesign,
-    activeDesignId: s.activeDesignId,
+    placedBeads:          s.beads,
+    braceletName:         s.braceletName,
+    braceletDescription:  s.braceletDescription,
+    clearSelectedBead:    s.clearSelectedBead,
+    selectedBead:         s.selectedBead,
+    dragFromPanel:        s.dragFromPanel,
+    resetBracelet:        s.resetBracelet,
+    setPendingDesign:     s.setPendingDesign,
+    activeDesignId:       s.activeDesignId,
+    isDirty:              s.isDirty,
   }));
 
   const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
@@ -84,19 +82,32 @@ export function BuilderLayout() {
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
-  const [rightPanel, setRightPanel] = useState<"user" | "comments" | null>(null);
-  const [usersAdminOpen, setUsersAdminOpen] = useState(false);
+  const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
+  const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
+
+  // ── Name-required highlight ───────────────────────────────────────────────
+  // Activated by BraceletExporter when the user tries to save without a name.
+  // Auto-clears once the bracelet name is changed from the default.
+  const [highlightReason, setHighlightReason] = useState<"name" | "sku" | null>(null);
+
+  useEffect(() => {
+    const trimmed = braceletName.trim();
+    if (highlightReason !== "name") return;
+    if (trimmed !== "" && trimmed !== DEFAULT_BRACELET_NAME) {
+      setHighlightReason(null);
+    }
+  }, [braceletName, highlightReason]);
+
+  // Auto-clear the SKU highlight once a SKU is saved on the active design
+  useEffect(() => {
+    if (highlightReason !== "sku") return;
+    if (savedDesign?.shopify_sku?.trim()) {
+      setHighlightReason(null);
+    }
+  }, [savedDesign?.shopify_sku, highlightReason]);
+
   const rightPanelOpen = rightPanel !== null;
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
-
-  // Auto-resize the description textarea whenever its content changes
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    const el = descriptionRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [braceletDescription]);
 
   useEffect(() => {
     if (!dragFromPanel) return;
@@ -109,45 +120,45 @@ export function BuilderLayout() {
     };
   }, [!!dragFromPanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
-
-  // Close the bead selector panel if the user loses edit permission or the design becomes locked
   useEffect(() => {
     if (!canEdit || isLocked) setBraceletPanelOpen(false);
   }, [canEdit, isLocked]);
 
-  // When BraceletPanel opens, clear selected bead (closes BeadInfoDialog)
+  useEffect(() => {
+    beads.forEach((b) => useGLTF.preload(b.glb_path));
+  }, [beads]);
+
   function openBraceletPanel() {
     setBraceletPanelOpen((o) => !o);
   }
 
-  // reset to New Bracelet
   function handleNewBracelet() {
-    if (placedBeads.length > 0) {
-      setPendingDesign({ id: -1, name: "New Bracelet" } as any, () => resetBracelet());
+    if (isDirty) {
+      setPendingDesign({ id: -1, name: DEFAULT_BRACELET_NAME } as any, () => resetBracelet());
     } else {
       resetBracelet();
     }
   }
 
-  // Preload GLBs whenever the catalog updates
-  useEffect(() => {
-    beads.forEach((b) => useGLTF.preload(b.glb_path));
-  }, [beads]);
+  function handleDetailsClick() {
+    setBraceletDetailsOpen(true);
+    setHighlightReason(null);
+  }
 
   return (
     <div className="flex h-screen flex-col min-h-[500px] overflow-hidden">
 
       {/* Header */}
-      <header className="flex shrink-0 items-center gap-4 py-4 border-b border-neutral-200 bg-white px-6">
+      <header className="flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-6">
         <div className="flex flex-1 items-center gap-4">
-        <button
-          onClick={() => setSavedDesignsOpen(true)}
-          className="flex items-center rounded border border-neutral-300 bg-white px-4.5 py-3.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
-          aria-label="Saved Designs"
-          title="View All Saved Designs"
-        >
-          <Inbox size={24} />
-        </button>
+          <button
+            onClick={() => setSavedDesignsOpen(true)}
+            className="flex items-center rounded border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
+            aria-label="Saved Designs"
+            title="View All Saved Designs"
+          >
+            <Inbox size={24} />
+          </button>
           <img
             src={LOGO_SRC}
             alt={LOGO_ALT}
@@ -155,26 +166,23 @@ export function BuilderLayout() {
           />
         </div>
 
-        <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide text-neutral-700">
-          <Button
-            onClick={handleNewBracelet}
-          >
+        <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide">
+          <Button onClick={handleNewBracelet}>
             <Plus size={14} />
             New Bracelet
           </Button>
-          <BraceletExporter />
+          <BraceletExporter onNameRequired={() => setHighlightReason("name")} />
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
             <button
               onClick={() => setRightPanel("user")}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white transition-colors"
-              style={{ backgroundColor: "#7F7F7F" }}
+              className="flex h-9 w-9 bg-mint items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors"
               aria-label="Open user profile"
             >
               {currentUser ? getInitials(currentUser.name) : "?"}
             </button>
             {notificationCount > 0 && (
-              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-error/500 px-1 text-[10px] font-bold leading-none text-white">
                 {notificationCount > 99 ? "99+" : notificationCount}
               </span>
             )}
@@ -200,7 +208,7 @@ export function BuilderLayout() {
         />
         <CommentsPanel open={rightPanel === "comments"} onClose={() => setRightPanel(null)} />
 
-        {/* Clip container — narrows visible area without resizing the canvas */}
+        {/* Clip container */}
         <div
           className="absolute flex flex-col top-0 bottom-0 overflow-hidden"
           style={{
@@ -209,15 +217,14 @@ export function BuilderLayout() {
             transition: "left 300ms ease-out, right 300ms ease-out",
           }}
         >
-
           {canEdit && !isLocked && (
             <button
               onClick={openBraceletPanel}
               className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit
-              rounded-br-lg rounded-tr-lg bg-neutral-700 text-white
+              rounded-br-lg rounded-tr-lg bg-navy text-white
               px-1 py-2
               transition-all
-              hover:bg-neutral-600 hover:pl-2
+              hover:bg-navy/80 hover:pl-2
               ${braceletPanelOpen ? "open" : ""}`}
               title={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
               aria-label={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
@@ -229,68 +236,65 @@ export function BuilderLayout() {
           <CanvasToolbar
             commentsOpen={rightPanel === "comments"}
             onCommentsClick={() => setRightPanel((p) => p === "comments" ? null : "comments")}
+            onPublishBlocked={() => setHighlightReason("sku")}
           />
 
           <div className="inner-canvas relative flex-1">
-          
-            {/* Bracelet Info on Canvas */}
-            <div className="absolute left-2 lg:left-4 top-2 z-20 flex flex-col gap-1">
+
+            {/* Bracelet info overlay */}
+            <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
               <CanvasWorkflowBar />
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={braceletName}
-                  onChange={(e) => setBraceletName(e.target.value)}
-                  className="bracelet-panel-name-input flex-1 rounded border-transparent bg-transparent px-2 py-2 font-semibold text-neutral-700 outline-none transition-all hover:bg-neutral-100 focus:border-yellow-600"
-                  aria-label="Bracelet name"
-                />
-                <Check size={20} />
-              </div>
-              <textarea
-                ref={descriptionRef}
-                value={braceletDescription}
-                onChange={(e) => setBraceletDescription(e.target.value)}
-                placeholder="Add a description…"
-                rows={5}
-                cols={50}
-                className="bracelet-panel-name-input w-full resize-none overflow-hidden rounded border-transparent bg-transparent px-2 py-1 text-xs leading-relaxed text-neutral-500 outline-none transition-all placeholder:text-neutral-400 hover:bg-neutral-100 focus:border-yellow-600"
-                aria-label="Bracelet description"
-              />
+              {savedDesign?.status === "rejected" && savedDesign?.rejection_reason && (
+                <p className="max-w-[240px] px-2 py-0.5 text-xs leading-relaxed text-rose-600 italic">
+                  &ldquo;{savedDesign.rejection_reason}&rdquo;
+                </p>
+              )}
+              <p className="py-2 font-semibold leading-snug">
+                <span className="text-color-base/70 font-headline">Bracelet Name:</span> {braceletName}
+              </p>
+
+              {/* "view bracelet details" — highlights when a name is required */}
               <button
-                className="text-left px-2 text-xs underline hover:no-underline w-fit rounded focus:ring-2 focus:ring-neutral-600"
-                onClick={() => setBraceletDetailsOpen(true)}
+                onClick={handleDetailsClick}
+                className={cn(
+                  "text-left text-xs w-fit rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-600",
+                  highlightReason !== null
+                    ? "px-2.5 py-1 bg-mint text-navy font-semibold border border-navy animate-pulse"
+                    : "underline hover:no-underline text-color-base/70",
+                )}
               >
-                view bracelet details
+                {highlightReason === "name" ? "Set a bracelet name →" : highlightReason === "sku" ? "Add a Shopify SKU →" : "view bracelet details"}
               </button>
             </div>
 
             <CanvasStatsBar />
 
-            {/* Edit mode action toolbar — floats upper-right over canvas */}
+            {/* Edit mode action toolbar */}
             <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-lg">
               <EditModeToolbar />
             </div>
-            <BandSelector panelOpen={braceletPanelOpen} />
 
-            {/* Beads loading overlay */}
+            {canEdit && !isLocked && (
+              <BandSelector panelOpen={braceletPanelOpen || rightPanelOpen} />
+            )}
+
             {beadsLoading && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
-                <div className="flex flex-col items-center gap-3 text-neutral-500">
+                <div className="flex flex-col items-center gap-3 text-color-base/70">
                   <Loader2 size={28} className="animate-spin" />
                   <span className="text-sm font-medium">Loading beads…</span>
                 </div>
               </div>
             )}
 
-            {/* Beads error overlay */}
             {beadsError && !beadsLoading && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
                 <div className="flex flex-col items-center gap-3">
-                  <AlertCircle size={28} className="text-red-400" />
-                  <p className="text-sm font-medium text-neutral-700">Failed to load bead catalog.</p>
+                  <AlertCircle size={28} className="text-error/70" />
+                  <p className="text-sm font-medium  ">Failed to load bead catalog.</p>
                   <button
                     onClick={() => refetchBeads()}
-                    className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+                    className="rounded-lg border border-default bg-white px-4 py-2 text-sm font-medium   hover:bg-light-grey/60 transition-colors"
                   >
                     Try again
                   </button>
@@ -298,7 +302,6 @@ export function BuilderLayout() {
               </div>
             )}
 
-            {/* Inner canvas — always full screen width, clipped by parent */}
             <div
               className="absolute top-0 bottom-0"
               style={{
@@ -311,7 +314,6 @@ export function BuilderLayout() {
             </div>
           </div>
         </div>
-
       </main>
 
       <SavedDesignsScreen
@@ -336,13 +338,13 @@ export function BuilderLayout() {
           style={{
             position: "fixed",
             left: ghostPos.x + 12,
-            top: ghostPos.y + 12,
+            top:  ghostPos.y + 12,
             pointerEvents: "none",
             zIndex: 9999,
           }}
-          className="rounded-lg border border-neutral-300 bg-white shadow-lg px-2 py-1 text-xs text-neutral-800 flex items-center gap-1.5"
+          className="rounded-lg border border-default bg-white shadow-lg px-2 py-1 text-sm flex items-center gap-1.5"
         >
-          <span className="text-neutral-400">＋</span>
+          <span className="text-color-base/70">＋</span>
           {dragFromPanel.bead_type ?? dragFromPanel.name}
         </div>
       )}

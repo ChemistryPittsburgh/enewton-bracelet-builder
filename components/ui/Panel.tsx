@@ -97,10 +97,10 @@ export function Panel({
 function PanelHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
     <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 shrink-0">
-      <h2 className="text-md font-semibold text-neutral-900">{title}</h2>
+      <h2 className="font-semibold text-neutral-900">{title}</h2>
       <button
         onClick={onClose}
-        className="rounded-md p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+        className="rounded-md p-1 text-color-base/70 hover:text-color-base/70 hover:bg-light-grey/60 transition-colors"
         aria-label="Close panel"
         title="Close panel"
       >

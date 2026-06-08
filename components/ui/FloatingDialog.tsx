@@ -67,9 +67,9 @@ export function FloatingDialog({
 
         <div
           className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-full text-neutral-400",
+            "flex h-7 w-7 items-center justify-center rounded-full text-color-base/70",
             includeTitleBar &&
-              "border border-neutral-200 group-hover:bg-neutral-50 group-hover:ring-2"
+              "border border-default group-hover:bg-neutral-50 group-hover:ring-2"
           )}
         >
           {isControlled ? (
