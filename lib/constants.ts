@@ -32,13 +32,13 @@ export const LOGO_ALT = "eNewton Logo";
 // ─── Scene ────────────────────────────────────────────────────────────────────
 
 /** Default canvas background colour. */
-export const SCENE_BACKGROUND = "#f5f0eb";
+export const SCENE_BACKGROUND = "#f6f3ee"; // currently shell
 
 /** Fixed pixel dimensions for saved bracelet thumbnail PNGs (square). */
 export const THUMBNAIL_SIZE = 600;
 
 /** Canvas background colour when edit mode is active. */
-export const EDIT_MODE_BACKGROUND = "#dbeafe";
+export const EDIT_MODE_BACKGROUND = "#dfe8ef"; // currently light-blue
 
 // ─── Camera ───────────────────────────────────────────────────────────────────
 
