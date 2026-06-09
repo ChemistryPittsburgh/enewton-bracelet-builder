@@ -68,7 +68,7 @@ export function BuilderLayout() {
   const { data: currentUser } = useCurrentUser();
   const { canEdit, canReview, canPublish } = usePermissions();
   const { data: savedDesign } = useDesign(activeDesignId);
-  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
+  const isLocked = savedDesign?.status === "in_review" || savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   // ── Notification badge (header) ───────────────────────────────────────────
   // Poll every 60 s so the badge stays fresh while the app is open.

@@ -16,6 +16,7 @@ interface PanelProps {
   className?: string;
   /** false = panel pushes the canvas (inline flow). true = panel floats on top (default). */
   fixed?: boolean;
+  overflowYScroll?: boolean;
 }
 
 const fixedSlideClasses: Record<SlideDirection, { base: string; open: string; closed: string }> = {
@@ -44,6 +45,7 @@ export function Panel({
   children,
   className,
   fixed = true,
+  overflowYScroll = true,
 }: PanelProps) {
 
   // ── Non-fixed (push) variant ──────────────────────────────────────────
@@ -80,10 +82,11 @@ export function Panel({
       {/* Panel */}
       <div
         className={cn(
-          "fixed z-50 overflow-scroll bg-white shadow-xl flex flex-col",
+          "fixed z-50 bg-white shadow-xl flex flex-col",
           slide.base,
           open ? slide.open : slide.closed,
-          className
+          className,
+          overflowYScroll && 'overflow-scroll'
         )}
         style={direction !== "bottom" ? { width: PANEL_WIDTH } : undefined}
       >
@@ -96,7 +99,7 @@ export function Panel({
 
 function PanelHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 shrink-0">
+    <div className="flex items-center justify-between px-5 py-4 border-b border-default shrink-0">
       <h2>{title}</h2>
       <button
         onClick={onClose}

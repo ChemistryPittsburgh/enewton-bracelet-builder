@@ -13,7 +13,7 @@ import type { Collection, Tag } from "@/types";
 // ── Shared internals ──────────────────────────────────────────────────────────
 
 const triggerCls = {
-  filter: "w-[150px] rounded-[2px] border border-default bg-white px-2 py-2.5 text-sm outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer flex items-center justify-between gap-1",
+  filter: "min-w-[100px] xxl:w-[150px] rounded-[2px] border border-default bg-white px-2 py-2.5 text-sm outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer flex items-center justify-between gap-1",
   assign: "flex items-center gap-1.5 rounded-[2px] border border-default bg-white px-3 py-1.5 text-sm min-w-[200px] justify-between transition-colors hover:border-neutral-400 cursor-pointer",
 } as const;
 

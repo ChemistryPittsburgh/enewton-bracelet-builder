@@ -188,7 +188,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   // ── Shared styles ──────────────────────────────────────────────────────────
   const selectCls =
-    "w-[150px] rounded-[2px] border border-default bg-white px-2 py-2.5 text-sm   outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
+    "min-w-[100px] xxl:w-[150px] rounded-[2px] border border-default bg-white px-2 py-2.5 text-sm   outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
   const formLabel =
     "form-label text-xs text-color-base/70 uppercase font-semibold tracking-wide";
 
@@ -316,7 +316,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                           key={value}
                           onClick={() => setBraceletState(value)}
                           className={cn(
-                            "px-4 py-2 text-sm font-semibold transition-all",
+                            "px-4 py-2.5 text-xs lg:text-sm font-semibold transition-all",
                             braceletState === value
                               ? "bg-navy text-white"
                               : "text-color-base hover:bg-mint",
@@ -330,7 +330,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 )}
 
                 {/* Search */}
-                <div className="lg:ml-auto max-lg:max-w-[300px] flex flex-col gap-2 min-w-[200px] shrink-0">
+                <div className="xxl:ml-auto max-lg:max-w-[300px] flex flex-col gap-2 xxl:min-w-[200px] shrink-0">
                   <p className={formLabel}>Search</p>
                   <div className="flex w-full items-center gap-0 rounded-[2px] border border-default bg-white pr-3 focus-within:border-navy transition-colors">
                     <input

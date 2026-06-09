@@ -293,8 +293,8 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
                 onCancel={() => setConfirmSendToDraft(false)}
               />
             ) : (
-              <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => setConfirmSendToDraft(true)}>
-                Recall for editing
+              <Button className={actionBtnClasses} size="sm" variant="ghost" onClick={() => setConfirmSendToDraft(true)}>
+                Move Back to Drafts
               </Button>
             )
           )}

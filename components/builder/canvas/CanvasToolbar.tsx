@@ -42,7 +42,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
   const { canEdit } = usePermissions();
   const { data: savedDesign } = useDesign(activeDesignId);
 
-  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
+  const isLocked = savedDesign?.status === "in_review" || savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   // ── Workflow mutations ──────────────────────────────────────────────────────
   const { mutate: submit,        isPending: submitting,      canSubmit }        = useSubmitDesign();
