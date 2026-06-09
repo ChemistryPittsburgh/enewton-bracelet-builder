@@ -6,6 +6,7 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    public readonly body?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -37,7 +38,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   if (!res.ok || !json.success) {
-    throw new ApiError(res.status, json.error ?? "Unknown error");
+    throw new ApiError(res.status, json.error ?? "Unknown error", json);
   }
 
   return json.data as T;

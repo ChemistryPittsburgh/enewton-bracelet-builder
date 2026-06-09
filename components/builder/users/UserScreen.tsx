@@ -238,9 +238,9 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
   /** Poll every 30 s while the panel is visible; stop when closed. */
   const POLL_MS = 30_000;
 
-  const { data: allDesigns = [] } = useDesigns();
-  const { data: inReview   = [] } = useDesigns({ status: "in_review", refetchInterval: open ? POLL_MS : false });
-  const { data: approved   = [] } = useDesigns({ status: "approved",  refetchInterval: open ? POLL_MS : false });
+  const { data: allDesigns = [] } = useDesigns({ enabled: open });
+  const { data: inReview   = [] } = useDesigns({ status: "in_review", refetchInterval: open ? POLL_MS : false, enabled: open });
+  const { data: approved   = [] } = useDesigns({ status: "approved",  refetchInterval: open ? POLL_MS : false, enabled: open });
   const { loadDesign }    = useLoadDesign();
 
   const beads            = useStore((s) => s.beads);
@@ -256,12 +256,12 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
   const showPublish= !!(perms?.is_publisher || perms?.is_admin);
 
   // ── Design selection — delegate to global ConfirmReplaceDialog if canvas has unsaved changes ──
-  function requestLoad(design: Bracelet) {
+  async function requestLoad(design: Bracelet) {
     if (isDirty) {
       setPendingDesign(design, onClose);
     } else {
-      loadDesign(design);
-      onClose();
+      const success = await loadDesign(design);
+      if (success) onClose();
     }
   }
 

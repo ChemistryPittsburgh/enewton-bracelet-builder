@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Archive, MoreHorizontal, Trash2 } from "lucide-react";
+import { Archive, Lock, MoreHorizontal, Trash2 } from "lucide-react";
 import type { Bracelet } from "@/types";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -29,6 +30,7 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { canDeleteBracelet, isAdmin } = usePermissions();
+  const { data: currentUser } = useCurrentUser();
   const [imgState, setImgState] = useState<"loading" | "loaded" | "error" | "empty">(
     design.preview_image_url ? "loading" : "empty",
   );
@@ -50,6 +52,10 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
     && !!design.rejected_at
     && design.rejected_at !== "0000-00-00 00:00:00";
   const showMenu = canDeleteBracelet && isAdmin && !isDiscontinued;
+  const lockedByOther =
+    design.status !== "published" &&
+    design.active_lock != null &&
+    design.active_lock.user_id !== currentUser?.id;
 
   return (
     <div
@@ -72,6 +78,13 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
         {wasRejected && (
           <div className="absolute left-2 top-2 z-10 rounded-full bg-error/30 px-2 py-0.5 text-[10px] font-semibold text-error">
             Rejected
+          </div>
+        )}
+        {/* Locked by another user */}
+        {lockedByOther && (
+          <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+            <Lock size={9} />
+            {design.active_lock!.user_name}
           </div>
         )}
         {/* Pulse skeleton — visible while the image is loading */}

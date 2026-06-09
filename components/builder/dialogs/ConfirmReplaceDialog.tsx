@@ -49,7 +49,8 @@ export function ConfirmReplaceDialog() {
     try {
       await save();
       if (pendingDesign!.id !== -1) {
-        loadDesign(pendingDesign!);
+        const ok = await loadDesign(pendingDesign!);
+        if (!ok) { setStatus("error"); return; }
       }
       pendingOnLoad?.();
       clearPending();
@@ -59,16 +60,20 @@ export function ConfirmReplaceDialog() {
     }
   }
 
-  function handleDiscardAndLoad() {
-    if (!pendingDesign) return;
-    if (pendingDesign.id === -1) {
-      // New bracelet — just reset, don't load a design
-    } else {
-      loadDesign(pendingDesign!);
+  async function handleDiscardAndLoad() {
+    if (!pendingDesign || status === "saving") return;
+    setStatus("saving");
+    try {
+      if (pendingDesign.id !== -1) {
+        const ok = await loadDesign(pendingDesign);
+        if (!ok) { setStatus("error"); return; }
+      }
+      pendingOnLoad?.();
+      clearPending();
+      setStatus("idle");
+    } catch {
+      setStatus("error");
     }
-    pendingOnLoad?.();
-    clearPending();
-    setStatus("idle");
   }
 
   function handleCancel() {

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
-import { RotateCcw, Search } from "lucide-react";
+import { AlertCircle, Loader2, RotateCcw, Search } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize } from "@/lib/utils";
 import type { BeadProduct } from "@/types";
@@ -12,9 +12,9 @@ import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Plus } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useBeads } from "@/hooks/useBeads";
 
 interface BeadSelectorPanelProps {
-  beads: BeadProduct[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -124,7 +124,8 @@ function MaterialPill({ label, active, onClick }: {
     );
   }
 
-export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelProps) {
+export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
+  const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
   const addBead = useStore((s) => s.addBead);
   const queryClient = useQueryClient();
   const isFetching = useIsFetching({ queryKey: ["beads"] });
@@ -266,11 +267,30 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
 
         {/* Bead grid */}
         <div className="flex-1 px-5 pb-4 overflow-visible">
-          {filteredBeads.length === 0 ? (
+          {beadsLoading && (
+            <div className="flex flex-col items-center gap-3 py-12 text-color-base/70">
+              <Loader2 size={22} className="animate-spin" />
+              <span className="text-xs">Loading beads…</span>
+            </div>
+          )}
+          {beadsError && !beadsLoading && (
+            <div className="flex flex-col items-center gap-3 py-8">
+              <AlertCircle size={22} className="text-error/70" />
+              <p className="text-xs text-color-base/70">Failed to load beads.</p>
+              <button
+                onClick={() => refetchBeads()}
+                className="text-xs underline hover:no-underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+          {!beadsLoading && !beadsError && filteredBeads.length === 0 && (
             <p className="text-xs text-color-base/50 text-center py-8">
               No beads match your filters.
             </p>
-          ) : (
+          )}
+          {!beadsLoading && !beadsError && filteredBeads.length > 0 && (
             <div className="grid grid-cols-4 gap-3">
               {filteredBeads.map((bead) => (
                 <BeadCard

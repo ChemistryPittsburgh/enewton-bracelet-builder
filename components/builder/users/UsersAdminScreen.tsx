@@ -293,7 +293,7 @@ interface UsersAdminScreenProps {
 
 export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
   const { data: currentUser } = useCurrentUser();
-  const { data: users = [], isLoading, isError, refetch } = useUsers();
+  const { data: users = [], isLoading, isError, refetch } = useUsers({ enabled: isOpen });
 
   const [roleFilter, setRoleFilter]     = useState<RoleFilter>("all");
   const [search, setSearch]             = useState("");

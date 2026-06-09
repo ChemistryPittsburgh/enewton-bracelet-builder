@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useGLTF } from "@react-three/drei";
-import { AlertCircle, ChevronsRight, Inbox, Loader2, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronsRight, Inbox, Lock, Plus } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -33,11 +32,14 @@ import { UsersAdminScreen } from "./users/UsersAdminScreen";
 import { getInitials } from "@/lib/utils";
 
 import { useStore } from "@/lib/store";
-import { useBeads } from "@/hooks/useBeads";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDesign } from "@/hooks/useDesign";
 import { useDesigns } from "@/hooks/useDesigns";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useLockDesign } from "@/hooks/useLockDesign";
+import { useReleaseLock } from "@/hooks/useReleaseLock";
+import { useDesignHeartbeat } from "@/hooks/useDesignHeartbeat";
+import { useLoadDesign } from "@/hooks/useLoadDesign";
 
 export function BuilderLayout() {
   const {
@@ -64,26 +66,129 @@ export function BuilderLayout() {
     isDirty:              s.isDirty,
   }));
 
-  const { data: beads = [], isLoading: beadsLoading, isError: beadsError, refetch: refetchBeads } = useBeads();
   const { data: currentUser } = useCurrentUser();
   const { canEdit, canReview, canPublish } = usePermissions();
-  const { data: savedDesign } = useDesign(activeDesignId);
-  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
+  const { data: savedDesign, isFetching: designFetching } = useDesign(
+    activeDesignId,
+    { refetchInterval: activeDesignId !== null ? 30_000 : false },
+  );
 
   // ── Notification badge (header) ───────────────────────────────────────────
-  // Poll every 60 s so the badge stays fresh while the app is open.
-  // When the UserScreen is also open it polls at 30 s; React Query uses the
-  // shorter of all active intervals so no duplicate requests are made.
-  const { data: inReviewAll = [] } = useDesigns({ status: "in_review", refetchInterval: 60_000 });
-  const { data: approvedAll  = [] } = useDesigns({ status: "approved",  refetchInterval: 60_000 });
-  const notificationCount =
-    (canReview  ? inReviewAll.length : 0) +
-    (canPublish ? approvedAll.length  : 0);
+  // Poll designs only for users who need the badge (reviewer / publisher).
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
+  const { data: allDesigns = [] } = useDesigns({ enabled: canReview || canPublish, refetchInterval: 60_000 });
+  const notificationCount =
+    (canReview  ? allDesigns.filter((d) => d.status === "in_review").length : 0) +
+    (canPublish ? allDesigns.filter((d) => d.status === "approved").length  : 0);
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
   const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
+
+  // ── Design lock ──────────────────────────────────────────────────────────
+  const [lockHeld,          setLockHeld]          = useState(false);
+  const [kickedNotification, setKickedNotification] = useState(false);
+  const prevDesignIdRef = useRef<number | null>(null);
+  const lastSyncedAtRef = useRef<string | null>(null);
+  const { mutate: releaseLock } = useReleaseLock();
+  const { mutateAsync: acquireLock } = useLockDesign();
+  const { syncDesign } = useLoadDesign();
+
+  // Release the previous lock and optimistically set lockHeld whenever
+  // activeDesignId changes. Setting lockHeld immediately (before savedDesign
+  // loads) means the banner appears with no network delay.
+  useEffect(() => {
+    const prevId = prevDesignIdRef.current;
+    prevDesignIdRef.current = activeDesignId;
+
+    if (prevId !== null && prevId !== activeDesignId) {
+      releaseLock(prevId);
+      setKickedNotification(false);
+    }
+
+    if (activeDesignId === null) {
+      setLockHeld(false);
+    } else if (!lockHeld) {
+      setLockHeld(true); // optimistic — confirmed by the server effect below
+    }
+  }, [activeDesignId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isLockableStatus = savedDesign != null && savedDesign.status !== "published";
+
+  // Once savedDesign loads: use active_lock from the GET response to determine
+  // lock ownership without an extra network round-trip where possible.
+  useEffect(() => {
+    if (!activeDesignId || !savedDesign || savedDesign.id !== activeDesignId) return;
+
+    // Stale React Query cache can contain an outdated active_lock or status
+    // that would call setLockHeld(false) in the same React batch as the
+    // optimistic setLockHeld(true) above — last writer wins, banner never shows.
+    // Wait until the GET response is settled before making any lock decisions.
+    if (designFetching) return;
+
+    if (!isLockableStatus) {
+      setLockHeld(false); // published — release the optimistic lock
+      return;
+    }
+
+    // Guard: without this, active_lock=null + currentUser=undefined collapses to
+    // undefined===undefined → true → skips the POST that would acquire the lock.
+    if (!currentUser) return;
+
+    const activeLock = savedDesign.active_lock;
+
+    if (activeLock?.user_id === currentUser.id) {
+      // Server confirms we hold the lock. Restore banner if stale data previously
+      // set lockHeld=false (e.g. old active_lock showed a different user).
+      if (!lockHeld) setLockHeld(true);
+      return;
+    }
+
+    if (activeLock != null) {
+      // Another user holds the lock — release the optimistic assumption.
+      setLockHeld(false);
+      return;
+    }
+
+    // No active lock — acquire it. Explicitly set true/false so a prior false
+    // (from stale cached data) is corrected if the POST succeeds.
+    acquireLock({ id: activeDesignId })
+      .then((result) => { setLockHeld(result.acquired); })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDesignId, savedDesign?.id, savedDesign?.status, savedDesign?.active_lock?.user_id, currentUser?.id, designFetching]);
+
+  // Reset tracked updated_at on design change so the first poll always syncs.
+  useEffect(() => { lastSyncedAtRef.current = null; }, [activeDesignId]);
+
+  // When another user saves changes, sync the canvas for read-only viewers.
+  // The ref guard ensures syncDesign only fires when updated_at genuinely
+  // changes — not on every poll or when lockHeld transitions (e.g. after kick).
+  useEffect(() => {
+    if (!savedDesign || designFetching || lockHeld) return;
+    if (savedDesign.updated_at === lastSyncedAtRef.current) return;
+    lastSyncedAtRef.current = savedDesign.updated_at;
+    syncDesign(savedDesign);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedDesign?.updated_at, designFetching, lockHeld]);
+
+  // Editing is locked by workflow status, by another user holding the lock,
+  // or when this user has been kicked off the design. Exclude stale-cache
+  // renders (designFetching) to avoid closing the panel before lock state
+  // is confirmed from the server.
+  const isLocked =
+    savedDesign?.status === "approved" ||
+    savedDesign?.status === "published" ||
+    kickedNotification ||
+    (!lockHeld && isLockableStatus && !designFetching);
+
+  useDesignHeartbeat(
+    isLockableStatus ? activeDesignId : null,
+    () => {
+      setLockHeld(false);
+      setKickedNotification(true);
+    },
+  );
 
   // ── Name-required highlight ───────────────────────────────────────────────
   // Activated by BraceletExporter when the user tries to save without a name.
@@ -124,9 +229,6 @@ export function BuilderLayout() {
     if (!canEdit || isLocked) setBraceletPanelOpen(false);
   }, [canEdit, isLocked]);
 
-  useEffect(() => {
-    beads.forEach((b) => useGLTF.preload(b.glb_path));
-  }, [beads]);
 
   function openBraceletPanel() {
     setBraceletPanelOpen((o) => !o);
@@ -196,7 +298,6 @@ export function BuilderLayout() {
         <BeadSelectorPanel
           isOpen={braceletPanelOpen}
           onClose={() => setBraceletPanelOpen(false)}
-          beads={beads}
         />
 
         <BeadInfoDialog />
@@ -243,6 +344,23 @@ export function BuilderLayout() {
 
             {/* Bracelet info overlay */}
             <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
+              {kickedNotification && (
+                <div className="mb-1 flex items-center gap-1.5 rounded-md bg-amber-500 px-2.5 py-1 text-xs font-medium text-white">
+                  <Lock size={11} className="shrink-0" />
+                  Another user has taken over this design. Your session is read-only.
+                  <button
+                    onClick={() => setKickedNotification(false)}
+                    className="ml-1 opacity-70 hover:opacity-100"
+                    aria-label="Dismiss"
+                  >×</button>
+                </div>
+              )}
+              {lockHeld && !kickedNotification && (
+                <div className="mb-1 flex items-center gap-1.5 rounded-md bg-amber-500 px-2.5 py-1 text-xs font-medium text-white">
+                  <Lock size={11} className="shrink-0" />
+                  You are editing
+                </div>
+              )}
               <CanvasWorkflowBar />
               {savedDesign?.status === "rejected" && savedDesign?.rejection_reason && (
                 <p className="max-w-[240px] px-2 py-0.5 text-xs leading-relaxed text-rose-600 italic">
@@ -276,30 +394,6 @@ export function BuilderLayout() {
 
             {canEdit && !isLocked && (
               <BandSelector panelOpen={braceletPanelOpen || rightPanelOpen} />
-            )}
-
-            {beadsLoading && (
-              <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
-                <div className="flex flex-col items-center gap-3 text-color-base/70">
-                  <Loader2 size={28} className="animate-spin" />
-                  <span className="text-sm font-medium">Loading beads…</span>
-                </div>
-              </div>
-            )}
-
-            {beadsError && !beadsLoading && (
-              <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px]">
-                <div className="flex flex-col items-center gap-3">
-                  <AlertCircle size={28} className="text-error/70" />
-                  <p className="text-sm font-medium  ">Failed to load bead catalog.</p>
-                  <button
-                    onClick={() => refetchBeads()}
-                    className="rounded-lg border border-default bg-white px-4 py-2 text-sm font-medium   hover:bg-light-grey/60 transition-colors"
-                  >
-                    Try again
-                  </button>
-                </div>
-              </div>
             )}
 
             <div

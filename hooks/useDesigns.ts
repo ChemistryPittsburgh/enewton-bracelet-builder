@@ -32,6 +32,11 @@ interface UseDesignsParams {
    * the shortest active interval — so one polling subscriber is enough.
    */
   refetchInterval?: number | false;
+  /**
+   * When false the query is skipped entirely (no network request).
+   * Defaults to true (always enabled).
+   */
+  enabled?: boolean;
 }
 
 /**
@@ -45,6 +50,7 @@ export function useDesigns(params?: UseDesignsParams) {
   return useQuery({
     queryKey: ["designs"],
     queryFn: () => apiFetch<Bracelet[]>("/designs"),
+    enabled: params?.enabled !== false,
     refetchInterval: params?.refetchInterval,
     select: (all) => {
       const list = Array.isArray(all) ? all : [];
