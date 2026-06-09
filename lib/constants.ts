@@ -122,7 +122,7 @@ export interface FinishPreset {
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
-  gold:      { metalness: 0.98, roughness: 0.22, envMapIntensity: 0.8 },
+  gold:      { metalness: 0.98, roughness: 0.22, envMapIntensity: 0.5 },
   silver:    { color: "#c0c0c0", metalness: 0.95, roughness: 0.2,  envMapIntensity: 0.9  },
   rose_gold: { color: "#c9a078", metalness: 0.9,  roughness: 0.3,  envMapIntensity: 0.75 },
 };

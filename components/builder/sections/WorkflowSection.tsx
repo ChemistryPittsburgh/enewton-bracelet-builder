@@ -97,10 +97,11 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   // If the bracelet has unsaved changes, save them before submitting for review.
   async function handleSubmit() {
     try {
-      if (isDirty) {
-        setSavingBeforeSubmit(true);
-        await update();
-      }
+      // Always save before submitting — ensures the thumbnail and
+      // configuration are current. update() skips the thumbnail capture
+      // when nothing visual has changed, so this is efficient.
+      setSavingBeforeSubmit(true);
+      await update();
       submit(id);
     } catch (err) {
       console.error("[WorkflowSection] Save before submit failed:", err);
@@ -192,7 +193,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
         <div className="flex flex-col gap-1 rounded-lg border border-error/30 bg-error/5 px-3 py-2.5">
           <p className="text-sm font-semibold text-error">This design was rejected and needs revision.</p>
           {savedDesign.rejection_reason && (
-            <p className="text-xs italic text-error/80">&ldquo;{savedDesign.rejection_reason}&rdquo;</p>
+            <p className="text-xs"><span className="font-semibold text-color-base/80">Reason: </span>&ldquo;{savedDesign.rejection_reason}&rdquo;</p>
           )}
           <p className="text-xs text-color-base/70">Make your changes, then resubmit for review.</p>
         </div>
@@ -317,7 +318,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
               />
             ) : (
               <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => setConfirmSendToDraft(true)}>
-                Recall for editing
+                Return Bracelet to Drafts
               </Button>
             )
           )}
