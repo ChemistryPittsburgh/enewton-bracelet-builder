@@ -102,3 +102,30 @@ export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: nu
   cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0010 }, // tan/gold, ~2.6 mm diameter
   elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.0004 }, // off-white, ~0.8 mm diameter
 };
+
+// ─── Material finish presets ────────────────────────────────────────────────
+// Keyed by product.finish — each property is optional and only overrides the
+// GLB material when present.  Metallic-only: the traverse in BeadOnBracelet
+// skips any mesh whose GLB metalness is < 0.5, so stone, enamel, and other
+// non-metal surfaces are never touched.
+//
+//   color           — hex base colour of the metal
+//   metalness       — 0 (dielectric) → 1 (full metal)
+//   roughness       — 0 (mirror polish) → 1 (fully matte)
+//   envMapIntensity — 0 (no reflections) → 1 (full environment reflections)
+
+export interface FinishPreset {
+  color?:           string;
+  metalness?:       number;
+  roughness?:       number;
+  envMapIntensity?: number;
+}
+
+export const FINISH_PRESETS: Record<string, FinishPreset> = {
+  gold:      { metalness: 0.9, roughness: 0.15, envMapIntensity: 0.4 },
+  silver:    { color: "#c0c0c0", metalness: 0.95, roughness: 0.2,  envMapIntensity: 0.9  },
+  rose_gold: { color: "#c9a078", metalness: 0.9,  roughness: 0.3,  envMapIntensity: 0.75 },
+};
+
+/** Fallback when product.finish is undefined. Set to null to disable. */
+export const DEFAULT_FINISH: string | null = "gold";
