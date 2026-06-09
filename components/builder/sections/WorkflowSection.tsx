@@ -20,6 +20,8 @@ import { useSendToDraft }        from "@/hooks/useSendToDraft";
 import { useSetDesignSku }       from "@/hooks/useSetDesignSku";
 import { useDiscontinueDesign }  from "@/hooks/useDiscontinueDesign";
 import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
+import { useUpdateBracelet }    from "@/hooks/useUpdateBracelet";
+import { useStore }             from "@/lib/store";
 
 import type { Bracelet, BraceletStatus } from "@/types";
 
@@ -59,6 +61,10 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   const { mutate: setSku,      isPending: settingSku,    canSetSku }    = useSetDesignSku();
   const { mutate: discontinue,   isPending: discontinuing,   canDiscontinue }   = useDiscontinueDesign();
   const { mutate: undiscontinue, isPending: undiscontinuing, canUndiscontinue } = useUndiscontinueDesign();
+  const { update }  = useUpdateBracelet();
+  const isDirty     = useStore((s) => s.isDirty);
+
+  const [savingBeforeSubmit, setSavingBeforeSubmit] = useState(false);
 
   const [skuInput,           setSkuInput]           = useState("");
   const [skuError,           setSkuError]           = useState<string | null>(null);
@@ -86,6 +92,23 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   if (!savedDesign) return null;
 
   const { status, id } = savedDesign;
+
+  // ── Auto-save + submit ────────────────────────────────────────────────────
+  // If the bracelet has unsaved changes, save them before submitting for review.
+  async function handleSubmit() {
+    try {
+      if (isDirty) {
+        setSavingBeforeSubmit(true);
+        await update();
+      }
+      submit(id);
+    } catch (err) {
+      console.error("[WorkflowSection] Save before submit failed:", err);
+    } finally {
+      setSavingBeforeSubmit(false);
+    }
+  }
+  const isSubmitBusy = submitting || savingBeforeSubmit;
 
   // ── Discontinued ───────────────────────────────────────────────────────────
   if (savedDesign.is_discontinued === 1) {
@@ -268,9 +291,9 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
       {hasActions && !confirmReject && (
         <div className="flex items-center gap-3 flex-wrap">
           {effectiveStatus === "draft" && canSubmit && (
-            <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => submit(id)} disabled={submitting}>
-              {submitting && <Loader2 size={12} className="animate-spin" />}
-              Submit for Review
+            <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={handleSubmit} disabled={isSubmitBusy}>
+              {isSubmitBusy && <Loader2 size={12} className="animate-spin" />}
+              {savingBeforeSubmit ? "Saving…" : submitting ? "Submitting…" : "Submit for Review"}
             </Button>
           )}
           {effectiveStatus === "in_review" && canApprove && (
@@ -293,8 +316,8 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
                 onCancel={() => setConfirmSendToDraft(false)}
               />
             ) : (
-              <Button className={actionBtnClasses} size="sm" variant="ghost" onClick={() => setConfirmSendToDraft(true)}>
-                Move Back to Drafts
+              <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => setConfirmSendToDraft(true)}>
+                Recall for editing
               </Button>
             )
           )}

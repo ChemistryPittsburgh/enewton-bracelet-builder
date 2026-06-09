@@ -478,8 +478,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
 
             {/* Bottom bar */}
             <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
-            {availableMm}
-              {(availableMm >= MAX_BEAD_DIAMETER) ? (
+              {availableMm >= MAX_BEAD_DIAMETER ? (
                 <>
                 <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
                   {selectedBead?.name ? "Item Selected" : "Select a bead"}

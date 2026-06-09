@@ -78,9 +78,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps)
         <ambientLight intensity={0.2} color="#fff8f2" />
         <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.1} color="#fffaf6" castShadow={viewMode !== 'line'} />
         <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.5} color="#fff5f0" />
-        <Environment preset="apartment" background={false}>
-          <color attach="background" args={["#000000"]} /> 
-        </Environment>
+        <Environment preset="apartment" background={false} blur={0.85} />
 
         <Suspense fallback={null}>
           <BraceletCord />

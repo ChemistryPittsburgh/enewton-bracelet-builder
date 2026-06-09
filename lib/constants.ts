@@ -98,8 +98,8 @@ export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.0
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
  */
 export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number }> = {
-  wire:    { color: "#c8a97e", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0006 }, // silver-grey, ~1.6 mm diameter
-  cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.008 }, // tan/gold, ~2.6 mm diameter
+  wire:    { color: "#ece09b", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0008 }, // silver-grey, ~1.6 mm diameter
+  cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0010 }, // tan/gold, ~2.6 mm diameter
   elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.0004 }, // off-white, ~0.8 mm diameter
 };
 
@@ -122,7 +122,7 @@ export interface FinishPreset {
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
-  gold:      { metalness: 0.85, roughness: 0.05, envMapIntensity: 0.3 },
+  gold:      { metalness: 0.98, roughness: 0.22, envMapIntensity: 0.8 },
   silver:    { color: "#c0c0c0", metalness: 0.95, roughness: 0.2,  envMapIntensity: 0.9  },
   rose_gold: { color: "#c9a078", metalness: 0.9,  roughness: 0.3,  envMapIntensity: 0.75 },
 };
@@ -130,14 +130,13 @@ export const FINISH_PRESETS: Record<string, FinishPreset> = {
 /** Fallback when product.finish is undefined. Set to null to disable. */
 export const DEFAULT_FINISH: string | null = "gold";
 
-/** Set the smallest bead diameter possible */
 export const MAX_BEAD_DIAMETER = 0.8;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.
 
 /** Preset sizes offered in the spacer picker (millimetres). */
-export const SPACER_SIZES_MM = [1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14];
+export const SPACER_SIZES_MM = [1, 2, 3, 4, 5, 6, 8, 10];
 
 /**
  * Creates a fake BeadProduct for a spacer of a given size.
