@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Archive, MoreHorizontal, Trash2 } from "lucide-react";
+import { Archive, CheckCircle, Eye, MoreHorizontal, Send, Trash2, XCircle } from "lucide-react";
 import type { Bracelet } from "@/types";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -23,12 +23,23 @@ interface DesignCardProps {
   onClick?: () => void;
   onDeleteRequest: (design: Bracelet) => void;
   onDiscontinueRequest?: (design: Bracelet) => void;
+  onSubmitForReview?: (design: Bracelet) => void;
+  onApprove?: (design: Bracelet) => void;
+  onRejectRequest?: (design: Bracelet) => void;
 }
 
-export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequest }: DesignCardProps) {
+export function DesignCard({
+  design,
+  onClick,
+  onDeleteRequest,
+  onDiscontinueRequest,
+  onSubmitForReview,
+  onApprove,
+  onRejectRequest,
+}: DesignCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { canDeleteBracelet, isAdmin } = usePermissions();
+  const { canDeleteBracelet, isAdmin, canSubmit, canApprove: hasApprovePermission, canReject: hasRejectPermission } = usePermissions();
   const [imgState, setImgState] = useState<"loading" | "loaded" | "error" | "empty">(
     design.preview_image_url ? "loading" : "empty",
   );
@@ -46,10 +57,28 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
   }, [menuOpen]);
 
   const isDiscontinued = design.is_discontinued === 1;
-  const wasRejected    = design.status === "draft"
-    && !!design.rejected_at
-    && design.rejected_at !== "0000-00-00 00:00:00";
-  const showMenu = canDeleteBracelet && isAdmin && !isDiscontinued;
+  const effectiveStatus = design.status === "rejected" ? "draft" : design.status;
+
+  // Show the rejected flag until the designer saves changes after the rejection.
+  // Once updated_at is newer than rejected_at, the flag clears automatically.
+  const wasRejected = (() => {
+    if (!design.rejected_at || design.rejected_at === "0000-00-00 00:00:00") return false;
+    if (design.status === "rejected") return true;
+    if (design.status === "draft" && design.updated_at > design.rejected_at) return false;
+    return design.status === "draft";
+  })();
+
+  // ── Menu action visibility ────────────────────────────────────────────────
+  const showSubmit      = effectiveStatus === "draft" && canSubmit && !isDiscontinued;
+  const showApprove     = effectiveStatus === "in_review" && hasApprovePermission && !isDiscontinued;
+  const showReject      = effectiveStatus === "in_review" && hasRejectPermission && !isDiscontinued;
+  const showDiscontinue = isAdmin && design.status === "published" && !isDiscontinued && !!onDiscontinueRequest;
+  const showDelete      = canDeleteBracelet;
+
+  const hasWorkflowActions = showSubmit || showApprove || showReject;
+  const hasAdminActions    = showDiscontinue || showDelete;
+
+  const menuItemCls = "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors";
 
   return (
     <div
@@ -98,55 +127,110 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
           )}
 
           {/* ── Three-dot menu ── */}
-          {showMenu && (
-            <div
-              ref={menuRef}
-              className="absolute right-2 top-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setMenuOpen((o) => !o)}
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-neutral-900",
-                  menuOpen
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-100",
-                )}
-                aria-label="More options"
-              >
-                <MoreHorizontal size={15} />
-              </button>
-
-              {menuOpen && (
-                <div className="absolute right-0 top-8 z-10 min-w-[160px] rounded-lg border border-default bg-white py-1 shadow-lg">
-                  {isAdmin && design.status === "published" && !isDiscontinued && onDiscontinueRequest && (
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onDiscontinueRequest(design);
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gold hover:bg-gold/10 transition-colors"
-                    >
-                      <Archive size={14} />
-                      Discontinue
-                    </button>
-                  )}
-                  {canDeleteBracelet && (
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onDeleteRequest(design);
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
-                    >
-                      <Trash2 size={14} />
-                      Delete bracelet
-                    </button>
-                  )}
-                </div>
+          <div
+            ref={menuRef}
+            className="absolute right-2 top-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-neutral-900",
+                menuOpen
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100",
               )}
-            </div>
-          )}
+              aria-label="More options"
+            >
+              <MoreHorizontal size={15} />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-lg border border-default bg-white py-1 shadow-lg">
+                {/* ── Open Design ── */}
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onClick?.();
+                  }}
+                  className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
+                >
+                  <Eye size={14} />
+                  Open design
+                </button>
+
+                {/* ── Workflow actions ── */}
+                {hasWorkflowActions && (
+                  <div className="my-1 border-t border-default" />
+                )}
+                {showSubmit && (
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onSubmitForReview?.(design);
+                    }}
+                    className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
+                  >
+                    <Send size={14} />
+                    Submit for review
+                  </button>
+                )}
+                {showApprove && (
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onApprove?.(design);
+                    }}
+                    className={cn(menuItemCls, "text-green hover:bg-green/10")}
+                  >
+                    <CheckCircle size={14} />
+                    Approve
+                  </button>
+                )}
+                {showReject && (
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onRejectRequest?.(design);
+                    }}
+                    className={cn(menuItemCls, "text-error hover:bg-error/10")}
+                  >
+                    <XCircle size={14} />
+                    Reject
+                  </button>
+                )}
+
+                {/* ── Admin actions ── */}
+                {hasAdminActions && (
+                  <div className="my-1 border-t border-default" />
+                )}
+                {showDiscontinue && (
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDiscontinueRequest!(design);
+                    }}
+                    className={cn(menuItemCls, "text-gold hover:bg-gold/10")}
+                  >
+                    <Archive size={14} />
+                    Discontinue
+                  </button>
+                )}
+                {showDelete && (
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDeleteRequest(design);
+                    }}
+                    className={cn(menuItemCls, "text-error hover:bg-error/10")}
+                  >
+                    <Trash2 size={14} />
+                    Delete bracelet
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
       {/* Card footer */}
@@ -154,11 +238,6 @@ export function DesignCard({ design, onClick, onDeleteRequest, onDiscontinueRequ
         <p className="truncate text-sm font-medium  ">{design.name}</p>
         {design.updated_at && (
           <p className="truncate text-xs text-color-base/70"><span className="text-color-base/70">Last Updated: </span>{formatDate(design.updated_at)}</p>
-        )}
-        {wasRejected && design.rejection_reason && (
-          <p className="truncate text-xs italic text-error">
-            &ldquo;{design.rejection_reason}&rdquo;
-          </p>
         )}
       </div>
     </div>

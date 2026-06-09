@@ -12,6 +12,9 @@ import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { useDiscontinueDesign } from "@/hooks/useDiscontinueDesign";
+import { useSubmitDesign } from "@/hooks/useSubmitDesign";
+import { useApproveDesign } from "@/hooks/useApproveDesign";
+import { useRejectDesign } from "@/hooks/useRejectDesign";
 import { useTags } from "@/hooks/Tags";
 import { useCollections } from "@/hooks/Collections";
 
@@ -21,6 +24,7 @@ import { DesignCard } from "./DesignCard";
 import { TagPicker, CollectionPicker } from "./Pickers";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
 import { DiscontinueBraceletDialog } from "@/components/builder/dialogs/DiscontinueBraceletDialog";
+import { RejectBraceletDialog } from "@/components/builder/dialogs/RejectBraceletDialog";
 
 interface SavedDesignsScreenProps {
   isOpen: boolean;
@@ -66,9 +70,13 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   // ── Dialogs ────────────────────────────────────────────────────────────────
   const [designToDelete,      setDesignToDelete]      = useState<Bracelet | null>(null);
   const [designToDiscontinue, setDesignToDiscontinue] = useState<Bracelet | null>(null);
+  const [designToReject,      setDesignToReject]      = useState<Bracelet | null>(null);
 
   const { mutate: deleteDesign,      isPending: isDeleting      } = useDeleteDesign();
   const { mutate: discontinueDesign, isPending: isDiscontinuing } = useDiscontinueDesign();
+  const { mutate: submitDesign     } = useSubmitDesign();
+  const { mutate: approveDesign    } = useApproveDesign();
+  const { mutate: rejectDesign,      isPending: isRejecting     } = useRejectDesign();
 
   // ── Data ───────────────────────────────────────────────────────────────────
   // Raw unfiltered list — drives option derivation only
@@ -180,7 +188,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   // ── Shared styles ──────────────────────────────────────────────────────────
   const selectCls =
-    "w-[150px] rounded-lg border border-default bg-white px-2 py-2.5 text-sm   outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
+    "w-[150px] rounded-[2px] border border-default bg-white px-2 py-2.5 text-sm   outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
   const formLabel =
     "form-label text-xs text-color-base/70 uppercase font-semibold tracking-wide";
 
@@ -213,10 +221,10 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 key={label}
                 onClick={() => { setSelectedStatus(value); setBraceletState("all"); }}
                 className={cn(
-                  "rounded-full px-4 py-2 lg:px-6 lg:py-3 text-left text-sm lg:text-base transition-all cursor-pointer",
+                  "rounded-[2px] border border-navy px-4 py-2 lg:px-4 lg:py-3 text-left text-sm lg:text-[16px] transition-all cursor-pointer",
                   selectedStatus === value
                     ? "bg-navy text-white"
-                    : "bg-white hover:bg-gold hover:text-white",
+                    : "bg-white hover:bg-mint",
                 )}
               >
                 {label}
@@ -254,7 +262,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                       className={selectCls}
                       aria-label="Filter Bracelets by Material"
                     >
-                      <option value="">Material</option>
+                      <option value="">{selectedMaterials.length > 0 ? `Material (${selectedMaterials.length})` : "Material"}</option>
                       {allMaterials.map((m) => (
                         <option key={m} value={m} disabled={selectedMaterials.includes(m)}>
                           {m ? m.charAt(0).toUpperCase() + m.slice(1) : m}
@@ -268,7 +276,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                       className={selectCls}
                       aria-label="Filter Bracelets by Type"
                     >
-                      <option value="">Type</option>
+                      <option value="">{selectedTypes.length > 0 ? `Type (${selectedTypes.length})` : "Type"}</option>
                       {allTypes.map((t) => (
                         <option key={t} value={t} disabled={selectedTypes.includes(t)}>
                           {t}
@@ -302,7 +310,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 {selectedStatus !== "draft" && selectedStatus !== "in_review" && selectedStatus !== "approved" && (
                   <div className="flex flex-col gap-2">
                     <p className={formLabel}>Bracelet State</p>
-                    <div className="flex rounded-xl border border-default bg-white overflow-hidden w-fit">
+                    <div className="flex rounded-[2px] border border-default bg-white overflow-hidden w-fit">
                       {BRACELET_STATE_OPTIONS.map(({ label, value }) => (
                         <button
                           key={value}
@@ -310,8 +318,8 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                           className={cn(
                             "px-4 py-2 text-sm font-semibold transition-all",
                             braceletState === value
-                              ? "bg-neutral-600 text-white"
-                              : "text-color-base/70 hover:bg-mint",
+                              ? "bg-navy text-white"
+                              : "text-color-base hover:bg-mint",
                           )}
                         >
                           {label}
@@ -324,7 +332,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 {/* Search */}
                 <div className="lg:ml-auto max-lg:max-w-[300px] flex flex-col gap-2 min-w-[200px] shrink-0">
                   <p className={formLabel}>Search</p>
-                  <div className="flex w-full items-center gap-0 rounded-lg border border-default bg-white pr-3 focus-within:border-neutral-500 transition-colors">
+                  <div className="flex w-full items-center gap-0 rounded-[2px] border border-default bg-white pr-3 focus-within:border-navy transition-colors">
                     <input
                       type="text"
                       value={search}
@@ -372,7 +380,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as DesignSortOption)}
-                    className="border-0 bg-transparent text-sm py-1 text-color-base/70 outline-none cursor-pointer hover:text-neutral-900"
+                    className="border-0 bg-transparent text-sm py-1 text-color-base/70 focus:ring-navy outline-none cursor-pointer hover:text-neutral-900"
                   >
                     {SORT_OPTIONS.map(({ label, value }) => (
                       <option key={value} value={value}>{label}</option>
@@ -425,6 +433,9 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                     onClick={() => handleCardClick(design)}
                     onDeleteRequest={(d) => setDesignToDelete(d)}
                     onDiscontinueRequest={(d) => setDesignToDiscontinue(d)}
+                    onSubmitForReview={(d) => submitDesign(d.id)}
+                    onApprove={(d) => approveDesign(d.id)}
+                    onRejectRequest={(d) => setDesignToReject(d)}
                   />
                 ))}
               </div>
@@ -455,6 +466,20 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
             discontinueDesign(designToDiscontinue.id, {
               onSuccess: () => setDesignToDiscontinue(null),
             });
+          }}
+        />
+      )}
+
+      {designToReject && (
+        <RejectBraceletDialog
+          designName={designToReject.name}
+          isRejecting={isRejecting}
+          onCancel={() => setDesignToReject(null)}
+          onConfirm={(reason) => {
+            rejectDesign(
+              { id: designToReject.id, reason },
+              { onSuccess: () => setDesignToReject(null) },
+            );
           }}
         />
       )}

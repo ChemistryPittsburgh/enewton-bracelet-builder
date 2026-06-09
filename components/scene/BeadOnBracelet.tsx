@@ -4,11 +4,11 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { ThreeEvent } from "@react-three/fiber";
-import { Box3, Group, Vector3 } from "three";
+import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, CHARM_ROTATION } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FINISH_PRESETS, DEFAULT_FINISH } from "@/lib/constants";
 import { cloneShared } from "@/lib/measure-bead";
 
 interface BeadOnBraceletProps {
@@ -37,6 +37,28 @@ export function BeadOnBracelet({
     const center = new Vector3();
     rawBox.getCenter(center);
     clone.position.sub(center);
+
+    // ── Apply material finish preset ────────────────────────────────────────
+    // product.finish (when the API provides it) → DEFAULT_FINISH → skip
+    // Only overrides meshes whose GLB metalness ≥ 0.5, so stone, enamel, and
+    // other non-metal surfaces stay untouched.
+    const finishKey: string | null = (bead.product as any).finish ?? DEFAULT_FINISH;
+    const preset = finishKey ? FINISH_PRESETS[finishKey] : undefined;
+    if (preset) {
+      clone.traverse((child) => {
+        if (!(child instanceof Mesh)) return;
+        const srcMat = child.material;
+        if (!(srcMat instanceof MeshStandardMaterial)) return;
+        if (srcMat.metalness < 0.5) return;
+
+        const mat = srcMat.clone();
+        if (preset.color           !== undefined) mat.color.set(preset.color);
+        if (preset.metalness       !== undefined) mat.metalness       = preset.metalness;
+        if (preset.roughness       !== undefined) mat.roughness       = preset.roughness;
+        if (preset.envMapIntensity !== undefined) mat.envMapIntensity = preset.envMapIntensity;
+        child.material = mat;
+      });
+    }
 
     let autoHangOffset = 0;
     // How far below the cord the charm body's centre sits, in the outer group's

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AlertCircle, Check, Download, Loader2, RefreshCw } from "lucide-react";
 
 import { DEFAULT_BRACELET_NAME } from "@/lib/constants";
@@ -18,18 +18,23 @@ function isDefaultName(name: string) {
   return t === "" || t === DEFAULT_BRACELET_NAME;
 }
 
-type SaveStatus = "idle" | "saving" | "saved" | "error" | "name_required";
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 interface BraceletExporterProps {
   /**
    * Called when the user tries to save a new bracelet without setting a name.
-   * The parent can use this to highlight the "view bracelet details" link.
+   * Kept for backward-compat — the inline popover now handles this directly,
+   * but the parent can still use the callback for secondary visual cues.
    */
   onNameRequired?: () => void;
 }
 
 export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const [showNamePopover, setShowNamePopover] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [pendingSaveAfterName, setPendingSaveAfterName] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const { canEdit } = usePermissions();
 
   const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize } =
@@ -42,10 +47,36 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
       braceletSize:        s.braceletSize,
     }));
 
+  const setBraceletName = useStore((s) => s.setBraceletName);
+
   const { data: savedDesign } = useDesign(activeDesignId);
   const isUpdate = activeDesignId !== null;
 
-  // ── Dirty check ────────────────────────────────────────────────────────────
+  // ── Close popover on outside click ──────────────────────────────────────────
+  useEffect(() => {
+    if (!showNamePopover) return;
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setShowNamePopover(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showNamePopover]);
+
+  // ── Auto-save after the name is set ─────────────────────────────────────────
+  // setBraceletName updates the Zustand store, but hook subscriptions (and the
+  // save/update functions they produce) only reflect the new value after React
+  // re-renders.  This effect waits for that re-render, then fires the save with
+  // the correct braceletName baked into the hooks.
+  useEffect(() => {
+    if (!pendingSaveAfterName) return;
+    if (isDefaultName(braceletName)) return;
+    setPendingSaveAfterName(false);
+    doSave();
+  }, [pendingSaveAfterName, braceletName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Dirty check ─────────────────────────────────────────────────────────────
   const isDirty = (() => {
     if (!isUpdate) return true;
     if (!savedDesign) return false;
@@ -61,17 +92,7 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
   const { save }              = useSaveBracelet();
   const { update, canUpdate } = useUpdateBracelet();
 
-  async function handleClick() {
-    if (status === "saving") return;
-
-    // Gate new saves on a real name being set
-    if (!isUpdate && isDefaultName(braceletName)) {
-      setStatus("name_required");
-      onNameRequired?.();
-      setTimeout(() => setStatus("idle"), 3000);
-      return;
-    }
-
+  async function doSave() {
     setStatus("saving");
     try {
       if (isUpdate) {
@@ -88,6 +109,29 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
     }
   }
 
+  async function handleClick() {
+    if (status === "saving") return;
+
+    // Show the inline name popover for new bracelets without a name
+    if (!isUpdate && isDefaultName(braceletName)) {
+      setNameInput("");
+      setShowNamePopover(true);
+      return;
+    }
+
+    await doSave();
+  }
+
+  function handlePopoverSave() {
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === DEFAULT_BRACELET_NAME) return;
+
+    setBraceletName(trimmed);
+    setShowNamePopover(false);
+    // Defer the actual save until hooks pick up the new name (see useEffect above)
+    setPendingSaveAfterName(true);
+  }
+
   if (!canEdit) return null;
   if (isUpdate && !isDirty && status === "idle") return null;
 
@@ -101,40 +145,71 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
   const savedLabel  = isUpdate ? "Updated!"        : "Saved!";
 
   return (
-    <Button
-      onClick={handleClick}
-      variant="secondary"
-      disabled={isDisabled}
-      title={
-        isLocked
-          ? lockedTitle
-          : isUpdate && !canUpdate
-            ? "You don't have permission to edit this design."
-            : lockedTitle
-      }
-      className={
-        status === "saved"
-          ? "bg-green hover:bg-green/50 text-white border-green"
-          : status === "error" || status === "name_required"
-            ? "bg-error hover:bg-error/60 border-error text-white"
-            : ""
-      }
-    >
-      {status === "saving"        && <Loader2     size={14} className="animate-spin" />}
-      {status === "saved"         && <Check       size={14} />}
-      {status === "error"         && <AlertCircle size={14} />}
-      {status === "name_required" && <AlertCircle size={14} />}
-      {status === "idle"          && (isUpdate
-        ? <RefreshCw size={14} />
-        : <Download  size={14} />
+    <div className="relative" ref={popoverRef}>
+      <Button
+        onClick={handleClick}
+        variant="secondary"
+        disabled={isDisabled}
+        title={
+          isLocked
+            ? lockedTitle
+            : isUpdate && !canUpdate
+              ? "You don't have permission to edit this design."
+              : undefined
+        }
+        className={
+          status === "saved"
+            ? "bg-green hover:bg-green/50 text-white border-green"
+            : status === "error" || showNamePopover
+              ? "bg-error hover:bg-error border-error text-white"
+              : ""
+        }
+      >
+        {status === "saving"        && <Loader2     size={14} className="animate-spin" />}
+        {status === "saved"         && <Check       size={14} />}
+        {status === "error"         && <AlertCircle size={14} />}
+        {showNamePopover            && <AlertCircle size={14} />}
+        {status === "idle" && !showNamePopover && (isUpdate
+          ? <RefreshCw size={14} />
+          : <Download  size={14} />
+        )}
+        <span>
+          {status === "saving"  ? savingLabel :
+           status === "saved"   ? savedLabel  :
+           status === "error"   ? "Failed"    :
+           showNamePopover      ? "Set a name first" :
+           idleLabel}
+        </span>
+      </Button>
+
+      {/* Floating name popover — appears when saving without a name */}
+      {showNamePopover && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-default bg-white p-3 shadow-lg">
+          <p className="text-xs font-semibold text-color-base/70 mb-2">Name your bracelet to save</p>
+          <input
+            type="text"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handlePopoverSave(); }}
+            placeholder="Enter bracelet name"
+            autoFocus
+            className="w-full rounded-md border border-default px-3 py-1.5 text-sm outline-none transition-colors focus:border-navy placeholder:text-color-base/70"
+          />
+          <div className="mt-2 flex items-center gap-2 justify-end">
+            <Button size="sm" variant="ghost" onClick={() => setShowNamePopover(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!nameInput.trim() || nameInput.trim() === DEFAULT_BRACELET_NAME}
+              onClick={handlePopoverSave}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
       )}
-      <span>
-        {status === "saving"        ? savingLabel        :
-         status === "saved"         ? savedLabel         :
-         status === "error"         ? "Failed"           :
-         status === "name_required" ? "Set a name first" :
-         idleLabel}
-      </span>
-    </Button>
+    </div>
   );
 }
