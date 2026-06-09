@@ -14,7 +14,7 @@ interface BandSelectorProps {
 
 const toggleClass = (active: boolean, disabled = false) =>
   cn(
-    "rounded-lg border px-2 py-1 text-[11px] font-medium transition-all",
+    "rounded-[2px] border px-2 py-1 text-[11px] font-medium transition-all",
     disabled
       ? "border-default bg-neutral-50 text-light-grey cursor-not-allowed"
       : active

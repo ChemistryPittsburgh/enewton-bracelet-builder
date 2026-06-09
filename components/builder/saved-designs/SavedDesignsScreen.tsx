@@ -173,7 +173,13 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   // ── Load handler ───────────────────────────────────────────────────────────
   function handleCardClick(design: Bracelet) {
     if (design.id === activeDesignId) { onClose(); return; }
-    if (isDirty) {
+
+    // Prompt if there are unsaved changes, or if a new bracelet has beads
+    // that would be lost. The second check covers page refreshes where beads
+    // restore from localStorage but isDirty resets to false.
+    const hasUnsavedWork = isDirty || (beads.length > 0 && activeDesignId === null);
+
+    if (hasUnsavedWork) {
       setPendingDesign(design, onClose);
     } else {
       loadDesign(design);

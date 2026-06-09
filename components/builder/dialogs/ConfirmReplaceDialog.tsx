@@ -9,6 +9,12 @@ import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 import { usePermissions } from "@/hooks/usePermissions";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Button } from "@/components/ui/Button";
+import { DEFAULT_BRACELET_NAME } from "@/lib/constants";
+
+function isDefaultName(name: string) {
+  const t = name.trim();
+  return t === "" || t === DEFAULT_BRACELET_NAME;
+}
 
 type ConfirmStatus = "idle" | "saving" | "error";
 
@@ -18,18 +24,44 @@ type ConfirmStatus = "idle" | "saving" | "error";
  * Rendered once at the root (BuilderLayout). Any panel that wants to load a
  * design while the canvas has beads should call `store.setPendingDesign(design, onClose)`
  * instead of calling loadDesign() directly — this dialog will handle the rest.
+ *
+ * If the bracelet hasn't been named yet, an inline name input is shown and
+ * "Save & Load" is blocked until a name is entered.
  */
 export function ConfirmReplaceDialog() {
   const pendingDesign    = useStore((s) => s.pendingDesign);
   const pendingOnLoad    = useStore((s) => s.pendingDesignOnLoad);
   const clearPending     = useStore((s) => s.clearPendingDesign);
   const braceletName     = useStore((s) => s.braceletName);
+  const setBraceletName  = useStore((s) => s.setBraceletName);
 
   const { loadDesign }   = useLoadDesign();
   const { save }         = useSaveBracelet();
   const { canEdit }      = usePermissions();
 
-  const [status, setStatus] = useState<ConfirmStatus>("idle");
+  const [status, setStatus]                       = useState<ConfirmStatus>("idle");
+  const [nameInput, setNameInput]                 = useState("");
+  const [pendingSaveAfterName, setPendingSaveAfterName] = useState(false);
+
+  const needsName = isDefaultName(braceletName);
+
+  // Seed the name input when the dialog opens
+  useEffect(() => {
+    if (pendingDesign) {
+      setNameInput(needsName ? "" : braceletName);
+      setStatus("idle");
+      setPendingSaveAfterName(false);
+    }
+  }, [pendingDesign]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After setBraceletName triggers a re-render with the new name,
+  // this effect fires the save with the correct braceletName in the closure.
+  useEffect(() => {
+    if (!pendingSaveAfterName) return;
+    if (isDefaultName(braceletName)) return;
+    setPendingSaveAfterName(false);
+    doSaveAndLoad();
+  }, [pendingSaveAfterName, braceletName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close on Escape — only when not mid-save
   useEffect(() => {
@@ -43,8 +75,9 @@ export function ConfirmReplaceDialog() {
 
   if (!pendingDesign) return null;
 
-  async function handleSaveAndLoad() {
-    if (status === "saving") return;
+  const canSave = !needsName || (nameInput.trim() !== "" && nameInput.trim() !== DEFAULT_BRACELET_NAME);
+
+  async function doSaveAndLoad() {
     setStatus("saving");
     try {
       await save();
@@ -57,6 +90,21 @@ export function ConfirmReplaceDialog() {
     } catch {
       setStatus("error");
     }
+  }
+
+  async function handleSaveAndLoad() {
+    if (status === "saving") return;
+
+    if (needsName) {
+      const trimmed = nameInput.trim();
+      if (!trimmed || trimmed === DEFAULT_BRACELET_NAME) return;
+      setBraceletName(trimmed);
+      // Defer save until the next render picks up the new name (see useEffect above)
+      setPendingSaveAfterName(true);
+      return;
+    }
+
+    doSaveAndLoad();
   }
 
   function handleDiscardAndLoad() {
@@ -81,23 +129,24 @@ export function ConfirmReplaceDialog() {
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === e.currentTarget && status !== "saving") handleCancel(); }}
     >
-      <div className="w-[360px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-5">
+      <div className="w-[450px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-md font-semibold">
+            <h3 className="text-[20px] font-semibold">
               Replace current bracelet?
             </h3>
             <p className="mt-2 text-sm text-color-base/80 leading-relaxed">
               You have beads on{" "}
-              <span className="font-medium  ">"{braceletName}"</span>.
+              <span className="font-medium  ">"{braceletName}"</span> that aren't saved and will be lost.<br />
+              <span className="pb-1 block" />
               {pendingDesign.id === -1
                 ? canEdit
                   ? " Save before starting a new bracelet?"
                   : " Start a new bracelet?"
                 : canEdit
                   ? <>
-                      {" "}Save it before loading{" "}
+                      {" "}Save before loading{" "}
                       <span className="font-medium">"{pendingDesign.name}"</span>?
                     </>
                   : <>
@@ -121,11 +170,27 @@ export function ConfirmReplaceDialog() {
           <ErrorAlert message="Save failed — check your connection and try again." />
         )}
 
-        <div className="flex flex-col gap-2">
+        {/* Name input — shown when the bracelet hasn't been named yet */}
+        {canEdit && needsName && (
+          <div className="flex flex-col gap-1.5 pb-1">
+            <label className="text-xs font-semibold text-color-base/70">Name your bracelet to save</label>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSaveAndLoad(); }}
+              placeholder="Enter bracelet name"
+              autoFocus
+              className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none transition-colors focus:border-navy focus:ring-navy placeholder:text-color-base/70"
+            />
+          </div>
+        )}
+
+        <div className="flex max-lg:flex-col gap-2">
           {canEdit && (
             <Button
               onClick={handleSaveAndLoad}
-              disabled={status === "saving"}
+              disabled={status === "saving" || !canSave}
               variant="primary"
               size="sm"
               className="w-full"

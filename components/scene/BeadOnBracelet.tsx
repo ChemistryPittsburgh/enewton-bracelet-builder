@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { ThreeEvent } from "@react-three/fiber";
-import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
+import { Box3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
@@ -56,6 +56,14 @@ export function BeadOnBracelet({
         if (preset.metalness       !== undefined) mat.metalness       = preset.metalness;
         if (preset.roughness       !== undefined) mat.roughness       = preset.roughness;
         if (preset.envMapIntensity !== undefined) mat.envMapIntensity = preset.envMapIntensity;
+
+        // Neutralise clearcoat if present — it adds a mirror-sharp reflection
+        // layer on top of the base roughness, making smooth charms show the
+        // environment even when the base is adequately rough.
+        if (mat instanceof MeshPhysicalMaterial && mat.clearcoat > 0) {
+          mat.clearcoat = 0;
+        }
+
         child.material = mat;
       });
     }
