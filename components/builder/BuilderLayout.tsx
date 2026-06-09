@@ -245,8 +245,9 @@ export function BuilderLayout() {
             <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
               <CanvasWorkflowBar />
               {savedDesign?.status === "rejected" && savedDesign?.rejection_reason && (
-                <p className="max-w-[240px] px-2 py-0.5 text-xs leading-relaxed text-rose-600 italic">
-                  &ldquo;{savedDesign.rejection_reason}&rdquo;
+                <p className="max-w-[240px] pt-1 text-xs leading-relaxed">
+                  <span className="text-color-base/60 font-semibold">Reason: </span>
+                  <span className="italic">&ldquo;{savedDesign.rejection_reason}&rdquo;</span>
                 </p>
               )}
               <p className="py-2 font-semibold leading-snug">

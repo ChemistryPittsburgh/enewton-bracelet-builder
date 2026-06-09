@@ -13,8 +13,8 @@ import type { Collection, Tag } from "@/types";
 // ── Shared internals ──────────────────────────────────────────────────────────
 
 const triggerCls = {
-  filter: "w-[150px] rounded-lg border border-default bg-white px-2 py-2.5 text-sm outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer flex items-center justify-between gap-1",
-  assign: "flex items-center gap-1.5 rounded-lg border border-default bg-white px-3 py-1.5 text-sm min-w-[200px] justify-between transition-colors hover:border-neutral-400 cursor-pointer",
+  filter: "w-[150px] rounded-[2px] border border-default bg-white px-2 py-2.5 text-sm outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer flex items-center justify-between gap-1",
+  assign: "flex items-center gap-1.5 rounded-[2px] border border-default bg-white px-3 py-1.5 text-sm min-w-[200px] justify-between transition-colors hover:border-neutral-400 cursor-pointer",
 } as const;
 
 function useDropdown() {
@@ -79,7 +79,7 @@ export function TagPicker({
         </button>
 
         {open && (
-          <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-default bg-white shadow-lg overflow-hidden">
+          <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-[2px] border border-default bg-white shadow-lg overflow-hidden">
             {isAdmin && showManage && (
               <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-2">
                 <span className="text-xs font-semibold text-color-base/70 uppercase tracking-wide">Custom Tags</span>
@@ -170,9 +170,9 @@ export function CollectionPicker({
         </button>
 
         {open && (
-          <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-default bg-white shadow-lg overflow-hidden">
+          <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-[2px] border border-default bg-white shadow-lg overflow-hidden">
             {isAdmin && showManage && (
-              <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-2">
+              <div className="flex items-center justify-between border-b border-default px-3 py-2">
                 <span className="text-xs font-semibold text-color-base/70 uppercase tracking-wide">Collections</span>
                 <button
                   onClick={() => { setOpen(false); setManageOpen(true); }}
