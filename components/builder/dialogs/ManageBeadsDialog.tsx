@@ -40,6 +40,7 @@ import {
   slugify,
 } from "@/hooks/useBeadAdmin";
 import { usePermissions } from "@/hooks/usePermissions";
+
 import {
   CHARM_ROTATION,
   SCENE_BACKGROUND_PREVIEW_BEAD,
@@ -538,7 +539,7 @@ function BeadForm({
   const previewUrl = glbPreviewUrl ?? existingGlbPath ?? null;
 
   return (
-    <div className="rounded-lg border border-default bg-white shadow-sm overflow-hidden">
+    <div className="rounded-lg border border-default bg-white shadow-sm">
 
       {/* Inactive status banner */}
       {isInactive && (
@@ -566,15 +567,20 @@ function BeadForm({
         <div className="lg:w-[280px] shrink-0 border-b lg:border-b-0 lg:border-r border-default bg-light-grey/30 flex flex-col">
           {/* Preview canvas */}
           <div className="flex-1 w-full relative">
-            {previewUrl ? (
-              <GlbPreview url={previewUrl} isCharm={isCharm} finish={form.material || null} captureRef={captureRef} />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-color-base/40">
-                Upload a GLB to preview
-              </div>
+            <div className="flex h-full relative z-10">
+              {previewUrl ? (
+                <GlbPreview url={previewUrl} isCharm={isCharm} finish={form.material || null} captureRef={captureRef} />
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-color-base/40">
+                  Upload a GLB to preview
+                </div>
+              )}
+            </div>
+            {glbFile && (
+              <span className="absolute animate-pulse rounded-[2px] top-0 left-0 bg-blush ring-3 ring-dark-blush inline-flex h-full w-full"></span>
             )}
             {validatingMagic && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/60">
+              <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-20">
                 <Loader2 size={20} className="animate-spin text-color-base/60" />
               </div>
             )}
@@ -614,7 +620,7 @@ function BeadForm({
             )}
           </div>
           {glbFile && 
-            <p className="text-xs pb-2 px-2 font-semibold text-center text-error">Ensure the model above is rendering correctly before saving.</p>
+            <p className="text-xs pb-2 px-2 font-semibold text-center text-dark-blush">Ensure the model above is rendering correctly before saving.</p>
           }
         </div>
 
@@ -844,6 +850,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
   const [showInactive, setShowInactive] = useState(false);
   const [thumbVersion, setThumbVersion] = useState(0);
 
+
   // ── Filtered bead list ──────────────────────────────────────────────────
   const filteredBeads = useMemo(() => {
     let list = allBeads;
@@ -895,9 +902,15 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
 
   function handleToggleActive(bead: BeadProduct) {
     setTogglingId(bead.id);
+    const newActive = bead.active !== 1;
     toggleActive(
-      { slug: bead.slug, active: bead.active !== 1 },
+      { slug: bead.slug, active: newActive },
       {
+        onSuccess: () => {
+          if (editingBead?.id === bead.id) {
+            setEditingBead({ ...bead, active: newActive ? 1 : 0 });
+          }
+        },
         onSettled: () => setTogglingId(null),
       },
     );

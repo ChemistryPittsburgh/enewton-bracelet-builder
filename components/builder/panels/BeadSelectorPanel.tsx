@@ -83,11 +83,11 @@ function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
             : ""
       }`}
     >
-      <div className="bg-light-grey p-2 min-h-[70px] w-full items-center flex justify-center">
-        <BeadThumbnail bead={bead} className="w-[38px] h-auto" />
+      <div className="bg-light-grey p-2 h-[80px] w-full items-center flex justify-center">
+        <BeadThumbnail bead={bead}  />
       </div>
       <div className="flex flex-col pt-[2px] pb-2 text-left px-2">
-        <span className="text-[12px]">{bead.bead_type}</span>
+        <span className="text-[12px]">{bead.name}</span>
         <span className="text-[10px] leading-tight text-color-base/70">{size}mm</span>
       </div>
     </button>
@@ -162,7 +162,7 @@ function SpacerPicker({ onAdd, error }: {
         <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-3">
           Spacer size
         </p>
-        <div className="grid grid-cols-4 gap-2 mb-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
           {SPACER_SIZES_MM.map((size) => {
             const canFit   = size <= availableMm;
             const isActive = selectedSize === size && !customSize;
@@ -431,7 +431,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
                   No beads match your filters.
                 </p>
               ) : (
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 min-[1700px]:grid-cols-4 gap-3">
                   {filteredBeads.map((bead) => (
                     <BeadCard
                       key={bead.id}
