@@ -1,22 +1,41 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useDesigns } from "./useDesigns";
 import { usePermissions } from "./usePermissions";
+import { getPusher } from "@/lib/pusher";
 
 /**
  * Single source of truth for notification data used by the header badge
  * (BuilderLayout) and the notification lists (UserScreen).
  *
- * Polls GET /designs every 30 s while the current user is a reviewer or
- * publisher. React Query deduplicates the subscription across callers —
- * one network request, shared cache, both consumers always in sync.
+ * React Query fetches the initial state; Pusher's `design.status-changed`
+ * event invalidates the cache whenever a workflow transition happens,
+ * replacing the old 30-second polling loop.
  */
 export function useNotifications() {
   const { canReview, canPublish } = usePermissions();
+  const queryClient = useQueryClient();
+
   const { data: allDesigns = [] } = useDesigns({
     enabled: canReview || canPublish,
-    refetchInterval: 30_000,
   });
+
+  useEffect(() => {
+    if (!canReview && !canPublish) return;
+
+    const pusher = getPusher();
+    const channel = pusher.subscribe("private-designs");
+
+    channel.bind("design.status-changed", () => {
+      queryClient.invalidateQueries({ queryKey: ["designs"] });
+    });
+
+    return () => {
+      channel.unbind("design.status-changed");
+      pusher.unsubscribe("private-designs");
+    };
+  }, [canReview, canPublish, queryClient]);
 
   const inReviewDesigns = useMemo(
     () => (canReview ? allDesigns.filter((d) => d.status === "in_review") : []),

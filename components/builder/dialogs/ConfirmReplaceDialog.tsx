@@ -24,6 +24,7 @@ export function ConfirmReplaceDialog() {
   const pendingOnLoad    = useStore((s) => s.pendingDesignOnLoad);
   const clearPending     = useStore((s) => s.clearPendingDesign);
   const braceletName     = useStore((s) => s.braceletName);
+  const activeDesignId   = useStore((s) => s.activeDesignId);
 
   const { loadDesign }   = useLoadDesign();
   const { save }         = useSaveBracelet();
@@ -49,7 +50,10 @@ export function ConfirmReplaceDialog() {
     try {
       await save();
       if (pendingDesign!.id !== -1) {
-        const ok = await loadDesign(pendingDesign!);
+        // If the pending design is the one already on the canvas, we hold the
+        // lock — skip the redundant POST /lock that could race and discard the save.
+        const alreadyHeld = pendingDesign!.id === activeDesignId;
+        const ok = await loadDesign(pendingDesign!, alreadyHeld);
         if (!ok) { setStatus("error"); return; }
       }
       pendingOnLoad?.();

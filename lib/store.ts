@@ -200,6 +200,8 @@ export const useStore = create<Store>()(
         activeDesignId: null,
         selectedBead: null,
         isDirty: false,
+        braceletSize: "small" as BraceletSize,
+        bandMaterial: "cord" as BandMaterial,
       }),
 
       selectBead(bead) {

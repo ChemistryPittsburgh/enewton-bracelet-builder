@@ -43,6 +43,7 @@ import { useLockDesign } from "@/hooks/useLockDesign";
 import { useReleaseLock } from "@/hooks/useReleaseLock";
 import { useDesignHeartbeat } from "@/hooks/useDesignHeartbeat";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
+import { usePusherDesign } from "@/hooks/usePusherDesign";
 
 export function BuilderLayout() {
   const {
@@ -71,10 +72,7 @@ export function BuilderLayout() {
 
   const { data: currentUser } = useCurrentUser();
   const { canEdit, canReview, canPublish } = usePermissions();
-  const { data: savedDesign, isFetching: designFetching } = useDesign(
-    activeDesignId,
-    { refetchInterval: activeDesignId !== null ? 30_000 : false },
-  );
+  const { data: savedDesign, isFetching: designFetching } = useDesign(activeDesignId);
 
   // ── Notification badge (header) ───────────────────────────────────────────
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
@@ -91,7 +89,6 @@ export function BuilderLayout() {
   const [kickedNotification, setKickedNotification] = useState(false);
   const [showKickedModal,    setShowKickedModal]    = useState(false);
   const prevDesignIdRef = useRef<number | null>(null);
-  const lastSyncedAtRef = useRef<string | null>(null);
   const { mutate: releaseLock } = useReleaseLock();
   const { mutateAsync: acquireLock } = useLockDesign();
   const { syncDesign } = useLoadDesign();
@@ -138,6 +135,11 @@ export function BuilderLayout() {
     // undefined===undefined → true → skips the POST that would acquire the lock.
     if (!currentUser) return;
 
+    // Don't re-acquire after being kicked — the admin still holds the lock and
+    // releasing it would re-trigger this effect with active_lock=null, causing
+    // the kicked user to silently re-acquire and show both banners at once.
+    if (kickedNotification) return;
+
     const activeLock = savedDesign.active_lock;
 
     if (activeLock?.user_id === currentUser.id) {
@@ -159,21 +161,7 @@ export function BuilderLayout() {
       .then((result) => { setLockHeld(result.acquired); })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDesignId, savedDesign?.id, savedDesign?.status, savedDesign?.active_lock?.user_id, currentUser?.id, designFetching]);
-
-  // Reset tracked updated_at on design change so the first poll always syncs.
-  useEffect(() => { lastSyncedAtRef.current = null; }, [activeDesignId]);
-
-  // When another user saves changes, sync the canvas for read-only viewers.
-  // The ref guard ensures syncDesign only fires when updated_at genuinely
-  // changes — not on every poll or when lockHeld transitions (e.g. after kick).
-  useEffect(() => {
-    if (!savedDesign || designFetching || lockHeld) return;
-    if (savedDesign.updated_at === lastSyncedAtRef.current) return;
-    lastSyncedAtRef.current = savedDesign.updated_at;
-    syncDesign(savedDesign);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedDesign?.updated_at, designFetching, lockHeld]);
+  }, [activeDesignId, savedDesign?.id, savedDesign?.status, savedDesign?.active_lock?.user_id, currentUser?.id, designFetching, kickedNotification]);
 
   // Editing is locked by workflow status, by another user holding the lock,
   // or when this user has been kicked off the design. Exclude stale-cache
@@ -197,6 +185,30 @@ export function BuilderLayout() {
       }
     },
   );
+
+  // Real-time design events via Pusher — replaces the 30s polling-based sync.
+  usePusherDesign(activeDesignId, {
+    onUpdated: (design) => {
+      // Keep read-only viewers' canvas in sync when the lock holder saves.
+      if (!lockHeld) syncDesign(design);
+      queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
+    },
+    onLockTaken: () => {
+      // Admin force-took the lock — instant kick without waiting for heartbeat.
+      setLockHeld(false);
+      setKickedNotification(true);
+      setShowKickedModal(true);
+      if (activeDesignId !== null) {
+        queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
+      }
+    },
+    onLockChanged: () => {
+      // Lock acquired or released by someone — refresh to get updated active_lock.
+      if (activeDesignId !== null) {
+        queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
+      }
+    },
+  });
 
   // ── Name-required highlight ───────────────────────────────────────────────
   // Activated by BraceletExporter when the user tries to save without a name.
