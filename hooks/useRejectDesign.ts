@@ -19,7 +19,8 @@ export function useRejectDesign() {
         body: JSON.stringify({ reason: reason ?? null }),
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["designs", data.id] });
       queryClient.invalidateQueries({ queryKey: ["designs"] });
     },
   });

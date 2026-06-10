@@ -22,6 +22,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDesigns } from "@/hooks/useDesigns";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useIsDirty } from "@/hooks/useIsDirty";
 import { getPrimaryRole } from "@/hooks/usePermissions";
@@ -235,12 +236,9 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
-  /** Poll every 30 s while the panel is visible; stop when closed. */
-  const POLL_MS = 30_000;
 
   const { data: allDesigns = [] } = useDesigns({ enabled: open });
-  const { data: inReview   = [] } = useDesigns({ status: "in_review", refetchInterval: open ? POLL_MS : false, enabled: open });
-  const { data: approved   = [] } = useDesigns({ status: "approved",  refetchInterval: open ? POLL_MS : false, enabled: open });
+  const { inReviewDesigns: inReview, approvedDesigns: approved } = useNotifications();
   const { loadDesign }    = useLoadDesign();
 
   const beads            = useStore((s) => s.beads);

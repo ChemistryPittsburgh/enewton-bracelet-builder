@@ -21,7 +21,8 @@ export function useReopenDesign() {
     mutationFn(id: number) {
       return apiFetch<Bracelet>(`/designs/${id}/reopen`, { method: "POST" });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["designs", data.id] });
       queryClient.invalidateQueries({ queryKey: ["designs"] });
     },
   });

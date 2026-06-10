@@ -34,8 +34,8 @@ import { getInitials } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDesign } from "@/hooks/useDesign";
-import { useDesigns } from "@/hooks/useDesigns";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useLockDesign } from "@/hooks/useLockDesign";
 import { useReleaseLock } from "@/hooks/useReleaseLock";
 import { useDesignHeartbeat } from "@/hooks/useDesignHeartbeat";
@@ -74,13 +74,10 @@ export function BuilderLayout() {
   );
 
   // ── Notification badge (header) ───────────────────────────────────────────
-  // Poll designs only for users who need the badge (reviewer / publisher).
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
-  const { data: allDesigns = [] } = useDesigns({ enabled: canReview || canPublish, refetchInterval: 60_000 });
-  const notificationCount =
-    (canReview  ? allDesigns.filter((d) => d.status === "in_review").length : 0) +
-    (canPublish ? allDesigns.filter((d) => d.status === "approved").length  : 0);
+  const { inReviewCount, approvedCount } = useNotifications();
+  const notificationCount = inReviewCount + approvedCount;
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
   const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
