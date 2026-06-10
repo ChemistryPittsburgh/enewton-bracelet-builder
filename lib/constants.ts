@@ -33,6 +33,7 @@ export const LOGO_ALT = "eNewton Logo";
 
 /** Default canvas background colour. */
 export const SCENE_BACKGROUND = "#f5f0eb";
+export const SCENE_BACKGROUND_PREVIEW_BEAD = "#f1f3f5"; // currently light-grey
 
 /** Fixed pixel dimensions for saved bracelet thumbnail PNGs (square). */
 export const THUMBNAIL_SIZE = 600;
@@ -78,7 +79,7 @@ export const CAMERA_EDIT_HEIGHT = 0.12;
 export const CHARM_MIN_ARC_HALF = 0.0008;
 
 /** Euler rotation [rx, ry, rz] applied to every charm GLB to orient it hanging from the cord. */
-export const CHARM_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI / 1.8];
+export const CHARM_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI * 1.5];
 
 /** Fixed camera position for line view — locked, no user controls. */
 export const LINE_VIEW_CAMERA_POSITION: [number, number, number] = [0, 0.05, 0.09];
@@ -122,7 +123,7 @@ export interface FinishPreset {
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
-  gold:      { metalness: 0.98, roughness: 0.22, envMapIntensity: 0.5 },
+  gold:      { metalness: 1, roughness: 0.2, envMapIntensity: 0.65 },
   silver:    { color: "#c0c0c0", metalness: 0.95, roughness: 0.2,  envMapIntensity: 0.9  },
   rose_gold: { color: "#c9a078", metalness: 0.9,  roughness: 0.3,  envMapIntensity: 0.75 },
 };
@@ -132,11 +133,14 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MAX_BEAD_DIAMETER = 0.8;
 
+export const BEAD_CATEGORIES = ["bead", "charm", "tube"] as const;
+export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold"] as const;
+
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.
 
 /** Preset sizes offered in the spacer picker (millimetres). */
-export const SPACER_SIZES_MM = [1, 2, 3, 4, 5, 6, 8, 10];
+export const SPACER_SIZES_MM = [1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14];
 
 /**
  * Creates a fake BeadProduct for a spacer of a given size.

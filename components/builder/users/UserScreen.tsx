@@ -32,6 +32,7 @@ interface UserScreenProps {
   open: boolean;
   onClose: () => void;
   onEditUsers?: () => void;
+  onManageBeads?: () => void;
 }
 
 function formatEventDate(iso: string): string {
@@ -231,7 +232,7 @@ function HistoryMenu({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
+export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserScreenProps) {
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
@@ -329,14 +330,22 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
           )}
 
           {/* Administration actions */}
-          {user?.permissions.is_admin && (
+          {(user?.permissions.is_admin || user?.permissions.is_component_admin) && (
             <div className="flex flex-col gap-1">
               <SectionHeading>Administration actions</SectionHeading>
+              {user?.permissions.is_admin && (
+                <button
+                  onClick={() => onEditUsers?.()}
+                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+                >
+                  Edit users
+                </button>
+              )}
               <button
-                onClick={() => onEditUsers?.()}
+                onClick={() => onManageBeads?.()}
                 className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
               >
-                Edit users
+                Upload / Edit Beads
               </button>
               {["View components", "View bracelets"].map((label) => (
                 <button

@@ -76,12 +76,6 @@ export function BeadInfoDialog() {
               <InfoRow layout="horizontal" label="Diameter" value={bead.product.size_mm != null
                 ? `${bead.product.size_mm} mm`
                 : `${Math.round(bead.product.diameter * 1000)} mm`} />
-              {bead.product.bead_category !== 'Spacer' && (
-                <InfoRow layout="horizontal"
-                  label="File"
-                  value={bead.product.glb_path.split("/").pop() ?? ""}
-                />
-              )}
               <InfoRow layout="horizontal" label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
             </div>
             {matchCount > 1 && (
