@@ -31,9 +31,10 @@ import type { Bracelet } from "@/types";
 interface BraceletDetailsDialogProps {
   open: boolean;
   onClose: () => void;
+  isKicked?: boolean;
 }
 
-export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogProps) {
+export function BraceletDetailsDialog({ open, onClose, isKicked = false }: BraceletDetailsDialogProps) {
   const {
     braceletName,
     braceletDescription,
@@ -56,7 +57,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
   const { data: savedDesign } = useDesign(activeDesignId);
   const { canEdit } = usePermissions();
-  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
+  const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published" || isKicked;
 
   // ── Name / description edit state ───────────────────────────────────────────
   const [isEditing,        setIsEditing]        = useState(false);
@@ -217,13 +218,13 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
         </div>
 
         {/* ── Workflow (includes reactivate for discontinued designs) ───── */}
-        <WorkflowSection savedDesign={savedDesign} />
+        <WorkflowSection savedDesign={savedDesign} isReadOnly={isKicked} />
 
         {/* ── Collections ─────────────────────────────────────────────── */}
-        {savedDesign && <CollectionsSection design={savedDesign} />}
+        {savedDesign && <CollectionsSection design={savedDesign} isReadOnly={isKicked} />}
 
         {/* ── Tags ────────────────────────────────────────────────────── */}
-        {savedDesign && <TagsSection design={savedDesign} />}
+        {savedDesign && <TagsSection design={savedDesign} isReadOnly={isKicked} />}
 
         {/* ── Configuration ───────────────────────────────────────────── */}
         <div className={dialogSectionClass}>
@@ -390,7 +391,7 @@ function buildDesignHistory(design: Bracelet): HistoryEvent[] {
 
 // ── Assignment section wrappers ───────────────────────────────────────────────
 
-function CollectionsSection({ design }: { design: Bracelet }) {
+function CollectionsSection({ design, isReadOnly }: { design: Bracelet; isReadOnly?: boolean }) {
   const { mutateAsync: apply }  = useApplyCollection();
   const { mutateAsync: remove } = useRemoveCollection();
 
@@ -405,11 +406,12 @@ function CollectionsSection({ design }: { design: Bracelet }) {
       Picker={CollectionPicker}
       addPlaceholder="Add to collection"
       editPlaceholder="Edit collections"
+      isReadOnly={isReadOnly}
     />
   );
 }
 
-function TagsSection({ design }: { design: Bracelet }) {
+function TagsSection({ design, isReadOnly }: { design: Bracelet; isReadOnly?: boolean }) {
   const { mutateAsync: apply }  = useApplyTag();
   const { mutateAsync: remove } = useRemoveTag();
 
@@ -424,6 +426,7 @@ function TagsSection({ design }: { design: Bracelet }) {
       Picker={TagPicker}
       addPlaceholder="Add tags"
       editPlaceholder="Edit tags"
+      isReadOnly={isReadOnly}
     />
   );
 }

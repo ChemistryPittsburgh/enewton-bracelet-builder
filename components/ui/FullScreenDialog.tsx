@@ -40,14 +40,14 @@ export function FullScreenDialog({
       <div
         onClick={onClose}
         className={cn(
-          "dialog-backdrop absolute inset-0 z-50",
+          "dialog-backdrop fixed inset-0 z-[100]",
           includeBackDropBlur ? "backdrop-blur-sm bg-black/30" : "bg-black/10",
         )}
       />
       {/* Panel */}
       <div
         className={cn(
-          "absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
+          "fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2",
           "w-full max-w-2xl rounded-2xl bg-white shadow-xl border border-neutral-100 overflow-hidden",
           className
         )}

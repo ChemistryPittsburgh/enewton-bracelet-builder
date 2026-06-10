@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronsRight, Inbox, Lock, Plus } from "lucide-react";
+import { ChevronsRight, Inbox, Lock, Plus, ShieldAlert } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ import { CanvasWorkflowBar } from "./canvas/CanvasWorkflowBar";
 import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
 import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
+import { SessionTakenOverDialog } from "./dialogs/SessionTakenOverDialog";
 
 import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
 import { CommentsPanel } from "./panels/CommentsPanel";
@@ -30,6 +31,8 @@ import { UserScreen } from "./users/UserScreen";
 import { UsersAdminScreen } from "./users/UsersAdminScreen";
 
 import { getInitials } from "@/lib/utils";
+
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -83,8 +86,10 @@ export function BuilderLayout() {
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
 
   // ── Design lock ──────────────────────────────────────────────────────────
-  const [lockHeld,          setLockHeld]          = useState(false);
+  const queryClient = useQueryClient();
+  const [lockHeld,           setLockHeld]           = useState(false);
   const [kickedNotification, setKickedNotification] = useState(false);
+  const [showKickedModal,    setShowKickedModal]    = useState(false);
   const prevDesignIdRef = useRef<number | null>(null);
   const lastSyncedAtRef = useRef<string | null>(null);
   const { mutate: releaseLock } = useReleaseLock();
@@ -101,6 +106,7 @@ export function BuilderLayout() {
     if (prevId !== null && prevId !== activeDesignId) {
       releaseLock(prevId);
       setKickedNotification(false);
+      setShowKickedModal(false);
     }
 
     if (activeDesignId === null) {
@@ -180,10 +186,15 @@ export function BuilderLayout() {
     (!lockHeld && isLockableStatus && !designFetching);
 
   useDesignHeartbeat(
-    isLockableStatus ? activeDesignId : null,
+    (isLockableStatus && !kickedNotification) ? activeDesignId : null,
     () => {
       setLockHeld(false);
       setKickedNotification(true);
+      setShowKickedModal(true);
+      // Immediately refresh savedDesign so the modal can show who took over.
+      if (activeDesignId !== null) {
+        queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
+      }
     },
   );
 
@@ -270,7 +281,11 @@ export function BuilderLayout() {
             <Plus size={14} />
             New Bracelet
           </Button>
-          <BraceletExporter onNameRequired={() => setHighlightReason("name")} />
+          <BraceletExporter
+            onNameRequired={() => setHighlightReason("name")}
+            isKicked={kickedNotification}
+            onKickedClick={() => setShowKickedModal(true)}
+          />
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
             <button
@@ -297,7 +312,7 @@ export function BuilderLayout() {
           onClose={() => setBraceletPanelOpen(false)}
         />
 
-        <BeadInfoDialog />
+        <BeadInfoDialog isLocked={isLocked} />
 
         <UserScreen
           open={rightPanel === "user"}
@@ -335,6 +350,8 @@ export function BuilderLayout() {
             commentsOpen={rightPanel === "comments"}
             onCommentsClick={() => setRightPanel((p) => p === "comments" ? null : "comments")}
             onPublishBlocked={() => setHighlightReason("sku")}
+            isReadOnly={isLocked}
+            isKicked={kickedNotification}
           />
 
           <div className="inner-canvas relative flex-1">
@@ -343,16 +360,11 @@ export function BuilderLayout() {
             <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
               {kickedNotification && (
                 <div className="mb-1 flex items-center gap-1.5 rounded-md bg-amber-500 px-2.5 py-1 text-xs font-medium text-white">
-                  <Lock size={11} className="shrink-0" />
-                  Another user has taken over this design. Your session is read-only.
-                  <button
-                    onClick={() => setKickedNotification(false)}
-                    className="ml-1 opacity-70 hover:opacity-100"
-                    aria-label="Dismiss"
-                  >×</button>
+                  <ShieldAlert size={11} className="shrink-0" />
+                  Read-only — your session was taken over
                 </div>
               )}
-              {lockHeld && !kickedNotification && (
+              {lockHeld && (
                 <div className="mb-1 flex items-center gap-1.5 rounded-md bg-amber-500 px-2.5 py-1 text-xs font-medium text-white">
                   <Lock size={11} className="shrink-0" />
                   You are editing
@@ -401,7 +413,7 @@ export function BuilderLayout() {
                 transition: "left 300ms ease-out, right 300ms ease-out",
               }}
             >
-              <Scene panelOpen={braceletPanelOpen} rightPanelOpen={rightPanelOpen} />
+              <Scene panelOpen={braceletPanelOpen} rightPanelOpen={rightPanelOpen} isLocked={isLocked} />
             </div>
           </div>
         </div>
@@ -419,9 +431,17 @@ export function BuilderLayout() {
 
       <ConfirmReplaceDialog />
 
+      {showKickedModal && (
+        <SessionTakenOverDialog
+          takenByName={savedDesign?.active_lock?.user_name}
+          onClose={() => setShowKickedModal(false)}
+        />
+      )}
+
       <BraceletDetailsDialog
         open={braceletDetailsOpen}
         onClose={() => setBraceletDetailsOpen(false)}
+        isKicked={kickedNotification}
       />
 
       {dragFromPanel && (

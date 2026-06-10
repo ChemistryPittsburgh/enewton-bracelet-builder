@@ -44,9 +44,10 @@ function ControlsRegistrar({ controlsRef }: { controlsRef: React.RefObject<Camer
 interface SceneProps {
   panelOpen?: boolean;
   rightPanelOpen?: boolean;
+  isLocked?: boolean;
 }
 
-export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps) {
+export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
   const { isEditMode, clearSelectedBead, setEditSelectedBead, viewMode } = useStore((s) => ({
     isEditMode: s.isEditMode,
@@ -77,7 +78,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps)
 
         <Suspense fallback={null}>
           <BraceletCord />
-          <AllBeads />
+          <AllBeads isLocked={isLocked} />
           <CameraController controlsRef={controlsRef} />
         </Suspense>
 

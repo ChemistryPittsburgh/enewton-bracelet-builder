@@ -17,6 +17,7 @@ interface BeadOnBraceletProps {
   isDragged?: boolean;
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
+  isLocked?: boolean;
 }
 
 export function BeadOnBracelet({
@@ -25,6 +26,7 @@ export function BeadOnBracelet({
   isDragged = false,
   isDragTarget = false,
   onDragStart,
+  isLocked = false,
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -110,6 +112,7 @@ export function BeadOnBracelet({
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
+    if (isLocked) return;
     if (!isEditMode) selectBead(bead);
   }
 

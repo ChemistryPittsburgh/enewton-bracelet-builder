@@ -224,6 +224,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       const success = await loadDesign(design, true);
       if (success) {
         setLockedDesign(null);
+        onClose();
       } else {
         setTakeOverError("Failed to load the design. Please try again.");
       }

@@ -8,7 +8,7 @@ import { InfoRow } from "@/components/ui/InfoRow";
 import { capitalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-export function BeadInfoDialog() {
+export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
   const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType } = useStore((s) => ({
     beads: s.beads,
     selectedBead: s.selectedBead,
@@ -19,7 +19,7 @@ export function BeadInfoDialog() {
     removeAllOfType: s.removeAllOfType,
   }));
 
-  const isOpen = selectedBead !== null;
+  const isOpen = !isLocked && selectedBead !== null;
 
   // Keep last known bead so content stays rendered during close transition
   const lastBead = useRef(selectedBead);
@@ -80,7 +80,7 @@ export function BeadInfoDialog() {
               />
               <InfoRow layout="horizontal" label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
             </div>
-            {matchCount > 1 && (
+            {!isLocked && matchCount > 1 && (
               <>
                 {selectAllActive ? (
                   <p className="text-sm font-semibold   mb-3 px-2">All {bead.product.name} {bead.product.bead_category}s selected</p>
@@ -91,10 +91,12 @@ export function BeadInfoDialog() {
                 )}
               </>
             )}
-            <Button onClick={handleRemove} className="w-full" variant="danger">
-              <Trash2 size={15} />
-              {selectAllActive ? `Remove All (${matchCount})` : "Remove Bead"}
-            </Button>
+            {!isLocked && (
+              <Button onClick={handleRemove} className="w-full" variant="danger">
+                <Trash2 size={15} />
+                {selectAllActive ? `Remove All (${matchCount})` : "Remove Bead"}
+              </Button>
+            )}
           </>
         )}
       </FloatingDialog>

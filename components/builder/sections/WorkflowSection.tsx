@@ -50,7 +50,7 @@ const skuSchema = z
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined }) {
+export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesign: Bracelet | undefined; isReadOnly?: boolean }) {
   const { mutate: submit,      isPending: submitting,    canSubmit }    = useSubmitDesign();
   const { mutate: approve,     isPending: approving,     canApprove }   = useApproveDesign();
   const { mutate: reject,      isPending: rejecting,     canReject }    = useRejectDesign();
@@ -96,7 +96,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
         <p className="text-sm font-semibold  ">
           This design has been discontinued.
         </p>
-        {canUndiscontinue && (
+        {canUndiscontinue && !isReadOnly && (
           confirmReactivate ? (
             <ConfirmationPanel
               message="This will reactivate the bracelet and return it to Published status."
@@ -122,7 +122,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
         <p className="text-sm font-semibold  ">
           This design was rejected and needs revision before resubmitting.
         </p>
-        {canReopen && (
+        {canReopen && !isReadOnly && (
           <Button size="sm" variant="ghost" className="w-fit" onClick={() => reopen(id)} disabled={reopening}>
             {reopening && <Loader2 size={12} className="animate-spin" />}
             Return to Draft
@@ -152,12 +152,14 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   const currentIndex = PIPELINE.findIndex((s) => s.status === status);
 
   const hasActions =
-    (status === "draft"     && canSubmit)  ||
-    (status === "in_review" && (canApprove || canReject || canSendToDraft)) ||
-    (status === "approved"  && (canPublish || canSendToDraft)) ||
-    (status === "published" && (canUnPublish || canDiscontinue));
+    !isReadOnly && (
+      (status === "draft"     && canSubmit)  ||
+      (status === "in_review" && (canApprove || canReject || canSendToDraft)) ||
+      (status === "approved"  && (canPublish || canSendToDraft)) ||
+      (status === "published" && (canUnPublish || canDiscontinue))
+    );
 
-  const showSkuField = canSetSku && status === "approved";
+  const showSkuField = canSetSku && status === "approved" && !isReadOnly;
 
   function handleSkuSave() {
     const result = skuSchema.safeParse(skuInput.trim());

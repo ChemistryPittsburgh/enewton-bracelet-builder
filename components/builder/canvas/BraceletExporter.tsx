@@ -26,9 +26,13 @@ interface BraceletExporterProps {
    * The parent can use this to highlight the "view bracelet details" link.
    */
   onNameRequired?: () => void;
+  /** True when the user's editing session was taken over by another user. */
+  isKicked?: boolean;
+  /** Called instead of saving when `isKicked` is true. */
+  onKickedClick?: () => void;
 }
 
-export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
+export function BraceletExporter({ onNameRequired, isKicked, onKickedClick }: BraceletExporterProps) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { canEdit } = usePermissions();
 
@@ -63,6 +67,7 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
 
   async function handleClick() {
     if (status === "saving") return;
+    if (isKicked) { onKickedClick?.(); return; }
 
     // Gate new saves on a real name being set
     if (!isUpdate && isDefaultName(braceletName)) {

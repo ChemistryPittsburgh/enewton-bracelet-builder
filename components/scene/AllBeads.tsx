@@ -8,7 +8,7 @@ import { BeadOnBracelet } from "./BeadOnBracelet";
 import { BeadErrorBoundary } from "./BeadErrorBoundary";
 import { useBraceletReorderDrag, usePanelDrop } from "@/hooks/useDrag";
 
-export function AllBeads() {
+export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const { beads, reorderBeads, braceletSize, viewMode } = useStore((s) => ({
     beads:        s.beads,
     reorderBeads: s.reorderBeads,
@@ -44,6 +44,7 @@ export function AllBeads() {
                 (panelDropSlot === index && dragFromPanel !== null)
               }
               onDragStart={handleDragStart}
+              isLocked={isLocked}
             />
           </Suspense>
         </BeadErrorBoundary>
