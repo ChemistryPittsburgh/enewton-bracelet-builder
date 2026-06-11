@@ -10,6 +10,7 @@ interface DeleteBraceletDialogProps {
   error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
+  includeBackDropBlur?: boolean;
 }
 
 export function DeleteBraceletDialog({
@@ -18,10 +19,12 @@ export function DeleteBraceletDialog({
   error,
   onConfirm,
   onCancel,
+  includeBackDropBlur = true
 }: DeleteBraceletDialogProps) {
   return (
     <StandardConfirmDialog
       title="Delete bracelet"
+      includeBackDropBlur={includeBackDropBlur}
       message={
         <>
           <span className="font-semibold text-neutral-900">"{designName}"</span>{" "}

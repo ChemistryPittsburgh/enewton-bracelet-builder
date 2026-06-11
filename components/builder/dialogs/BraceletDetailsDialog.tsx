@@ -208,7 +208,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
                   {(!savedDesign || (canEdit && !isLocked)) && (
                     <button
                       onClick={handleEdit}
-                      className="icon-only-btn"
+                      className="rounded p-0.5 text-color-base/70 opacity-0 transition-opacity hover:text-color-base/70 group-hover:opacity-100"
                       aria-label="Edit name and description"
                     >
                       <Pencil size={13} />
@@ -359,6 +359,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
           isDeleting={isDeleting}
           error={deleteError}
           onCancel={() => { setDeleteError(null); setShowDeleteConfirm(false); }}
+          includeBackDropBlur={false}
           onConfirm={() => {
             setDeleteError(null);
             deleteDesign(savedDesign.id, {
