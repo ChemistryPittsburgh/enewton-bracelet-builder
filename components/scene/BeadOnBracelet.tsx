@@ -54,11 +54,11 @@ export function BeadOnBracelet({
         if (preset.color           !== undefined) mat.color.set(preset.color);
         if (preset.metalness       !== undefined) mat.metalness       = preset.metalness;
         if (preset.roughness       !== undefined) mat.roughness       = preset.roughness;
-        mat.roughness = Math.max(mat.roughness, 0.25);
+        mat.roughness = Math.max(mat.roughness, 0.22);
         if (preset.envMapIntensity !== undefined) mat.envMapIntensity = preset.envMapIntensity;
 
 
-        mat.clearcoat = 0.1;
+        mat.clearcoat = 0.15;
 
         child.material = mat;
       });

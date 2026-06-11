@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Center, Environment } from "@react-three/drei";
-import { Color, Box3, Vector3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial } from "three";
+import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { Box3, Vector3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial } from "three";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { Button } from "@/components/ui/Button";
@@ -60,6 +60,15 @@ import type { BeadProduct } from "@/types";
 const BEAD_PREVIEW_ROTATION: [number, number, number] = [Math.PI/8, Math.PI/2, Math.PI/6];
 const CHARM_PREVIEW_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI/6];
 
+/**
+ * Fixed camera distance used during thumbnail capture.
+ * Based on the largest expected bead dimension (~20 mm) so that every bead
+ * is "photographed" from the same distance — smaller beads naturally appear
+ * smaller in the thumbnail, giving the grid an accurate sense of scale.
+ */
+const THUMBNAIL_CAMERA_DISTANCE_BEADS = 0.025;
+const THUMBNAIL_CAMERA_DISTANCE_CHARMS = 0.032;
+
 // ── GLB preview error boundary ───────────────────────────────────────────────
 
 interface PreviewErrorBoundaryState {
@@ -95,7 +104,7 @@ class PreviewErrorBoundary extends Component<
 
 // ── GLB preview model ────────────────────────────────────────────────────────
 
-function GlbModel({ url, isCharm, finish }: { url: string; isCharm: boolean; finish: string | null }) {
+function GlbModel({ url, isCharm, finish, onMeasured }: { url: string; isCharm: boolean; finish: string | null; onMeasured?: (dims: { x: number; y: number; z: number }) => void }) {
   const { scene } = useGLTF(url);
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
@@ -127,38 +136,52 @@ function GlbModel({ url, isCharm, finish }: { url: string; isCharm: boolean; fin
       });
     }
 
+    // Centre the clone at the origin so rotation pivots around its centre.
+    // This replaces <Center> — doing it synchronously in useMemo avoids the
+    // timing race that caused off-centre previews on initial charm upload.
+    const box = new Box3().setFromObject(clone);
+    const center = new Vector3();
+    box.getCenter(center);
+    clone.position.sub(center);
+
     return clone;
   }, [scene, finish]);
 
   const rotation = isCharm ? CHARM_PREVIEW_ROTATION : BEAD_PREVIEW_ROTATION;
 
-  // Auto-fit camera distance to model size
+  // Fit camera to the rotated model.
+  // The clone is already centred at origin (useMemo above), so after rotation
+  // it stays visually centred — no <Center> needed, no timing race.
   useEffect(() => {
-    // Small delay so <Center> has applied its transform
-    const frame = requestAnimationFrame(() => {
-      if (!groupRef.current) return;
-      const box = new Box3().setFromObject(groupRef.current);
-      const size = new Vector3();
-      box.getSize(size);
-      const maxDim = Math.max(size.x, size.y, size.z);
-      if (maxDim > 0) {
-        const fov = (CAMERA_FOV * Math.PI) / 180;
-        const dist = (maxDim * 0.75) / Math.tan(fov / 2);
-        camera.position.set(0, 0, dist);
-        camera.lookAt(0, 0, 0);
-        camera.updateProjectionMatrix();
-      }
+    if (!groupRef.current) return;
+    groupRef.current.updateMatrixWorld(true);
+
+    const box = new Box3().setFromObject(groupRef.current);
+    const size = new Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) {
+      const fov = (CAMERA_FOV * Math.PI) / 180;
+      const dist = (maxDim * 0.75) / Math.tan(fov / 2);
+      camera.position.set(0, 0, dist);
+      camera.lookAt(0, 0, 0);
+      camera.updateProjectionMatrix();
+    }
+
+    // Report raw (pre-rotation) dimensions so the admin can verify size_mm
+    const rawBox = new Box3().setFromObject(cloned);
+    const rawSize = new Vector3();
+    rawBox.getSize(rawSize);
+    onMeasured?.({
+      x: parseFloat((rawSize.x * 1000).toFixed(2)),
+      y: parseFloat((rawSize.y * 1000).toFixed(2)),
+      z: parseFloat((rawSize.z * 1000).toFixed(2)),
     });
-    return () => cancelAnimationFrame(frame);
-  }, [cloned, camera, rotation]);
+  }, [cloned, camera, rotation, onMeasured]);
 
   return (
-    <group ref={groupRef}>
-      <Center>
-        <group rotation={rotation}>
-          <primitive object={cloned} />
-        </group>
-      </Center>
+    <group ref={groupRef} rotation={rotation}>
+      <primitive object={cloned} />
     </group>
   );
 }
@@ -166,12 +189,19 @@ function GlbModel({ url, isCharm, finish }: { url: string; isCharm: boolean; fin
 // ── Canvas capture helper — exposes a function to grab the canvas as PNG ─────
 
 /** Must live inside <Canvas>. Populates captureRef with a function that
- *  resets the camera to a front-facing view, renders one frame, and returns
- *  a data URL — so thumbnails are always captured from a consistent angle. */
+ *  resets the camera to a fixed front-facing position, renders one frame,
+ *  and returns a data URL.
+ *
+ *  Uses THUMBNAIL_CAMERA_DISTANCE (not the current zoom level) so every
+ *  bead is captured from the same distance — preserving relative sizing
+ *  in the grid. Captures with a transparent background so no colour band
+ *  appears where the bead doesn't fill the frame. */
 function CaptureHelper({
   captureRef,
+  isCharm
 }: {
   captureRef: React.MutableRefObject<(() => string | null) | null>;
+  isCharm: boolean;
 }) {
   const { gl, scene, camera } = useThree();
 
@@ -181,15 +211,17 @@ function CaptureHelper({
       const savedPos = camera.position.clone();
       const savedQuat = camera.quaternion.clone();
 
-      // Reset to front view (same distance, facing straight ahead)
-      const dist = savedPos.length();
-      camera.position.set(0, 0, dist);
+      // Fixed distance so all beads are captured at the same scale
+      camera.position.set(0, 0, THUMBNAIL_CAMERA_DISTANCE_BEADS);
+      if(isCharm) {
+        camera.position.set(0, 0, THUMBNAIL_CAMERA_DISTANCE_CHARMS);
+      }
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
 
-      // Render with scene background
+      // Render with transparent background (alpha canvas)
       const prevBackground = scene.background;
-      scene.background = new Color(SCENE_BACKGROUND_PREVIEW_BEAD);
+      scene.background = null;
       gl.render(scene, camera);
       scene.background = prevBackground;
       const dataUrl = gl.domElement.toDataURL("image/png");
@@ -221,6 +253,7 @@ function GlbPreview({
   captureRef?: React.MutableRefObject<(() => string | null) | null>;
 }) {
   const [renderError, setRenderError] = useState(false);
+  const [dims, setDims] = useState<{ x: number; y: number; z: number } | null>(null);
 
   if (renderError) {
     return (
@@ -233,29 +266,42 @@ function GlbPreview({
 
   return (
     <PreviewErrorBoundary onError={() => setRenderError(true)}>
-      <Canvas
-        camera={{ position: [0, 0, 0.03], fov: CAMERA_FOV, near: CAMERA_NEAR, far: CAMERA_FAR }}
-        gl={{ preserveDrawingBuffer: true }}
-        style={{ width: "100%", height: "100%", background: SCENE_BACKGROUND_PREVIEW_BEAD }}
-      >
-        {/* Match main scene lighting (Scene.tsx) */}
-        <ambientLight intensity={0.2} color="#fff8f2" />
-        <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.1} color="#fffaf6" />
-        <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.5} color="#fff5f0" />
-        <Suspense fallback={null}>
-          <GlbModel url={url} isCharm={isCharm} finish={finish} />
-          <Environment preset="apartment" background={false} blur={0.85} />
-        </Suspense>
-        <OrbitControls
-          enablePan={false}
-          enableZoom={false}
-          minPolarAngle={Math.PI / 2}
-          maxPolarAngle={Math.PI / 2}
-          autoRotate
-          autoRotateSpeed={2}
-        />
-        {captureRef && <CaptureHelper captureRef={captureRef} />}
-      </Canvas>
+      <div className="relative h-full w-full">
+        <Canvas
+          camera={{ position: [0, 0, 0.03], fov: CAMERA_FOV, near: CAMERA_NEAR, far: CAMERA_FAR }}
+          gl={{ preserveDrawingBuffer: true, alpha: true }}
+          style={{ width: "100%", height: "100%", background: SCENE_BACKGROUND_PREVIEW_BEAD }}
+        >
+          {/* Match main scene lighting (Scene.tsx) */}
+          <ambientLight intensity={0.2} color="#fff8f2" />
+          <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.1} color="#fffaf6" />
+          <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.5} color="#fff5f0" />
+          <Suspense fallback={null}>
+            <GlbModel url={url} isCharm={isCharm} finish={finish} onMeasured={setDims} />
+            <Environment preset="apartment" background={false} blur={0.85} />
+          </Suspense>
+          <OrbitControls
+            enablePan={false}
+            enableZoom={false}
+            minPolarAngle={Math.PI / 2}
+            maxPolarAngle={Math.PI / 2}
+            autoRotate
+            autoRotateSpeed={2}
+          />
+          {captureRef && <CaptureHelper captureRef={captureRef} isCharm={isCharm} />}
+        </Canvas>
+
+        {/* Measured dimensions overlay */}
+        {dims && (
+          <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-[11px] text-white font-mono leading-relaxed pointer-events-none">
+            <span className="opacity-60">W</span> {dims.x}mm
+            {" · "}
+            <span className="opacity-60">H</span> {dims.y}mm
+            {" · "}
+            <span className="opacity-60">D</span> {dims.z}mm
+          </div>
+        )}
+      </div>
     </PreviewErrorBoundary>
   );
 }
@@ -998,12 +1044,14 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     <FullScreenDialog
       open={open}
       onClose={handleClose}
-      title="Upload / Edit Beads"
+      title="Upload / Edit Inventory"
       className="max-w-3xl"
       bodyClasses="px-5 py-4 max-h-[75vh] overflow-y-auto"
       headerExtra={headerBackButton}
     >
-      <div className="flex flex-col gap-4">
+      <div className={`flex flex-col gap-4 ${
+        mode === "list" && "pb-20"
+      }`}>
         <p className="text-sm text-color-base/70">
           Manage the bead and charm library. Upload new GLB models, edit metadata, or deactivate beads that are no longer in use.
         </p>
@@ -1032,7 +1080,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
             isInactive={mode === "edit" && editingBead?.active === 0}
             isTogglingActive={toggling && togglingId === editingBead?.id}
             isSaving={creating || updating}
-            submitLabel={mode === "edit" ? "Save changes" : "Create bead"}
+            submitLabel={mode === "edit" ? "Save changes" : "Create item"}
           />
         )}
 
@@ -1110,13 +1158,15 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
 
             {/* New bead button */}
             {canManageComponents && (
-              <Button
-                onClick={openCreate}
-                variant="dashed"
-                className="flex items-center gap-2 self-start dashed-border"
-              >
-                <Plus size={15} /> Upload new bead
-              </Button>
+              <div className="fixed w-full bottom-0 left-0 right-0 bg-white border-t border-default px-6 py-3">
+                <Button
+                  onClick={openCreate}
+                  variant="dashed"
+                  className="flex items-center gap-2 self-start dashed-border"
+                >
+                  <Plus size={15} /> Upload new item
+                </Button>
+              </div>
             )}
           </>
         )}

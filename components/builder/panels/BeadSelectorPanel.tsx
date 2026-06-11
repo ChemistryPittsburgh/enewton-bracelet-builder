@@ -374,7 +374,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
         )}
 
         {/* Category pills + Spacer tab */}
-        <div className="flex gap-2 px-5 py-3 overflow-x-scroll min-h-[50px] picker-scroll">
+        <div className="flex flex-wrap gap-2 px-5 py-3 min-h-[50px] picker-scroll">
           <MaterialPill
             label="All"
             active={activeTab === null}

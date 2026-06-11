@@ -126,6 +126,7 @@ export const FINISH_PRESETS: Record<string, FinishPreset> = {
   gold:      { metalness: 1, roughness: 0.18, envMapIntensity: 0.1 },
   silver:    { metalness: 1,   roughness: 0.18, envMapIntensity: 0.35 },
   rose_gold: { metalness: 0.95, roughness: 0.2, envMapIntensity: 0.9 },
+  gem:       { metalness: 0.5 },
 };
 
 /** Fallback when product.finish is undefined. Set to null to disable. */
@@ -133,8 +134,8 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "tube"] as const;
-export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem"] as const;
+export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.
