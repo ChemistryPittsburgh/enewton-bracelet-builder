@@ -27,12 +27,22 @@ export function useNotifications() {
     const pusher = getPusher();
     const channel = pusher.subscribe("private-designs");
 
-    channel.bind("design.status-changed", () => {
+    // Store handler reference so it can be removed precisely — passing no
+    // argument to unbind() would remove ALL listeners including other consumers.
+    const onStatusChanged = () => {
       queryClient.invalidateQueries({ queryKey: ["designs"] });
-    });
+    };
+    channel.bind("design.status-changed", onStatusChanged);
+
+    // Re-sync on reconnect — events fired during a network outage are lost.
+    const onReconnected = () => {
+      queryClient.invalidateQueries({ queryKey: ["designs"] });
+    };
+    pusher.connection.bind("connected", onReconnected);
 
     return () => {
-      channel.unbind("design.status-changed");
+      channel.unbind("design.status-changed", onStatusChanged);
+      pusher.connection.unbind("connected", onReconnected);
       pusher.unsubscribe("private-designs");
     };
   }, [canReview, canPublish, queryClient]);

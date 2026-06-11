@@ -16,6 +16,9 @@ interface PusherDesignCallbacks {
   onUpdated?: (design: Bracelet) => void;
   onLockTaken?: (by: LockTakenPayload) => void;
   onLockChanged?: (lock: LockPayload) => void;
+  /** Called when the Pusher connection (re)connects — use to re-fetch any
+   *  state that may have been missed while the socket was offline. */
+  onReconnected?: () => void;
 }
 
 /**
@@ -28,6 +31,7 @@ interface PusherDesignCallbacks {
  *  - design.updated     → onUpdated (another user saved)
  *  - design.lock-taken  → onLockTaken (admin force-took the lock)
  *  - design.lock-changed → onLockChanged (lock acquired or released)
+ *  - pusher connected   → onReconnected (socket reconnected after outage)
  */
 export function usePusherDesign(
   designId: number | null,
@@ -55,8 +59,14 @@ export function usePusherDesign(
       cbRef.current.onLockChanged?.(data);
     });
 
+    const onReconnected = () => cbRef.current.onReconnected?.();
+    pusher.connection.bind("connected", onReconnected);
+
     return () => {
-      channel.unbind_all();
+      channel.unbind("design.updated");
+      channel.unbind("design.lock-taken");
+      channel.unbind("design.lock-changed");
+      pusher.connection.unbind("connected", onReconnected);
       pusher.unsubscribe(channelName);
     };
   }, [designId]);

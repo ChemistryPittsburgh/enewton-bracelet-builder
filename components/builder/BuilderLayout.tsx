@@ -54,6 +54,7 @@ export function BuilderLayout() {
     selectedBead,
     dragFromPanel,
     resetBracelet,
+    startNewBracelet,
     setPendingDesign,
     activeDesignId,
     isDirty,
@@ -65,13 +66,14 @@ export function BuilderLayout() {
     selectedBead:         s.selectedBead,
     dragFromPanel:        s.dragFromPanel,
     resetBracelet:        s.resetBracelet,
+    startNewBracelet:     s.startNewBracelet,
     setPendingDesign:     s.setPendingDesign,
     activeDesignId:       s.activeDesignId,
     isDirty:              s.isDirty,
   }));
 
   const { data: currentUser } = useCurrentUser();
-  const { canEdit, canReview, canPublish } = usePermissions();
+  const { canEdit } = usePermissions();
   const { data: savedDesign, isFetching: designFetching } = useDesign(activeDesignId);
 
   // ── Notification badge (header) ───────────────────────────────────────────
@@ -164,17 +166,26 @@ export function BuilderLayout() {
   }, [activeDesignId, savedDesign?.id, savedDesign?.status, savedDesign?.active_lock?.user_id, currentUser?.id, designFetching, kickedNotification]);
 
   // Editing is locked by workflow status, by another user holding the lock,
-  // or when this user has been kicked off the design. Exclude stale-cache
-  // renders (designFetching) to avoid closing the panel before lock state
-  // is confirmed from the server.
+  // or when this user has been kicked off the design.
+  // Use active_lock from the API response to determine read-only state rather
+  // than relying on !lockHeld && !designFetching, which flashes read-only for
+  // one render when cached savedDesign arrives before the optimistic lockHeld
+  // effect fires. When active_lock is null the lock is not yet confirmed (may
+  // be in acquisition) so we optimistically show the editing state.
   const isLocked =
     savedDesign?.status === "approved" ||
     savedDesign?.status === "published" ||
     kickedNotification ||
-    (!lockHeld && isLockableStatus && !designFetching);
+    (
+      !lockHeld &&
+      isLockableStatus &&
+      currentUser != null &&
+      savedDesign?.active_lock?.user_id != null &&
+      savedDesign.active_lock.user_id !== currentUser.id
+    );
 
   useDesignHeartbeat(
-    (isLockableStatus && !kickedNotification) ? activeDesignId : null,
+    (isLockableStatus && !kickedNotification && lockHeld) ? activeDesignId : null,
     () => {
       setLockHeld(false);
       setKickedNotification(true);
@@ -203,7 +214,15 @@ export function BuilderLayout() {
       }
     },
     onLockChanged: () => {
-      // Lock acquired or released by someone — refresh to get updated active_lock.
+      // Lock acquired or released — invalidate the list so SavedDesignsScreen
+      // badge clears, plus the per-design query for the lock state detail.
+      queryClient.invalidateQueries({ queryKey: ["designs"] });
+      if (activeDesignId !== null) {
+        queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
+      }
+    },
+    onReconnected: () => {
+      // Re-sync after network outage — events fired while offline are lost.
       if (activeDesignId !== null) {
         queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
       }
@@ -256,10 +275,15 @@ export function BuilderLayout() {
 
   function handleNewBracelet() {
     if (isDirty) {
-      setPendingDesign({ id: -1, name: DEFAULT_BRACELET_NAME } as any, () => resetBracelet());
+      setPendingDesign({ id: -1, name: DEFAULT_BRACELET_NAME } as any, () => startNewBracelet());
     } else {
-      resetBracelet();
+      startNewBracelet();
     }
+  }
+
+  function handleRetryLock() {
+    setKickedNotification(false);
+    setShowKickedModal(false);
   }
 
   function handleDetailsClick() {
@@ -434,6 +458,8 @@ export function BuilderLayout() {
       <SavedDesignsScreen
         isOpen={savedDesignsOpen}
         onClose={() => setSavedDesignsOpen(false)}
+        isKickedFromActiveDesign={kickedNotification}
+        onRetryLock={handleRetryLock}
       />
 
       <UsersAdminScreen

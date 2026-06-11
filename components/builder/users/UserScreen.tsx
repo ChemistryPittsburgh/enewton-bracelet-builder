@@ -13,6 +13,7 @@ import {
 
 import { useStore } from "@/lib/store";
 import { clearToken } from "@/lib/auth";
+import { disconnectPusher } from "@/lib/pusher";
 import { getInitials } from "@/lib/utils"
 
 import { Panel } from "@/components/ui/Panel";
@@ -270,6 +271,7 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
 
   function handleSignOut() {
     clearToken();
+    disconnectPusher();
     onClose();
     router.push("/login");
   }

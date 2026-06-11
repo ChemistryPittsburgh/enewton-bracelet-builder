@@ -1,6 +1,7 @@
 import { useBeads } from "@/hooks/useBeads";
 import { useStore } from "@/lib/store";
 import { useLockDesign } from "@/hooks/useLockDesign";
+import { useReleaseLock } from "@/hooks/useReleaseLock";
 import type { Bracelet, PlacedBead } from "@/types";
 
 /**
@@ -24,14 +25,23 @@ export function useLoadDesign() {
   const setActiveDesignId = useStore((s) => s.setActiveDesignId);
   const markClean = useStore((s) => s.markClean);
   const setBraceletDescription = useStore((s) => s.setBraceletDescription);
-  const resetBracelet = useStore((s) => s.resetBracelet);
+  const startNewBracelet = useStore((s) => s.startNewBracelet);
+  const currentActiveDesignId = useStore((s) => s.activeDesignId);
 
   const { mutateAsync: lockDesign } = useLockDesign();
+  const { mutateAsync: releaseLockAsync } = useReleaseLock();
 
   async function loadDesign(
     design: Bracelet,
     lockAlreadyAcquired = false,
   ): Promise<boolean> {
+    // Explicitly release the existing lock before loading the new design so the
+    // server receives DELETE before POST — avoids a brief window where the user
+    // appears to hold two locks simultaneously.
+    if (currentActiveDesignId !== null && currentActiveDesignId !== design.id) {
+      await releaseLockAsync(currentActiveDesignId);
+    }
+
     const { configuration, name } = design;
 
     const placedBeads: PlacedBead[] = configuration.beads
@@ -67,8 +77,8 @@ export function useLoadDesign() {
         const result = await lockDesign({ id: design.id });
         if (!result.acquired) {
           // Race condition: someone else claimed the lock between the list render
-          // and this load. Roll back the canvas state.
-          resetBracelet();
+          // and this load. Roll back without discarding the user's size/material.
+          startNewBracelet();
           return false;
         }
       } catch {

@@ -43,6 +43,10 @@ interface Store {
   /** Reset to a blank bracelet — clears beads, name, description, and activeDesignId. */
   resetBracelet: () => void;
 
+  /** Start a new bracelet preserving the current size and material — used by
+   *  the "New Bracelet" button so the user's preferred size is not discarded. */
+  startNewBracelet: () => void;
+
   /** Open the info panel for a specific bead. */
   selectBead: (bead: PlacedBead) => void;
 
@@ -202,6 +206,16 @@ export const useStore = create<Store>()(
         isDirty: false,
         braceletSize: "small" as BraceletSize,
         bandMaterial: "cord" as BandMaterial,
+      }),
+
+      startNewBracelet: () => set({
+        beads: [],
+        braceletName: "New Bracelet",
+        braceletDescription: "",
+        activeDesignId: null,
+        selectedBead: null,
+        isDirty: false,
+        // braceletSize and bandMaterial intentionally preserved
       }),
 
       selectBead(bead) {

@@ -30,6 +30,10 @@ import { DesignLockedDialog } from "@/components/builder/dialogs/DesignLockedDia
 interface SavedDesignsScreenProps {
   isOpen: boolean;
   onClose: () => void;
+  /** True when the current user was kicked from the active design — clicking
+   *  the same design card should clear the kicked state (allow re-acquisition). */
+  isKickedFromActiveDesign?: boolean;
+  onRetryLock?: () => void;
 }
 
 const STATUS_FILTERS: { label: string; value: BraceletStatus | undefined }[] = [
@@ -55,7 +59,7 @@ const BRACELET_STATE_OPTIONS: { label: string; value: BraceletState }[] = [
   { label: "Inactive", value: "inactive" },
 ];
 
-export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps) {
+export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, onRetryLock }: SavedDesignsScreenProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -200,7 +204,12 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
       return;
     }
 
-    if (design.id === activeDesignId) { onClose(); return; }
+    if (design.id === activeDesignId) {
+      // If the user was kicked, clicking their own design re-enables lock acquisition.
+      if (isKickedFromActiveDesign) onRetryLock?.();
+      onClose();
+      return;
+    }
 
     await proceedWithLoad(design);
   }

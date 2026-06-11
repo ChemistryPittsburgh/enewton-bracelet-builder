@@ -1,6 +1,9 @@
 import Pusher from "pusher-js";
 import { getToken } from "@/lib/auth";
 
+// Log all Pusher activity to the browser console for debugging.
+Pusher.logToConsole = true;
+
 const APP_KEY = process.env.NEXT_PUBLIC_PUSHER_APP_KEY ?? "";
 const CLUSTER  = process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "mt1";
 const AUTH_URL = `${process.env.NEXT_PUBLIC_API_URL ?? ""}/pusher/auth`;
@@ -38,4 +41,13 @@ export function getPusher(): Pusher {
   });
 
   return _pusher;
+}
+
+/** Disconnect and reset the singleton. Call on logout so a re-login gets a
+ *  fresh connection under the new user's identity. */
+export function disconnectPusher(): void {
+  if (_pusher) {
+    _pusher.disconnect();
+    _pusher = null;
+  }
 }
