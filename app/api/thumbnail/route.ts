@@ -1,11 +1,10 @@
 /**
  * POST /api/thumbnail
  *
- * Accepts { dataUrl: string; filename: string }, uploads the PNG to S3 under
- * the "thumbnails/" prefix, and returns { url: string } — the public S3 URL.
- *
- * If S3_PUBLIC_URL is set (e.g. a CloudFront distribution), that base URL is
- * used instead of the direct S3 endpoint.
+ * Accepts { dataUrl: string; filename: string; prefix?: string }, uploads
+ * the PNG to S3 under the given prefix (defaults to "thumbnails/"), and
+ * returns { url: string } — a relative path that the Next.js rewrite
+ * proxies to S3.
  *
  * Required env vars:
  *   ENEWTON_AWS_ACCESS_KEY_ID
@@ -30,9 +29,10 @@ const s3 = new S3Client({
 
 export async function POST(req: NextRequest) {
   try {
-    const { dataUrl, filename } = (await req.json()) as {
+    const { dataUrl, filename, prefix = "thumbnails" } = (await req.json()) as {
       dataUrl: string;
       filename: string;
+      prefix?: string;
     };
 
     if (!dataUrl || !filename) {
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64, "base64");
-    const key    = `thumbnails/${filename}`;
+    const key    = `${prefix}/${filename}`;
 
     await s3.send(
       new PutObjectCommand({
@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
       }),
     );
 
+    // Return the public S3 URL. Bracelet thumbnails store this as
+    // preview_image_url; bead thumbnails are accessed via convention
+    // (/images/{slug}-thumbnail.png) through the Next.js rewrite proxy.
     const baseUrl =
       process.env.S3_PUBLIC_URL ??
       `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.ENEWTON_AWS_REGION}.amazonaws.com`;

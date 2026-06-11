@@ -298,12 +298,12 @@ export function ManageCollectionsDialog({ open, onClose, includeBackDropBlur = t
             onCancel={() => setIsCreating(false)}
           />
         ) : (
-          <button
+          <Button
             onClick={openCreate}
-            className="flex items-center gap-2 self-start rounded-sm border border-dashed px-4 py-2 text-sm text-color-base transition-colors hover:border-navy hover:border-solid hover:bg-light-grey/60"
+            variant="dashed"
           >
             <Plus size={15} /> New collection
-          </button>
+          </Button>
         )}
       </div>
     </FullScreenDialog>

@@ -21,6 +21,7 @@ import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
 import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
 import { SessionTakenOverDialog } from "./dialogs/SessionTakenOverDialog";
+import { ManageBeadsDialog } from "./dialogs/ManageBeadsDialog";
 
 import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
 import { CommentsPanel } from "./panels/CommentsPanel";
@@ -84,6 +85,7 @@ export function BuilderLayout() {
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
   const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
+  const [manageBeadsOpen,     setManageBeadsOpen]     = useState(false);
 
   // ── Design lock ──────────────────────────────────────────────────────────
   const queryClient = useQueryClient();
@@ -354,6 +356,7 @@ export function BuilderLayout() {
           open={rightPanel === "user"}
           onClose={() => setRightPanel(null)}
           onEditUsers={() => { setRightPanel(null); setUsersAdminOpen(true); }}
+          onManageBeads={() => { setRightPanel(null); setManageBeadsOpen(true); }}
         />
         <CommentsPanel open={rightPanel === "comments"} onClose={() => setRightPanel(null)} />
 
@@ -408,8 +411,9 @@ export function BuilderLayout() {
               )}
               <CanvasWorkflowBar />
               {savedDesign?.status === "rejected" && savedDesign?.rejection_reason && (
-                <p className="max-w-[240px] px-2 py-0.5 text-xs leading-relaxed text-rose-600 italic">
-                  &ldquo;{savedDesign.rejection_reason}&rdquo;
+                <p className="max-w-[240px] pt-1 text-xs leading-relaxed">
+                  <span className="text-color-base/60 font-semibold">Reason: </span>
+                  <span className="italic">&ldquo;{savedDesign.rejection_reason}&rdquo;</span>
                 </p>
               )}
               <p className="py-2 font-semibold leading-snug">
@@ -480,6 +484,11 @@ export function BuilderLayout() {
         open={braceletDetailsOpen}
         onClose={() => setBraceletDetailsOpen(false)}
         isKicked={kickedNotification}
+      />
+
+      <ManageBeadsDialog
+        open={manageBeadsOpen}
+        onClose={() => setManageBeadsOpen(false)}
       />
 
       {dragFromPanel && (

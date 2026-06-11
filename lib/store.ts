@@ -140,6 +140,10 @@ interface Store {
   isDirty: boolean;
   /** Reset the dirty flag — called after a successful save. */
   markClean: () => void;
+
+  /** Ephemeral — temporarily hides spacer visuals during thumbnail capture. */
+  spacersHiddenForCapture: boolean;
+  setSpacersHiddenForCapture: (hidden: boolean) => void;
 }
 
 /** Persist the store to localStorage.
@@ -168,6 +172,9 @@ export const useStore = create<Store>()(
       controlsEl: null,
       isDirty: false,
       markClean: () => set({ isDirty: false }),
+
+      spacersHiddenForCapture: false,
+      setSpacersHiddenForCapture: (hidden) => set({ spacersHiddenForCapture: hidden }),
 
       addBead(product) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];

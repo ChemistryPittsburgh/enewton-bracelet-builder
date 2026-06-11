@@ -64,7 +64,15 @@ export function useDesigns(params?: UseDesignsParams) {
         if (params?.discontinued === false && d.is_discontinued === 1) return false;
 
         // ── Status tab ────────────────────────────────────────────────────
-        if (params?.status && d.status !== params.status) return false;
+        // Rejected designs appear alongside drafts in the "In-progress" tab
+        // so designers see them as editable work-in-progress with a flag.
+        if (params?.status) {
+          if (params.status === "draft") {
+            if (d.status !== "draft" && d.status !== "rejected") return false;
+          } else {
+            if (d.status !== params.status) return false;
+          }
+        }
 
         // ── Full-text search on name ───────────────────────────────────────
         if (params?.search) {

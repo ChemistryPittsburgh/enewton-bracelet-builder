@@ -9,6 +9,7 @@ const variants = {
   danger:     "bg-error text-white hover:bg-error/90",
   softDanger: "bg-blush text-[#8b3040] hover:bg-blush/80",
   positive:   "bg-light-mint text-[#0d5c52] hover:bg-light-mint/80",
+  dashed:     "dashed-border border border-transparent bg-white text-color-base hover:border hover:border-navy focus:border focus:border-navy focus:ring-0 hover:bg-mint focus:bg-mint",
 };
 
 const sizes = {

@@ -82,29 +82,38 @@ export function useGenerateThumbnail() {
       return null;
     }
 
+    // Hide spacer wireframes for the thumbnail
+    const { setSpacersHiddenForCapture } = useStore.getState();
+    setSpacersHiddenForCapture(true);
+
     const controls = controlsEl;
 
-    if (controls) {
-      const savedPos    = controls.getPosition(undefined as any);
-      const savedTarget = controls.getTarget(undefined as any);
+    try {
+      if (controls) {
+        const savedPos    = controls.getPosition(undefined as any);
+        const savedTarget = controls.getTarget(undefined as any);
 
-      const [cx, cy, cz] = CAMERA_DEFAULT_POSITION;
-      await controls.setLookAt(cx, cy, cz, 0, 0, 0, false);
+        const [cx, cy, cz] = CAMERA_DEFAULT_POSITION;
+        await controls.setLookAt(cx, cy, cz, 0, 0, 0, false);
+
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+        const dataUrl = captureFixed(canvasEl);
+
+        await controls.setLookAt(
+          savedPos.x,    savedPos.y,    savedPos.z,
+          savedTarget.x, savedTarget.y, savedTarget.z,
+          false,
+        );
+
+        return dataUrl;
+      }
 
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-
-      const dataUrl = captureFixed(canvasEl);
-
-      await controls.setLookAt(
-        savedPos.x,    savedPos.y,    savedPos.z,
-        savedTarget.x, savedTarget.y, savedTarget.z,
-        false,
-      );
-
-      return dataUrl;
+      return captureFixed(canvasEl);
+    } finally {
+      setSpacersHiddenForCapture(false);
     }
-
-    return captureFixed(canvasEl);
   }
 
   async function download(filename: string): Promise<void> {

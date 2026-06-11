@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
-import { capitalize } from "@/lib/utils";
+import { capitalize, slugify } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
@@ -43,7 +43,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
   return (
     <div
       className={cn(
-        "absolute top-18 right-6 z-50 w-72 transition-all duration-300 ease-out",
+        "absolute top-24 right-6 z-50 w-72 transition-all duration-300 ease-out",
         isOpen
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-3 pointer-events-none"
@@ -67,17 +67,15 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
                 label="Category"
                 value={bead.product.bead_category ? capitalize(bead.product.bead_category) : "—"}
               />
-              <InfoRow layout="horizontal"
-                label="Material"
-                value={bead.product.material ? capitalize(bead.product.material) : "—"}
-              />
+              {bead.product.bead_category && slugify(bead.product.bead_category) !== 'spacer' && (
+                <InfoRow layout="horizontal"
+                  label="Material"
+                  value={bead.product.material ? capitalize(bead.product.material) : "—"}
+                />
+              )}
               <InfoRow layout="horizontal" label="Diameter" value={bead.product.size_mm != null
                 ? `${bead.product.size_mm} mm`
                 : `${Math.round(bead.product.diameter * 1000)} mm`} />
-              <InfoRow layout="horizontal"
-                label="File"
-                value={bead.product.glb_path.split("/").pop() ?? ""}
-              />
               <InfoRow layout="horizontal" label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
             </div>
             {!isLocked && matchCount > 1 && (
@@ -94,7 +92,9 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
             {!isLocked && (
               <Button onClick={handleRemove} className="w-full" variant="danger">
                 <Trash2 size={15} />
-                {selectAllActive ? `Remove All (${matchCount})` : "Remove Bead"}
+                {selectAllActive ? `Remove All (${matchCount})` :
+                  bead.product.bead_category ? `Remove ${capitalize(bead.product.bead_category)}` : "Remove Bead"
+                }
               </Button>
             )}
           </>
@@ -103,4 +103,3 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
     </div>
   );
 }
-

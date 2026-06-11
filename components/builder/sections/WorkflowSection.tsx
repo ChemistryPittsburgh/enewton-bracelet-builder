@@ -20,7 +20,8 @@ import { useSendToDraft }        from "@/hooks/useSendToDraft";
 import { useSetDesignSku }       from "@/hooks/useSetDesignSku";
 import { useDiscontinueDesign }  from "@/hooks/useDiscontinueDesign";
 import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
-import { useReopenDesign }       from "@/hooks/useReopenDesign";
+import { useUpdateBracelet }    from "@/hooks/useUpdateBracelet";
+import { useStore }             from "@/lib/store";
 
 import type { Bracelet, BraceletStatus } from "@/types";
 
@@ -60,7 +61,10 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
   const { mutate: setSku,      isPending: settingSku,    canSetSku }    = useSetDesignSku();
   const { mutate: discontinue,   isPending: discontinuing,   canDiscontinue }   = useDiscontinueDesign();
   const { mutate: undiscontinue, isPending: undiscontinuing, canUndiscontinue } = useUndiscontinueDesign();
-  const { mutate: reopen,        isPending: reopening,       canReopen }        = useReopenDesign();
+  const { update }  = useUpdateBracelet();
+  const isDirty     = useStore((s) => s.isDirty);
+
+  const [savingBeforeSubmit, setSavingBeforeSubmit] = useState(false);
 
   const [skuInput,           setSkuInput]           = useState("");
   const [skuError,           setSkuError]           = useState<string | null>(null);
@@ -89,6 +93,24 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
 
   const { status, id } = savedDesign;
 
+  // ── Auto-save + submit ────────────────────────────────────────────────────
+  // If the bracelet has unsaved changes, save them before submitting for review.
+  async function handleSubmit() {
+    try {
+      // Always save before submitting — ensures the thumbnail and
+      // configuration are current. update() skips the thumbnail capture
+      // when nothing visual has changed, so this is efficient.
+      setSavingBeforeSubmit(true);
+      await update();
+      submit(id);
+    } catch (err) {
+      console.error("[WorkflowSection] Save before submit failed:", err);
+    } finally {
+      setSavingBeforeSubmit(false);
+    }
+  }
+  const isSubmitBusy = submitting || savingBeforeSubmit;
+
   // ── Discontinued ───────────────────────────────────────────────────────────
   if (savedDesign.is_discontinued === 1) {
     return (
@@ -115,25 +137,15 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
     );
   }
 
-  // ── Rejected ───────────────────────────────────────────────────────────────
-  if (status === "rejected") {
-    return (
-      <div className={workflowSectionClasses}>
-        <p className="text-sm font-semibold  ">
-          This design was rejected and needs revision before resubmitting.
-        </p>
-        {canReopen && !isReadOnly && (
-          <Button size="sm" variant="ghost" className="w-fit" onClick={() => reopen(id)} disabled={reopening}>
-            {reopening && <Loader2 size={12} className="animate-spin" />}
-            Return to Draft
-          </Button>
-        )}
-      </div>
-    );
-  }
+  // ── Rejected → treat as draft in the pipeline ───────────────────────────
+  // Rejected designs re-enter the pipeline at "Draft" with a rejection notice.
+  // Designers can make changes and resubmit without a separate "Return to Draft" step.
+  const isRejected = status === "rejected";
+  const effectiveStatus = isRejected ? "draft" : status;
+
 
   // ── Out-of-pipeline statuses ───────────────────────────────────────────────
-  if (!PIPELINE_SET.has(status)) {
+  if (!PIPELINE_SET.has(effectiveStatus as BraceletStatus)) {
     return (
       <div>
         <SectionHeading>Status</SectionHeading>
@@ -149,17 +161,17 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
     );
   }
 
-  const currentIndex = PIPELINE.findIndex((s) => s.status === status);
+  const currentIndex = PIPELINE.findIndex((s) => s.status === effectiveStatus);
 
   const hasActions =
     !isReadOnly && (
-      (status === "draft"     && canSubmit)  ||
-      (status === "in_review" && (canApprove || canReject || canSendToDraft)) ||
-      (status === "approved"  && (canPublish || canSendToDraft)) ||
-      (status === "published" && (canUnPublish || canDiscontinue))
+      (effectiveStatus === "draft"     && canSubmit)  ||
+      (effectiveStatus === "in_review" && (canApprove || canReject || canSendToDraft)) ||
+      (effectiveStatus === "approved"  && (canPublish || canSendToDraft)) ||
+      (effectiveStatus === "published" && (canUnPublish || canDiscontinue))
     );
 
-  const showSkuField = canSetSku && status === "approved" && !isReadOnly;
+  const showSkuField = canSetSku && effectiveStatus === "approved" && !isReadOnly;
 
   function handleSkuSave() {
     const result = skuSchema.safeParse(skuInput.trim());
@@ -178,6 +190,17 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
 
   return (
     <div className={workflowSectionClasses}>
+      {/* Rejection notice — shown when the design was sent back for revision */}
+      {isRejected && (
+        <div className="flex flex-col gap-1 rounded-lg border border-error/30 bg-error/5 px-3 py-2.5">
+          <p className="text-sm font-semibold text-error">This design was rejected and needs revision.</p>
+          {savedDesign.rejection_reason && (
+            <p className="text-xs"><span className="font-semibold text-color-base/80">Reason: </span>&ldquo;{savedDesign.rejection_reason}&rdquo;</p>
+          )}
+          <p className="text-xs text-color-base/70">Make your changes, then resubmit for review.</p>
+        </div>
+      )}
+
       {/* Pipeline stepper */}
       <div>
         <SectionHeading>Status</SectionHeading>
@@ -230,7 +253,7 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
       )}
 
       {/* Rejection reason form */}
-      {status === "in_review" && canReject && confirmReject && (
+      {effectiveStatus === "in_review" && canReject && confirmReject && (
         <div className="flex flex-col gap-2 rounded-lg border border-error bg-light-grey/30 p-3">
           <p className="text-xs font-semibold text-[#8b3040]">Reason for rejection</p>
           <textarea
@@ -270,24 +293,24 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
       {/* Action buttons */}
       {hasActions && !confirmReject && (
         <div className="flex items-center gap-3 flex-wrap">
-          {status === "draft" && canSubmit && (
-            <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => submit(id)} disabled={submitting}>
-              {submitting && <Loader2 size={12} className="animate-spin" />}
-              Submit for Review
+          {effectiveStatus === "draft" && canSubmit && (
+            <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={handleSubmit} disabled={isSubmitBusy}>
+              {isSubmitBusy && <Loader2 size={12} className="animate-spin" />}
+              {savingBeforeSubmit ? "Saving…" : submitting ? "Submitting…" : "Submit for Review"}
             </Button>
           )}
-          {status === "in_review" && canApprove && (
+          {effectiveStatus === "in_review" && canApprove && (
             <Button className={actionBtnClasses} size="sm" variant="positive" onClick={() => approve(id)} disabled={approving}>
               {approving && <Loader2 size={12} className="animate-spin" />}
               Approve
             </Button>
           )}
-          {status === "in_review" && canReject && (
+          {effectiveStatus === "in_review" && canReject && (
             <Button className={actionBtnClasses} size="sm" variant="softDanger" onClick={() => setConfirmReject(true)}>
               Reject
             </Button>
           )}
-          {status === "in_review" && canSendToDraft && (
+          {effectiveStatus === "in_review" && canSendToDraft && (
             confirmSendToDraft ? (
               <ConfirmationPanel
                 message="Recalling this bracelet will remove it from review and require resubmission. Do you want to continue?"
@@ -297,11 +320,11 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
               />
             ) : (
               <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={() => setConfirmSendToDraft(true)}>
-                Recall for editing
+                Return Bracelet to Drafts
               </Button>
             )
           )}
-          {status === "approved" && (canPublish || canSendToDraft) && (
+          {effectiveStatus === "approved" && (canPublish || canSendToDraft) && (
             confirmSendToDraft ? (
               <ConfirmationPanel
                 message="Moving this bracelet back to draft will remove its approval and require a new review cycle. Continue?"
@@ -326,7 +349,7 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
               </>
             )
           )}
-          {status === "published" && canUnPublish && !confirmDiscontinue && (
+          {effectiveStatus === "published" && canUnPublish && !confirmDiscontinue && (
             confirmUnpublish ? (
               <ConfirmationPanel
                 message="Unpublishing will remove this bracelet from the catalog and require a new review cycle. Continue?"
@@ -341,7 +364,7 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
               </Button>
             )
           )}
-          {status === "published" && canDiscontinue && !confirmUnpublish && (
+          {effectiveStatus === "published" && canDiscontinue && !confirmUnpublish && (
             confirmDiscontinue ? (
               <ConfirmationPanel
                 message="Discontinuing will remove this bracelet from inventory. This can only be reversed by an admin. Continue?"
