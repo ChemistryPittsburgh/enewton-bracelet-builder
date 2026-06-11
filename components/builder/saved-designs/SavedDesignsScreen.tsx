@@ -104,15 +104,16 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
     undefined;
 
   const { data: designs = [], isLoading, isError, refetch } = useDesigns({
-    status:        selectedStatus,
+    status:          selectedStatus,
     search,
-    materials:     selectedMaterials,
-    types:         selectedTypes,
-    tagIds:        selectedTagIds,
-    collectionIds: selectedCollectionIds,
+    materials:       selectedMaterials,
+    types:           selectedTypes,
+    tagIds:          selectedTagIds,
+    collectionIds:   selectedCollectionIds,
     sortBy,
     discontinued,
-    enabled:       isVisible,
+    enabled:         isVisible,
+    refetchInterval: isVisible ? 15_000 : false,
   });
 
   // Prefetch bead catalog so it's in cache when loadDesign resolves product_ids.

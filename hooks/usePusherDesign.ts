@@ -59,6 +59,15 @@ export function usePusherDesign(
       cbRef.current.onLockChanged?.(data);
     });
 
+    // Fire onReconnected when the channel subscription is confirmed — covers
+    // initial page load AND every re-subscription after a reconnect.  The
+    // "connected" listener below handles mid-session reconnects where the
+    // channel is already subscribed; subscription_succeeded handles the case
+    // where Pusher connected before this effect ran (deferred Zustand hydration).
+    channel.bind("pusher:subscription_succeeded", () => {
+      cbRef.current.onReconnected?.();
+    });
+
     const onReconnected = () => cbRef.current.onReconnected?.();
     pusher.connection.bind("connected", onReconnected);
 
@@ -66,6 +75,7 @@ export function usePusherDesign(
       channel.unbind("design.updated");
       channel.unbind("design.lock-taken");
       channel.unbind("design.lock-changed");
+      channel.unbind("pusher:subscription_succeeded");
       pusher.connection.unbind("connected", onReconnected);
       pusher.unsubscribe(channelName);
     };

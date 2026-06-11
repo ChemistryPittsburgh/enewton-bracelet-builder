@@ -6,6 +6,7 @@ import type { Bracelet } from "@/types";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useStore } from "@/lib/store";
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -42,6 +43,7 @@ export function DesignCard({
   const menuRef = useRef<HTMLDivElement>(null);
   const { canDeleteBracelet, isAdmin, canSubmit, canApprove: hasApprovePermission, canReject: hasRejectPermission } = usePermissions();
   const { data: currentUser } = useCurrentUser();
+  const activeDesignId = useStore((s) => s.activeDesignId);
   const [imgState, setImgState] = useState<"loading" | "loaded" | "error" | "empty">(
     design.preview_image_url ? "loading" : "empty",
   );
@@ -72,6 +74,10 @@ export function DesignCard({
     design.status !== "published" &&
     design.active_lock != null &&
     design.active_lock.user_id !== currentUser?.id;
+
+  const isCurrentlyEditing =
+    design.id === activeDesignId &&
+    design.status !== "published";
 
   // ── Menu action visibility ────────────────────────────────────────────────
   const showSubmit      = effectiveStatus === "draft" && canSubmit && !isDiscontinued;
@@ -106,6 +112,13 @@ export function DesignCard({
         {wasRejected && (
           <div className="absolute left-2 top-2 z-10 rounded-full bg-error/30 px-2 py-0.5 text-[10px] font-semibold text-error">
             Rejected
+          </div>
+        )}
+        {/* Currently open by this user */}
+        {isCurrentlyEditing && (
+          <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
+            <Lock size={9} />
+            Editing
           </div>
         )}
         {/* Locked by another user */}

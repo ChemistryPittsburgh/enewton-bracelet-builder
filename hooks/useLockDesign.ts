@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { DesignLock } from "@/types";
 
@@ -15,6 +15,7 @@ interface LockConflict {
 export type LockResult = LockAcquired | LockConflict;
 
 export function useLockDesign() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       id,
@@ -36,6 +37,9 @@ export function useLockDesign() {
         }
         throw err;
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["designs"] });
     },
   });
 }

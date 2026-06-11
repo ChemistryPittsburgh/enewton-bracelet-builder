@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronsRight, Inbox, Lock, Plus, ShieldAlert } from "lucide-react";
+import { ChevronsRight, Inbox, Loader2, Lock, Plus, ShieldAlert } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+import { useProgress } from "@react-three/drei";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
@@ -76,6 +78,8 @@ export function BuilderLayout() {
   const { data: currentUser } = useCurrentUser();
   const { canEdit } = usePermissions();
   const { data: savedDesign, isFetching: designFetching } = useDesign(activeDesignId);
+  const { active: glbsLoading } = useProgress();
+  const isCanvasLoading = glbsLoading || (activeDesignId !== null && designFetching);
 
   // ── Notification badge (header) ───────────────────────────────────────────
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
@@ -132,6 +136,7 @@ export function BuilderLayout() {
 
     if (!isLockableStatus) {
       setLockHeld(false); // published — release the optimistic lock
+      syncDesign(savedDesign);
       return;
     }
 
@@ -156,6 +161,7 @@ export function BuilderLayout() {
     if (activeLock != null) {
       // Another user holds the lock — release the optimistic assumption.
       setLockHeld(false);
+      syncDesign(savedDesign);
       return;
     }
 
@@ -174,17 +180,18 @@ export function BuilderLayout() {
   // one render when cached savedDesign arrives before the optimistic lockHeld
   // effect fires. When active_lock is null the lock is not yet confirmed (may
   // be in acquisition) so we optimistically show the editing state.
+  const lockedByOther =
+    !lockHeld &&
+    isLockableStatus &&
+    currentUser != null &&
+    savedDesign?.active_lock?.user_id != null &&
+    savedDesign.active_lock.user_id !== currentUser.id;
+
   const isLocked =
     savedDesign?.status === "approved" ||
     savedDesign?.status === "published" ||
     kickedNotification ||
-    (
-      !lockHeld &&
-      isLockableStatus &&
-      currentUser != null &&
-      savedDesign?.active_lock?.user_id != null &&
-      savedDesign.active_lock.user_id !== currentUser.id
-    );
+    lockedByOther;
 
   useDesignHeartbeat(
     (isLockableStatus && !kickedNotification && lockHeld) ? activeDesignId : null,
@@ -397,10 +404,12 @@ export function BuilderLayout() {
 
             {/* Bracelet info overlay */}
             <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
-              {kickedNotification && (
+              {(kickedNotification || lockedByOther) && (
                 <div className="mb-1 flex items-center gap-1.5 rounded-md bg-amber-500 px-2.5 py-1 text-xs font-medium text-white">
                   <ShieldAlert size={11} className="shrink-0" />
-                  Read-only — your session was taken over
+                  {kickedNotification
+                    ? "Read-only — your session was taken over"
+                    : `Read-only — being edited by ${savedDesign!.active_lock!.user_name}`}
                 </div>
               )}
               {lockHeld && (
@@ -454,6 +463,15 @@ export function BuilderLayout() {
               }}
             >
               <Scene panelOpen={braceletPanelOpen} rightPanelOpen={rightPanelOpen} isLocked={isLocked} />
+            </div>
+
+            <div
+              className={cn(
+                "absolute inset-0 z-30 flex items-center justify-center backdrop-blur-md bg-white/50 transition-opacity duration-500",
+                isCanvasLoading ? "opacity-100" : "opacity-0 pointer-events-none",
+              )}
+            >
+              <Loader2 size={28} className="animate-spin text-navy" />
             </div>
           </div>
         </div>

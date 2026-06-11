@@ -23,7 +23,6 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDesigns } from "@/hooks/useDesigns";
-import { useNotifications } from "@/hooks/useNotifications";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useIsDirty } from "@/hooks/useIsDirty";
 import { getPrimaryRole } from "@/hooks/usePermissions";
@@ -267,7 +266,6 @@ export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserSc
 
   const { data: allDesigns = [] } = useDesigns({ enabled: open });
   const { data: beadList = [] } = useBeads();
-  const { inReviewDesigns: inReview, approvedDesigns: approved } = useNotifications();
   const { loadDesign }    = useLoadDesign();
 
   const beads            = useStore((s) => s.beads);
@@ -281,6 +279,15 @@ export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserSc
   const perms      = user?.permissions;
   const showReview = !!(perms?.is_reviewer || perms?.is_admin);
   const showPublish= !!(perms?.is_publisher || perms?.is_admin);
+
+  const inReview = useMemo(
+    () => (showReview ? allDesigns.filter((d) => d.status === "in_review") : []),
+    [allDesigns, showReview],
+  );
+  const approved = useMemo(
+    () => (showPublish ? allDesigns.filter((d) => d.status === "approved") : []),
+    [allDesigns, showPublish],
+  );
 
   // ── Design selection — delegate to global ConfirmReplaceDialog if canvas has unsaved changes ──
   async function requestLoad(design: Bracelet) {
