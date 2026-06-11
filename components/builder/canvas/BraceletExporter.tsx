@@ -86,7 +86,8 @@ export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
     if (braceletSize        !== cfg.bracelet_size)                            return true;
     if (bandMaterial        !== cfg.band_material)                            return true;
     if (beads.length        !== cfg.beads.length)                             return true;
-    return beads.some((b, i) => b.product.id !== cfg.beads[i].product_id);
+    const sortedCfgBeads = [...cfg.beads].sort((a, b) => a.position - b.position);
+    return beads.some((b, i) => b.product.id !== sortedCfgBeads[i].product_id);
   })();
 
   const { save }              = useSaveBracelet();

@@ -434,7 +434,10 @@ function BeadForm({
   const isCharm = form.bead_category === "charm";
   const nameValid     = form.name.trim().length > 0;
   const typeValid     = form.bead_type.trim().length > 0;
-  const diameterValid = form.diameter_mm !== "" && parseFloat(form.diameter_mm) > 0;
+  // For charms, bail_width_mm is required (used as diameter); for beads, diameter_mm is required
+  const diameterValid = isCharm
+    ? form.bail_width_mm !== "" && parseFloat(form.bail_width_mm) > 0
+    : form.diameter_mm !== "" && parseFloat(form.diameter_mm) > 0;
   const hasGlb        = glbFile !== null || existingGlbPath !== null;
   const canSubmit     = nameValid && typeValid && diameterValid && hasGlb && !validatingMagic;
 
@@ -571,7 +574,7 @@ function BeadForm({
               {previewUrl ? (
                 <GlbPreview url={previewUrl} isCharm={isCharm} finish={form.material || null} captureRef={captureRef} />
               ) : (
-                <div className="flex h-full items-center justify-center text-sm text-color-base/40">
+                <div className="flex h-full w-full items-center justify-center text-sm text-color-base/40">
                   Upload a GLB to preview
                 </div>
               )}
@@ -635,7 +638,7 @@ function BeadForm({
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
               onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
-              placeholder="e.g. Admire 6mm"
+              placeholder="e.g. Admire"
               className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
             />
           </div>
@@ -643,12 +646,12 @@ function BeadForm({
           {/* Bead type + Category row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <FieldLabel required>Bead type</FieldLabel>
+              <FieldLabel required>Item type</FieldLabel>
               <input
                 type="text"
                 value={form.bead_type}
                 onChange={(e) => update("bead_type", e.target.value)}
-                placeholder="e.g. Admire"
+                placeholder="e.g. Admire, Disc, etc."
                 className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
               />
             </div>
@@ -668,20 +671,22 @@ function BeadForm({
             </div>
           </div>
 
-          {/* Diameter + Size row */}
+          {/* Diameter + Size row — diameter hidden for charms (uses bail_width_mm instead) */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <FieldLabel required>Diameter (mm)</FieldLabel>
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={form.diameter_mm}
-                onChange={(e) => update("diameter_mm", e.target.value)}
-                placeholder="e.g. 6"
-                className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
-              />
-            </div>
+            {!isCharm && (
+              <div className="flex flex-col gap-1">
+                <FieldLabel required>Diameter (mm)</FieldLabel>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={form.diameter_mm}
+                  onChange={(e) => update("diameter_mm", e.target.value)}
+                  placeholder="e.g. 6"
+                  className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                />
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <FieldLabel>Size (mm)</FieldLabel>
               <input
@@ -735,13 +740,14 @@ function BeadForm({
               placeholder="e.g. rose, ivory"
               className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
             />
+            <p className="text-xs text-color-base/60 italic">Color can be left blank (if item is metal/gold/silver/etc)</p>
           </div>
 
           {/* Charm-specific fields — only visible when category is "charm" */}
           {isCharm && (
             <div className="grid grid-cols-2 gap-3 pt-1 border-t border-default/50">
               <div className="flex flex-col gap-1">
-                <FieldLabel>Bail width (mm)</FieldLabel>
+                <FieldLabel required>Bail width (mm)</FieldLabel>
                 <input
                   type="number"
                   min={0}
@@ -750,6 +756,7 @@ function BeadForm({
                   onChange={(e) => update("bail_width_mm", e.target.value)}
                   className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
                 />
+                <p className="text-xs text-color-base/60 italic">Average bail: 0.5</p>
               </div>
               <div className="flex flex-col gap-1">
                 <FieldLabel>Body width (mm)</FieldLabel>
@@ -941,13 +948,21 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
       }
 
       const diameterMm = parseFloat(data.diameter_mm);
+      const isCharmCategory = data.bead_category === "charm";
+
+      // For charms, diameter = bail width (the cord-hole), not the overall size.
+      // If bail_width_mm is filled in, use that as the diameter instead.
+      const diameterMetres = isCharmCategory && data.bail_width_mm
+        ? parseFloat(data.bail_width_mm) / 1000
+        : diameterMm / 1000;
+
       const payload = {
         name:          data.name.trim(),
         slug:          beadSlug,
         glb_path:      glbPath,
         bead_type:     data.bead_type.trim(),
         bead_category: data.bead_category,
-        diameter:      diameterMm / 1000,                                       // mm → metres
+        diameter:      diameterMetres,
         size_mm:       data.size_mm ? parseFloat(data.size_mm) : null,
         sku:           data.sku.trim() || null,
         material:      data.material || null,

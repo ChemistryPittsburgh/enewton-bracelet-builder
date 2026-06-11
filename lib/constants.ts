@@ -123,15 +123,15 @@ export interface FinishPreset {
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
-  gold:      { metalness: 1, roughness: 0.2, envMapIntensity: 0.65 },
-  silver:    { color: "#c0c0c0", metalness: 0.95, roughness: 0.2,  envMapIntensity: 0.9  },
-  rose_gold: { color: "#c9a078", metalness: 0.9,  roughness: 0.3,  envMapIntensity: 0.75 },
+  gold:      { metalness: 1, roughness: 0.18, envMapIntensity: 0.1 },
+  silver:    { metalness: 1,   roughness: 0.18, envMapIntensity: 0.35 },
+  rose_gold: { metalness: 0.95, roughness: 0.2, envMapIntensity: 0.9 },
 };
 
 /** Fallback when product.finish is undefined. Set to null to disable. */
 export const DEFAULT_FINISH: string | null = "gold";
 
-export const MAX_BEAD_DIAMETER = 0.8;
+export const MIN_BEAD_DIAMETER = 0.2;
 
 export const BEAD_CATEGORIES = ["bead", "charm", "tube"] as const;
 export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold"] as const;
@@ -158,6 +158,9 @@ export function createSpacerProduct(sizeMm: number) {
     material:       null,
     diameter:       sizeMm / 1000,
     size_mm:        sizeMm,
+    sku:            null,
+    color:          null,
+    active:         1,
     body_width_mm:  null,
     bail_width_mm:  null,
     depth_offset:   null,

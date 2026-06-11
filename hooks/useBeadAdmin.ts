@@ -5,15 +5,23 @@
  * All mutations invalidate the ["beads"] query key so the bead selector
  * and admin list stay in sync.
  *
- * Endpoints (Clinton):
+ * Endpoints:
  *   POST   /beads           → create a new bead product
- *   PUT    /beads/:id       → update an existing bead product
- *   PATCH  /beads/:id/active → toggle active flag (soft delete / restore)
+ *   POST    /beads/:slug       → update an existing bead product ()
+ *   POST  /beads/:id/active → toggle active flag (soft delete / restore)
+ * 
+ *  NEEDED
+ *   DELETE    /beads/:id       → delete bead
+ *   POST    /beads/:id       → slug needs changed to ID
  */
 
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { type ApiBeadProduct, normaliseBeadProduct } from "@/lib/bead-helpers";
+import { slugify } from "@/lib/utils";
 import type { BeadProduct } from "@/types";
+
+export { slugify };
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -126,39 +134,7 @@ export async function uploadBeadThumbnail(
   return json.url;
 }
 
-// ── Auto-slug ────────────────────────────────────────────────────────────────
-
-/** Generates a URL-safe slug from a bead name (e.g. "Admire 6mm" → "admire-6mm"). */
-export function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 // ── Fetch ALL beads (including inactive) for admin view ──────────────────────
-
-/** Same decimal-string parser used by useBeads. */
-function parseDecimal(v: string | number | null | undefined): number | undefined {
-  if (v == null || v === "") return undefined;
-  const n = parseFloat(String(v));
-  return isNaN(n) ? undefined : n;
-}
-
-type ApiBeadProduct = Omit<
-  BeadProduct,
-  "diameter" | "size_mm" | "bail_width_mm" | "body_width_mm" | "total_height_mm" | "hang_offset" | "hang_length" | "depth_offset"
-> & {
-  diameter: string;
-  size_mm?: string | number | null;
-  bail_width_mm?: string | null;
-  body_width_mm?: string | null;
-  total_height_mm?: string | null;
-  hang_offset?: string | null;
-  hang_length?: string | null;
-  depth_offset?: string | null;
-};
 
 /**
  * Fetches the full bead catalog including inactive beads.
@@ -170,17 +146,7 @@ export function useAllBeads() {
     queryKey: ["beads", "all"],
     queryFn: async () => {
       const data = await apiFetch<ApiBeadProduct[]>("/beads");
-      return data.map((b): BeadProduct => ({
-        ...b,
-        diameter:        parseFloat(b.diameter),
-        size_mm:         parseDecimal(b.size_mm) ?? null,
-        bail_width_mm:   parseDecimal(b.bail_width_mm),
-        body_width_mm:   parseDecimal(b.body_width_mm),
-        total_height_mm: parseDecimal(b.total_height_mm),
-        hang_offset:     parseDecimal(b.hang_offset),
-        hang_length:     parseDecimal(b.hang_length),
-        depth_offset:    parseDecimal(b.depth_offset),
-      }));
+      return data.map(normaliseBeadProduct);
     },
   });
 }

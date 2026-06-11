@@ -249,11 +249,11 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
         {/* ── Main content ──────────────────────────────────────────────── */}
         <div className="flex flex-1 flex-col md:pt-14 overflow-scroll lg:overflow-hidden">
-          <div className="designs-panel-header px-6 lg:px-10">
+          <div className="designs-panel-header px-6 lg:px-10 border-b border-default">
             <h2 className="text-xl pb-3 lg:py-6">Saved designs</h2>
 
             {/* Filter bar */}
-            <div className="shrink-0 border-b border-neutral-100 flex flex-col gap-1 lg:gap-4 pb-3">
+            <div className="shrink-0 flex flex-col gap-1 lg:gap-4 pb-3">
 
               {/* Row 1: dropdowns · bracelet state · search */}
               <div className="flex flex-col lg:flex-wrap lg:flex-row lg:items-center gap-3 lg:gap-6">
