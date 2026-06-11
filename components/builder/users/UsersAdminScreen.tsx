@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, ChevronDown, Loader2, Plus, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Loader2, Plus, Search, Trash2, X, Radio } from "lucide-react";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -94,7 +94,7 @@ function UserEditor({
             type="text"
             value={draftName}
             onChange={(e) => setDraftName(e.target.value)}
-            className="rounded-lg border border-default bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-600 transition-colors"
+            className="rounded-[2px] border border-default bg-white px-3 py-1.5 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
           />
         </div>
         <div className="flex flex-1 flex-col gap-1">
@@ -104,7 +104,7 @@ function UserEditor({
             type="email"
             value={draftEmail}
             onChange={(e) => setDraftEmail(e.target.value)}
-            className="rounded-lg border border-default bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-600 transition-colors"
+            className="rounded-[2px] border border-default bg-white px-3 py-1.5 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
           />
         </div>
       </div>
@@ -192,11 +192,11 @@ function UserRow({
         {/* Expand chevron */}
         <ChevronDown
           size={14}
-          className={`shrink-0 text-color-base50 transition-transform ${isEditing ? "rotate-180" : ""}`}
+          className={`shrink-0 text-color-base/50 transition-transform ${isEditing ? "rotate-180" : ""}`}
         />
 
         {/* Avatar */}
-        <Avatar name={user.name} size="md" />
+        <Avatar name={user.name} color={user.color} size="md" />
 
         {/* Name + email */}
         <div className="flex flex-col min-w-0 flex-1">
@@ -204,21 +204,24 @@ function UserRow({
           <span className="text-xs text-color-base/70 truncate">{user.email}</span>
         </div>
 
-        {/* Role badge */}
-        <span className="shrink-0 rounded-full border border-default bg-neutral-100 px-2 py-0.5 text-xs font-medium text-color-base/70">
-          {getPrimaryRole(user.permissions)}
-        </span>
+        {/* Role badge — colour driven by PERMISSION_FIELDS in category-colors */}
+        {(() => {
+          const role  = getPrimaryRole(user.permissions);
+          const entry = PERMISSION_FIELDS.find((f) => f.label === role);
+          return (
+            <span className={`shrink-0 text-center rounded-[2px] border border-navy px-3 py-0.5 text-xs font-medium ${entry?.color ?? "bg-gold/30"}`}>
+              {role}
+            </span>
+          );
+          })()}
 
         {/* Active chip */}
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
-            isActive
-              ? "bg-green/20 text-green border border-green"
-              : "bg-light-grey/20 text-error border border-error"
-          }`}
-        >
-          {isActive ? "Active" : "Inactive"}
-        </span>
+
+        <Radio size={26} 
+              aria-label={isActive ? "Active User" : "Inactive User"}
+              className={`shrink-0 py-0.5 ${
+                isActive ? "text-green" : "text-error"
+              }`} />
 
         {/* Actions — stop propagation so they don't toggle the row */}
         <div className="shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -227,7 +230,7 @@ function UserRow({
             onClick={handleToggleActive}
             disabled={isUpdating || isSelf}
             title={isActive ? "Deactivate user" : "Activate user"}
-            className="rounded-lg border border-default p-1.5 text-color-base/70 hover:bg-light-grey disabled:opacity-40 transition-colors"
+            className="rounded-[2px] border border-default p-1.5 text-color-base/70 hover:bg-mint disabled:opacity-40 transition-colors"
           >
             {isUpdating ? (
               <Loader2 size={13} className="animate-spin" />
@@ -262,7 +265,7 @@ function UserRow({
               onClick={() => setConfirmDelete(true)}
               disabled={isSelf}
               title="Delete user"
-              className="rounded-lg border border-default p-1.5 text-color-base/70 hover:bg-error/20 hover:border-error hover:text-error disabled:opacity-40 transition-colors"
+              className="rounded-[2px] border border-default p-1.5 text-color-base/70 hover:bg-error/20 hover:border-error hover:text-error disabled:opacity-40 transition-colors"
             >
               <Trash2 size={13} />
             </button>
@@ -335,17 +338,17 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
       </div>
 
       {/* Filter / search bar */}
-      <div className="flex shrink-0 items-center gap-3 border-b border-neutral-100 px-6 py-3">
+      <div className="flex shrink-0 items-center gap-4 border-b border-default bg-light-grey/50 px-6 py-4">
         {/* Role tabs */}
         <div className="flex items-center gap-1">
           {ROLE_TABS.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setRoleFilter(tab.value)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-[2px] px-3 py-1.5 text-xs border border-navy font-medium transition-colors ${
                 roleFilter === tab.value
-                  ? "bg-neutral-800 text-white"
-                  : "text-color-base/70 hover:bg-light-grey/60"
+                  ? "bg-navy text-white"
+                  : "text-color-base/70 hover:bg-mint"
               }`}
             >
               {tab.label}
@@ -357,22 +360,22 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
         <div className="flex-1" />
 
         {/* Count */}
-        <span className="text-xs text-color-base50">{filtered.length} user{filtered.length !== 1 ? "s" : ""}</span>
+        <span className="text-sm text-color-base/80">{filtered.length} user{filtered.length !== 1 ? "s" : ""}</span>
 
         {/* Search */}
         <div className="relative">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-color-base50 pointer-events-none" />
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-color-base/50 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name or email…"
-            className="rounded-lg border border-default bg-white pl-7 pr-3 py-1.5 text-xs   outline-none focus:border-neutral-500 transition-colors w-52"
+            className="rounded-[2px] border border-default bg-white pl-7 pr-3 py-1.5 text-sm outline-none focus:border-navy focus:ring-navy transition-colors w-52"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-color-base50 hover:text-color-base/70"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-color-base/50 hover:text-color-base/70"
             >
               <X size={11} />
             </button>
@@ -403,7 +406,7 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
       {/* User list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-color-base50">
+          <div className="flex items-center justify-center py-16 gap-3 text-color-base/50">
             <Loader2 size={20} className="animate-spin" />
             <span className="text-sm">Loading users…</span>
           </div>
@@ -422,7 +425,7 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
         )}
 
         {!isLoading && !isError && filtered.length === 0 && (
-          <div className="flex items-center justify-center py-16 text-sm text-color-base50">
+          <div className="flex items-center justify-center py-16 text-sm text-color-base/50">
             No users match your filters.
           </div>
         )}

@@ -69,6 +69,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
 
   // ── Dialogs ────────────────────────────────────────────────────────────────
   const [designToDelete,      setDesignToDelete]      = useState<Bracelet | null>(null);
+  const [deleteError,         setDeleteError]         = useState<string | null>(null);
   const [designToDiscontinue, setDesignToDiscontinue] = useState<Bracelet | null>(null);
   const [designToReject,      setDesignToReject]      = useState<Bracelet | null>(null);
 
@@ -437,7 +438,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                     key={design.id}
                     design={design}
                     onClick={() => handleCardClick(design)}
-                    onDeleteRequest={(d) => setDesignToDelete(d)}
+                    onDeleteRequest={(d) => { setDeleteError(null); setDesignToDelete(d); }}
                     onDiscontinueRequest={(d) => setDesignToDiscontinue(d)}
                     onSubmitForReview={(d) => submitDesign(d.id)}
                     onApprove={(d) => approveDesign(d.id)}
@@ -454,10 +455,17 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
         <DeleteBraceletDialog
           designName={designToDelete.name}
           isDeleting={isDeleting}
-          onCancel={() => setDesignToDelete(null)}
+          error={deleteError}
+          onCancel={() => { setDeleteError(null); setDesignToDelete(null); }}
           onConfirm={() => {
+            setDeleteError(null);
             deleteDesign(designToDelete.id, {
-              onSuccess: () => setDesignToDelete(null),
+              onSuccess: () => { setDeleteError(null); setDesignToDelete(null); },
+              onError: (err) => {
+                setDeleteError(
+                  err instanceof Error ? err.message : "This bracelet cannot be deleted.",
+                );
+              },
             });
           }}
         />

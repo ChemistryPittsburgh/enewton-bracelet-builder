@@ -31,18 +31,3 @@ export const STATUS_META: Record<BraceletStatus, { label: string; cls: string }>
   rejected:     { label: "Rejected",     cls: "bg-error/20 text-error"    },
   discontinued: { label: "Discontinued", cls: "bg-error text-white"       },
 };
-
-// ── User role permission fields ───────────────────────────────────────────────
-// `color` drives both the badge chip in UsersAdminScreen and the
-// permissions dropdown checkbox accent.
-export const PERMISSION_FIELDS: {
-  key:   keyof User["permissions"];
-  label: string;
-  color: string;
-}[] = [
-  { key: "is_bracelet_editor", label: "Bracelet Editor", color: "bg-mint"       },
-  { key: "is_reviewer",        label: "Reviewer",        color: "bg-shell"      },
-  { key: "is_publisher",       label: "Publisher",       color: "bg-light-blue" },
-  { key: "is_component_admin", label: "Component Admin", color: "bg-blush"      },
-  { key: "is_admin",           label: "Admin",           color: "bg-green/30"   },
-];

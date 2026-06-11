@@ -38,7 +38,7 @@ function CollectionRow({
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => onEdit(collection)}
-          className="rounded p-1 text-color-base/70 hover:bg-light-grey hover:text-color-base transition-colors"
+          className="icon-only-btn"
           title="Edit collection"
         >
           <Pencil size={14} />
@@ -46,7 +46,7 @@ function CollectionRow({
         <button
           onClick={() => onDelete(collection)}
           disabled={isDeleting}
-          className="rounded p-1 text-color-base/70 hover:bg-error/10 hover:text-error transition-colors disabled:opacity-40"
+          className="icon-only-btn icon-only-btn--error"
           title="Delete collection"
         >
           {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}

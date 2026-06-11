@@ -1,7 +1,5 @@
 import { useStore } from "@/lib/store";
 import { THUMBNAIL_SIZE, SCENE_BACKGROUND, CAMERA_DEFAULT_POSITION } from "@/lib/constants";
-import { useRef } from "react";
-import type { CameraControls } from "@react-three/drei";
 
 // ─── Background colour channels (from SCENE_BACKGROUND = "#f5f0eb") ──────────
 const BG_R = 0xf5;
@@ -10,7 +8,7 @@ const BG_B = 0xeb;
 const BG_THRESHOLD = 20;
 const CONTENT_PADDING = 0.10;
 
-// ─── Helpers (unchanged) ─────────────────────────────────────────────────────
+// ─── Helpers  ─────────────────────────────────────────────────────
 
 function findContentBounds(src: HTMLCanvasElement) {
   const sw = src.width;
@@ -39,13 +37,26 @@ function findContentBounds(src: HTMLCanvasElement) {
     }
   }
   if (minX > maxX || minY > maxY) return { x: 0, y: 0, w: sw, h: sh };
-  const bw = maxX - minX + 1;
-  const bh = maxY - minY + 1;
-  const pad = Math.round(Math.max(bw, bh) * CONTENT_PADDING);
-  const x = Math.max(0, minX - pad);
-  const y = Math.max(0, minY - pad);
-  const w = Math.min(sw - 1, maxX + pad) - x + 1;
-  const h = Math.min(sh - 1, maxY + pad) - y + 1;
+
+  // Build a square crop centred on the content so padding is always symmetric.
+  // The old per-side clamp caused the bracelet to clip at whichever edge the
+  // content sat closest to (usually the bottom due to camera angle).
+  const bw   = maxX - minX + 1;
+  const bh   = maxY - minY + 1;
+  const side = Math.round(Math.max(bw, bh) * (1 + 2 * CONTENT_PADDING));
+  const cx   = (minX + maxX) / 2;
+  const cy   = (minY + maxY) / 2;
+
+  // Centre the square on the content, then shift into canvas bounds if needed
+  let x = Math.round(cx - side / 2);
+  let y = Math.round(cy - side / 2);
+  x = Math.max(0, Math.min(x, sw - side));
+  y = Math.max(0, Math.min(y, sh - side));
+
+  // Final safety clamp for the rare case where side > canvas dimension
+  const w = Math.min(side, sw - x);
+  const h = Math.min(side, sh - y);
+
   return { x, y, w, h };
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Loader2, Pencil, X } from "lucide-react";
+import { Check, Loader2, Pencil, Trash2, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
@@ -16,11 +16,13 @@ import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/
 
 import { useDesign } from "@/hooks/useDesign";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
+import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
 import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
 
 import { WorkflowSection } from "@/components/builder/sections/WorkflowSection";
+import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
 import { STATUS_META } from "@/lib/category-colors";
 import { AssignmentSection } from "@/components/builder/sections/AssignmentSection";
 
@@ -55,7 +57,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
-  const { canEdit } = usePermissions();
+  const { canEdit, canDeleteBracelet, isAdmin } = usePermissions();
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   // ── Name / description edit state ───────────────────────────────────────────
@@ -64,6 +66,14 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
   const [localDescription, setLocalDescription] = useState(braceletDescription ?? "");
 
   const { mutate: updateDesign, isPending: saving } = useUpdateDesign();
+
+  // ── Delete state ────────────────────────────────────────────────────────────
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { mutate: deleteDesign, isPending: isDeleting } = useDeleteDesign();
+
+  const isDiscontinued = savedDesign?.is_discontinued === 1;
+  const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued);
 
   const handleEdit = () => {
     setLocalName(braceletName);
@@ -118,8 +128,6 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     () => [...new Set(placedBeads.map((b) => b.product.bead_type).filter(Boolean))] as string[],
     [placedBeads],
   );
-
-  const isDiscontinued = savedDesign?.is_discontinued === 1;
 
   const dialogSectionClass = "border-b border-default pb-3";
 
@@ -200,7 +208,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
                   {(!savedDesign || (canEdit && !isLocked)) && (
                     <button
                       onClick={handleEdit}
-                      className="rounded p-0.5 text-color-base/70 opacity-0 transition-opacity hover:text-color-base/70 group-hover:opacity-100"
+                      className="icon-only-btn"
                       aria-label="Edit name and description"
                     >
                       <Pencil size={13} />
@@ -306,7 +314,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
         {/* ── Saved design metadata ───────────────────────────────────── */}
         {savedDesign && (
-          <div className="pb-6">
+          <div className={showDelete ? dialogSectionClass : "pb-6"}>
             <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
               <InfoRow label="Created"       value={formatDateTime(savedDesign.created_at)} />
@@ -321,7 +329,53 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
           </div>
         )}
 
+        {/* ── Delete ──────────────────────────────────────────────────── */}
+        {showDelete && (
+          <div className="pb-6">
+            <SectionHeading>Danger Zone</SectionHeading>
+            <div className="flex items-center justify-between rounded-lg border border-error/20 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Delete this bracelet</p>
+                <p className="text-xs text-color-base/60">This action is permanent and cannot be undone.</p>
+              </div>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => { setDeleteError(null); setShowDeleteConfirm(true); }}
+              >
+                <Trash2 size={14} />
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* ── Delete confirmation (rendered outside scroll area) ──────── */}
+      {showDeleteConfirm && savedDesign && (
+        <DeleteBraceletDialog
+          designName={savedDesign.name}
+          isDeleting={isDeleting}
+          error={deleteError}
+          onCancel={() => { setDeleteError(null); setShowDeleteConfirm(false); }}
+          onConfirm={() => {
+            setDeleteError(null);
+            deleteDesign(savedDesign.id, {
+              onSuccess: () => {
+                setShowDeleteConfirm(false);
+                useStore.getState().resetBracelet();
+                onClose();
+              },
+              onError: (err) => {
+                setDeleteError(
+                  err instanceof Error ? err.message : "This bracelet cannot be deleted.",
+                );
+              },
+            });
+          }}
+        />
+      )}
     </FullScreenDialog>
   );
 }
