@@ -21,6 +21,7 @@ import { CanvasWorkflowBar } from "./canvas/CanvasWorkflowBar";
 import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
 import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
+import { ManageBeadsDialog } from "./dialogs/ManageBeadsDialog";
 
 import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
 import { CommentsPanel } from "./panels/CommentsPanel";
@@ -84,6 +85,7 @@ export function BuilderLayout() {
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
   const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
+  const [manageBeadsOpen,     setManageBeadsOpen]     = useState(false);
 
   // ── Name-required highlight ───────────────────────────────────────────────
   // Activated by BraceletExporter when the user tries to save without a name.
@@ -205,6 +207,7 @@ export function BuilderLayout() {
           open={rightPanel === "user"}
           onClose={() => setRightPanel(null)}
           onEditUsers={() => { setRightPanel(null); setUsersAdminOpen(true); }}
+          onManageBeads={() => { setRightPanel(null); setManageBeadsOpen(true); }}
         />
         <CommentsPanel open={rightPanel === "comments"} onClose={() => setRightPanel(null)} />
 
@@ -332,6 +335,11 @@ export function BuilderLayout() {
       <BraceletDetailsDialog
         open={braceletDetailsOpen}
         onClose={() => setBraceletDetailsOpen(false)}
+      />
+
+      <ManageBeadsDialog
+        open={manageBeadsOpen}
+        onClose={() => setManageBeadsOpen(false)}
       />
 
       {dragFromPanel && (

@@ -12,6 +12,8 @@ interface FullScreenDialogProps {
   className?: string;
   includeBackDropBlur?: boolean;
   bodyClasses?: string;
+  /** Optional content rendered in the header between the title and close button. */
+  headerExtra?: React.ReactNode;
 }
 
 export function FullScreenDialog({
@@ -22,6 +24,7 @@ export function FullScreenDialog({
   className,
   includeBackDropBlur = true,
   bodyClasses,
+  headerExtra,
 }: FullScreenDialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -57,12 +60,15 @@ export function FullScreenDialog({
           {title && (
             <h2>{title}</h2>
           )}
-          <button
-            onClick={onClose}
-            className="ml-auto flex h-7 w-7 items-center justify-center rounded-full border border-default text-color-base/70 hover:bg-neutral-50 hover:ring-2 transition-all"
-          >
-            <X size={16} />
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {headerExtra}
+            <button
+              onClick={onClose}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-default text-color-base/70 hover:bg-neutral-50 hover:ring-2 transition-all"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
         {/* Body */}
         <div

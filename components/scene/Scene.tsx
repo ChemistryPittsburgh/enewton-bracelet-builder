@@ -35,9 +35,18 @@ function CanvasRegistrar() {
 function ControlsRegistrar({ controlsRef }: { controlsRef: React.RefObject<CameraControls> }) {
   const setControlsEl = useStore((s) => s.setControlsEl);
   useEffect(() => {
-    setControlsEl(controlsRef.current);
-    return () => setControlsEl(null);
-  }, [controlsRef.current, setControlsEl]);
+    // controlsRef.current is set after CameraControls mounts; poll briefly to catch it.
+    const id = setInterval(() => {
+      if (controlsRef.current) {
+        setControlsEl(controlsRef.current);
+        clearInterval(id);
+      }
+    }, 50);
+    return () => {
+      clearInterval(id);
+      setControlsEl(null);
+    };
+  }, [controlsRef, setControlsEl]);
   return null;
 }
 
@@ -76,9 +85,10 @@ export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps)
         <CanvasRegistrar />
         <ControlsRegistrar controlsRef={controlsRef} />
         <ambientLight intensity={0.2} color="#fff8f2" />
-        <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.1} color="#fffaf6" castShadow={viewMode !== 'line'} />
-        <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.5} color="#fff5f0" />
-        <Environment preset="apartment" background={false} blur={0.85} />
+        <directionalLight position={[0.1, 0.2, 0.1]} intensity={0.8} color="#fffaf6" castShadow={viewMode !== 'line'} />
+        <directionalLight position={[-0.3, 0, -0.3]} intensity={0.6} color="#fff5f0"/>
+        <directionalLight position={[1.5, 0, -1]} intensity={0.8} color="#fffaf6" />
+        <Environment preset="apartment" background={false} resolution={200} blur={0.8} backgroundIntensity={0.1} environmentIntensity={0.45} />
 
         <Suspense fallback={null}>
           <BraceletCord />

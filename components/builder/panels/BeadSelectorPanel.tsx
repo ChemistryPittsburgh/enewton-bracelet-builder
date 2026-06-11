@@ -10,6 +10,7 @@ import type { BeadProduct } from "@/types";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import { Plus } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { braceletArc, usedArc, beadFits } from "@/lib/bead-layout";
@@ -17,7 +18,7 @@ import {
   BRACELET_SIZE_RADIUS,
   SPACER_SIZES_MM,
   createSpacerProduct,
-  MAX_BEAD_DIAMETER,
+  MIN_BEAD_DIAMETER,
 } from "@/lib/constants";
 
 const SPACER_TAB = "__spacer__";
@@ -26,39 +27,6 @@ interface BeadSelectorPanelProps {
   beads: BeadProduct[];
   isOpen: boolean;
   onClose: () => void;
-}
-
-
-function BeadThumbnail({ bead }: { bead: BeadProduct }) {
-  const [failed, setFailed] = useState(false);
-
-  if (failed || bead.bead_type == null) {
-    return (
-      <>
-      <div
-        className="rounded-full"
-        style={{
-          width: "30px",
-          height: "30px",
-          background: "radial-gradient(circle at 35% 35%, #f5d87e, #c8980a)",
-        }}
-      >
-          <Plus size={16} />
-        </div>
-      </>
-    );
-  } else {
-    const src = `/images/${bead.slug}-thumbnail.png`;
-    return (
-      <img
-        src={src}
-        alt={bead.name}
-        width={38}
-        style={{ height: "auto" }}
-        onError={() => setFailed(true)}
-      />
-    );
-  }
 }
 
 function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
@@ -115,11 +83,11 @@ function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
             : ""
       }`}
     >
-      <div className="bg-light-grey p-2 min-h-[70px] w-full items-center flex justify-center">
-        <BeadThumbnail bead={bead} />
+      <div className="bg-light-grey p-2 h-[80px] w-full items-center flex justify-center">
+        <BeadThumbnail bead={bead}  />
       </div>
       <div className="flex flex-col pt-[2px] pb-2 text-left px-2">
-        <span className="text-[12px]">{bead.bead_type}</span>
+        <span className="text-[12px]">{bead.name}</span>
         <span className="text-[10px] leading-tight text-color-base/70">{size}mm</span>
       </div>
     </button>
@@ -194,7 +162,7 @@ function SpacerPicker({ onAdd, error }: {
         <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-3">
           Spacer size
         </p>
-        <div className="grid grid-cols-4 gap-2 mb-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
           {SPACER_SIZES_MM.map((size) => {
             const canFit   = size <= availableMm;
             const isActive = selectedSize === size && !customSize;
@@ -288,40 +256,42 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
   const { canEdit } = usePermissions();
 
   const [search, setSearch] = useState("");
-  const [activeMaterial, setActiveMaterial] = useState<string | null>(null);
-  const [activeType, setActiveType] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [activeMaterial, setActiveMaterial] = useState<string>("");
   const [selectedBead, setSelectedBead] = useState<BeadProduct | null>(null);
   const [fillFull, setFillFull] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  const isSpacerMode = activeMaterial === SPACER_TAB;
+  const isSpacerMode = activeTab === SPACER_TAB;
 
   const radius       = BRACELET_SIZE_RADIUS[braceletSize];
   const totalArc     = braceletArc(radius);
   const used         = usedArc(placedBeads);
   const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
 
-  const materials = useMemo(
-    () => [...new Set(beads.map((b) => b.material).filter(Boolean))] as string[],
-    [beads]
+  // Unique bead categories for the pill tabs (bead, charm, tube, etc.)
+  const beadCategories = useMemo(
+    () => [...new Set(beads.map((b) => b.bead_category).filter(Boolean))] as string[],
+    [beads],
   );
 
-  const bead_types = useMemo(() => {
-    const pool = activeMaterial && !isSpacerMode
-      ? beads.filter((b) => b.material === activeMaterial)
+  // Unique materials for the dropdown, filtered by active category tab
+  const materials = useMemo(() => {
+    const pool = activeTab && !isSpacerMode
+      ? beads.filter((b) => b.bead_category === activeTab)
       : beads;
-    return [...new Set(pool.map((b) => b.bead_type).filter(Boolean))] as string[];
-  }, [beads, activeMaterial, isSpacerMode]);
+    return [...new Set(pool.map((b) => b.material).filter(Boolean))] as string[];
+  }, [beads, activeTab, isSpacerMode]);
 
   const filteredBeads = useMemo(() => {
     return beads.filter((b) => {
       const matchesSearch = !search || b.name.toLowerCase().includes(search.toLowerCase());
-      const matchesMaterial = !activeMaterial || isSpacerMode || b.material === activeMaterial;
-      const matchesType = !activeType || b.bead_type === activeType;
-      return matchesSearch && matchesMaterial && matchesType;
+      const matchesCategory = !activeTab || isSpacerMode || b.bead_category === activeTab;
+      const matchesMaterial = !activeMaterial || b.material === activeMaterial;
+      return matchesSearch && matchesCategory && matchesMaterial;
     });
-  }, [beads, search, activeMaterial, activeType, isSpacerMode]);
+  }, [beads, search, activeTab, activeMaterial, isSpacerMode]);
 
   function handleAddToDesign() {
     if (!selectedBead) return;
@@ -403,21 +373,21 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
           </div>
         )}
 
-        {/* Material pills + Spacer tab */}
+        {/* Category pills + Spacer tab */}
         <div className="flex gap-2 px-5 py-3 overflow-x-scroll min-h-[50px] picker-scroll">
           <MaterialPill
             label="All"
-            active={activeMaterial === null}
-            onClick={() => { setActiveMaterial(null); setActiveType(""); }}
+            active={activeTab === null}
+            onClick={() => { setActiveTab(null); setActiveMaterial(""); }}
           />
-          {materials.map((mat) => (
+          {beadCategories.map((cat) => (
             <MaterialPill
-              key={mat}
-              label={capitalize(mat)}
-              active={activeMaterial === mat}
+              key={cat}
+              label={capitalize(cat)}
+              active={activeTab === cat}
               onClick={() => {
-                setActiveMaterial((prev) => (prev === mat ? null : mat));
-                setActiveType("");
+                setActiveTab((prev) => (prev === cat ? null : cat));
+                setActiveMaterial("");
               }}
             />
           ))}
@@ -425,8 +395,8 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
             label="Spacer"
             active={isSpacerMode}
             onClick={() => {
-              setActiveMaterial((prev) => (prev === SPACER_TAB ? null : SPACER_TAB));
-              setActiveType("");
+              setActiveTab((prev) => (prev === SPACER_TAB ? null : SPACER_TAB));
+              setActiveMaterial("");
               setSelectedBead(null);
             }}
           />
@@ -438,18 +408,18 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
         ) : (
           /* ── Normal bead selector ── */
           <>
-            {/* Type dropdown */}
+            {/* Material dropdown */}
             <div className="px-5 pb-3 border-b border-default">
               <select
-                id="bead-type-select"
-                aria-label="Filter Beads by Bead Type"
-                value={activeType}
-                onChange={(e) => setActiveType(e.target.value)}
+                id="material-select"
+                aria-label="Filter Beads by Material"
+                value={activeMaterial}
+                onChange={(e) => setActiveMaterial(e.target.value)}
                 className="rounded-[2px] border border-default bg-white px-3 py-2 pr-6 min-w-[150px] text-sm text-color-base/70 outline-none focus:border-navy focus:ring-navy"
               >
-                <option value="">Filter by type</option>
-                {bead_types.map((type) => (
-                  <option key={type} value={type}>{type}</option>
+                <option value="">All materials</option>
+                {materials.map((mat) => (
+                  <option key={mat} value={mat}>{capitalize(mat)}</option>
                 ))}
               </select>
             </div>
@@ -461,7 +431,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
                   No beads match your filters.
                 </p>
               ) : (
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 min-[1700px]:grid-cols-4 gap-3">
                   {filteredBeads.map((bead) => (
                     <BeadCard
                       key={bead.id}
@@ -478,7 +448,7 @@ export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelP
 
             {/* Bottom bar */}
             <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
-              {availableMm >= MAX_BEAD_DIAMETER ? (
+              {availableMm >= MIN_BEAD_DIAMETER ? (
                 <>
                 <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
                   {selectedBead?.name ? "Item Selected" : "Select a bead"}

@@ -25,13 +25,16 @@ import { useDesigns } from "@/hooks/useDesigns";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useIsDirty } from "@/hooks/useIsDirty";
 import { getPrimaryRole } from "@/hooks/usePermissions";
+import { useBeads } from "@/hooks/useBeads";
 
 import type { Bracelet } from "@/types";
+import type { BeadProduct } from "@/types";
 
 interface UserScreenProps {
   open: boolean;
   onClose: () => void;
   onEditUsers?: () => void;
+  onManageBeads?: () => void;
 }
 
 function formatEventDate(iso: string): string {
@@ -61,7 +64,7 @@ type HistoryEvent = {
   braceletId: number;
 };
 
-function buildHistory(designs: Bracelet[]): HistoryEvent[] {
+function buildHistory(designs: Bracelet[], beads: BeadProduct[] = []): HistoryEvent[] {
   const events: HistoryEvent[] = [];
 
   for (const d of designs) {
@@ -93,6 +96,30 @@ function buildHistory(designs: Bracelet[]): HistoryEvent[] {
         date: d.published_at,
         byName: d.published_by_name ?? null,
         braceletId: d.id,
+      });
+    }
+  }
+
+  // Bead events
+  for (const b of beads) {
+    if (b.created_at) {
+      events.push({
+        key: `bead-${b.id}-created`,
+        label: "Bead uploaded",
+        braceletName: b.name,
+        date: b.created_at,
+        byName: null,
+        braceletId: -1,        
+      });
+    }
+    if (b.updated_at && b.updated_at !== b.created_at) {
+      events.push({
+        key: `bead-${b.id}-updated`,
+        label: "Bead updated",
+        braceletName: b.name,
+        date: b.updated_at,
+        byName: null,
+        braceletId: -1,
       });
     }
   }
@@ -231,7 +258,7 @@ function HistoryMenu({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
+export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserScreenProps) {
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
@@ -239,6 +266,7 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
   const POLL_MS = 30_000;
 
   const { data: allDesigns = [] } = useDesigns();
+  const { data: beadList = [] } = useBeads();
   const { data: inReview   = [] } = useDesigns({ status: "in_review", refetchInterval: open ? POLL_MS : false });
   const { data: approved   = [] } = useDesigns({ status: "approved",  refetchInterval: open ? POLL_MS : false });
   const { loadDesign }    = useLoadDesign();
@@ -249,7 +277,7 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
 
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
 
-  const historyEvents = useMemo(() => buildHistory(allDesigns), [allDesigns]);
+  const historyEvents = useMemo(() => buildHistory(allDesigns, beadList), [allDesigns, beadList]);
 
   const perms      = user?.permissions;
   const showReview = !!(perms?.is_reviewer || perms?.is_admin);
@@ -329,14 +357,22 @@ export function UserScreen({ open, onClose, onEditUsers }: UserScreenProps) {
           )}
 
           {/* Administration actions */}
-          {user?.permissions.is_admin && (
+          {(user?.permissions.is_admin || user?.permissions.is_component_admin) && (
             <div className="flex flex-col gap-1">
               <SectionHeading>Administration actions</SectionHeading>
+              {user?.permissions.is_admin && (
+                <button
+                  onClick={() => onEditUsers?.()}
+                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+                >
+                  Edit users
+                </button>
+              )}
               <button
-                onClick={() => onEditUsers?.()}
+                onClick={() => onManageBeads?.()}
                 className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
               >
-                Edit users
+                Upload / Edit Beads
               </button>
               {["View components", "View bracelets"].map((label) => (
                 <button

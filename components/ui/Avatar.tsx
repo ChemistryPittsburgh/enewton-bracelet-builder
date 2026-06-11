@@ -32,30 +32,3 @@ export function Avatar({ name, color, size = "md", className = "" }: AvatarProps
     </div>
   );
 }
-
-// import { getInitials } from "@/lib/utils";
-// import { useCurrentUser } from "@/hooks/useCurrentUser";
-
-// const SIZE = {
-//   sm: "w-7 h-7 text-[10px]",
-//   md: "w-9 h-9 text-xs",
-//   lg: "w-10 h-10 text-sm",
-// } as const;
-
-// interface AvatarProps {
-//   name: string;
-//   size?: keyof typeof SIZE;
-//   className?: string;
-// }
-
-// export function Avatar({ name, size = "md", className = "" }: AvatarProps) {
-//   const { data: currentUser } = useCurrentUser();
-//   const currentUserClass = name === currentUser.name ? "avatar-current-user" : "";
-//   return (
-//     <div
-//       className={`${SIZE[size]} avatar shrink-0 rounded-full bg-neutral-500 flex items-center justify-center font-bold text-white ${className} ${currentUserClass}`}
-//     >
-//       {getInitials(name)}
-//     </div>
-//   );
-// }

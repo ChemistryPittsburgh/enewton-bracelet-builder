@@ -48,21 +48,17 @@ export function BeadOnBracelet({
       clone.traverse((child) => {
         if (!(child instanceof Mesh)) return;
         const srcMat = child.material;
-        if (!(srcMat instanceof MeshStandardMaterial)) return;
         if (srcMat.metalness < 0.5) return;
 
         const mat = srcMat.clone();
         if (preset.color           !== undefined) mat.color.set(preset.color);
         if (preset.metalness       !== undefined) mat.metalness       = preset.metalness;
         if (preset.roughness       !== undefined) mat.roughness       = preset.roughness;
+        mat.roughness = Math.max(mat.roughness, 0.25);
         if (preset.envMapIntensity !== undefined) mat.envMapIntensity = preset.envMapIntensity;
 
-        // Neutralise clearcoat if present — it adds a mirror-sharp reflection
-        // layer on top of the base roughness, making smooth charms show the
-        // environment even when the base is adequately rough.
-        if (mat instanceof MeshPhysicalMaterial && mat.clearcoat > 0) {
-          mat.clearcoat = 0;
-        }
+
+        mat.clearcoat = 0.1;
 
         child.material = mat;
       });
