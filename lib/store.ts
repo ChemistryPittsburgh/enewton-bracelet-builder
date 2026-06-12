@@ -13,6 +13,7 @@ import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize } fr
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
+import type { WebGLRenderer, Scene as ThreeScene, Camera } from "three";
 
 type PersistedState = {
   beads?: PlacedBead[];
@@ -112,6 +113,14 @@ interface Store {
   controlsEl: CameraControls | null;
   setControlsEl: (controls: CameraControls | null) => void;
 
+  /** Ephemeral — not persisted. WebGL renderer, scene, and camera registered by Scene for thumbnail capture. */
+  glRenderer: WebGLRenderer | null;
+  threeScene: ThreeScene | null;
+  threeCamera: Camera | null;
+  setGlRenderer: (r: WebGLRenderer | null) => void;
+  setThreeScene: (s: ThreeScene | null) => void;
+  setThreeCamera: (c: Camera | null) => void;
+
   /**
    * Ephemeral — not persisted.
    * ID of the design currently on the canvas (set after a successful save or
@@ -170,6 +179,9 @@ export const useStore = create<Store>()(
       pendingDesign: null,
       pendingDesignOnLoad: null,
       controlsEl: null,
+      glRenderer: null,
+      threeScene: null,
+      threeCamera: null,
       isDirty: false,
       markClean: () => set({ isDirty: false }),
 
@@ -318,6 +330,10 @@ export const useStore = create<Store>()(
       setControlsEl(controls) {
         set({ controlsEl: controls });
       },
+
+      setGlRenderer(r) { set({ glRenderer: r }); },
+      setThreeScene(s) { set({ threeScene: s }); },
+      setThreeCamera(c) { set({ threeCamera: c }); },
 
       setActiveDesignId(id) {
         set({ activeDesignId: id });

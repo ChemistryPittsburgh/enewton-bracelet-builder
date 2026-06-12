@@ -1,7 +1,6 @@
+import * as THREE from "three";
 import { useStore } from "@/lib/store";
 import { THUMBNAIL_SIZE, SCENE_BACKGROUND, CAMERA_DEFAULT_POSITION } from "@/lib/constants";
-import { useRef } from "react";
-import type { CameraControls } from "@react-three/drei";
 
 // ─── Background colour channels (from SCENE_BACKGROUND = "#f5f0eb") ──────────
 const BG_R = 0xf5;
@@ -10,7 +9,7 @@ const BG_B = 0xeb;
 const BG_THRESHOLD = 20;
 const CONTENT_PADDING = 0.10;
 
-// ─── Helpers (unchanged) ─────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function findContentBounds(src: HTMLCanvasElement) {
   const sw = src.width;
@@ -66,18 +65,53 @@ function captureFixed(src: HTMLCanvasElement): string {
   return out.toDataURL("image/png");
 }
 
+/**
+ * Renders the scene to a WebGLRenderTarget and returns a data URL.
+ * Does not require preserveDrawingBuffer on the main canvas.
+ * WebGL uses bottom-left origin; rows are flipped to match 2D canvas convention.
+ */
+function captureViaRenderTarget(
+  gl: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+): string {
+  const w = gl.domElement.width;
+  const h = gl.domElement.height;
+
+  const target = new THREE.WebGLRenderTarget(w, h);
+  gl.setRenderTarget(target);
+  gl.render(scene, camera);
+  gl.setRenderTarget(null);
+
+  const raw = new Uint8Array(w * h * 4);
+  gl.readRenderTargetPixels(target, 0, 0, w, h, raw);
+  target.dispose();
+
+  // Flip rows: WebGL origin is bottom-left, Canvas 2D is top-left
+  const flipped = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    const src = (h - 1 - y) * w * 4;
+    flipped.set(raw.subarray(src, src + w * 4), y * w * 4);
+  }
+
+  const tmp = document.createElement("canvas");
+  tmp.width = w;
+  tmp.height = h;
+  const ctx = tmp.getContext("2d")!;
+  ctx.putImageData(new ImageData(new Uint8ClampedArray(flipped.buffer), w, h), 0, 0);
+  return captureFixed(tmp);
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-/**
- * Accepts a controlsRef so it can temporarily move the camera to the
- * standard thumbnail position, snap, then restore the user's camera.
- */
 export function useGenerateThumbnail() {
-  const canvasEl    = useStore((s) => s.canvasEl);
-  const controlsEl  = useStore((s) => s.controlsEl);  // ← from store
+  const controlsEl  = useStore((s) => s.controlsEl);
+  const glRenderer  = useStore((s) => s.glRenderer);
+  const threeScene  = useStore((s) => s.threeScene);
+  const threeCamera = useStore((s) => s.threeCamera);
 
   async function capture(): Promise<string | null> {
-    if (!canvasEl) {
+    if (!glRenderer || !threeScene || !threeCamera) {
       console.warn("[useGenerateThumbnail] Canvas not ready — thumbnail skipped.");
       return null;
     }
@@ -86,21 +120,20 @@ export function useGenerateThumbnail() {
     const { setSpacersHiddenForCapture } = useStore.getState();
     setSpacersHiddenForCapture(true);
 
-    const controls = controlsEl;
-
     try {
-      if (controls) {
-        const savedPos    = controls.getPosition(undefined as any);
-        const savedTarget = controls.getTarget(undefined as any);
+      if (controlsEl) {
+        const savedPos    = controlsEl.getPosition(undefined as any);
+        const savedTarget = controlsEl.getTarget(undefined as any);
 
         const [cx, cy, cz] = CAMERA_DEFAULT_POSITION;
-        await controls.setLookAt(cx, cy, cz, 0, 0, 0, false);
+        await controlsEl.setLookAt(cx, cy, cz, 0, 0, 0, false);
 
+        // Wait two frames so React flushes state changes to the Three.js scene graph
         await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
-        const dataUrl = captureFixed(canvasEl);
+        const dataUrl = captureViaRenderTarget(glRenderer, threeScene, threeCamera);
 
-        await controls.setLookAt(
+        await controlsEl.setLookAt(
           savedPos.x,    savedPos.y,    savedPos.z,
           savedTarget.x, savedTarget.y, savedTarget.z,
           false,
@@ -110,7 +143,7 @@ export function useGenerateThumbnail() {
       }
 
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-      return captureFixed(canvasEl);
+      return captureViaRenderTarget(glRenderer, threeScene, threeCamera);
     } finally {
       setSpacersHiddenForCapture(false);
     }
@@ -125,5 +158,5 @@ export function useGenerateThumbnail() {
     a.click();
   }
 
-  return { capture, download, ready: canvasEl !== null };
+  return { capture, download, ready: glRenderer !== null };
 }

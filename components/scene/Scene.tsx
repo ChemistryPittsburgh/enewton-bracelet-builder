@@ -21,14 +21,25 @@ import {
   EDIT_MODE_BACKGROUND,
 } from "@/lib/constants";
 
-/** Registers gl.domElement in the Zustand store so hooks outside the Canvas can capture thumbnails. */
+/** Registers the WebGL renderer, scene, and camera in the Zustand store for thumbnail capture. */
 function CanvasRegistrar() {
-  const gl = useThree((s) => s.gl);
-  const setCanvasEl = useStore((s) => s.setCanvasEl);
+  const { gl, scene, camera } = useThree();
+  const setCanvasEl    = useStore((s) => s.setCanvasEl);
+  const setGlRenderer  = useStore((s) => s.setGlRenderer);
+  const setThreeScene  = useStore((s) => s.setThreeScene);
+  const setThreeCamera = useStore((s) => s.setThreeCamera);
   useEffect(() => {
     setCanvasEl(gl.domElement);
-    return () => setCanvasEl(null);
-  }, [gl.domElement, setCanvasEl]);
+    setGlRenderer(gl);
+    setThreeScene(scene);
+    setThreeCamera(camera);
+    return () => {
+      setCanvasEl(null);
+      setGlRenderer(null);
+      setThreeScene(null);
+      setThreeCamera(null);
+    };
+  }, [gl, scene, camera, setCanvasEl, setGlRenderer, setThreeScene, setThreeCamera]);
   return null;
 }
 
@@ -69,14 +80,14 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
       <BeadErrorToast />
       <Canvas
         camera={{ fov: CAMERA_FOV, position: CAMERA_DEFAULT_POSITION, near: CAMERA_NEAR, far: CAMERA_FAR }}
-        gl={{ antialias: true, preserveDrawingBuffer: true }}
+        gl={{ antialias: true }}
         onCreated={({ gl, scene }) => {
           gl.toneMappingExposure = 1.5;
           // Tame the warm apartment reflections so gold reads as champagne, not saturated yellow
           scene.environmentIntensity = 0.5;
         }}
         shadows
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         style={{ background: isEditMode ? EDIT_MODE_BACKGROUND : SCENE_BACKGROUND }}
         onPointerMissed={() => {
           clearSelectedBead();
