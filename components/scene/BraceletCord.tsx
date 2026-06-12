@@ -14,26 +14,36 @@
  * Both modes read colour/thickness from CORD_MATERIALS keyed by bandMaterial.
  */
 
+import { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { CORD_MATERIALS, BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { braceletArc } from "@/lib/bead-layout";
 
 export function BraceletCord() {
-  const { bandMaterial, braceletSize, viewMode } = useStore((s) => ({
-    bandMaterial: s.bandMaterial,
-    braceletSize: s.braceletSize,
-    viewMode:     s.viewMode,
-  }));
+  const bandMaterial = useStore((s) => s.bandMaterial);
+  const braceletSize = useStore((s) => s.braceletSize);
+  const viewMode     = useStore((s) => s.viewMode);
+
   const mat    = CORD_MATERIALS[bandMaterial] ?? CORD_MATERIALS["cord"];
   const radius = BRACELET_SIZE_RADIUS[braceletSize] ?? BRACELET_SIZE_RADIUS["small"];
 
+  // Memoize args arrays so R3F only reconstructs the geometry when the values
+  // actually change, not on every unrelated parent render.
+  const torusArgs = useMemo<[number, number, number, number]>(
+    () => [radius, mat.tubeRadius, 16, 120],
+    [radius, mat.tubeRadius],
+  );
+  const length = braceletArc(radius);
+  const cylinderArgs = useMemo<[number, number, number, number]>(
+    () => [mat.tubeRadius, mat.tubeRadius, length, 16],
+    [mat.tubeRadius, length],
+  );
+
   if (viewMode === 'line') {
-    // Cylinder along the X axis — full bracelet circumference for the selected size
-    const length = braceletArc(radius);
+    // CylinderGeometry is along Y by default; rotate 90° on Z to lay along X
     return (
-      // CylinderGeometry is along Y by default; rotate 90° on Z to lay along X
       <mesh rotation={[0, 0, Math.PI / 2]} receiveShadow>
-        <cylinderGeometry args={[mat.tubeRadius, mat.tubeRadius, length, 16]} />
+        <cylinderGeometry args={cylinderArgs} />
         <meshStandardMaterial color={mat.color} roughness={mat.roughness} metalness={mat.metalness} />
       </mesh>
     );
@@ -42,7 +52,7 @@ export function BraceletCord() {
   return (
     // Rotate 90° on X so the torus lies flat in the XZ plane (Y=0)
     <mesh rotation={[Math.PI / 2, 0, 0]} receiveShadow>
-      <torusGeometry args={[radius, mat.tubeRadius, 16, 120]} />
+      <torusGeometry args={torusArgs} />
       <meshStandardMaterial color={mat.color} roughness={mat.roughness} metalness={mat.metalness} />
     </mesh>
   );

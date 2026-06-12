@@ -1,42 +1,35 @@
 "use client";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDesigns } from "./useDesigns";
+import { useNotificationCounts } from "./useNotificationCounts";
 import { usePermissions } from "./usePermissions";
 import { getPusher } from "@/lib/pusher";
 
 /**
- * Single source of truth for notification data used by the header badge
- * (BuilderLayout) and the notification lists (UserScreen).
+ * Single source of truth for notification badge counts used by BuilderLayout.
  *
- * React Query fetches the initial state; Pusher's `design.status-changed`
- * event invalidates the cache whenever a workflow transition happens,
- * replacing the old 30-second polling loop.
+ * Fetches a lightweight counts-only endpoint instead of the full designs list.
+ * Pusher's `design.status-changed` event invalidates the cache whenever a
+ * workflow transition happens.
  */
 export function useNotifications() {
   const { canReview, canPublish } = usePermissions();
   const queryClient = useQueryClient();
+  const enabled = canReview || canPublish;
 
-  const { data: allDesigns = [] } = useDesigns({
-    enabled: canReview || canPublish,
-  });
+  const { data } = useNotificationCounts(enabled);
 
   useEffect(() => {
-    if (!canReview && !canPublish) return;
+    if (!enabled) return;
 
     const pusher = getPusher();
     const channel = pusher.subscribe("private-designs");
 
-    // Store handler reference so it can be removed precisely — passing no
-    // argument to unbind() would remove ALL listeners including other consumers.
     const onStatusChanged = () => {
-      queryClient.invalidateQueries({ queryKey: ["designs"] });
+      queryClient.invalidateQueries({ queryKey: ["design-counts"] });
     };
     channel.bind("design.status-changed", onStatusChanged);
 
-    // Skip the first subscription_succeeded (initial page load — nothing to
-    // catch up on). Re-sync on every subsequent confirmation to catch status
-    // changes missed during a network outage.
     let subscribed = false;
     const onResubscribed = () => {
       if (subscribed) onStatusChanged();
@@ -49,21 +42,10 @@ export function useNotifications() {
       channel.unbind("pusher:subscription_succeeded", onResubscribed);
       pusher.unsubscribe("private-designs");
     };
-  }, [canReview, canPublish, queryClient]);
-
-  const inReviewDesigns = useMemo(
-    () => (canReview ? allDesigns.filter((d) => d.status === "in_review") : []),
-    [allDesigns, canReview],
-  );
-  const approvedDesigns = useMemo(
-    () => (canPublish ? allDesigns.filter((d) => d.status === "approved") : []),
-    [allDesigns, canPublish],
-  );
+  }, [enabled, queryClient]);
 
   return {
-    inReviewDesigns,
-    approvedDesigns,
-    inReviewCount: inReviewDesigns.length,
-    approvedCount: approvedDesigns.length,
+    inReviewCount: (canReview ? data?.in_review : 0) ?? 0,
+    approvedCount: (canPublish ? data?.approved : 0) ?? 0,
   };
 }

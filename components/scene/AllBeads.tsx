@@ -14,15 +14,12 @@ import { useBraceletReorderDrag, usePanelDrop } from "@/hooks/useDrag";
 const SPACER_VISIBLE_STATUSES = new Set(["draft", "rejected"]);
 
 export function AllBeads({ isLocked }: { isLocked?: boolean }) {
-  const { beads, reorderBeads, braceletSize, viewMode, activeDesignId, spacersHiddenForCapture } =
-    useStore((s) => ({
-      beads:                    s.beads,
-      reorderBeads:             s.reorderBeads,
-      braceletSize:             s.braceletSize,
-      viewMode:                 s.viewMode,
-      activeDesignId:           s.activeDesignId,
-      spacersHiddenForCapture:  s.spacersHiddenForCapture,
-    }));
+  const beads                   = useStore((s) => s.beads);
+  const reorderBeads            = useStore((s) => s.reorderBeads);
+  const braceletSize            = useStore((s) => s.braceletSize);
+  const viewMode                = useStore((s) => s.viewMode);
+  const activeDesignId          = useStore((s) => s.activeDesignId);
+  const spacersHiddenForCapture = useStore((s) => s.spacersHiddenForCapture);
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
 
   // Design status — new/unsaved bracelets default to "draft"
@@ -47,25 +44,34 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
     <group name="all-beads">
       {beads.map((bead, index) => {
         const isSpacer = bead.product.bead_category === "spacer";
-        const sharedProps = {
-          bead,
-          slotIndex: index,
-          isDragged: dragState?.fromIndex === index,
-          isDragTarget:
-            (dragState !== null &&
-              dragState.toIndex === index &&
-              dragState.fromIndex !== index) ||
-            (panelDropSlot === index && dragFromPanel !== null),
-          onDragStart: handleDragStart,
-        };
+        const isDragged = dragState?.fromIndex === index;
+        const isDragTarget =
+          (dragState !== null &&
+            dragState.toIndex === index &&
+            dragState.fromIndex !== index) ||
+          (panelDropSlot === index && dragFromPanel !== null);
 
         return (
           <BeadErrorBoundary key={bead.instanceId} bead={bead} slotIndex={index}>
             {isSpacer ? (
-              <SpacerOnBracelet {...sharedProps} visible={spacersVisible} />
+              <SpacerOnBracelet
+                bead={bead}
+                slotIndex={index}
+                isDragged={isDragged}
+                isDragTarget={isDragTarget}
+                onDragStart={handleDragStart}
+                visible={spacersVisible}
+              />
             ) : (
               <Suspense fallback={null}>
-                <BeadOnBracelet {...sharedProps} isLocked={isLocked} />
+                <BeadOnBracelet
+                  bead={bead}
+                  slotIndex={index}
+                  isDragged={isDragged}
+                  isDragTarget={isDragTarget}
+                  onDragStart={handleDragStart}
+                  isLocked={isLocked}
+                />
               </Suspense>
             )}
           </BeadErrorBoundary>

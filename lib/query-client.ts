@@ -21,6 +21,9 @@ export const queryClient = new QueryClient({
   mutationCache: new MutationCache({ onError: handleQueryError }),
   defaultOptions: {
     queries: {
+      staleTime: 1000 * 30,          // 30 s — queries stay fresh briefly; overridden per-hook
+      gcTime: 1000 * 60 * 10,        // 10 min — keep unused cache entries before GC
+      refetchOnWindowFocus: false,   // Pusher/polling handle freshness; tab-focus refetch is noise
       // Don't retry on 401 — auth failures redirect immediately.
       retry: (failureCount, error) =>
         !(error instanceof ApiError && error.status === 401) && failureCount < 3,

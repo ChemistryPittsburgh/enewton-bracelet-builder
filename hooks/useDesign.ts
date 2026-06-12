@@ -11,6 +11,7 @@ export function useDesign(
     queryKey: ["designs", id],
     queryFn: () => apiFetch<Bracelet>(`/designs/${id}`),
     enabled: id !== null,
+    staleTime: 1000 * 60 * 2, // 2 min — Pusher setQueryData keeps this current in real-time
     refetchInterval,
   });
 }

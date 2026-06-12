@@ -99,17 +99,15 @@ export function BeadOnBracelet({
   }, [scene, bead.product.bead_category, CHARM_ROTATION[0], CHARM_ROTATION[1], CHARM_ROTATION[2]]);
 
   const { gl } = useThree();
-  const { selectBead, selectedBead, editSelectedBead, setEditSelectedBead, beads, braceletSize, isEditMode, viewMode, selectAllActive } = useStore((s) => ({
-    selectBead: s.selectBead,
-    selectedBead: s.selectedBead,
-    editSelectedBead: s.editSelectedBead,
-    setEditSelectedBead: s.setEditSelectedBead,
-    beads: s.beads,
-    braceletSize: s.braceletSize,
-    isEditMode: s.isEditMode,
-    selectAllActive: s.selectAllActive,
-    viewMode: s.viewMode,
-  }));
+  const selectBead         = useStore((s) => s.selectBead);
+  const selectedBead       = useStore((s) => s.selectedBead);
+  const editSelectedBead   = useStore((s) => s.editSelectedBead);
+  const setEditSelectedBead = useStore((s) => s.setEditSelectedBead);
+  const beads              = useStore((s) => s.beads);
+  const braceletSize       = useStore((s) => s.braceletSize);
+  const isEditMode         = useStore((s) => s.isEditMode);
+  const selectAllActive    = useStore((s) => s.selectAllActive);
+  const viewMode           = useStore((s) => s.viewMode);
 
   const isCharm = bead.product.bead_category === "charm";
 

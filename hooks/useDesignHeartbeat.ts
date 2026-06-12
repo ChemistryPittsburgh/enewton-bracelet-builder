@@ -21,7 +21,10 @@ export function useDesignHeartbeat(
   useEffect(() => {
     if (!designId) return;
 
+    let inFlight = false;
     const tick = async () => {
+      if (inFlight) return; // skip tick if previous request is still in flight
+      inFlight = true;
       try {
         const json = await apiFetch<{ acquired: boolean }>(`/designs/${designId}/lock`, {
           method: "POST",
@@ -34,6 +37,8 @@ export function useDesignHeartbeat(
         }
         handleQueryError(err); // 401 → terminates session; no-op for other statuses
         // Non-auth, non-409 errors are silently ignored — lock TTL provides the backstop
+      } finally {
+        inFlight = false;
       }
     };
 
