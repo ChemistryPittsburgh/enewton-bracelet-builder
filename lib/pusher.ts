@@ -1,5 +1,7 @@
 import Pusher from "pusher-js";
 import { getToken } from "@/lib/auth";
+import { handleQueryError } from "@/lib/query-client";
+import { ApiError } from "@/lib/api";
 
 Pusher.logToConsole = process.env.NODE_ENV !== "production";
 
@@ -34,9 +36,10 @@ export function getPusher(): Pusher {
         })
           .then((res) => {
             if (!res.ok) {
-              const err = new Error(`Pusher auth failed: HTTP ${res.status}`);
+              const err = new ApiError(res.status, `Pusher auth failed: HTTP ${res.status}`);
+              handleQueryError(err);   // 401 → terminates session; no-op for other statuses
               console.error(err);
-              callback(err, null);
+              callback(err, null);     // always propagate — don't couple authorizer to redirect behavior
               return;
             }
             return res.json();

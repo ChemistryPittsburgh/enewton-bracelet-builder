@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
+import { handleQueryError } from "@/lib/query-client";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
@@ -31,7 +32,8 @@ export function useDesignHeartbeat(
         if (err instanceof ApiError && err.status === 409) {
           onKickedRef.current();
         }
-        // Network errors are silently ignored — lock TTL provides the backstop
+        handleQueryError(err); // 401 → terminates session; no-op for other statuses
+        // Non-auth, non-409 errors are silently ignored — lock TTL provides the backstop
       }
     };
 

@@ -34,15 +34,19 @@ export function useNotifications() {
     };
     channel.bind("design.status-changed", onStatusChanged);
 
-    // Re-sync when the channel subscription is confirmed — catches status
-    // changes that occurred while the socket was connecting or during a
-    // network outage (Pusher re-fires subscription_succeeded on reconnect,
-    // so connection.bind "connected" is not needed and would double-fire).
-    channel.bind("pusher:subscription_succeeded", onStatusChanged);
+    // Skip the first subscription_succeeded (initial page load — nothing to
+    // catch up on). Re-sync on every subsequent confirmation to catch status
+    // changes missed during a network outage.
+    let subscribed = false;
+    const onResubscribed = () => {
+      if (subscribed) onStatusChanged();
+      subscribed = true;
+    };
+    channel.bind("pusher:subscription_succeeded", onResubscribed);
 
     return () => {
       channel.unbind("design.status-changed", onStatusChanged);
-      channel.unbind("pusher:subscription_succeeded", onStatusChanged);
+      channel.unbind("pusher:subscription_succeeded", onResubscribed);
       pusher.unsubscribe("private-designs");
     };
   }, [canReview, canPublish, queryClient]);

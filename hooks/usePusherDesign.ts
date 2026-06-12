@@ -59,12 +59,13 @@ export function usePusherDesign(
       cbRef.current.onLockChanged?.(data);
     });
 
-    // Fire onReconnected when the channel subscription is confirmed — covers
-    // initial page load AND every re-subscription after a reconnect (Pusher
-    // re-fires subscription_succeeded on each reconnect, so connection.bind
-    // "connected" is not needed and would double-fire the callback).
+    // Skip the first subscription_succeeded (initial page load — nothing to
+    // catch up on). Fire onReconnected on every subsequent confirmation, which
+    // covers re-subscriptions after a network outage.
+    let subscribed = false;
     channel.bind("pusher:subscription_succeeded", () => {
-      cbRef.current.onReconnected?.();
+      if (subscribed) cbRef.current.onReconnected?.();
+      subscribed = true;
     });
 
     return () => {
