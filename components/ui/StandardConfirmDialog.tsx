@@ -29,6 +29,7 @@ interface StandardConfirmDialogProps {
   onConfirm: () => void;
   /** Cancel button onClick handler */
   onCancel: () => void;
+  includeBackDropBlur?: boolean;
 }
 
 export function StandardConfirmDialog({
@@ -43,6 +44,7 @@ export function StandardConfirmDialog({
   isLoading = false,
   onConfirm,
   onCancel,
+  includeBackDropBlur = true,
 }: StandardConfirmDialogProps) {
   return (
     <FullScreenDialog
@@ -50,6 +52,7 @@ export function StandardConfirmDialog({
       onClose={onCancel}
       title={title}
       className="max-w-sm"
+      includeBackDropBlur={includeBackDropBlur}
     >
       <div className="flex flex-col gap-5">
         {/* Warning */}

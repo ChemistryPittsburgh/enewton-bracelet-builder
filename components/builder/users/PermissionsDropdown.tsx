@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import type { User } from "@/types";
 
-export const PERMISSION_FIELDS: { key: keyof User["permissions"]; label: string }[] = [
-  { key: "is_bracelet_editor", label: "Bracelet Editor" },
-  { key: "is_reviewer",        label: "Reviewer" },
-  { key: "is_publisher",       label: "Publisher" },
-  { key: "is_component_admin", label: "Component Admin" },
-  { key: "is_admin",           label: "Admin" },
+export const PERMISSION_FIELDS: { key: keyof User["permissions"]; label: string; color: string }[] = [
+  { key: "is_bracelet_editor", label: "Bracelet Editor", color: "bg-mint"       },
+  { key: "is_reviewer",        label: "Reviewer",        color: "bg-shell"      },
+  { key: "is_publisher",       label: "Publisher",       color: "bg-light-blue" },
+  { key: "is_component_admin", label: "Component Admin", color: "bg-blush"      },
+  { key: "is_admin",           label: "Admin",           color: "bg-green/30"   }
 ];
 
 export function PermissionsDropdown({
@@ -53,7 +53,7 @@ export function PermissionsDropdown({
         type="button"
         onClick={() => !disabled && setOpen((o) => !o)}
         onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-        className="flex w-full items-center justify-between rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-neutral-600 transition-colors"
+        className="flex w-full items-center justify-between rounded-[2px] border border-default bg-white px-3 py-2 text-sm text-color-base/80 outline-none focus:border-navy focus:ring-navy transition-colors"
       >
         <span className="truncate text-left text-sm" title={label}>
           {label}
@@ -68,13 +68,13 @@ export function PermissionsDropdown({
               key={key}
               type="button"
               onClick={() => toggle(key)}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-color-base/80 hover:bg-mint transition-colors"
             >
               <span
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border transition-colors ${
                   selected.has(key)
-                    ? "border-neutral-800 bg-neutral-800"
-                    : "border-neutral-300 bg-white"
+                    ? "border-navy bg-navy"
+                    : "border-default bg-white"
                 }`}
               >
                 {selected.has(key) && <Check size={10} className="text-white" />}

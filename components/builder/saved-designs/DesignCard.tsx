@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Archive, CheckCircle, Eye, MoreHorizontal, Send, Trash2, XCircle } from "lucide-react";
+import { Archive, CheckCircle, Eye, MoreHorizontal, Send, Trash2, XCircle, Radio, Ban } from "lucide-react";
 import type { Bracelet } from "@/types";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -73,7 +73,11 @@ export function DesignCard({
   const showApprove     = effectiveStatus === "in_review" && hasApprovePermission && !isDiscontinued;
   const showReject      = effectiveStatus === "in_review" && hasRejectPermission && !isDiscontinued;
   const showDiscontinue = isAdmin && design.status === "published" && !isDiscontinued && !!onDiscontinueRequest;
-  const showDelete      = canDeleteBracelet;
+  // Published non-discontinued: API blocks delete for everyone.
+  // Approved / discontinued: admin only. Draft / in_review / rejected: admin only.
+  const showDelete      = canDeleteBracelet && !(design.status === "published" && !isDiscontinued);
+
+  const isLive = design.status === "published" && !isDiscontinued;
 
   const hasWorkflowActions = showSubmit || showApprove || showReject;
   const hasAdminActions    = showDiscontinue || showDelete;
@@ -99,7 +103,7 @@ export function DesignCard({
         )}
         {/* Rejected badge — clears once the design is edited and re-saved */}
         {wasRejected && (
-          <div className="absolute left-2 top-2 z-10 rounded-full bg-error/30 px-2 py-0.5 text-[10px] font-semibold text-error">
+          <div className="absolute left-2 top-2 z-10 rounded-full bg-error/10 px-2 py-0.5 text-[11px] font-semibold text-error">
             Rejected
           </div>
         )}
@@ -127,118 +131,134 @@ export function DesignCard({
           )}
 
           {/* ── Three-dot menu ── */}
-          <div
-            ref={menuRef}
-            className="absolute right-2 top-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-neutral-900",
-                menuOpen
-                  ? "opacity-100"
-                  : "opacity-0 group-hover:opacity-100",
-              )}
-              aria-label="More options"
+          {!isDiscontinued && (
+            <div
+              ref={menuRef}
+              className="absolute right-2 top-2"
+              onClick={(e) => e.stopPropagation()}
             >
-              <MoreHorizontal size={15} />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-lg border border-default bg-white py-1 shadow-lg">
-                {/* ── Open Design ── */}
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onClick?.();
-                  }}
-                  className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
-                >
-                  <Eye size={14} />
-                  Open design
-                </button>
-
-                {/* ── Workflow actions ── */}
-                {hasWorkflowActions && (
-                  <div className="my-1 border-t border-default" />
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-neutral-900",
+                  menuOpen
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100",
                 )}
-                {showSubmit && (
+                aria-label="More options"
+              >
+                <MoreHorizontal size={15} />
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-lg border border-default bg-white py-1 shadow-lg">
+                  {/* ── Open Design ── */}
                   <button
                     onClick={() => {
                       setMenuOpen(false);
-                      onSubmitForReview?.(design);
+                      onClick?.();
                     }}
                     className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
                   >
-                    <Send size={14} />
-                    Submit for review
+                    <Eye size={14} />
+                    Open design
                   </button>
-                )}
-                {showApprove && (
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onApprove?.(design);
-                    }}
-                    className={cn(menuItemCls, "text-green hover:bg-green/10")}
-                  >
-                    <CheckCircle size={14} />
-                    Approve
-                  </button>
-                )}
-                {showReject && (
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onRejectRequest?.(design);
-                    }}
-                    className={cn(menuItemCls, "text-error hover:bg-error/10")}
-                  >
-                    <XCircle size={14} />
-                    Reject
-                  </button>
-                )}
 
-                {/* ── Admin actions ── */}
-                {hasAdminActions && (
-                  <div className="my-1 border-t border-default" />
-                )}
-                {showDiscontinue && (
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onDiscontinueRequest!(design);
-                    }}
-                    className={cn(menuItemCls, "text-gold hover:bg-gold/10")}
-                  >
-                    <Archive size={14} />
-                    Discontinue
-                  </button>
-                )}
-                {showDelete && (
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onDeleteRequest(design);
-                    }}
-                    className={cn(menuItemCls, "text-error hover:bg-error/10")}
-                  >
-                    <Trash2 size={14} />
-                    Delete bracelet
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                  {/* ── Workflow actions ── */}
+                  {hasWorkflowActions && (
+                    <div className="my-1 border-t border-default" />
+                  )}
+                  {showSubmit && (
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onSubmitForReview?.(design);
+                      }}
+                      className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
+                    >
+                      <Send size={14} />
+                      Submit for review
+                    </button>
+                  )}
+                  {showApprove && (
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onApprove?.(design);
+                      }}
+                      className={cn(menuItemCls, "text-green hover:bg-green/10")}
+                    >
+                      <CheckCircle size={14} />
+                      Approve
+                    </button>
+                  )}
+                  {showReject && (
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onRejectRequest?.(design);
+                      }}
+                      className={cn(menuItemCls, "text-error hover:bg-error/10")}
+                    >
+                      <XCircle size={14} />
+                      Reject
+                    </button>
+                  )}
+
+                  {/* ── Admin actions ── */}
+                  {hasAdminActions && (
+                    <div className="my-1 border-t border-default" />
+                  )}
+                  {showDiscontinue && (
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDiscontinueRequest!(design);
+                      }}
+                      className={cn(menuItemCls, "text-gold hover:bg-gold/10")}
+                    >
+                      <Archive size={14} />
+                      Discontinue
+                    </button>
+                  )}
+                  {showDelete && (
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDeleteRequest(design);
+                      }}
+                      className={cn(menuItemCls, "text-error hover:bg-error/10")}
+                    >
+                      <Trash2 size={14} />
+                      Delete bracelet
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       {/* Card footer */}
-      <div className="px-3 py-2.5 flex flex-col gap-2">
-        <p className="truncate text-sm font-medium  ">{design.name}</p>
-        {design.updated_at && (
-          <p className="truncate text-xs text-color-base/70"><span className="text-color-base/70">Last Updated: </span>{formatDate(design.updated_at)}</p>
-        )}
+      <div className="flex gap-2 justify-between px-3 py-3">
+        <div className="flex flex-col gap-1 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-medium">{design.name}</p>
+          </div>
+          {design.updated_at && (
+            <p className="truncate text-xs text-color-base/70"><span className="text-color-base/70">Last Updated: </span>{formatDate(design.updated_at)}</p>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center">
+          { !isDiscontinued ? (
+            <Radio size={20} 
+              className={`${
+                isLive ? "text-green animate-pulse" : "text-color-base/30"
+              }`} />
+          ) : (
+            <Ban size={20} className="text-error/40" />
+          )}
+        </div>
       </div>
     </div>
   );

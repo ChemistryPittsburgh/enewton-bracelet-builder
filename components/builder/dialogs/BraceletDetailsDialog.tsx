@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Loader2, Pencil, X } from "lucide-react";
+import { Check, Eraser, Loader2, Pencil, Trash2, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatMm } from "@/lib/utils";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { Button } from "@/components/ui/Button";
@@ -16,11 +16,13 @@ import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/
 
 import { useDesign } from "@/hooks/useDesign";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
+import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
 import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
 
 import { WorkflowSection } from "@/components/builder/sections/WorkflowSection";
+import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
 import { STATUS_META } from "@/lib/category-colors";
 import { AssignmentSection } from "@/components/builder/sections/AssignmentSection";
 
@@ -43,6 +45,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     activeDesignId,
     setBraceletName,
     setBraceletDescription,
+    clearBeads,
   } = useStore((s) => ({
     braceletName:            s.braceletName,
     braceletDescription:     s.braceletDescription,
@@ -52,10 +55,11 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     activeDesignId:          s.activeDesignId,
     setBraceletName:         s.setBraceletName,
     setBraceletDescription:  s.setBraceletDescription,
+    clearBeads:              s.clearBeads,
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
-  const { canEdit } = usePermissions();
+  const { canEdit, canDeleteBracelet, isAdmin } = usePermissions();
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published";
 
   // ── Name / description edit state ───────────────────────────────────────────
@@ -64,6 +68,19 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
   const [localDescription, setLocalDescription] = useState(braceletDescription ?? "");
 
   const { mutate: updateDesign, isPending: saving } = useUpdateDesign();
+
+  // ── Delete state ────────────────────────────────────────────────────────────
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { mutate: deleteDesign, isPending: isDeleting } = useDeleteDesign();
+
+  const isDiscontinued = savedDesign?.is_discontinued === 1;
+  const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued);
+  const isDraft = !savedDesign || savedDesign.status === "draft" || savedDesign.status === "rejected";
+  const showClearBeads = isDraft && placedBeads.length > 0;
+
+  // ── Clear beads state ───────────────────────────────────────────────────────
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleEdit = () => {
     setLocalName(braceletName);
@@ -100,8 +117,8 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
   // ── Arc / capacity ───────────────────────────────────────────────────────────
   const radius  = BRACELET_SIZE_RADIUS[braceletSize];
-  const totalMm = Math.round(braceletArc(radius) * 1000);
-  const usedMm  = Math.round(usedArc(placedBeads) * 1000);
+  const totalMm = Math.round(braceletArc(radius) * 1000 * 10) / 10;
+  const usedMm  = Math.round(usedArc(placedBeads) * 1000 * 10) / 10;
   const pct     = totalMm > 0 ? Math.round((usedMm / totalMm) * 100) : 0;
 
   // ── Labels ───────────────────────────────────────────────────────────────────
@@ -118,8 +135,6 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     () => [...new Set(placedBeads.map((b) => b.product.bead_type).filter(Boolean))] as string[],
     [placedBeads],
   );
-
-  const isDiscontinued = savedDesign?.is_discontinued === 1;
 
   const dialogSectionClass = "border-b border-default pb-3";
 
@@ -306,7 +321,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
         {/* ── Saved design metadata ───────────────────────────────────── */}
         {savedDesign && (
-          <div className="pb-6">
+          <div className={(showDelete || showClearBeads) ? dialogSectionClass : "pb-6"}>
             <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
               <InfoRow label="Created"       value={formatDateTime(savedDesign.created_at)} />
@@ -321,7 +336,105 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
           </div>
         )}
 
+        {/* ── Danger Zone ─────────────────────────────────────────────── */}
+        {(showDelete || showClearBeads) && (
+          <div className="pb-6">
+            <SectionHeading>Danger Zone</SectionHeading>
+            <div className="flex flex-col gap-2">
+
+              {/* Clear all beads — draft/rejected only */}
+              {showClearBeads && (
+                <div className="flex items-center justify-between rounded-lg border border-error/20 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Clear all beads</p>
+                    <p className="text-xs text-color-base/60">
+                      Remove all {placedBeads.length} {placedBeads.length === 1 ? "bead" : "beads"} from the bracelet. The design itself is kept.
+                    </p>
+                  </div>
+                  {showClearConfirm ? (
+                    <div className="flex items-center gap-2 ml-3 shrink-0">
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          clearBeads();
+                          setShowClearConfirm(false);
+                        }}
+                      >
+                        <Eraser size={13} />
+                        Confirm
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowClearConfirm(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="softDanger"
+                      size="sm"
+                      className="ml-3 shrink-0"
+                      onClick={() => setShowClearConfirm(true)}
+                    >
+                      <Eraser size={14} />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Delete bracelet */}
+              {showDelete && (
+                <div className="flex items-center justify-between rounded-lg border border-error/20 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Delete this bracelet</p>
+                    <p className="text-xs text-color-base/60">This action is permanent and cannot be undone.</p>
+                  </div>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="ml-3 shrink-0"
+                    onClick={() => { setDeleteError(null); setShowDeleteConfirm(true); }}
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* ── Delete confirmation (rendered outside scroll area) ──────── */}
+      {showDeleteConfirm && savedDesign && (
+        <DeleteBraceletDialog
+          designName={savedDesign.name}
+          isDeleting={isDeleting}
+          error={deleteError}
+          onCancel={() => { setDeleteError(null); setShowDeleteConfirm(false); }}
+          includeBackDropBlur={false}
+          onConfirm={() => {
+            setDeleteError(null);
+            deleteDesign(savedDesign.id, {
+              onSuccess: () => {
+                setShowDeleteConfirm(false);
+                useStore.getState().resetBracelet();
+                onClose();
+              },
+              onError: (err) => {
+                setDeleteError(
+                  err instanceof Error ? err.message : "This bracelet cannot be deleted.",
+                );
+              },
+            });
+          }}
+        />
+      )}
     </FullScreenDialog>
   );
 }

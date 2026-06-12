@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 
 type SlideDirection = "bottom" | "left" | "right";
 
-export const PANEL_WIDTH = 400;
+export const PANEL_WIDTH = 450;
 
 interface PanelProps {
   open: boolean;

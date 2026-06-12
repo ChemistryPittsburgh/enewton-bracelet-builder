@@ -185,7 +185,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
           <div className={`shrink-0 border-t border-default px-6 py-5 transition-opacity ${!canInteract ? "opacity-40 pointer-events-none" : ""}`}>
             <p className="text-sm font-semibold   mb-3">Leave a comment</p>
             <div className="flex gap-3 rounded-lg border border-default px-3 py-3 focus-within:border-gold transition-colors">
-              {currentUser && <Avatar name={currentUser.name} size="sm" />}
+              {currentUser && <Avatar name={currentUser.name} color={currentUser.color} size="sm" />}
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
