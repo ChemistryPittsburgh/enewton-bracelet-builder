@@ -35,12 +35,37 @@ const BRACELET_RADIUS = 0.029;
 export const CORD_RADIUS = 0.0008;
 
 /**
+ * Default gap between adjacent beads (metres).
  * Negative values pull beads closer together.
  * 0 = beads just touching
  * -0.001 = beads slightly overlapping (good for tight stacking)
  * Positive values add space between beads
  */
-export const BEAD_SPACING = -0.00035;
+export const BEAD_SPACING = -0.000025;
+
+/**
+ * Per-category spacing overrides (metres).
+ * When two adjacent items have different categories the larger
+ * (least-negative / most-positive) spacing wins, so items that
+ * need extra room always get it.
+ *
+ * Add new categories here as they appear in the catalog.
+ */
+const CATEGORY_SPACING: Record<string, number> = {
+  bead:    BEAD_SPACING,     // −0.35 mm — tight stacking
+  charm:   BEAD_SPACING,     // −0.35 mm — same as beads
+  gem:     0,                //  0 mm    — just touching, no overlap
+  tube:    BEAD_SPACING,     // −0.35 mm — same as beads
+  spacer:  0,                //  0 mm    — flush against neighbors
+  cross: 0.0001              // slight spacing
+};
+
+/** Returns the gap (metres) to place between two adjacent beads. */
+function getSpacing(a: BeadLike, b: BeadLike): number {
+  const sA = CATEGORY_SPACING[a.product.bead_category ?? "bead"] ?? BEAD_SPACING;
+  const sB = CATEGORY_SPACING[b.product.bead_category ?? "bead"] ?? BEAD_SPACING;
+  return Math.max(sA, sB);
+}
 
 /** Controls where beads start (set to 0 to start bead adding on the right) */
 const START_ANGLE_OFFSET = Math.PI / 2;
@@ -67,7 +92,7 @@ export function usedArc(beads: BeadLike[]): number {
   if (beads.length === 0) return 0;
   let total = beads[0].product.diameter / 2;
   for (let i = 0; i < beads.length - 1; i++) {
-    total += arcHalf(beads[i], beads[i + 1]) + BEAD_SPACING + arcHalf(beads[i + 1], beads[i]);
+    total += arcHalf(beads[i], beads[i + 1]) + getSpacing(beads[i], beads[i + 1]) + arcHalf(beads[i + 1], beads[i]);
   }
   total += beads[beads.length - 1].product.diameter / 2;
   return total;
@@ -109,7 +134,7 @@ export function getBeadTransformLine(
   const totalW = usedArc(beads);
   let x = -totalW / 2 + beads[0].product.diameter / 2;
   for (let i = 0; i < slotIndex; i++) {
-    x += arcHalf(beads[i], beads[i + 1]) + BEAD_SPACING + arcHalf(beads[i + 1], beads[i]);
+    x += arcHalf(beads[i], beads[i + 1]) + getSpacing(beads[i], beads[i + 1]) + arcHalf(beads[i + 1], beads[i]);
   }
   return {
     position:       [x, 0, 0],
@@ -132,7 +157,7 @@ export function getBeadAngle(
   let angle = START_ANGLE_OFFSET + beads[0].product.diameter / 2 / radius;
 
   for (let i = 0; i < slotIndex; i++) {
-    angle += (arcHalf(beads[i], beads[i + 1]) + BEAD_SPACING + arcHalf(beads[i + 1], beads[i])) / radius;
+    angle += (arcHalf(beads[i], beads[i + 1]) + getSpacing(beads[i], beads[i + 1]) + arcHalf(beads[i + 1], beads[i])) / radius;
   }
 
   return angle;

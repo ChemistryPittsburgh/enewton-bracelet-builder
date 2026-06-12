@@ -69,7 +69,7 @@ function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
       onPointerUp={handlePointerUp}
       onClick={handleClick}
       disabled={disabled}
-      className={`flex flex-col gap-1 rounded-[2px] border transition-all overflow-hidden ${
+      className={`flex flex-col gap-1 rounded-[2px] border transition-all overflow-hidden h-fit ${
         disabled
           ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed"
           : canEdit

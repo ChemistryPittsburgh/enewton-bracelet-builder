@@ -46,7 +46,6 @@ export function FullScreenDialog({
           "dialog-backdrop absolute inset-0 z-50",
           includeBackDropBlur ? "backdrop-blur-sm bg-black/30" : "bg-black/10",
         )}
-
       /> 
       {/* Panel */}
       <div

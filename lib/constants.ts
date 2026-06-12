@@ -114,12 +114,14 @@ export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: nu
 //   metalness       — 0 (dielectric) → 1 (full metal)
 //   roughness       — 0 (mirror polish) → 1 (fully matte)
 //   envMapIntensity — 0 (no reflections) → 1 (full environment reflections)
+// 
 
 export interface FinishPreset {
   color?:           string;
   metalness?:       number;
   roughness?:       number;
   envMapIntensity?: number;
+  clearcoat?: number;
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
@@ -127,6 +129,8 @@ export const FINISH_PRESETS: Record<string, FinishPreset> = {
   silver:    { metalness: 1,   roughness: 0.18, envMapIntensity: 0.35 },
   rose_gold: { metalness: 0.95, roughness: 0.2, envMapIntensity: 0.9 },
   gem:       { metalness: 0.5 },
+  pearl:     { metalness: 0.8, roughness: 0, clearcoat: 0.9, envMapIntensity: 0.9 },
+  crystal:   { metalness: 0.5 },
 };
 
 /** Fallback when product.finish is undefined. Set to null to disable. */
@@ -134,8 +138,8 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem"] as const;
-export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem", "cross"] as const;
+export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "crystal", "pearl", "metal"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.

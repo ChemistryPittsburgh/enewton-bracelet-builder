@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 
-import { capitalize } from "@/lib/utils";
+import { capitalize, cn } from "@/lib/utils";
 import { STATUS_META, getBeadCategoryMeta } from "@/lib/category-colors";
 
 import {
@@ -66,15 +66,18 @@ const BEAD_PREVIEW_ROTATION: [number, number, number] = [Math.PI/8, Math.PI/2, M
 const CHARM_PREVIEW_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI/6];
 
 /**
- * Fixed camera distance used during thumbnail capture.
- * Based on the largest expected bead dimension (~20 mm) so that every bead
- * is "photographed" from the same distance — smaller beads naturally appear
- * smaller in the thumbnail, giving the grid an accurate sense of scale.
+ * Thumbnail capture camera range (metres).
  *
- * Formula: (REFERENCE_DIM * 0.75) / tan(FOV/2)
- * With CAMERA_FOV = 50° → tan(25°) ≈ 0.4663 → 0.015 / 0.4663 ≈ 0.032
+ * Instead of one fixed distance for all beads, the capture measures the
+ * model's bounding box and computes an ideal distance, then clamps it:
+ *   - MIN: prevents tiny beads (2–3mm) from being microscopic dots
+ *   - MAX: prevents large charms (15mm+) from being clipped
+ *
+ * Items between the two thresholds still appear at their natural relative
+ * sizes; only the extremes get adjusted.
  */
-const THUMBNAIL_CAMERA_DISTANCE = 0.032;
+const THUMB_MIN_DISTANCE = 0.012;   // closest zoom — small beads
+const THUMB_MAX_DISTANCE = 0.045;   // furthest zoom — large charms
 
 // ── GLB preview error boundary ───────────────────────────────────────────────
 
@@ -141,6 +144,21 @@ function GlbModel({ url, isCharm, finish, onMeasured }: { url: string; isCharm: 
 
         child.material = mat;
       });
+    } else {
+      // Non-metal material — force dielectric so painted/colored items
+      // (crosses, gems, crystals) render with vibrant base colours.
+      clone.traverse((child) => {
+        if (!(child instanceof Mesh)) return;
+        const srcMat = child.material;
+        if (!(srcMat instanceof MeshStandardMaterial)) return;
+        if (srcMat.metalness <= 0.3) return;
+
+        const mat = srcMat.clone();
+        mat.metalness = 0;
+        mat.roughness = Math.max(mat.roughness, 0.55);
+        mat.envMapIntensity = Math.min(mat.envMapIntensity ?? 1, 0.4);
+        child.material = mat;
+      });
     }
 
     // Centre the clone at the origin so rotation pivots around its centre.
@@ -196,13 +214,13 @@ function GlbModel({ url, isCharm, finish, onMeasured }: { url: string; isCharm: 
 // ── Canvas capture helper — exposes a function to grab the canvas as PNG ─────
 
 /** Must live inside <Canvas>. Populates captureRef with a function that
- *  resets the camera to a fixed front-facing position, renders one frame,
- *  and returns a data URL.
+ *  resets the camera to a front-facing view, renders one frame, and returns
+ *  a data URL.
  *
- *  Uses THUMBNAIL_CAMERA_DISTANCE (not the current zoom level) so every
- *  bead is captured from the same distance — preserving relative sizing
- *  in the grid. Captures with a transparent background so no colour band
- *  appears where the bead doesn't fill the frame. */
+ *  Measures the model's bounding box (mesh-only, excluding lights) and
+ *  computes a camera distance clamped between THUMB_MIN_DISTANCE and
+ *  THUMB_MAX_DISTANCE. Small beads get zoomed in; large charms get
+ *  zoomed out — no more microscopic dots or clipped edges. */
 function CaptureHelper({
   captureRef,
 }: {
@@ -216,8 +234,25 @@ function CaptureHelper({
       const savedPos = camera.position.clone();
       const savedQuat = camera.quaternion.clone();
 
-      // Fixed distance so all beads are captured at the same scale
-      camera.position.set(0, 0, THUMBNAIL_CAMERA_DISTANCE);
+      // Measure only mesh geometry (excludes lights, helpers, etc.)
+      const box = new Box3();
+      scene.traverse((child) => {
+        if (child instanceof Mesh) {
+          box.expandByObject(child);
+        }
+      });
+      const size = new Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      // Compute ideal distance from FOV, then clamp to range
+      const fov = (CAMERA_FOV * Math.PI) / 180;
+      const idealDist = maxDim > 0
+        ? (maxDim * 0.75) / Math.tan(fov / 2)
+        : (THUMB_MIN_DISTANCE + THUMB_MAX_DISTANCE) / 2;
+      const dist = Math.max(THUMB_MIN_DISTANCE, Math.min(THUMB_MAX_DISTANCE, idealDist));
+
+      camera.position.set(0, 0, dist);
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
 
@@ -747,7 +782,7 @@ function BeadForm({
               <input
                 type="number"
                 min={0}
-                step={0.5}
+                step={0.1}
                 value={form.size_mm}
                 onChange={(e) => update("size_mm", e.target.value)}
                 placeholder="e.g. 6"
@@ -1052,8 +1087,8 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
   const [togglingId, setTogglingId]   = useState<number | null>(null);
   const [search, setSearch]           = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
   const [thumbVersion, setThumbVersion] = useState(0);
 
   // ── Delete bead state ────────────────────────────────────────────────────
@@ -1066,8 +1101,10 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
   const filteredBeads = useMemo(() => {
     let list = allBeads;
 
-    if (!showInactive) {
+    if (statusFilter === "active") {
       list = list.filter((b) => b.active === 1);
+    } else if (statusFilter === "inactive") {
+      list = list.filter((b) => b.active === 0);
     }
 
     if (categoryFilter !== "all") {
@@ -1085,7 +1122,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     }
 
     return list;
-  }, [allBeads, search, categoryFilter, showInactive]);
+  }, [allBeads, search, categoryFilter, statusFilter]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
   function resetState() {
@@ -1203,10 +1240,20 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
       if (mode === "edit" && editingBead) {
         updateBead(
           { id: editingBead.id, ...payload },
-          { onSuccess: () => resetState() },
+          {
+            onSuccess: () => resetState(),
+            onError: (err) => {
+              setUploadError(err instanceof Error ? err.message : "Failed to update bead. Please try again.");
+            },
+          },
         );
       } else {
-        createBead(payload, { onSuccess: () => resetState() });
+        createBead(payload, {
+          onSuccess: () => resetState(),
+          onError: (err) => {
+            setUploadError(err instanceof Error ? err.message : "Failed to create bead. Please try again.");
+          },
+        });
       }
     } catch (err: any) {
       setUploadError(err.message ?? "Upload failed.");
@@ -1307,15 +1354,27 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
                 ))}
               </select>
 
-              <label className="flex items-center gap-1.5 text-xs text-color-base/60 cursor-pointer shrink-0">
-                <input
-                  type="checkbox"
-                  checked={showInactive}
-                  onChange={(e) => setShowInactive(e.target.checked)}
-                  className="form-checkbox rounded-[1px] w-3.5 h-3.5 bg-grey border-none text-navy focus:ring-navy focus:ring-1"
-                />
-                Show inactive
-              </label>
+              {/* Status segmented control */}
+              <div className="flex rounded-[2px] border border-default bg-white overflow-hidden">
+                {([
+                  { label: "Active",   value: "active"   },
+                  { label: "Inactive", value: "inactive" },
+                  { label: "All",      value: "all"      },
+                ] as const).map(({ label, value }) => (
+                  <button
+                    key={value}
+                    onClick={() => setStatusFilter(value)}
+                    className={cn(
+                      "px-3 py-2 text-xs font-semibold transition-all",
+                      statusFilter === value
+                        ? "bg-navy text-white"
+                        : "text-color-base hover:bg-mint",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Bead list */}
