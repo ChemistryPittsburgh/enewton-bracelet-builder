@@ -19,8 +19,6 @@ import { slugify } from "@/lib/utils";
 import { TOKEN_KEY } from "@/lib/auth";
 import type { BeadProduct } from "@/types";
 
-export { slugify };
-
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // ── Types ────────────────────────────────────────────────────────────────────

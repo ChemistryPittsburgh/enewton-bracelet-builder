@@ -138,8 +138,8 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem", "cross"] as const;
-export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "crystal", "pearl", "metal"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem", "resin_cross"] as const;
+export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "crystal", "pearl", "resin"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Loader2, Pencil, Trash2, X } from "lucide-react";
+import { Check, Eraser, Loader2, Pencil, Trash2, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
@@ -45,6 +45,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     activeDesignId,
     setBraceletName,
     setBraceletDescription,
+    clearBeads,
   } = useStore((s) => ({
     braceletName:            s.braceletName,
     braceletDescription:     s.braceletDescription,
@@ -54,6 +55,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
     activeDesignId:          s.activeDesignId,
     setBraceletName:         s.setBraceletName,
     setBraceletDescription:  s.setBraceletDescription,
+    clearBeads:              s.clearBeads,
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
@@ -74,6 +76,11 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
   const isDiscontinued = savedDesign?.is_discontinued === 1;
   const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued);
+  const isDraft = !savedDesign || savedDesign.status === "draft" || savedDesign.status === "rejected";
+  const showClearBeads = isDraft && placedBeads.length > 0;
+
+  // ── Clear beads state ───────────────────────────────────────────────────────
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleEdit = () => {
     setLocalName(braceletName);
@@ -314,7 +321,7 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
         {/* ── Saved design metadata ───────────────────────────────────── */}
         {savedDesign && (
-          <div className={showDelete ? dialogSectionClass : "pb-6"}>
+          <div className={(showDelete || showClearBeads) ? dialogSectionClass : "pb-6"}>
             <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
               <InfoRow label="Created"       value={formatDateTime(savedDesign.created_at)} />
@@ -329,23 +336,74 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
           </div>
         )}
 
-        {/* ── Delete ──────────────────────────────────────────────────── */}
-        {showDelete && (
+        {/* ── Danger Zone ─────────────────────────────────────────────── */}
+        {(showDelete || showClearBeads) && (
           <div className="pb-6">
             <SectionHeading>Danger Zone</SectionHeading>
-            <div className="flex items-center justify-between rounded-lg border border-error/20 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium">Delete this bracelet</p>
-                <p className="text-xs text-color-base/60">This action is permanent and cannot be undone.</p>
-              </div>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => { setDeleteError(null); setShowDeleteConfirm(true); }}
-              >
-                <Trash2 size={14} />
-                Delete
-              </Button>
+            <div className="flex flex-col gap-2">
+
+              {/* Clear all beads — draft/rejected only */}
+              {showClearBeads && (
+                <div className="flex items-center justify-between rounded-lg border border-error/20 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Clear all beads</p>
+                    <p className="text-xs text-color-base/60">
+                      Remove all {placedBeads.length} {placedBeads.length === 1 ? "bead" : "beads"} from the bracelet. The design itself is kept.
+                    </p>
+                  </div>
+                  {showClearConfirm ? (
+                    <div className="flex items-center gap-2 ml-3 shrink-0">
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          clearBeads();
+                          setShowClearConfirm(false);
+                        }}
+                      >
+                        <Eraser size={13} />
+                        Confirm
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowClearConfirm(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="softDanger"
+                      size="sm"
+                      className="ml-3 shrink-0"
+                      onClick={() => setShowClearConfirm(true)}
+                    >
+                      <Eraser size={14} />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Delete bracelet */}
+              {showDelete && (
+                <div className="flex items-center justify-between rounded-lg border border-error/20 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Delete this bracelet</p>
+                    <p className="text-xs text-color-base/60">This action is permanent and cannot be undone.</p>
+                  </div>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="ml-3 shrink-0"
+                    onClick={() => { setDeleteError(null); setShowDeleteConfirm(true); }}
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}

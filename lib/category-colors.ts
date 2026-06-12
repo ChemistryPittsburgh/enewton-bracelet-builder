@@ -39,7 +39,7 @@ export const BEAD_CATEGORY_META: Record<string, { label: string; cls: string }> 
   spacer:  { label: "Spacer",  cls: "bg-stone/30 text-color-base/60" },
   tube:  { label: "Tube",  cls: "bg-[#2471a3]/20 text-[#0d5c52]" },
   gem:  { label: "Gem",  cls: "bg-[#c0774a]/20 text-[#c0774a]" },
-  cross:  { label: "Cross",  cls: "bg-[#6c3483]/20 text-[#6c3483]" }
+  resin_cross:  { label: "Resin Cross",  cls: "bg-[#6c3483]/20 text-[#6c3483]" }
 };
 
 const DEFAULT_BEAD_CATEGORY: { label: string; cls: string } = {

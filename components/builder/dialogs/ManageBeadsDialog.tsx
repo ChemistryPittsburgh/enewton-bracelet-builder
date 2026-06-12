@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 
-import { capitalize, cn } from "@/lib/utils";
+import { cn, capitalize, slugify, unslugify } from "@/lib/utils";
 import { STATUS_META, getBeadCategoryMeta } from "@/lib/category-colors";
 
 import {
@@ -41,7 +41,6 @@ import {
   uploadBeadThumbnail,
   validateGlbFile,
   validateGlbMagicBytes,
-  slugify,
 } from "@/hooks/useBeadAdmin";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useDesigns } from "@/hooks/useDesigns";
@@ -754,7 +753,7 @@ function BeadForm({
               >
                 {BEAD_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    {unslugify(cat, "_")}
                   </option>
                 ))}
               </select>
@@ -1349,7 +1348,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
                 <option value="all">All categories</option>
                 {BEAD_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
-                    {capitalize(cat)}
+                    {unslugify(cat, "_")}
                   </option>
                 ))}
               </select>
