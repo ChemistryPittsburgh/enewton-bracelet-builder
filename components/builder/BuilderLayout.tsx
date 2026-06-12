@@ -211,7 +211,12 @@ export function BuilderLayout() {
     onUpdated: (design) => {
       // Keep read-only viewers' canvas in sync when the lock holder saves.
       if (!lockHeld) syncDesign(design);
-      queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
+      // Write the event payload directly into the cache instead of invalidating:
+      // avoids a network round-trip and prevents the lock effect re-running
+      // (which would call syncDesign a second time for read-only viewers).
+      if (activeDesignId !== null) {
+        queryClient.setQueryData(["designs", activeDesignId], design);
+      }
     },
     onLockTaken: () => {
       // Admin force-took the lock — instant kick without waiting for heartbeat.

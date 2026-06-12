@@ -36,19 +36,13 @@ export function useNotifications() {
 
     // Re-sync when the channel subscription is confirmed — catches status
     // changes that occurred while the socket was connecting or during a
-    // network outage (Pusher re-fires subscription_succeeded on reconnect).
+    // network outage (Pusher re-fires subscription_succeeded on reconnect,
+    // so connection.bind "connected" is not needed and would double-fire).
     channel.bind("pusher:subscription_succeeded", onStatusChanged);
-
-    // Re-sync on reconnect — events fired during a network outage are lost.
-    const onReconnected = () => {
-      queryClient.invalidateQueries({ queryKey: ["designs"] });
-    };
-    pusher.connection.bind("connected", onReconnected);
 
     return () => {
       channel.unbind("design.status-changed", onStatusChanged);
       channel.unbind("pusher:subscription_succeeded", onStatusChanged);
-      pusher.connection.unbind("connected", onReconnected);
       pusher.unsubscribe("private-designs");
     };
   }, [canReview, canPublish, queryClient]);

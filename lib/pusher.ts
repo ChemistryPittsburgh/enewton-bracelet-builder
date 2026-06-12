@@ -1,8 +1,7 @@
 import Pusher from "pusher-js";
 import { getToken } from "@/lib/auth";
 
-// Log all Pusher activity to the browser console for debugging.
-Pusher.logToConsole = true;
+Pusher.logToConsole = process.env.NODE_ENV !== "production";
 
 const APP_KEY = process.env.NEXT_PUBLIC_PUSHER_APP_KEY ?? "";
 const CLUSTER  = process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "mt1";
@@ -33,9 +32,17 @@ export function getPusher(): Pusher {
             channel_name: channel.name,
           }).toString(),
         })
-          .then((res) => res.json())
-          .then((data) => callback(null, data))
-          .catch((err) => callback(err, null));
+          .then((res) => {
+            if (!res.ok) {
+              const err = new Error(`Pusher auth failed: HTTP ${res.status}`);
+              console.error(err);
+              callback(err, null);
+              return;
+            }
+            return res.json();
+          })
+          .then((data) => { if (data) callback(null, data); })
+          .catch((err) => { console.error("Pusher auth error:", err); callback(err, null); });
       },
     }),
   });

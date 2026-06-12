@@ -22,6 +22,7 @@ import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
 import type { BraceletStatus } from "@/types";
 
 import { Button } from "@/components/ui/Button";
+import { PusherStatusBadge } from "@/components/builder/canvas/PusherStatusBadge";
 
 interface CanvasToolbarProps {
   commentsOpen?: boolean;
@@ -242,6 +243,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
         {/* ── Right — Edit + Comments ──────────────────────────────────── */}
         <div className="flex flex-1 items-center gap-2 justify-end border-l border-default pl-3 lg:pl-6 ml-3">
+          <PusherStatusBadge />
           {canEdit && !isReadOnly && (
             <button
               onClick={toggleEditMode}
