@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
-import { capitalize, slugify } from "@/lib/utils";
+import { capitalize, slugify, formatMm } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export function BeadInfoDialog() {
@@ -75,7 +75,7 @@ export function BeadInfoDialog() {
               )}
               <InfoRow layout="horizontal" label="Diameter" value={bead.product.size_mm != null
                 ? `${bead.product.size_mm} mm`
-                : `${Math.round(bead.product.diameter * 1000)} mm`} />
+                : `${formatMm(bead.product.diameter * 1000)} mm`} />
               <InfoRow layout="horizontal" label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
             </div>
             {matchCount > 1 && (

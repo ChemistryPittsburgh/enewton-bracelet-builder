@@ -6,7 +6,7 @@ import { Check, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatMm } from "@/lib/utils";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { Button } from "@/components/ui/Button";
@@ -110,8 +110,8 @@ export function BraceletDetailsDialog({ open, onClose }: BraceletDetailsDialogPr
 
   // ── Arc / capacity ───────────────────────────────────────────────────────────
   const radius  = BRACELET_SIZE_RADIUS[braceletSize];
-  const totalMm = Math.round(braceletArc(radius) * 1000);
-  const usedMm  = Math.round(usedArc(placedBeads) * 1000);
+  const totalMm = Math.round(braceletArc(radius) * 1000 * 10) / 10;
+  const usedMm  = Math.round(usedArc(placedBeads) * 1000 * 10) / 10;
   const pct     = totalMm > 0 ? Math.round((usedMm / totalMm) * 100) : 0;
 
   // ── Labels ───────────────────────────────────────────────────────────────────

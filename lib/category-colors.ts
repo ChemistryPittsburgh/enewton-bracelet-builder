@@ -24,10 +24,28 @@ export type CategoryKey = keyof typeof CATEGORY_STYLES;
 
 // ── Bracelet workflow status ──────────────────────────────────────────────────
 export const STATUS_META: Record<BraceletStatus, { label: string; cls: string }> = {
-  draft:        { label: "In Progress",  cls: "bg-stone text-white"       },
-  in_review:    { label: "In Review",    cls: "bg-blush"                  },
-  approved:     { label: "Approved",     cls: "bg-gold text-white"        },
-  published:    { label: "Published",    cls: "bg-green text-white"       },
-  rejected:     { label: "Rejected",     cls: "bg-error/20 text-error"    },
-  discontinued: { label: "Discontinued", cls: "bg-error text-white"       },
+  draft:        { label: "In Progress",  cls: "bg-gold/20 text-[8f7b3d]" },
+  in_review:    { label: "In Review",    cls: "bg-[#2471a3]/20 text-[#185278]"},
+  approved:     { label: "Approved",     cls: "bg-[#0d5c52]/20 text-[#0d5c52]"},
+  published:    { label: "Published",    cls: "bg-[#6c3483]/20 text-[#6c3483]"},
+  rejected:     { label: "Rejected",     cls: "bg-error/20 text-error"},
+  discontinued: { label: "Discontinued", cls: "bg-color-base/10 text-color-base/80"},
 };
+
+// ── Bead / charm category badges ──────────────────────────────────────────────
+export const BEAD_CATEGORY_META: Record<string, { label: string; cls: string }> = {
+  bead:    { label: "Bead",    cls: "bg-green/20 text-[#1e6b3a]"  },
+  charm:   { label: "Charm",   cls: "bg-gold/30 text-color-base/80" },
+  spacer:  { label: "Spacer",  cls: "bg-stone/30 text-color-base/60" },
+  tube:  { label: "Tube",  cls: "bg-[#2471a3]/20 text-[#0d5c52]" },
+  gem:  { label: "Gem",  cls: "bg-[#c0774a]/20 text-[#c0774a]" }
+};
+
+const DEFAULT_BEAD_CATEGORY: { label: string; cls: string } = {
+  label: "Bead",
+  cls: "bg-light-grey text-color-base/60",
+};
+
+export function getBeadCategoryMeta(category: string | null | undefined) {
+  return BEAD_CATEGORY_META[category ?? "bead"] ?? DEFAULT_BEAD_CATEGORY;
+}

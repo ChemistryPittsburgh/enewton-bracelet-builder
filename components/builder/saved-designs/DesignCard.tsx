@@ -103,7 +103,7 @@ export function DesignCard({
         )}
         {/* Rejected badge — clears once the design is edited and re-saved */}
         {wasRejected && (
-          <div className="absolute left-2 top-2 z-10 rounded-full bg-error/30 px-2 py-0.5 text-[10px] font-semibold text-error">
+          <div className="absolute left-2 top-2 z-10 rounded-full bg-error/10 px-2 py-0.5 text-[11px] font-semibold text-error">
             Rejected
           </div>
         )}

@@ -99,9 +99,9 @@ export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.0
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
  */
 export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number }> = {
-  wire:    { color: "#ece09b", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0008 }, // silver-grey, ~1.6 mm diameter
-  cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0010 }, // tan/gold, ~2.6 mm diameter
-  elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.0004 }, // off-white, ~0.8 mm diameter
+  wire:    { color: "#ece09b", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0006 }, // silver-grey, ~1.6 mm diameter
+  cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0075 }, // tan/gold, ~2.6 mm diameter
+  elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.00055 }, // off-white, ~0.8 mm diameter
 };
 
 // ─── Material finish presets ────────────────────────────────────────────────

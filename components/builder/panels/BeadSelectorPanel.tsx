@@ -4,7 +4,7 @@ import { useState, useMemo, useRef } from "react";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { RotateCcw, Search, MoveHorizontal } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { capitalize } from "@/lib/utils";
+import { capitalize, formatMm } from "@/lib/utils";
 import type { BeadProduct } from "@/types";
 
 import { Panel } from "@/components/ui/Panel";
@@ -83,10 +83,10 @@ function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
             : ""
       }`}
     >
-      <div className="bg-light-grey p-2 h-[80px] w-full items-center flex justify-center">
-        <BeadThumbnail bead={bead}  />
+      <div className="flex flex-col justify-center items-center max-h-32 min-h-28 py-1 overflow-hidden w-full h-full object-cover object-center bg-light-grey">
+        <BeadThumbnail bead={bead} className="w-full max-w-24"  />
       </div>
-      <div className="flex flex-col pt-[2px] pb-2 text-left px-2">
+      <div className="flex flex-1 min-h-14 shrink-0 flex-col pt-[2px] pb-2 text-left px-2">
         <span className="text-[12px]">{bead.name}</span>
         <span className="text-[10px] leading-tight text-color-base/70">{size}mm</span>
       </div>
@@ -129,7 +129,7 @@ function SpacerPicker({ onAdd, error }: {
   const radius       = BRACELET_SIZE_RADIUS[braceletSize];
   const totalArc     = braceletArc(radius);
   const used         = usedArc(placedBeads);
-  const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000));
+  const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
 
   const MAX_SPACER_MM = 14;
 
