@@ -105,7 +105,6 @@ function captureViaRenderTarget(
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useGenerateThumbnail() {
-  const controlsEl  = useStore((s) => s.controlsEl);
   const glRenderer  = useStore((s) => s.glRenderer);
   const threeScene  = useStore((s) => s.threeScene);
   const threeCamera = useStore((s) => s.threeCamera);
@@ -121,29 +120,18 @@ export function useGenerateThumbnail() {
     setSpacersHiddenForCapture(true);
 
     try {
-      if (controlsEl) {
-        const savedPos    = controlsEl.getPosition(undefined as any);
-        const savedTarget = controlsEl.getTarget(undefined as any);
-
-        const [cx, cy, cz] = CAMERA_DEFAULT_POSITION;
-        await controlsEl.setLookAt(cx, cy, cz, 0, 0, 0, false);
-
-        // Wait two frames so React flushes state changes to the Three.js scene graph
-        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-
-        const dataUrl = captureViaRenderTarget(glRenderer, threeScene, threeCamera);
-
-        await controlsEl.setLookAt(
-          savedPos.x,    savedPos.y,    savedPos.z,
-          savedTarget.x, savedTarget.y, savedTarget.z,
-          false,
-        );
-
-        return dataUrl;
-      }
-
+      // Wait two frames so React flushes the spacersHiddenForCapture state change
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-      return captureViaRenderTarget(glRenderer, threeScene, threeCamera);
+
+      // Render through a cloned camera at the default view without moving the
+      // actual scene camera — avoids any visible jump in the canvas.
+      const [cx, cy, cz] = CAMERA_DEFAULT_POSITION;
+      const snapCam = (threeCamera as THREE.PerspectiveCamera).clone();
+      snapCam.position.set(cx, cy, cz);
+      snapCam.lookAt(0, 0, 0);
+      snapCam.updateMatrixWorld();
+
+      return captureViaRenderTarget(glRenderer, threeScene, snapCam);
     } finally {
       setSpacersHiddenForCapture(false);
     }
