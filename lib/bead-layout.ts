@@ -54,7 +54,7 @@ export const BEAD_SPACING = -0.000025;
 const CATEGORY_SPACING: Record<string, number> = {
   bead:    BEAD_SPACING,     // −0.35 mm — tight stacking
   charm:   BEAD_SPACING,     // −0.35 mm — same as beads
-  gem:     0,                //  0 mm    — just touching, no overlap
+  gem:     0.00002,                //  0 mm    — just touching, no overlap
   tube:    BEAD_SPACING,     // −0.35 mm — same as beads
   spacer:  0,                //  0 mm    — flush against neighbors
   cross: 0.0001              // slight spacing

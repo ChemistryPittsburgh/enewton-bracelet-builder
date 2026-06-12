@@ -883,29 +883,6 @@ function BeadForm({
 
       {/* ── Footer buttons ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 border-t border-default px-4 py-3">
-        <Button
-          onClick={handleSubmit}
-          disabled={isSaving || !canSubmit}
-          size="sm"
-          variant="secondary"
-        >
-          {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-          {submitLabel}
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
-          <X size={12} /> Cancel
-        </Button>
-        {thumbError && (
-          <p className="ml-auto text-xs text-error flex items-center gap-1">
-            <AlertTriangle size={12} className="shrink-0" />
-            {thumbError}
-          </p>
-        )}
-        {!hasGlb && !thumbError && (
-          <p className="ml-auto text-xs text-color-base/50 italic">
-            A GLB file is required
-          </p>
-        )}
         {/* Deactivate button — right-aligned, only shown for active beads in edit mode */}
         {onToggleActive && !isInactive && hasGlb && (
           <button
@@ -917,6 +894,34 @@ function BeadForm({
             Deactivate
           </button>
         )}
+        <div className="flex flex-col gap-2 flex-1 justify-center items-end">
+          <div className="flex gap-2">
+            <Button variant="ghost" size="md" onClick={onCancel} disabled={isSaving}>
+              <X size={12} /> Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSaving || !canSubmit}
+              size="md"
+            >
+              {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              {submitLabel}
+            </Button>
+          </div>
+          <div className="text-right">
+            {thumbError && (
+              <p className="ml-auto text-xs text-error flex items-center gap-1">
+                <AlertTriangle size={12} className="shrink-0" />
+                {thumbError}
+              </p>
+            )}
+            {!hasGlb && !thumbError && (
+              <p className="ml-auto text-xs text-color-base/50 italic">
+                A GLB file is required
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1332,8 +1337,17 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
                   placeholder="Search by name, type, or SKU"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-[2px] border border-default py-2 pl-3 pr-9 text-sm outline-none placeholder:text-color-base/50 focus:border-navy transition-colors"
+                  className="w-full rounded-[2px] border border-default py-2 pl-3 pr-16 text-sm outline-none placeholder:text-color-base/50 focus:border-navy transition-colors"
                 />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-8 top-1/2 -translate-y-1/2 p-0.5 rounded-[2px] text-color-base/40 bg-white hover:text-color-base hover:bg-light-grey focus:ring-navy transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
                 <Search
                   size={14}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-color-base/40"
