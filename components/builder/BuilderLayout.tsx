@@ -47,6 +47,7 @@ import { useReleaseLock } from "@/hooks/useReleaseLock";
 import { useDesignHeartbeat } from "@/hooks/useDesignHeartbeat";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { usePusherDesign } from "@/hooks/usePusherDesign";
+import type { DesignComment } from "@/types";
 
 export function BuilderLayout() {
   const {
@@ -237,8 +238,33 @@ export function BuilderLayout() {
     },
     onReconnected: () => {
       // Re-sync after network outage — events fired while offline are lost.
+      // Prefix match also covers ["designs", activeDesignId, "comments"].
       if (activeDesignId !== null) {
         queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
+      }
+    },
+    onCommentCreated: (comment) => {
+      if (activeDesignId !== null) {
+        queryClient.setQueryData<DesignComment[]>(
+          ["designs", activeDesignId, "comments"],
+          (prev = []) => [...prev, comment],
+        );
+      }
+    },
+    onCommentUpdated: (comment) => {
+      if (activeDesignId !== null) {
+        queryClient.setQueryData<DesignComment[]>(
+          ["designs", activeDesignId, "comments"],
+          (prev = []) => prev.map((c) => (c.id === comment.id ? comment : c)),
+        );
+      }
+    },
+    onCommentDeleted: (commentId) => {
+      if (activeDesignId !== null) {
+        queryClient.setQueryData<DesignComment[]>(
+          ["designs", activeDesignId, "comments"],
+          (prev = []) => prev.filter((c) => c.id !== commentId),
+        );
       }
     },
   });

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { getPusher } from "@/lib/pusher";
-import type { Bracelet } from "@/types";
+import type { Bracelet, DesignComment } from "@/types";
 
 interface LockPayload {
   user_id: number | null;
@@ -16,6 +16,9 @@ interface PusherDesignCallbacks {
   onUpdated?: (design: Bracelet) => void;
   onLockTaken?: (by: LockTakenPayload) => void;
   onLockChanged?: (lock: LockPayload) => void;
+  onCommentCreated?: (comment: DesignComment) => void;
+  onCommentUpdated?: (comment: DesignComment) => void;
+  onCommentDeleted?: (commentId: number) => void;
   /** Called when the Pusher connection (re)connects — use to re-fetch any
    *  state that may have been missed while the socket was offline. */
   onReconnected?: () => void;
@@ -59,6 +62,18 @@ export function usePusherDesign(
       cbRef.current.onLockChanged?.(data);
     });
 
+    channel.bind("comment.created", (data: { design_id: number; comment: DesignComment }) => {
+      cbRef.current.onCommentCreated?.(data.comment);
+    });
+
+    channel.bind("comment.updated", (data: { design_id: number; comment: DesignComment }) => {
+      cbRef.current.onCommentUpdated?.(data.comment);
+    });
+
+    channel.bind("comment.deleted", (data: { design_id: number; comment_id: number }) => {
+      cbRef.current.onCommentDeleted?.(data.comment_id);
+    });
+
     // Skip the first subscription_succeeded (initial page load — nothing to
     // catch up on). Fire onReconnected on every subsequent confirmation, which
     // covers re-subscriptions after a network outage.
@@ -72,6 +87,9 @@ export function usePusherDesign(
       channel.unbind("design.updated");
       channel.unbind("design.lock-taken");
       channel.unbind("design.lock-changed");
+      channel.unbind("comment.created");
+      channel.unbind("comment.updated");
+      channel.unbind("comment.deleted");
       channel.unbind("pusher:subscription_succeeded");
       pusher.unsubscribe(channelName);
     };
