@@ -269,6 +269,19 @@ export function BuilderLayout() {
     },
   });
 
+  // ── Visibility-change re-sync ─────────────────────────────────────────────
+  // Catch up on missed events immediately when the tab regains focus, without
+  // waiting for Pusher's reconnect + re-auth round-trip to complete.
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible" && activeDesignId !== null) {
+        queryClient.invalidateQueries({ queryKey: ["designs", activeDesignId] });
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
+  }, [activeDesignId, queryClient]);
+
   // ── Name-required highlight ───────────────────────────────────────────────
   // Activated by BraceletExporter when the user tries to save without a name.
   // Auto-clears once the bracelet name is changed from the default.
