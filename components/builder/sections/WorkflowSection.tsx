@@ -25,8 +25,6 @@ import { useStore }             from "@/lib/store";
 
 import type { Bracelet, BraceletStatus } from "@/types";
 
-export { STATUS_META } from "@/lib/category-colors";
-
 const workflowSectionClasses = "flex flex-col gap-4 border-b border-default pb-5";
 const actionBtnClasses = "min-w-[150px]";
 

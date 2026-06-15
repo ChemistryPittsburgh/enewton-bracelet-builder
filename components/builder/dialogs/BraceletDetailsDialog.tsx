@@ -76,9 +76,9 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   const { mutate: deleteDesign, isPending: isDeleting } = useDeleteDesign();
 
   const isDiscontinued = savedDesign?.is_discontinued === 1;
-  const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued);
+  const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued) && !isLocked;
   const isDraft = !savedDesign || savedDesign.status === "draft" || savedDesign.status === "rejected";
-  const showClearBeads = isDraft && placedBeads.length > 0;
+  const showClearBeads = isDraft && placedBeads.length > 0 && !isLocked;
 
   // ── Clear beads state ───────────────────────────────────────────────────────
   const [showClearConfirm, setShowClearConfirm] = useState(false);

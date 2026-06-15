@@ -93,7 +93,7 @@ export function DesignCard({
   const hasWorkflowActions = showSubmit || showApprove || showReject;
   const hasAdminActions    = showDiscontinue || showDelete;
 
-  const menuItemCls = "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors";
+  const menuItemClasses = "flex w-full items-center gap-2 px-3 py-3 text-left text-sm transition-colors";
 
   return (
     <div
@@ -156,7 +156,7 @@ export function DesignCard({
           )}
 
           {/* ── Three-dot menu ── */}
-          {!isDiscontinued && (
+          {!isDiscontinued && !lockedByOther && (
             <div
               ref={menuRef}
               className="absolute right-2 top-2"
@@ -176,14 +176,14 @@ export function DesignCard({
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-lg border border-default bg-white py-1 shadow-lg">
+                <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-[3px] overflow-hidden border border-default bg-white shadow-lg">
                   {/* ── Open Design ── */}
                   <button
                     onClick={() => {
                       setMenuOpen(false);
                       onClick?.();
                     }}
-                    className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
+                    className={cn(menuItemClasses, "text-navy hover:bg-mint")}
                   >
                     <Eye size={14} />
                     Open design
@@ -191,7 +191,7 @@ export function DesignCard({
 
                   {/* ── Workflow actions ── */}
                   {hasWorkflowActions && (
-                    <div className="my-1 border-t border-default" />
+                    <div className="border-t border-default" />
                   )}
                   {showSubmit && (
                     <button
@@ -199,7 +199,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onSubmitForReview?.(design);
                       }}
-                      className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
+                      className={cn(menuItemClasses, "text-navy hover:bg-mint")}
                     >
                       <Send size={14} />
                       Submit for review
@@ -211,7 +211,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onApprove?.(design);
                       }}
-                      className={cn(menuItemCls, "text-green hover:bg-green/10")}
+                      className={cn(menuItemClasses, "text-green hover:bg-green/10")}
                     >
                       <CheckCircle size={14} />
                       Approve
@@ -223,7 +223,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onRejectRequest?.(design);
                       }}
-                      className={cn(menuItemCls, "text-error hover:bg-error/10")}
+                      className={cn(menuItemClasses, "text-error hover:bg-error/10")}
                     >
                       <XCircle size={14} />
                       Reject
@@ -232,7 +232,7 @@ export function DesignCard({
 
                   {/* ── Admin actions ── */}
                   {hasAdminActions && (
-                    <div className="my-1 border-t border-default" />
+                    <div className="border-t border-default" />
                   )}
                   {showDiscontinue && (
                     <button
@@ -240,7 +240,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onDiscontinueRequest!(design);
                       }}
-                      className={cn(menuItemCls, "text-gold hover:bg-gold/10")}
+                      className={cn(menuItemClasses, "text-gold hover:bg-gold/10")}
                     >
                       <Archive size={14} />
                       Discontinue
@@ -252,7 +252,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onDeleteRequest(design);
                       }}
-                      className={cn(menuItemCls, "text-error hover:bg-error/10")}
+                      className={cn(menuItemClasses, "text-error hover:bg-error/10")}
                     >
                       <Trash2 size={14} />
                       Delete bracelet
