@@ -23,6 +23,7 @@ import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
 import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
 import { SessionTakenOverDialog } from "./dialogs/SessionTakenOverDialog";
+import { DesignNotFoundDialog } from "./dialogs/DesignNotFoundDialog";
 import { ManageBeadsDialog } from "./dialogs/ManageBeadsDialog";
 
 import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
@@ -78,11 +79,24 @@ export function BuilderLayout() {
 
   const { data: currentUser } = useCurrentUser();
   const { canEdit } = usePermissions();
-  const { data: savedDesign, isFetching: designFetching } = useDesign(activeDesignId);
+  const { data: savedDesign, isFetching: designFetching, isError: designIsError, error: designErrorObj } = useDesign(activeDesignId);
   const { active: glbsLoading } = useProgress();
   const isCanvasLoading = glbsLoading || (activeDesignId !== null && designFetching);
 
   // ── Notification badge (header) ───────────────────────────────────────────
+  const [showDesignNotFound, setShowDesignNotFound] = useState(false);
+
+  useEffect(() => {
+    if (!designIsError) return;
+    // Duck-type the status — avoids instanceof fragility across module instances.
+    // Any HTTP error (404 deleted, 403 revoked, 410 gone) on a persisted ID means
+    // the ID is unrecoverable. Skip errors with no status (transient network failures).
+    const status = (designErrorObj as { status?: number } | null)?.status;
+    if (!status) return;
+    startNewBracelet();
+    setShowDesignNotFound(true);
+  }, [designIsError, designErrorObj]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const { inReviewCount, approvedCount } = useNotifications();
@@ -544,6 +558,11 @@ export function BuilderLayout() {
           onClose={() => setShowKickedModal(false)}
         />
       )}
+
+      <DesignNotFoundDialog
+        open={showDesignNotFound}
+        onClose={() => setShowDesignNotFound(false)}
+      />
 
       <BraceletDetailsDialog
         open={braceletDetailsOpen}
