@@ -451,7 +451,7 @@ export function BuilderLayout() {
             {/* Bracelet info overlay */}
             <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
               {(kickedNotification || lockedByOther) && (
-                <div className="mb-1 flex items-center gap-1.5 rounded-md bg-orange px-2.5 py-1 text-xs font-medium text-white">
+                <div className="mb-1 flex items-center gap-1.5 rounded-[2px] bg-orange px-2.5 py-1 text-xs font-medium text-white">
                   <ShieldAlert size={11} className="shrink-0" />
                   {kickedNotification
                     ? "Read-only — your session was taken over"
