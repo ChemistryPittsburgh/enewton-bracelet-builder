@@ -68,6 +68,13 @@ export interface CreateBraceletRequest {
   status?: BraceletStatus;
 }
 
+/** Who currently holds the edit lock on a design. */
+export interface DesignLock {
+  user_id:      number;
+  user_name:    string;
+  heartbeat_at: string;
+}
+
 /** Full bracelet record returned by GET /designs/:id and POST /designs. */
 export interface Bracelet {
   id: number;
@@ -104,6 +111,8 @@ export interface Bracelet {
   tags: Tag[];
   /** 1 = discontinued (admins can reactivate). */
   is_discontinued: number;
+  /** Non-null when another user currently holds an edit lock on this design. */
+  active_lock: DesignLock | null;
   /** Reason provided by the reviewer when the design was rejected. */
   rejection_reason: string | null;
   rejected_at: string | null;

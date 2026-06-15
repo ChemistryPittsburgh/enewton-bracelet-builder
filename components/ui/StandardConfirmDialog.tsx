@@ -13,7 +13,7 @@ interface StandardConfirmDialogProps {
   message: ReactNode;
   /** Icon element (e.g., <AlertTriangle />) */
   icon?: ReactNode;
-  /** Icon background color class — e.g. "bg-error/50" */
+  /** Icon background color class — e.g. "bg-error/10" */
   iconBgClass?: string;
   /** Icon text color class — e.g. "text-error/80" */
   iconColorClass?: string;
@@ -36,7 +36,7 @@ export function StandardConfirmDialog({
   title,
   message,
   icon,
-  iconBgClass = "bg-error/50",
+  iconBgClass = "bg-error/10",
   iconColorClass = "text-error/80",
   confirmLabel = "Confirm",
   confirmVariant = "danger",

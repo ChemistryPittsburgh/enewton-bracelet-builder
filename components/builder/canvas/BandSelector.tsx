@@ -23,7 +23,7 @@ const toggleClass = (active: boolean, disabled = false) =>
   cn(
     "rounded-[2px] border px-2 py-1 text-[11px] font-medium transition-all",
     disabled
-      ? "border-default bg-light-grey text-light-grey cursor-not-allowed"
+      ? "border-default bg-light-grey text-color-base/30 cursor-not-allowed"
       : active
         ? "border-navy bg-navy text-white"
         : "border-default bg-white text-color-base/70 hover:border-neutral-400"

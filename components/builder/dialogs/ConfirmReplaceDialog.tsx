@@ -33,6 +33,7 @@ export function ConfirmReplaceDialog() {
   const pendingOnLoad    = useStore((s) => s.pendingDesignOnLoad);
   const clearPending     = useStore((s) => s.clearPendingDesign);
   const braceletName     = useStore((s) => s.braceletName);
+  const activeDesignId   = useStore((s) => s.activeDesignId);
   const setBraceletName  = useStore((s) => s.setBraceletName);
 
   const { loadDesign }   = useLoadDesign();
@@ -82,7 +83,11 @@ export function ConfirmReplaceDialog() {
     try {
       await save();
       if (pendingDesign!.id !== -1) {
-        loadDesign(pendingDesign!);
+        // If the pending design is the one already on the canvas, we hold the
+        // lock — skip the redundant POST /lock that could race and discard the save.
+        const alreadyHeld = pendingDesign!.id === activeDesignId;
+        const ok = await loadDesign(pendingDesign!, alreadyHeld);
+        if (!ok) { setStatus("error"); return; }
       }
       pendingOnLoad?.();
       clearPending();
@@ -99,7 +104,6 @@ export function ConfirmReplaceDialog() {
       const trimmed = nameInput.trim();
       if (!trimmed || trimmed === DEFAULT_BRACELET_NAME) return;
       setBraceletName(trimmed);
-      // Defer save until the next render picks up the new name (see useEffect above)
       setPendingSaveAfterName(true);
       return;
     }
@@ -107,16 +111,20 @@ export function ConfirmReplaceDialog() {
     doSaveAndLoad();
   }
 
-  function handleDiscardAndLoad() {
-    if (!pendingDesign) return;
-    if (pendingDesign.id === -1) {
-      // New bracelet — just reset, don't load a design
-    } else {
-      loadDesign(pendingDesign!);
+  async function handleDiscardAndLoad() {
+    if (!pendingDesign || status === "saving") return;
+    setStatus("saving");
+    try {
+      if (pendingDesign.id !== -1) {
+        const ok = await loadDesign(pendingDesign);
+        if (!ok) { setStatus("error"); return; }
+      }
+      pendingOnLoad?.();
+      clearPending();
+      setStatus("idle");
+    } catch {
+      setStatus("error");
     }
-    pendingOnLoad?.();
-    clearPending();
-    setStatus("idle");
   }
 
   function handleCancel() {

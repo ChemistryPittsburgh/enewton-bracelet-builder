@@ -9,7 +9,9 @@ import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 import { CATEGORY_STYLES, type CategoryKey } from "@/lib/category-colors";
 
 import { useDesigns, type DesignSortOption } from "@/hooks/useDesigns";
+import { useBeads } from "@/hooks/useBeads";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
+import { useLockDesign } from "@/hooks/useLockDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { useDiscontinueDesign } from "@/hooks/useDiscontinueDesign";
 import { useSubmitDesign } from "@/hooks/useSubmitDesign";
@@ -17,18 +19,25 @@ import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
 import { useTags } from "@/hooks/Tags";
 import { useCollections } from "@/hooks/Collections";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePermissions } from "@/hooks/usePermissions";
 
-import type { Bracelet, BraceletStatus, Collection, Tag } from "@/types";
+import type { Bracelet, BraceletStatus, Collection, Tag, DesignLock } from "@/types";
 
 import { DesignCard } from "./DesignCard";
 import { TagPicker, CollectionPicker } from "./Pickers";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
 import { DiscontinueBraceletDialog } from "@/components/builder/dialogs/DiscontinueBraceletDialog";
+import { DesignLockedDialog } from "@/components/builder/dialogs/DesignLockedDialog";
 import { RejectBraceletDialog } from "@/components/builder/dialogs/RejectBraceletDialog";
 
 interface SavedDesignsScreenProps {
   isOpen: boolean;
   onClose: () => void;
+  /** True when the current user was kicked from the active design — clicking
+   *  the same design card should clear the kicked state (allow re-acquisition). */
+  isKickedFromActiveDesign?: boolean;
+  onRetryLock?: () => void;
 }
 
 const STATUS_FILTERS: { label: string; value: BraceletStatus | undefined }[] = [
@@ -54,7 +63,7 @@ const BRACELET_STATE_OPTIONS: { label: string; value: BraceletState }[] = [
   { label: "Inactive", value: "inactive" },
 ];
 
-export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps) {
+export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, onRetryLock }: SavedDesignsScreenProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -71,17 +80,21 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   const [designToDelete,      setDesignToDelete]      = useState<Bracelet | null>(null);
   const [deleteError,         setDeleteError]         = useState<string | null>(null);
   const [designToDiscontinue, setDesignToDiscontinue] = useState<Bracelet | null>(null);
-  const [designToReject,      setDesignToReject]      = useState<Bracelet | null>(null);
+  const [lockedDesign,   setLockedDesign]   = useState<{ design: Bracelet; lock: DesignLock } | null>(null);
+  const [isTakingOver,   setIsTakingOver]   = useState(false);
+  const [takeOverError,  setTakeOverError]  = useState<string | null>(null);
+  const [designToReject, setDesignToReject] = useState<Bracelet | null>(null);
 
   const { mutate: deleteDesign,      isPending: isDeleting      } = useDeleteDesign();
   const { mutate: discontinueDesign, isPending: isDiscontinuing } = useDiscontinueDesign();
   const { mutate: submitDesign     } = useSubmitDesign();
   const { mutate: approveDesign    } = useApproveDesign();
   const { mutate: rejectDesign,      isPending: isRejecting     } = useRejectDesign();
+  const { mutateAsync: lockDesign } = useLockDesign();
 
   // ── Data ───────────────────────────────────────────────────────────────────
   // Raw unfiltered list — drives option derivation only
-  const { data: allDesigns = [] } = useDesigns();
+  const { data: allDesigns = [] } = useDesigns({ enabled: isVisible });
 
   // Filtered + sorted list — drives the card grid
   // NOTE: useDesigns needs to accept a `discontinued` param:
@@ -92,24 +105,31 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
     undefined;
 
   const { data: designs = [], isLoading, isError, refetch } = useDesigns({
-    status:        selectedStatus,
+    status:          selectedStatus,
     search,
-    materials:     selectedMaterials,
-    types:         selectedTypes,
-    tagIds:        selectedTagIds,
-    collectionIds: selectedCollectionIds,
+    materials:       selectedMaterials,
+    types:           selectedTypes,
+    tagIds:          selectedTagIds,
+    collectionIds:   selectedCollectionIds,
     sortBy,
     discontinued,
+    enabled:         isVisible,
+    refetchInterval: isVisible ? 15_000 : false,
   });
 
+  // Prefetch bead catalog so it's in cache when loadDesign resolves product_ids.
+  useBeads();
   const { loadDesign }   = useLoadDesign();
   const beads            = useStore((s) => s.beads);
   const activeDesignId   = useStore((s) => s.activeDesignId);
   const isDirty          = useStore((s) => s.isDirty);
   const setPendingDesign = useStore((s) => s.setPendingDesign);
 
-  const { data: allTags        = [] } = useTags();
-  const { data: allCollections = [] } = useCollections();
+  const { data: currentUser } = useCurrentUser();
+  const { isAdmin } = usePermissions();
+
+  const { data: allTags        = [] } = useTags({ enabled: isVisible });
+  const { data: allCollections = [] } = useCollections({ enabled: isVisible });
 
   // ── Derived option lists (unfiltered dataset) ──────────────────────────────
   const allMaterials = useMemo(
@@ -172,19 +192,67 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
   }
 
   // ── Load handler ───────────────────────────────────────────────────────────
-  function handleCardClick(design: Bracelet) {
-    if (design.id === activeDesignId) { onClose(); return; }
-
-    // Prompt if there are unsaved changes, or if a new bracelet has beads
-    // that would be lost. The second check covers page refreshes where beads
-    // restore from localStorage but isDirty resets to false.
+  async function proceedWithLoad(design: Bracelet, lockAlreadyAcquired = false) {
+    // Also prompt when beads exist on an unsaved bracelet (activeDesignId === null)
+    // even if isDirty is false — beads restore from localStorage on refresh but
+    // the dirty flag resets, so isDirty alone would silently discard them.
     const hasUnsavedWork = isDirty || (beads.length > 0 && activeDesignId === null);
-
     if (hasUnsavedWork) {
       setPendingDesign(design, onClose);
-    } else {
-      loadDesign(design);
+      return;
+    }
+    const success = await loadDesign(design, lockAlreadyAcquired);
+    if (success) onClose();
+  }
+
+  async function handleCardClick(design: Bracelet) {
+    // Check lock before the activeDesignId short-circuit — someone else may
+    // have taken the lock on a design you currently have open.
+    const lockedByOther =
+      design.status !== "published" &&
+      design.active_lock != null &&
+      design.active_lock.user_id !== currentUser?.id;
+
+    if (lockedByOther) {
+      setLockedDesign({ design, lock: design.active_lock! });
+      return;
+    }
+
+    if (design.id === activeDesignId) {
+      // If the user was kicked, clicking their own design re-enables lock acquisition.
+      if (isKickedFromActiveDesign) onRetryLock?.();
       onClose();
+      return;
+    }
+
+    await proceedWithLoad(design);
+  }
+
+  async function handleTakeOver(design: Bracelet) {
+    setIsTakingOver(true);
+    setTakeOverError(null);
+    try {
+      const result = await lockDesign({ id: design.id, force: true });
+      if (!result.acquired) {
+        setTakeOverError("Could not take over this design. Please try again.");
+        return;
+      }
+      if (isDirty) {
+        // Canvas has unsaved changes — confirm before replacing. The force lock
+        // is already held so the subsequent loadDesign call will succeed.
+        setLockedDesign(null);
+        setPendingDesign(design, onClose);
+        return;
+      }
+      const success = await loadDesign(design, true);
+      if (success) {
+        setLockedDesign(null);
+        onClose();
+      } else {
+        setTakeOverError("Failed to load the design. Please try again.");
+      }
+    } finally {
+      setIsTakingOver(false);
     }
   }
 
@@ -228,7 +296,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
                 key={label}
                 onClick={() => { setSelectedStatus(value); setBraceletState("all"); }}
                 className={cn(
-                  "rounded-[2px] border border-navy px-4 py-2 lg:px-4 lg:py-3 text-left text-sm lg:text-[16px] transition-all cursor-pointer",
+                  "rounded-[3px] border border-navy px-4 py-2 lg:px-4 lg:py-3 text-left text-sm lg:text-[16px] transition-all cursor-pointer",
                   selectedStatus === value
                     ? "bg-navy text-white"
                     : "bg-white hover:bg-mint",
@@ -481,6 +549,16 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
               onSuccess: () => setDesignToDiscontinue(null),
             });
           }}
+        />
+      )}
+
+      {lockedDesign && (
+        <DesignLockedDialog
+          lock={lockedDesign.lock}
+          onClose={() => { setLockedDesign(null); setTakeOverError(null); }}
+          onTakeOver={isAdmin ? () => handleTakeOver(lockedDesign.design) : undefined}
+          isTakingOver={isTakingOver}
+          error={takeOverError ?? undefined}
         />
       )}
 

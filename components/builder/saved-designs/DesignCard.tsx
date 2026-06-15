@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Archive, CheckCircle, Eye, MoreHorizontal, Send, Trash2, XCircle, Radio, Ban } from "lucide-react";
+import { Archive, CheckCircle, Eye, Lock, MoreHorizontal, Send, Trash2, XCircle, Radio, Ban } from "lucide-react";
 import type { Bracelet } from "@/types";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useStore } from "@/lib/store";
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -40,6 +42,8 @@ export function DesignCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { canDeleteBracelet, isAdmin, canSubmit, canApprove: hasApprovePermission, canReject: hasRejectPermission } = usePermissions();
+  const { data: currentUser } = useCurrentUser();
+  const activeDesignId = useStore((s) => s.activeDesignId);
   const [imgState, setImgState] = useState<"loading" | "loaded" | "error" | "empty">(
     design.preview_image_url ? "loading" : "empty",
   );
@@ -59,14 +63,21 @@ export function DesignCard({
   const isDiscontinued = design.is_discontinued === 1;
   const effectiveStatus = design.status === "rejected" ? "draft" : design.status;
 
-  // Show the rejected flag until the designer saves changes after the rejection.
-  // Once updated_at is newer than rejected_at, the flag clears automatically.
   const wasRejected = (() => {
     if (!design.rejected_at || design.rejected_at === "0000-00-00 00:00:00") return false;
     if (design.status === "rejected") return true;
     if (design.status === "draft" && design.updated_at > design.rejected_at) return false;
     return design.status === "draft";
   })();
+
+  const lockedByOther =
+    design.status !== "published" &&
+    design.active_lock != null &&
+    design.active_lock.user_id !== currentUser?.id;
+
+  const isCurrentlyEditing =
+    design.id === activeDesignId &&
+    design.status !== "published";
 
   // ── Menu action visibility ────────────────────────────────────────────────
   const showSubmit      = effectiveStatus === "draft" && canSubmit && !isDiscontinued;
@@ -87,10 +98,10 @@ export function DesignCard({
   return (
     <div
       className={cn(
-        "group flex flex-col rounded-lg border overflow-hidden cursor-pointer hover:shadow-sm transition-all",
+        "group flex flex-col rounded-[3px] border overflow-hidden cursor-pointer hover:shadow-sm transition-all",
         isDiscontinued ? "border-default opacity-50 grayscale pointer-events-auto" :
         wasRejected    ? "border-error/40 hover:border-error/60" :
-                         "border-default hover:border-default",
+                         "border-default hover:border-navy focus:ring-navy",
       )}
       onClick={onClick}
     >
@@ -105,6 +116,20 @@ export function DesignCard({
         {wasRejected && (
           <div className="absolute left-2 top-2 z-10 rounded-full bg-error/10 px-2 py-0.5 text-[11px] font-semibold text-error">
             Rejected
+          </div>
+        )}
+        {/* Currently open by this user */}
+        {isCurrentlyEditing && (
+          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 rounded-[2px] bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
+            <Lock size={9} />
+            Currently Editing
+          </div>
+        )}
+        {/* Locked by another user */}
+        {lockedByOther && (
+          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 bg-orange px-2 py-0.5 text-[10px] font-semibold text-white">
+            <Lock size={9} />
+            {design.active_lock!.user_name}
           </div>
         )}
         {/* Pulse skeleton — visible while the image is loading */}
@@ -140,7 +165,7 @@ export function DesignCard({
               <button
                 onClick={() => setMenuOpen((o) => !o)}
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-neutral-900",
+                  "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-mint hover:text-color-base focus:ring focus:ring-navy",
                   menuOpen
                     ? "opacity-100"
                     : "opacity-0 group-hover:opacity-100",

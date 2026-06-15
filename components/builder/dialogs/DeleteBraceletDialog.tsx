@@ -37,8 +37,6 @@ export function DeleteBraceletDialog({
         </>
       }
       icon={<AlertTriangle size={16} />}
-      iconBgClass="bg-error/50"
-      iconColorClass="text-error/80"
       confirmLabel="Delete bracelet"
       confirmVariant="danger"
       cancelLabel="Cancel"

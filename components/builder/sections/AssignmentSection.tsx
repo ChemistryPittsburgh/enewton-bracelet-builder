@@ -35,6 +35,8 @@ interface AssignmentSectionProps<T extends { id: number; name: string }> {
   addPlaceholder: string;
   /** Placeholder when items exist and can be edited. */
   editPlaceholder: string;
+  /** When true the user's session is read-only — hides the picker. */
+  isReadOnly?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -49,6 +51,7 @@ export function AssignmentSection<T extends { id: number; name: string }>({
   Picker,
   addPlaceholder,
   editPlaceholder,
+  isReadOnly = false,
 }: AssignmentSectionProps<T>) {
   const { canManageComponents } = usePermissions();
   const { items, appliedIds, pendingIds, handleToggle } = useOptimisticAssignment({
@@ -63,7 +66,7 @@ export function AssignmentSection<T extends { id: number; name: string }>({
   const assignmentSectionClass = "border-b border-default pb-3";
 
   // Nothing to show and no way to add → hide entirely.
-  if (items.length === 0 && (!canManageComponents || isPublished)) return null;
+  if (items.length === 0 && (!canManageComponents || isPublished || isReadOnly)) return null;
 
   // Non-managers → read-only chip cloud.
   if (!canManageComponents) {
@@ -114,7 +117,7 @@ export function AssignmentSection<T extends { id: number; name: string }>({
             );
           })}
         </div>
-        {!isPublished && (
+        {!isPublished && !isReadOnly && (
           <Picker
             selectedIds={appliedIds}
             pendingIds={pendingIds}

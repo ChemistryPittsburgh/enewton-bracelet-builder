@@ -314,7 +314,7 @@ function GlbPreview({
           <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.5} color="#fff5f0" />
           <Suspense fallback={null}>
             <GlbModel url={url} isCharm={isCharm} finish={finish} onMeasured={setDims} />
-            <Environment preset="apartment" background={false} blur={0.85} />
+            <Environment files="/hdri/lebombo_1k.hdr" background={false} blur={0.85} />
           </Suspense>
           <OrbitControls
             enablePan={false}

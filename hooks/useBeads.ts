@@ -11,5 +11,6 @@ export function useBeads() {
         .filter((b) => b.active === 1)
         .map(normaliseBeadProduct);
     },
+    staleTime: 1000 * 60 * 60, // 1 hour — catalog changes only via admin action
   });
 }

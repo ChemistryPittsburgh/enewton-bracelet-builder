@@ -21,14 +21,25 @@ import {
   EDIT_MODE_BACKGROUND,
 } from "@/lib/constants";
 
-/** Registers gl.domElement in the Zustand store so hooks outside the Canvas can capture thumbnails. */
+/** Registers the WebGL renderer, scene, and camera in the Zustand store for thumbnail capture. */
 function CanvasRegistrar() {
-  const gl = useThree((s) => s.gl);
-  const setCanvasEl = useStore((s) => s.setCanvasEl);
+  const { gl, scene, camera } = useThree();
+  const setCanvasEl    = useStore((s) => s.setCanvasEl);
+  const setGlRenderer  = useStore((s) => s.setGlRenderer);
+  const setThreeScene  = useStore((s) => s.setThreeScene);
+  const setThreeCamera = useStore((s) => s.setThreeCamera);
   useEffect(() => {
     setCanvasEl(gl.domElement);
-    return () => setCanvasEl(null);
-  }, [gl.domElement, setCanvasEl]);
+    setGlRenderer(gl);
+    setThreeScene(scene);
+    setThreeCamera(camera);
+    return () => {
+      setCanvasEl(null);
+      setGlRenderer(null);
+      setThreeScene(null);
+      setThreeCamera(null);
+    };
+  }, [gl, scene, camera, setCanvasEl, setGlRenderer, setThreeScene, setThreeCamera]);
   return null;
 }
 
@@ -53,9 +64,10 @@ function ControlsRegistrar({ controlsRef }: { controlsRef: React.RefObject<Camer
 interface SceneProps {
   panelOpen?: boolean;
   rightPanelOpen?: boolean;
+  isLocked?: boolean;
 }
 
-export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps) {
+export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
   const { isEditMode, clearSelectedBead, setEditSelectedBead, viewMode } = useStore((s) => ({
     isEditMode: s.isEditMode,
@@ -68,14 +80,14 @@ export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps)
       <BeadErrorToast />
       <Canvas
         camera={{ fov: CAMERA_FOV, position: CAMERA_DEFAULT_POSITION, near: CAMERA_NEAR, far: CAMERA_FAR }}
-        gl={{ antialias: true, preserveDrawingBuffer: true }}
+        gl={{ antialias: true }}
         onCreated={({ gl, scene }) => {
           gl.toneMappingExposure = 1.5;
           // Tame the warm apartment reflections so gold reads as champagne, not saturated yellow
           scene.environmentIntensity = 0.5;
         }}
         shadows
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         style={{ background: isEditMode ? EDIT_MODE_BACKGROUND : SCENE_BACKGROUND }}
         onPointerMissed={() => {
           clearSelectedBead();
@@ -88,11 +100,11 @@ export function Scene({ panelOpen = false, rightPanelOpen = false }: SceneProps)
         <directionalLight position={[0.1, 0.2, 0.1]} intensity={0.8} color="#fffaf6" castShadow={viewMode !== 'line'} />
         <directionalLight position={[-0.3, 0, -0.3]} intensity={0.6} color="#fff5f0"/>
         <directionalLight position={[1.5, 0, -1]} intensity={0.8} color="#fffaf6" />
-        <Environment preset="apartment" background={false} resolution={200} blur={0.8} backgroundIntensity={0.1} environmentIntensity={0.45} />
+        <Environment files="/hdri/lebombo_1k.hdr" background={false} resolution={200} blur={0.8} backgroundIntensity={0.1} environmentIntensity={0.45} />
 
         <Suspense fallback={null}>
           <BraceletCord />
-          <AllBeads />
+          <AllBeads isLocked={isLocked} />
           <CameraController controlsRef={controlsRef} />
         </Suspense>
 

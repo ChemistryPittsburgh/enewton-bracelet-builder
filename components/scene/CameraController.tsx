@@ -50,6 +50,14 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
   const prevSelectedBeadRef = useRef(selectedBead);
   const prevSelectAllRef    = useRef(selectAllActive);
 
+  // Refs for values needed inside the effect but that should NOT trigger re-runs.
+  // beads is only read to find a selected bead's position; selectedBead changing
+  // already covers that case. braceletSize is only needed for radius math.
+  const beadsRef          = useRef(beads);
+  beadsRef.current        = beads;
+  const braceletSizeRef   = useRef(braceletSize);
+  braceletSizeRef.current = braceletSize;
+
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
@@ -69,7 +77,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     prevSelectedBeadRef.current = selectedBead;
     prevSelectAllRef.current    = selectAllActive;
 
-    const radius = BRACELET_SIZE_RADIUS[braceletSize];
+    const radius = BRACELET_SIZE_RADIUS[braceletSizeRef.current];
 
     // Shared transition flags
     const enteredEdit      = isEditMode && !prev.isEditMode;
@@ -100,9 +108,9 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       } else if (justActivatedAll) {
         controls.setLookAt(0, camY, camZ, 0, 0, 0, true);
       } else if (justSelected) {
-        const i = beads.findIndex((b) => b.instanceId === selectedBead!.instanceId);
+        const i = beadsRef.current.findIndex((b) => b.instanceId === selectedBead!.instanceId);
         if (i !== -1) {
-          const bx = getBeadTransformLine(i, beads).position[0];
+          const bx = getBeadTransformLine(i, beadsRef.current).position[0];
           controls.setLookAt(bx, camY, camZZoomed, bx, 0, 0, true);
         }
       } else if (justDeselected || switchedView) {
@@ -161,9 +169,9 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       controls.setTarget(0, t.y, 0, true);
     } else if (justSelected) {
       // Zoom toward the bead, preserving current camera angle
-      const i = beads.findIndex((b) => b.instanceId === selectedBead!.instanceId);
+      const i = beadsRef.current.findIndex((b) => b.instanceId === selectedBead!.instanceId);
       if (i !== -1) {
-        const angle = getBeadAngle(i, beads, radius);
+        const angle = getBeadAngle(i, beadsRef.current, radius);
         const [bx, by, bz] = getBeadPosition(angle, radius);
         const radialLen = Math.sqrt(bx * bx + bz * bz);
         const nx = radialLen > 0 ? bx / radialLen : 0;
@@ -180,7 +188,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       // Init / reset
       controls.setLookAt(...CAMERA_DEFAULT_POSITION, 0, 0, 0, true);
     }
-  }, [viewMode, isEditMode, editViewMode, selectedBead, beads, braceletSize, controlsRef, selectAllActive]);
+  }, [viewMode, isEditMode, editViewMode, selectedBead, controlsRef, selectAllActive]);
 
   return null;
 }
