@@ -511,11 +511,14 @@ export function BuilderLayout() {
 
             <div
               className={cn(
-                "absolute inset-0 z-30 flex items-center justify-center backdrop-blur-md bg-white/50 transition-opacity duration-500",
+                "absolute inset-0 z-30 flex items-center justify-center bg-neutral-50/70 backdrop-blur-[2px] transition-opacity duration-500",
                 isCanvasLoading ? "opacity-100" : "opacity-0 pointer-events-none",
               )}
             >
-              <Loader2 size={28} className="animate-spin text-navy" />
+              <div className="flex flex-col items-center gap-3 text-color-base/70">
+                <Loader2 size={28} className="animate-spin" />
+                <span className="text-sm font-medium">Loading…</span>
+              </div>
             </div>
           </div>
         </div>
