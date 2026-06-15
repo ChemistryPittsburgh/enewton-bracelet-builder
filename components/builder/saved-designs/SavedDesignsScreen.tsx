@@ -214,7 +214,7 @@ export function SavedDesignsScreen({ isOpen, onClose }: SavedDesignsScreenProps)
           <div className="flex items-center justify-between pb-8">
             <button
               onClick={onClose}
-              className="flex items-center rounded px-4.5 py-3.5 text-sm font-semibold border border-default bg-white hover:bg-mint hover:border-black transition-colors"
+              className="flex items-center rounded-[2px] px-4.5 py-3.5 text-sm font-semibold border border-default bg-white hover:bg-mint hover:border-black transition-colors"
               aria-label="Close Saved Designs Screen"
             >
               <Inbox size={24} />

@@ -4,22 +4,22 @@ import type { BandMaterial, BraceletSize } from "@/types";
  *  Formula: (circumference_in * 0.0254) / (2π)  →  metres
  */
 export const BRACELET_SIZE_RADIUS: Record<BraceletSize, number> = {
-  "small": (5.5  * 0.0254) / (2 * Math.PI), // 5.5"  circumference → ≈ 22.2 mm radius
-  "medium":   (6.25 * 0.0254) / (2 * Math.PI), // 6.25" circumference → ≈ 25.3 mm radius
-  "large":   (7.25 * 0.0254) / (2 * Math.PI), // 7.25" circumference → ≈ 29.3 mm radius
+  "small":  (5.5  * 0.0254) / (2 * Math.PI), // 5.5"  circumference → ≈ 22.2 mm radius
+  "medium": (6.25 * 0.0254) / (2 * Math.PI), // 6.25" circumference → ≈ 25.3 mm radius
+  "large":  (7.25 * 0.0254) / (2 * Math.PI), // 7.25" circumference → ≈ 29.3 mm radius
 };
 
 /** UI label pairs for the string material toggle buttons. */
 export const BRACELET_MATERIALS: { value: BandMaterial; label: string }[] = [
-  { value: "stretchy",    label: "Stretchy" },
-  { value: "hairtie", label: "Hairtie" },
+  { value: "stretchy", label: "Stretchy" },
+  { value: "hairtie",  label: "Hairtie" },
 ];
 
 /** UI label pairs for the bracelet size toggle buttons. */
 export const BRACELET_SIZES: { value: BraceletSize; label: string }[] = [
-  { value: "small", label: "5.5" },
-  { value: "medium",   label: "6.25" },
-  { value: "large",   label: "7.25" },
+  { value: "small",  label: "5.5" },
+  { value: "medium", label: "6.25" },
+  { value: "large",  label: "7.25" },
 ];
 
 export const DEFAULT_BRACELET_NAME = "New Bracelet";
@@ -98,9 +98,33 @@ export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.0
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
  */
 export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number; opacity: number }> = {
-  stretchy:    { color: "#e8e0d8", roughness: 0.15, metalness: 0.65,  tubeRadius: 0.00015, opacity: 0.7 },
-  hairtie:    { color: "#000000", roughness: 0.8,  metalness: 0,  tubeRadius: 0.00052 },
+  stretchy: { color: "#e8e0d8", roughness: 0.15, metalness: 0.65, tubeRadius: 0.00015, opacity: 0.7 },
+  hairtie:  { color: "#000000", roughness: 0.8,  metalness: 0,    tubeRadius: 0.00052, opacity: 1 },
 };
+
+// ─── Hairtie ──────────────────────────────────────────────────────────────────
+
+/** Fixed bracelet size when hairtie material is selected (5.25" circumference). */
+export const HAIRTIE_DEFAULT_SIZE: BraceletSize = "medium";
+
+/** Available hairtie cord colours — value is persisted, hex drives the 3D cord. */
+export const HAIRTIE_COLORS: { value: string; label: string; hex: string }[] = [
+  { value: "gray",          label: "Gray",          hex: "#9CA3AF" },
+  { value: "white",         label: "White",         hex: "#F5F5F4" },
+  { value: "mint",          label: "Mint",          hex: "#6EE7B7" },
+  { value: "pink",          label: "Pink",          hex: "#F9A8D4" },
+  { value: "bright red",    label: "Bright Red",    hex: "#EF4444" },
+  { value: "navy",          label: "Navy",          hex: "#1E3A5F" },
+  { value: "wine",          label: "Wine",          hex: "#722F37" },
+  { value: "light blue",    label: "Light Blue",    hex: "#93C5FD" },
+  { value: "onyx",          label: "Onyx",          hex: "#1C1C1C" },
+  { value: "gold",          label: "Gold",          hex: "#D4A843" },
+  { value: "orange",        label: "Orange",        hex: "#F97316" },
+  { value: "cobalt",        label: "Cobalt",        hex: "#1D4ED8" },
+  { value: "bright orange", label: "Bright Orange", hex: "#FB923C" },
+  { value: "purple",        label: "Purple",        hex: "#7C3AED" },
+  { value: "dark green",    label: "Dark Green",    hex: "#166534" },
+];
 
 // ─── Material finish presets ────────────────────────────────────────────────
 // Keyed by product.finish — each property is optional and only overrides the
@@ -112,14 +136,13 @@ export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: nu
 //   metalness       — 0 (dielectric) → 1 (full metal)
 //   roughness       — 0 (mirror polish) → 1 (fully matte)
 //   envMapIntensity — 0 (no reflections) → 1 (full environment reflections)
-// 
 
 export interface FinishPreset {
   color?:           string;
   metalness?:       number;
   roughness?:       number;
   envMapIntensity?: number;
-  clearcoat?: number;
+  clearcoat?:       number;
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
@@ -127,8 +150,6 @@ export const FINISH_PRESETS: Record<string, FinishPreset> = {
   silver:    { metalness: 1,   roughness: 0.18, envMapIntensity: 0.35 },
   rose_gold: { metalness: 0.95, roughness: 0.2, envMapIntensity: 0.9 },
   gem:       { metalness: 0.5 },
-  pearl:     { metalness: 0.8, roughness: 0, clearcoat: 0.9, envMapIntensity: 0.9 },
-  crystal:   { metalness: 0.5 },
 };
 
 /** Fallback when product.finish is undefined. Set to null to disable. */
@@ -136,8 +157,8 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem", "resin_cross"] as const;
-export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "crystal", "pearl", "resin"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem"] as const;
+export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.

@@ -71,8 +71,10 @@ interface Store {
 
   bandMaterial: BandMaterial;
   braceletSize: BraceletSize;
+  hairtieColor: string;
   setbandMaterial: (m: BandMaterial) => void;
   setBraceletSize: (s: BraceletSize) => void;
+  setHairtieColor: (c: string) => void;
 
   /** Ephemeral — not persisted. Tracks beads whose GLB failed to load. */
   beadLoadErrors: { instanceId: string; name: string; filename: string }[];
@@ -154,6 +156,7 @@ export const useStore = create<Store>()(
       braceletDescription: "",
       bandMaterial: "stretchy" as BandMaterial,
       braceletSize: "medium" as BraceletSize,
+      hairtieColor: "gray",
       beadLoadErrors: [],
       isEditMode: false,
       editSelectedBead: null,
@@ -266,6 +269,7 @@ export const useStore = create<Store>()(
 
       setbandMaterial: (bandMaterial) => set({ bandMaterial, isDirty: true }),
       setBraceletSize: (braceletSize) => set({ braceletSize, isDirty: true }),
+      setHairtieColor: (hairtieColor) => set({ hairtieColor, isDirty: true }),
 
       setEditSelectedBead(bead) {
         set({ editSelectedBead: bead });
@@ -343,6 +347,7 @@ export const useStore = create<Store>()(
       migrate(persistedState: unknown, fromVersion: number) {
         const s = (persistedState ?? {}) as PersistedState;
         if (fromVersion < 1) {
+          // Fix "chord" typo stored before the key was corrected to "cord"
           if (s.bandMaterial === "chord") s.bandMaterial = "cord";
           // Fields added in v1 — supply defaults if absent in old snapshots
           s.bandMaterial ??= "stretchy";
@@ -364,6 +369,7 @@ export const useStore = create<Store>()(
         braceletDescription: s.braceletDescription,
         bandMaterial: s.bandMaterial,
         braceletSize: s.braceletSize,
+        hairtieColor: s.hairtieColor,
         activeDesignId: s.activeDesignId,
       }),
     }
