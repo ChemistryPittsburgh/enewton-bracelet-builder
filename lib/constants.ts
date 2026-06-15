@@ -4,22 +4,21 @@ import type { BandMaterial, BraceletSize } from "@/types";
  *  Formula: (circumference_in * 0.0254) / (2π)  →  metres
  */
 export const BRACELET_SIZE_RADIUS: Record<BraceletSize, number> = {
-  "x-small": (5.5  * 0.0254) / (2 * Math.PI), // 5.5"  circumference → ≈ 22.2 mm radius
-  "small":   (6.25 * 0.0254) / (2 * Math.PI), // 6.25" circumference → ≈ 25.3 mm radius
+  "small": (5.5  * 0.0254) / (2 * Math.PI), // 5.5"  circumference → ≈ 22.2 mm radius
+  "medium":   (6.25 * 0.0254) / (2 * Math.PI), // 6.25" circumference → ≈ 25.3 mm radius
   "large":   (7.25 * 0.0254) / (2 * Math.PI), // 7.25" circumference → ≈ 29.3 mm radius
 };
 
 /** UI label pairs for the string material toggle buttons. */
 export const BRACELET_MATERIALS: { value: BandMaterial; label: string }[] = [
-  { value: "wire",    label: "Wire" },
-  { value: "cord",    label: "Cord" },
-  { value: "elastic", label: "Elastic" },
+  { value: "stretchy",    label: "Stretchy" },
+  { value: "hairtie", label: "Hairtie" },
 ];
 
 /** UI label pairs for the bracelet size toggle buttons. */
 export const BRACELET_SIZES: { value: BraceletSize; label: string }[] = [
-  { value: "x-small", label: "5.5" },
-  { value: "small",   label: "6.25" },
+  { value: "small", label: "5.5" },
+  { value: "medium",   label: "6.25" },
   { value: "large",   label: "7.25" },
 ];
 
@@ -98,10 +97,9 @@ export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.0
  *  metalness  — 0 (dielectric) → 1 (metal); wire is nearly full metal
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
  */
-export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number }> = {
-  wire:    { color: "#ece09b", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0006 }, // silver-grey, ~1.6 mm diameter
-  cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0075 }, // tan/gold, ~2.6 mm diameter
-  elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.00055 }, // off-white, ~0.8 mm diameter
+export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number; opacity: number }> = {
+  stretchy:    { color: "#e8e0d8", roughness: 0.15, metalness: 0.65,  tubeRadius: 0.00015, opacity: 0.7 },
+  hairtie:    { color: "#000000", roughness: 0.8,  metalness: 0,  tubeRadius: 0.00052 },
 };
 
 // ─── Material finish presets ────────────────────────────────────────────────

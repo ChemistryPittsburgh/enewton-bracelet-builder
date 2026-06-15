@@ -150,8 +150,8 @@ export interface User {
   color?: string;
 }
 
-export type BandMaterial = "wire" | "cord" | "elastic";
-export type BraceletSize = "x-small" | "small" | "large";
+export type BandMaterial = "stretchy" | "hairtie";
+export type BraceletSize = "small" | "medium" | "large";
 
 /**
  * A bead/charm product the user can add to their bracelet.
