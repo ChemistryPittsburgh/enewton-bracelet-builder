@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useRef } from "react";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
-import { RotateCcw, Search, MoveHorizontal } from "lucide-react";
+import { RotateCcw, Search, MoveHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { capitalize } from "@/lib/utils";
+import { capitalize, formatMm, unslugify } from "@/lib/utils";
 import type { BeadProduct } from "@/types";
 
 import { Panel } from "@/components/ui/Panel";
@@ -19,7 +19,6 @@ import {
   BRACELET_SIZE_RADIUS,
   SPACER_SIZES_MM,
   createSpacerProduct,
-  MIN_BEAD_DIAMETER,
 } from "@/lib/constants";
 
 const SPACER_TAB = "__spacer__";
@@ -69,7 +68,7 @@ function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
       onPointerUp={handlePointerUp}
       onClick={handleClick}
       disabled={disabled}
-      className={`flex flex-col gap-1 rounded-[2px] border transition-all overflow-hidden ${
+      className={`flex flex-col gap-1 rounded-[2px] border transition-all overflow-hidden h-full ${
         disabled
           ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed"
           : canEdit
@@ -83,10 +82,10 @@ function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
             : ""
       }`}
     >
-      <div className="bg-light-grey p-2 h-[80px] w-full items-center flex justify-center">
-        <BeadThumbnail bead={bead}  />
+      <div className="flex flex-col justify-center items-center h-[120px] py-1 overflow-hidden w-full object-cover object-center bg-light-grey">
+        <BeadThumbnail bead={bead} className="w-full max-w-24"  />
       </div>
-      <div className="flex flex-col pt-[2px] pb-2 text-left px-2">
+      <div className="flex flex-1 min-h-14 shrink-0 flex-col pt-[2px] pb-2 text-left px-2">
         <span className="text-[12px]">{bead.name}</span>
         <span className="text-[10px] leading-tight text-color-base/70">{size}mm</span>
       </div>
@@ -129,7 +128,7 @@ function SpacerPicker({ onAdd, error }: {
   const radius       = BRACELET_SIZE_RADIUS[braceletSize];
   const totalArc     = braceletArc(radius);
   const used         = usedArc(placedBeads);
-  const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000));
+  const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
 
   const MAX_SPACER_MM = 14;
 
@@ -253,6 +252,7 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
 
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [activeType, setActiveType] = useState<string | null>(null);
   const [activeMaterial, setActiveMaterial] = useState<string>("");
   const [selectedBead, setSelectedBead] = useState<BeadProduct | null>(null);
   const [fillFull, setFillFull] = useState(false);
@@ -280,14 +280,25 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
     return [...new Set(pool.map((b) => b.material).filter(Boolean))] as string[];
   }, [beads, activeTab, isSpacerMode]);
 
+  // Unique bead types, filtered by active category
+  const beadTypes = useMemo(() => {
+    const pool = activeTab && !isSpacerMode
+      ? beads.filter((b) => b.bead_category === activeTab)
+      : beads;
+    return [...new Set(pool.map((b) => b.bead_type).filter(Boolean))] as string[];
+  }, [beads, activeTab, isSpacerMode]);
+
   const filteredBeads = useMemo(() => {
-    return beads.filter((b) => {
-      const matchesSearch = !search || b.name.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = !activeTab || isSpacerMode || b.bead_category === activeTab;
-      const matchesMaterial = !activeMaterial || b.material === activeMaterial;
-      return matchesSearch && matchesCategory && matchesMaterial;
-    });
-  }, [beads, search, activeTab, activeMaterial, isSpacerMode]);
+    return beads
+      .filter((b) => {
+        const matchesSearch = !search || b.name.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory = !activeTab || isSpacerMode || b.bead_category === activeTab;
+        const matchesMaterial = !activeMaterial || b.material === activeMaterial;
+        const matchesType = !activeType || b.bead_type === activeType;
+        return matchesSearch && matchesCategory && matchesMaterial && matchesType;
+      })
+      .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
+  }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode]);
 
   function handleAddToDesign() {
     if (!selectedBead) return;
@@ -353,16 +364,16 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-[2px] border border-default py-2.5 pl-4 pr-16 text-sm outline-none placeholder:text-color-base/70 focus:ring-navy focus:border-navy"
               />
+              {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-8 top-1/2 -translate-y-1/2 p-0.5 rounded-[2px] text-color-base/40 bg-white hover:text-color-base hover:bg-light-grey focus:ring-navy transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <button
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ["beads"] })}
-                  disabled={isFetching > 0}
-                  className="rounded-[2px] p-1 text-color-base/50 hover:text-color-base hover:bg-light-grey disabled:opacity-40 transition-colors"
-                  aria-label="Refresh beads"
-                  title="Refresh beads"
-                >
-                  <RotateCcw size={13} className={isFetching > 0 ? "animate-spin" : ""} />
-                </button>
                 <Search size={16} className="text-color-base/50 mr-1" />
               </div>
             </div>
@@ -370,20 +381,21 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
         )}
 
         {/* Category pills + Spacer tab */}
-        <div className="flex gap-2 px-5 py-3 overflow-x-scroll min-h-[50px] picker-scroll">
+        <div className="flex gap-2 px-5 py-3 flex-wrap picker-scroll">
           <MaterialPill
             label="All"
             active={activeTab === null}
-            onClick={() => { setActiveTab(null); setActiveMaterial(""); }}
+            onClick={() => { setActiveTab(null); setActiveMaterial(""); setActiveType(null); }}
           />
           {beadCategories.map((cat) => (
             <MaterialPill
               key={cat}
-              label={capitalize(cat)}
+              label={unslugify(cat, "_")}
               active={activeTab === cat}
               onClick={() => {
                 setActiveTab((prev) => (prev === cat ? null : cat));
                 setActiveMaterial("");
+                setActiveType(null);
               }}
             />
           ))}
@@ -393,6 +405,7 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
             onClick={() => {
               setActiveTab((prev) => (prev === SPACER_TAB ? null : SPACER_TAB));
               setActiveMaterial("");
+              setActiveType(null);
               setSelectedBead(null);
             }}
           />
@@ -404,20 +417,57 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
         ) : (
           /* ── Normal bead selector ── */
           <>
-            {/* Material dropdown */}
-            <div className="px-5 pb-3 border-b border-default">
-              <select
-                id="material-select"
-                aria-label="Filter Beads by Material"
-                value={activeMaterial}
-                onChange={(e) => setActiveMaterial(e.target.value)}
-                className="rounded-[2px] border border-default bg-white px-3 py-2 pr-6 min-w-[150px] text-sm text-color-base/70 outline-none focus:border-navy focus:ring-navy"
-              >
-                <option value="">All materials</option>
-                {materials.map((mat) => (
-                  <option key={mat} value={mat}>{capitalize(mat)}</option>
-                ))}
-              </select>
+            {/* Filter dropdowns + active chips */}
+            <div className="px-5 pb-3 border-b border-default flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <select
+                  aria-label="Filter by material"
+                  value={activeMaterial}
+                  onChange={(e) => setActiveMaterial(e.target.value)}
+                  className="flex-1 rounded-[2px] border border-default bg-white px-3 py-2 text-sm text-color-base/70 outline-none focus:border-navy focus:ring-navy"
+                >
+                  <option value="">All materials</option>
+                  {materials.map((mat) => (
+                    <option key={mat} value={mat}>{capitalize(mat)}</option>
+                  ))}
+                </select>
+
+                {beadTypes.length > 1 && (
+                  <select
+                    aria-label="Filter by bead type"
+                    value={activeType ?? ""}
+                    onChange={(e) => setActiveType(e.target.value || null)}
+                    className="flex-1 rounded-[2px] border border-default bg-white px-3 py-2 text-sm text-color-base/70 outline-none focus:border-navy focus:ring-navy"
+                  >
+                    <option value="">All types</option>
+                    {beadTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Active filter chips */}
+              {(activeMaterial || activeType) && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {activeMaterial && (
+                    <span className="inline-flex items-center gap-1 rounded-[2px] bg-mint/50 px-2 py-0.5 text-xs font-medium text-color-base/80">
+                      {capitalize(activeMaterial)}
+                      <button onClick={() => setActiveMaterial("")} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove material filter">
+                        <X size={11} />
+                      </button>
+                    </span>
+                  )}
+                  {activeType && (
+                    <span className="inline-flex items-center gap-1 rounded-[2px] bg-gold/30 px-2 py-0.5 text-xs font-medium text-color-base/80">
+                      {activeType}
+                      <button onClick={() => setActiveType(null)} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove type filter">
+                        <X size={11} />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Bead grid */}
@@ -444,7 +494,9 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
 
             {/* Bottom bar */}
             <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
-              {availableMm >= MIN_BEAD_DIAMETER ? (
+              {error && <ErrorAlert message={error} />}
+
+              {filteredBeads.length === 0 || (availableMm >= 1 && filteredBeads.some(b => beadFits(placedBeads, { product: b }, braceletRadius))) ? (
                 <>
                 <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
                   {selectedBead?.name ? "Item Selected" : "Select a bead"}
@@ -493,8 +545,6 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
                   )}
                 </div>
 
-                {error && <ErrorAlert message={error} />}
-
                 {canEdit && (
                   <Button
                     onClick={handleAddToDesign}
@@ -507,7 +557,10 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
                 )}
                 </>
               ) : (
-                <p className="text-error font-semibold text-sm">Bracelet is full</p>
+                <div className="rounded-[2px] border border-error/20 bg-error/5 px-4 py-3 text-center">
+                  <p className="text-sm font-semibold text-error">Bracelet is full</p>
+                  <p className="text-xs text-color-base/60 mt-1">No more items can fit. Remove beads to free up space.</p>
+                </div>
               )}
 
               

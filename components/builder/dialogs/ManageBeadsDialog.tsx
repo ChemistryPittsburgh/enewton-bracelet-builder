@@ -13,33 +13,37 @@ import {
   Pencil,
   Plus,
   Search,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
 
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Center, Environment } from "@react-three/drei";
-import { Color, Box3, Vector3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial } from "three";
+import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { Box3, Vector3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial } from "three";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 
-import { capitalize } from "@/lib/utils";
+import { cn, capitalize, slugify, unslugify } from "@/lib/utils";
+import { STATUS_META, getBeadCategoryMeta } from "@/lib/category-colors";
 
 import {
   useAllBeads,
   useCreateBead,
   useUpdateBead,
   useToggleBeadActive,
+  useDeleteBead,
+  BeadInUseError,
   uploadBeadGlb,
   uploadBeadThumbnail,
   validateGlbFile,
   validateGlbMagicBytes,
-  slugify,
 } from "@/hooks/useBeadAdmin";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useDesigns } from "@/hooks/useDesigns";
 
 import {
   CHARM_ROTATION,
@@ -59,6 +63,20 @@ import type { BeadProduct } from "@/types";
  *  so the camera sees the side profile instead of the hole. */
 const BEAD_PREVIEW_ROTATION: [number, number, number] = [Math.PI/8, Math.PI/2, Math.PI/6];
 const CHARM_PREVIEW_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI/6];
+
+/**
+ * Thumbnail capture camera range (metres).
+ *
+ * Instead of one fixed distance for all beads, the capture measures the
+ * model's bounding box and computes an ideal distance, then clamps it:
+ *   - MIN: prevents tiny beads (2–3mm) from being microscopic dots
+ *   - MAX: prevents large charms (15mm+) from being clipped
+ *
+ * Items between the two thresholds still appear at their natural relative
+ * sizes; only the extremes get adjusted.
+ */
+const THUMB_MIN_DISTANCE = 0.012;   // closest zoom — small beads
+const THUMB_MAX_DISTANCE = 0.045;   // furthest zoom — large charms
 
 // ── GLB preview error boundary ───────────────────────────────────────────────
 
@@ -95,7 +113,7 @@ class PreviewErrorBoundary extends Component<
 
 // ── GLB preview model ────────────────────────────────────────────────────────
 
-function GlbModel({ url, isCharm, finish }: { url: string; isCharm: boolean; finish: string | null }) {
+function GlbModel({ url, isCharm, finish, onMeasured }: { url: string; isCharm: boolean; finish: string | null; onMeasured?: (dims: { x: number; y: number; z: number }) => void }) {
   const { scene } = useGLTF(url);
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
@@ -125,40 +143,69 @@ function GlbModel({ url, isCharm, finish }: { url: string; isCharm: boolean; fin
 
         child.material = mat;
       });
+    } else {
+      // Non-metal material — force dielectric so painted/colored items
+      // (crosses, gems, crystals) render with vibrant base colours.
+      clone.traverse((child) => {
+        if (!(child instanceof Mesh)) return;
+        const srcMat = child.material;
+        if (!(srcMat instanceof MeshStandardMaterial)) return;
+        if (srcMat.metalness <= 0.3) return;
+
+        const mat = srcMat.clone();
+        mat.metalness = 0;
+        mat.roughness = Math.max(mat.roughness, 0.55);
+        mat.envMapIntensity = Math.min(mat.envMapIntensity ?? 1, 0.4);
+        child.material = mat;
+      });
     }
+
+    // Centre the clone at the origin so rotation pivots around its centre.
+    // This replaces <Center> — doing it synchronously in useMemo avoids the
+    // timing race that caused off-centre previews on initial charm upload.
+    const box = new Box3().setFromObject(clone);
+    const center = new Vector3();
+    box.getCenter(center);
+    clone.position.sub(center);
 
     return clone;
   }, [scene, finish]);
 
   const rotation = isCharm ? CHARM_PREVIEW_ROTATION : BEAD_PREVIEW_ROTATION;
 
-  // Auto-fit camera distance to model size
+  // Fit camera to the rotated model.
+  // The clone is already centred at origin (useMemo above), so after rotation
+  // it stays visually centred — no <Center> needed, no timing race.
   useEffect(() => {
-    // Small delay so <Center> has applied its transform
-    const frame = requestAnimationFrame(() => {
-      if (!groupRef.current) return;
-      const box = new Box3().setFromObject(groupRef.current);
-      const size = new Vector3();
-      box.getSize(size);
-      const maxDim = Math.max(size.x, size.y, size.z);
-      if (maxDim > 0) {
-        const fov = (CAMERA_FOV * Math.PI) / 180;
-        const dist = (maxDim * 0.75) / Math.tan(fov / 2);
-        camera.position.set(0, 0, dist);
-        camera.lookAt(0, 0, 0);
-        camera.updateProjectionMatrix();
-      }
+    if (!groupRef.current) return;
+    groupRef.current.updateMatrixWorld(true);
+
+    const box = new Box3().setFromObject(groupRef.current);
+    const size = new Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) {
+      const fov = (CAMERA_FOV * Math.PI) / 180;
+      const dist = (maxDim * 0.75) / Math.tan(fov / 2);
+      camera.position.set(0, 0, dist);
+      camera.lookAt(0, 0, 0);
+      camera.updateProjectionMatrix();
+    }
+
+    // Report raw (pre-rotation) dimensions so the admin can verify size_mm
+    const rawBox = new Box3().setFromObject(cloned);
+    const rawSize = new Vector3();
+    rawBox.getSize(rawSize);
+    onMeasured?.({
+      x: parseFloat((rawSize.x * 1000).toFixed(2)),
+      y: parseFloat((rawSize.y * 1000).toFixed(2)),
+      z: parseFloat((rawSize.z * 1000).toFixed(2)),
     });
-    return () => cancelAnimationFrame(frame);
-  }, [cloned, camera, rotation]);
+  }, [cloned, camera, rotation, onMeasured]);
 
   return (
-    <group ref={groupRef}>
-      <Center>
-        <group rotation={rotation}>
-          <primitive object={cloned} />
-        </group>
-      </Center>
+    <group ref={groupRef} rotation={rotation}>
+      <primitive object={cloned} />
     </group>
   );
 }
@@ -167,7 +214,12 @@ function GlbModel({ url, isCharm, finish }: { url: string; isCharm: boolean; fin
 
 /** Must live inside <Canvas>. Populates captureRef with a function that
  *  resets the camera to a front-facing view, renders one frame, and returns
- *  a data URL — so thumbnails are always captured from a consistent angle. */
+ *  a data URL.
+ *
+ *  Measures the model's bounding box (mesh-only, excluding lights) and
+ *  computes a camera distance clamped between THUMB_MIN_DISTANCE and
+ *  THUMB_MAX_DISTANCE. Small beads get zoomed in; large charms get
+ *  zoomed out — no more microscopic dots or clipped edges. */
 function CaptureHelper({
   captureRef,
 }: {
@@ -181,15 +233,31 @@ function CaptureHelper({
       const savedPos = camera.position.clone();
       const savedQuat = camera.quaternion.clone();
 
-      // Reset to front view (same distance, facing straight ahead)
-      const dist = savedPos.length();
+      // Measure only mesh geometry (excludes lights, helpers, etc.)
+      const box = new Box3();
+      scene.traverse((child) => {
+        if (child instanceof Mesh) {
+          box.expandByObject(child);
+        }
+      });
+      const size = new Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      // Compute ideal distance from FOV, then clamp to range
+      const fov = (CAMERA_FOV * Math.PI) / 180;
+      const idealDist = maxDim > 0
+        ? (maxDim * 0.75) / Math.tan(fov / 2)
+        : (THUMB_MIN_DISTANCE + THUMB_MAX_DISTANCE) / 2;
+      const dist = Math.max(THUMB_MIN_DISTANCE, Math.min(THUMB_MAX_DISTANCE, idealDist));
+
       camera.position.set(0, 0, dist);
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
 
-      // Render with scene background
+      // Render with transparent background (alpha canvas)
       const prevBackground = scene.background;
-      scene.background = new Color(SCENE_BACKGROUND_PREVIEW_BEAD);
+      scene.background = null;
       gl.render(scene, camera);
       scene.background = prevBackground;
       const dataUrl = gl.domElement.toDataURL("image/png");
@@ -221,6 +289,7 @@ function GlbPreview({
   captureRef?: React.MutableRefObject<(() => string | null) | null>;
 }) {
   const [renderError, setRenderError] = useState(false);
+  const [dims, setDims] = useState<{ x: number; y: number; z: number } | null>(null);
 
   if (renderError) {
     return (
@@ -233,29 +302,42 @@ function GlbPreview({
 
   return (
     <PreviewErrorBoundary onError={() => setRenderError(true)}>
-      <Canvas
-        camera={{ position: [0, 0, 0.03], fov: CAMERA_FOV, near: CAMERA_NEAR, far: CAMERA_FAR }}
-        gl={{ preserveDrawingBuffer: true }}
-        style={{ width: "100%", height: "100%", background: SCENE_BACKGROUND_PREVIEW_BEAD }}
-      >
-        {/* Match main scene lighting (Scene.tsx) */}
-        <ambientLight intensity={0.2} color="#fff8f2" />
-        <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.1} color="#fffaf6" />
-        <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.5} color="#fff5f0" />
-        <Suspense fallback={null}>
-          <GlbModel url={url} isCharm={isCharm} finish={finish} />
-          <Environment preset="apartment" background={false} blur={0.85} />
-        </Suspense>
-        <OrbitControls
-          enablePan={false}
-          enableZoom={false}
-          minPolarAngle={Math.PI / 2}
-          maxPolarAngle={Math.PI / 2}
-          autoRotate
-          autoRotateSpeed={2}
-        />
-        {captureRef && <CaptureHelper captureRef={captureRef} />}
-      </Canvas>
+      <div className="relative h-full w-full">
+        <Canvas
+          camera={{ position: [0, 0, 0.03], fov: CAMERA_FOV, near: CAMERA_NEAR, far: CAMERA_FAR }}
+          gl={{ preserveDrawingBuffer: true, alpha: true }}
+          style={{ width: "100%", height: "100%", background: SCENE_BACKGROUND_PREVIEW_BEAD }}
+        >
+          {/* Match main scene lighting (Scene.tsx) */}
+          <ambientLight intensity={0.2} color="#fff8f2" />
+          <directionalLight position={[0.1, 0.2, 0.1]} intensity={1.1} color="#fffaf6" />
+          <directionalLight position={[-0.1, 0.2, -0.1]} intensity={0.5} color="#fff5f0" />
+          <Suspense fallback={null}>
+            <GlbModel url={url} isCharm={isCharm} finish={finish} onMeasured={setDims} />
+            <Environment preset="apartment" background={false} blur={0.85} />
+          </Suspense>
+          <OrbitControls
+            enablePan={false}
+            enableZoom={false}
+            minPolarAngle={Math.PI / 2}
+            maxPolarAngle={Math.PI / 2}
+            autoRotate
+            autoRotateSpeed={2}
+          />
+          {captureRef && <CaptureHelper captureRef={captureRef} />}
+        </Canvas>
+
+        {/* Measured dimensions overlay */}
+        {dims && (
+          <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-[11px] text-white font-mono leading-relaxed pointer-events-none">
+            <span className="opacity-60">W</span> {dims.x}mm
+            {" · "}
+            <span className="opacity-60">H</span> {dims.y}mm
+            {" · "}
+            <span className="opacity-60">D</span> {dims.z}mm
+          </div>
+        )}
+      </div>
     </PreviewErrorBoundary>
   );
 }
@@ -266,12 +348,14 @@ function BeadRow({
   bead,
   onEdit,
   onToggleActive,
+  onDelete,
   isTogglingActive,
   cacheBust,
 }: {
   bead: BeadProduct;
   onEdit: (bead: BeadProduct) => void;
   onToggleActive: (bead: BeadProduct) => void;
+  onDelete: (bead: BeadProduct) => void;
   isTogglingActive: boolean;
   cacheBust: number;
 }) {
@@ -300,9 +384,14 @@ function BeadRow({
       </div>
 
       {/* Category badge */}
-      <span className="shrink-0 rounded-[2px] border border-default bg-light-grey/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-color-base/60">
-        {bead.bead_category ?? "bead"}
-      </span>
+      {(() => {
+        const cat = getBeadCategoryMeta(bead.bead_category);
+        return (
+          <span className={`shrink-0 rounded-[2px] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cat.cls}`}>
+            {cat.label}
+          </span>
+        );
+      })()}
 
       {/* Actions — reveal on hover */}
       <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -542,7 +631,7 @@ function BeadForm({
   const previewUrl = glbPreviewUrl ?? existingGlbPath ?? null;
 
   return (
-    <div className="rounded-lg border border-default bg-white shadow-sm">
+    <div className="rounded-[2px] border border-default bg-white">
 
       {/* Inactive status banner */}
       {isInactive && (
@@ -628,7 +717,7 @@ function BeadForm({
         </div>
 
         {/* ── Right: form fields ──────────────────────────────────────────── */}
-        <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto max-h-[420px]">
+        <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto max-h-[440px]">
           {/* Name */}
           <div className="flex flex-col gap-1">
             <FieldLabel required>Name</FieldLabel>
@@ -664,7 +753,7 @@ function BeadForm({
               >
                 {BEAD_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    {unslugify(cat, "_")}
                   </option>
                 ))}
               </select>
@@ -692,7 +781,7 @@ function BeadForm({
               <input
                 type="number"
                 min={0}
-                step={0.5}
+                step={0.1}
                 value={form.size_mm}
                 onChange={(e) => update("size_mm", e.target.value)}
                 placeholder="e.g. 6"
@@ -794,40 +883,188 @@ function BeadForm({
 
       {/* ── Footer buttons ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 border-t border-default px-4 py-3">
-        <Button
-          onClick={handleSubmit}
-          disabled={isSaving || !canSubmit}
-          size="sm"
-          variant="secondary"
-        >
-          {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-          {submitLabel}
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
-          <X size={12} /> Cancel
-        </Button>
-        {thumbError && (
-          <p className="ml-auto text-xs text-error flex items-center gap-1">
-            <AlertTriangle size={12} className="shrink-0" />
-            {thumbError}
-          </p>
-        )}
-        {!hasGlb && !thumbError && (
-          <p className="ml-auto text-xs text-color-base/50 italic">
-            A GLB file is required
-          </p>
-        )}
         {/* Deactivate button — right-aligned, only shown for active beads in edit mode */}
         {onToggleActive && !isInactive && hasGlb && (
           <button
             onClick={onToggleActive}
             disabled={isTogglingActive}
-            className="ml-auto flex items-center gap-1.5 text-xs text-color-base/50 hover:text-error disabled:opacity-40 transition-colors"
+            className="ml-auto flex items-center gap-1.5 text-xs text-color-base/50 p-2 rounded-[2px] hover:text-error hover:bg-error/10 disabled:opacity-40 transition-colors"
           >
             {isTogglingActive ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
             Deactivate
           </button>
         )}
+        <div className="flex flex-col gap-2 flex-1 justify-center items-end">
+          <div className="flex gap-2">
+            <Button variant="ghost" size="md" onClick={onCancel} disabled={isSaving}>
+              <X size={12} /> Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSaving || !canSubmit}
+              size="md"
+            >
+              {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              {submitLabel}
+            </Button>
+          </div>
+          <div className="text-right">
+            {thumbError && (
+              <p className="ml-auto text-xs text-error flex items-center gap-1">
+                <AlertTriangle size={12} className="shrink-0" />
+                {thumbError}
+              </p>
+            )}
+            {!hasGlb && !thumbError && (
+              <p className="ml-auto text-xs text-color-base/50 italic">
+                A GLB file is required
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Designs containing this bead ─────────────────────────────────────────────
+
+function BeadDesignsList({ productId }: { productId: number }) {
+  const { data: allDesigns = [], isLoading } = useDesigns();
+
+  const designs = useMemo(
+    () =>
+      allDesigns.filter((d) =>
+        d.configuration?.beads?.some((b) => b.product_id === productId),
+      ),
+    [allDesigns, productId],
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 py-4 text-xs text-color-base/50">
+        <Loader2 size={12} className="animate-spin" /> Loading designs…
+      </div>
+    );
+  }
+
+  if (designs.length === 0) {
+    return (
+      <p className="py-2 text-xs text-color-base/50 italic">
+        This item is not used in any saved designs.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {designs.map((d) => {
+        const isDiscontinued = d.is_discontinued === 1;
+        const meta = isDiscontinued
+          ? STATUS_META.discontinued
+          : STATUS_META[d.status] ?? null;
+        const count = d.configuration.beads.filter(
+          (b) => b.product_id === productId,
+        ).length;
+
+        return (
+          <div
+            key={d.id}
+            className="flex items-center gap-3 rounded-[2px] border border-default bg-white"
+          >
+            {/* Thumbnail */}
+            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[2px] bg-light-grey">
+              {d.preview_image_url ? (
+                <img
+                  src={d.preview_image_url}
+                  alt={d.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full" />
+              )}
+            </div>
+
+            {/* Name + count */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{d.name}</p>
+              {count > 1 && (
+                <p className="text-xs text-color-base/50">×{count} items</p>
+              )}
+            </div>
+
+            {/* Status badge */}
+            {meta && (
+              <div className="shrink-0 pr-3">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.cls}`}
+                >
+                  {meta.label}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Edit-mode footer: designs list + delete ──────────────────────────────────
+
+function EditModeFooter({
+  bead,
+  onDelete,
+}: {
+  bead: BeadProduct;
+  onDelete: (bead: BeadProduct) => void;
+}) {
+  const { data: allDesigns = [], isLoading } = useDesigns();
+
+  const designCount = useMemo(
+    () =>
+      allDesigns.filter((d) =>
+        d.configuration?.beads?.some((b) => b.product_id === bead.id),
+      ).length,
+    [allDesigns, bead.id],
+  );
+
+  const isUsed = designCount > 0;
+
+  return (
+    <div className="pt-4 flex flex-col gap-4">
+      {/* Designs list */}
+      <div>
+        <h4 className="text-xs font-medium uppercase tracking-wide text-color-base/70 mb-2">
+          Used in designs
+        </h4>
+        <BeadDesignsList productId={bead.id} />
+      </div>
+
+      {/* Delete section */}
+      <div className="pt-4">
+        <div className="flex items-center justify-between rounded-[2px] border border-error/20 px-4 py-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Delete this item</p>
+            <p className="text-xs text-color-base/60">
+              {isLoading
+                ? "Checking design usage…"
+                : isUsed
+                  ? `${bead.name} is used in ${designCount} ${designCount === 1 ? "design" : "designs"} and cannot be deleted. Remove it from all designs first.`
+                  : `${bead.name} is not used in any designs and can be safely deleted.`}
+            </p>
+          </div>
+          <Button
+            variant="danger"
+            size="sm"
+            className="ml-3 shrink-0"
+            disabled={isUsed || isLoading}
+            onClick={() => onDelete(bead)}
+          >
+            <Trash2 size={14} />
+            Delete
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -847,23 +1084,31 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
   const { mutate: createBead, isPending: creating } = useCreateBead();
   const { mutate: updateBead, isPending: updating } = useUpdateBead();
   const { mutate: toggleActive, isPending: toggling } = useToggleBeadActive();
+  const { mutate: deleteBead, isPending: deleting } = useDeleteBead();
 
   const [mode, setMode]             = useState<"list" | "create" | "edit">("list");
   const [editingBead, setEditingBead] = useState<BeadProduct | null>(null);
   const [togglingId, setTogglingId]   = useState<number | null>(null);
   const [search, setSearch]           = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
   const [thumbVersion, setThumbVersion] = useState(0);
+
+  // ── Delete bead state ────────────────────────────────────────────────────
+  const [beadToDelete, setBeadToDelete]           = useState<BeadProduct | null>(null);
+  const [deleteError, setDeleteError]             = useState<string | null>(null);
+  const [blockingDesigns, setBlockingDesigns]     = useState<{ id: number; name: string; status: string }[]>([]);
 
 
   // ── Filtered bead list ──────────────────────────────────────────────────
   const filteredBeads = useMemo(() => {
     let list = allBeads;
 
-    if (!showInactive) {
+    if (statusFilter === "active") {
       list = list.filter((b) => b.active === 1);
+    } else if (statusFilter === "inactive") {
+      list = list.filter((b) => b.active === 0);
     }
 
     if (categoryFilter !== "all") {
@@ -881,7 +1126,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     }
 
     return list;
-  }, [allBeads, search, categoryFilter, showInactive]);
+  }, [allBeads, search, categoryFilter, statusFilter]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
   function resetState() {
@@ -923,6 +1168,31 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     );
   }
 
+  function openDeleteConfirm(bead: BeadProduct) {
+    setDeleteError(null);
+    setBlockingDesigns([]);
+    setBeadToDelete(bead);
+  }
+
+  function handleDeleteBead() {
+    if (!beadToDelete) return;
+    setDeleteError(null);
+    setBlockingDesigns([]);
+    deleteBead(beadToDelete.id, {
+      onSuccess: () => {
+        setBeadToDelete(null);
+      },
+      onError: (err) => {
+        if (err instanceof BeadInUseError) {
+          setBlockingDesigns(err.designs);
+          setDeleteError(err.message);
+        } else {
+          setDeleteError(err instanceof Error ? err.message : "Delete failed.");
+        }
+      },
+    });
+  }
+
   async function handleSave(data: BeadFormData, glbFile: File | null, thumbnailDataUrl: string | null) {
     setUploadError(null);
 
@@ -943,7 +1213,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
         } catch {
           // Non-fatal — the bead still gets created, thumbnail just falls
           // back to the gradient placeholder in BeadSelectorPanel.
-          console.warn("Thumbnail upload failed; bead will use placeholder.");
+          console.warn("Thumbnail upload failed; item will use placeholder.");
         }
       }
 
@@ -974,10 +1244,20 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
       if (mode === "edit" && editingBead) {
         updateBead(
           { id: editingBead.id, ...payload },
-          { onSuccess: () => resetState() },
+          {
+            onSuccess: () => resetState(),
+            onError: (err) => {
+              setUploadError(err instanceof Error ? err.message : "Failed to update item. Please try again.");
+            },
+          },
         );
       } else {
-        createBead(payload, { onSuccess: () => resetState() });
+        createBead(payload, {
+          onSuccess: () => resetState(),
+          onError: (err) => {
+            setUploadError(err instanceof Error ? err.message : "Failed to create item. Please try again.");
+          },
+        });
       }
     } catch (err: any) {
       setUploadError(err.message ?? "Upload failed.");
@@ -990,7 +1270,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
       className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium text-color-base/70 hover:bg-light-grey hover:text-color-base transition-colors"
     >
       <ArrowLeft size={14} />
-      Back to Bead Library
+      Back to Library
     </button>
   ) : undefined;
 
@@ -998,14 +1278,16 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     <FullScreenDialog
       open={open}
       onClose={handleClose}
-      title="Upload / Edit Beads"
+      title="Upload / Edit Inventory"
       className="max-w-3xl"
       bodyClasses="px-5 py-4 max-h-[75vh] overflow-y-auto"
       headerExtra={headerBackButton}
     >
-      <div className="flex flex-col gap-4">
+      <div className={`flex flex-col gap-4 ${
+        mode === "list" && "pb-20"
+      }`}>
         <p className="text-sm text-color-base/70">
-          Manage the bead and charm library. Upload new GLB models, edit metadata, or deactivate beads that are no longer in use.
+          Manage the inventory library. Upload new GLB models, edit metadata, or deactivate items that are no longer in use.
         </p>
 
         {uploadError && <ErrorAlert message={uploadError} />}
@@ -1032,7 +1314,15 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
             isInactive={mode === "edit" && editingBead?.active === 0}
             isTogglingActive={toggling && togglingId === editingBead?.id}
             isSaving={creating || updating}
-            submitLabel={mode === "edit" ? "Save changes" : "Create bead"}
+            submitLabel={mode === "edit" ? "Save changes" : "Create item"}
+          />
+        )}
+
+        {/* ── Designs using this bead (edit mode only) ────────────────────── */}
+        {mode === "edit" && editingBead && (
+          <EditModeFooter
+            bead={editingBead}
+            onDelete={openDeleteConfirm}
           />
         )}
 
@@ -1047,8 +1337,17 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
                   placeholder="Search by name, type, or SKU"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-[2px] border border-default py-2 pl-3 pr-9 text-sm outline-none placeholder:text-color-base/50 focus:border-navy transition-colors"
+                  className="w-full rounded-[2px] border border-default py-2 pl-3 pr-16 text-sm outline-none placeholder:text-color-base/50 focus:border-navy transition-colors"
                 />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-8 top-1/2 -translate-y-1/2 p-0.5 rounded-[2px] text-color-base/40 bg-white hover:text-color-base hover:bg-light-grey focus:ring-navy transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
                 <Search
                   size={14}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-color-base/40"
@@ -1063,20 +1362,32 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
                 <option value="all">All categories</option>
                 {BEAD_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
-                    {capitalize(cat)}
+                    {unslugify(cat, "_")}
                   </option>
                 ))}
               </select>
 
-              <label className="flex items-center gap-1.5 text-xs text-color-base/60 cursor-pointer shrink-0">
-                <input
-                  type="checkbox"
-                  checked={showInactive}
-                  onChange={(e) => setShowInactive(e.target.checked)}
-                  className="form-checkbox rounded-[1px] w-3.5 h-3.5 bg-grey border-none text-navy focus:ring-navy focus:ring-1"
-                />
-                Show inactive
-              </label>
+              {/* Status segmented control */}
+              <div className="flex rounded-[2px] border border-default bg-white overflow-hidden">
+                {([
+                  { label: "Active",   value: "active"   },
+                  { label: "Inactive", value: "inactive" },
+                  { label: "All",      value: "all"      },
+                ] as const).map(({ label, value }) => (
+                  <button
+                    key={value}
+                    onClick={() => setStatusFilter(value)}
+                    className={cn(
+                      "px-3 py-2 text-xs font-semibold transition-all",
+                      statusFilter === value
+                        ? "bg-navy text-white"
+                        : "text-color-base hover:bg-mint",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Bead list */}
@@ -1101,6 +1412,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
                     bead={bead}
                     onEdit={openEdit}
                     onToggleActive={handleToggleActive}
+                    onDelete={openDeleteConfirm}
                     isTogglingActive={toggling && togglingId === bead.id}
                     cacheBust={thumbVersion}
                   />
@@ -1110,17 +1422,83 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
 
             {/* New bead button */}
             {canManageComponents && (
-              <Button
-                onClick={openCreate}
-                variant="dashed"
-                className="flex items-center gap-2 self-start dashed-border"
-              >
-                <Plus size={15} /> Upload new bead
-              </Button>
+              <div className="fixed w-full bottom-0 left-0 right-0 bg-white border-t border-default px-6 py-3">
+                <Button
+                  onClick={openCreate}
+                  variant="dashed"
+                  className="flex items-center gap-2 self-start dashed-border"
+                >
+                  <Plus size={15} /> Upload new item
+                </Button>
+              </div>
             )}
           </>
         )}
       </div>
+
+      {/* ── Delete bead confirmation overlay ──────────────────────────────── */}
+      {beadToDelete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
+          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-error/10">
+                <Trash2 size={16} className="text-error" />
+              </div>
+              <h3 className="text-base font-semibold">Delete item</h3>
+            </div>
+
+            <p className="text-sm text-color-base/80">
+              Permanently delete <span className="font-semibold">"{beadToDelete.name}"</span> from the inventory? This cannot be undone.
+            </p>
+
+            {/* Blocking designs (409 response) */}
+            {blockingDesigns.length > 0 && (
+              <div className="mt-3 rounded-lg border border-error/20 bg-error/5 p-3">
+                <p className="text-sm font-medium text-error mb-2">
+                  This item is used in {blockingDesigns.length} {blockingDesigns.length === 1 ? "design" : "designs"} and cannot be deleted:
+                </p>
+                <ul className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                  {blockingDesigns.map((d) => (
+                    <li key={d.id} className="flex items-center justify-between text-sm">
+                      <span className="truncate font-medium">{d.name}</span>
+                      <span className="ml-2 shrink-0 rounded-full bg-stone/40 px-2 py-0.5 text-[10px] uppercase">{d.status}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Generic error */}
+            {deleteError && blockingDesigns.length === 0 && (
+              <div className="mt-3">
+                <ErrorAlert message={deleteError} />
+              </div>
+            )}
+
+            <div className="mt-5 flex items-center gap-2 justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setBeadToDelete(null)}
+                disabled={deleting}
+              >
+                {blockingDesigns.length > 0 ? "Close" : "Cancel"}
+              </Button>
+              {blockingDesigns.length === 0 && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteBead}
+                  disabled={deleting}
+                >
+                  {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  Delete item
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </FullScreenDialog>
   );
 }

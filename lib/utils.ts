@@ -20,6 +20,16 @@ export const slugify = (str: string): string => {
 };
 
 /**
+ * Converts a slug string into a Capitalize string w/ no hyphen
+ */
+export const unslugify = (slug: string, separator: string = '-'): string => {
+  return slug
+    .split(separator)
+    .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+    .join(' ');
+};
+
+/**
  * Capitalize first letter in string
  */
 export const capitalize = (str: string): string => {
@@ -63,4 +73,18 @@ export function formatDateTime(iso: string): string {
     minute: "2-digit",
     hour12: true,
   }).format(new Date(iso)).toLowerCase();
+}
+
+/**
+ * Formats a millimetre value for display, keeping one decimal place
+ * only when meaningful.
+ *
+ *   formatMm(4)     → "4"
+ *   formatMm(3.5)   → "3.5"
+ *   formatMm(12.0)  → "12"
+ *   formatMm(7.25)  → "7.3"   (rounds to 1dp)
+ */
+export function formatMm(mm: number): string {
+  const rounded = Math.round(mm * 10) / 10;
+  return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
 }

@@ -1,27 +1,25 @@
 /**
- * Bead administration hooks — create, update, and toggle-active mutations
- * plus the GLB upload helper.
+ * Bead administration hooks — create, update, toggle-active, and delete
+ * mutations plus the GLB upload helper.
  *
  * All mutations invalidate the ["beads"] query key so the bead selector
  * and admin list stay in sync.
  *
  * Endpoints:
- *   POST   /beads           → create a new bead product
- *   POST    /beads/:slug       → update an existing bead product ()
- *   POST  /beads/:id/active → toggle active flag (soft delete / restore)
- * 
- *  NEEDED
- *   DELETE    /beads/:id       → delete bead
- *   POST    /beads/:id       → slug needs changed to ID
+ *   POST   /beads              → create a new bead product
+ *   PUT    /beads/:id          → update an existing bead product
+ *   PUT    /beads/:id/status   → toggle active flag (soft delete / restore)
+ *   DELETE /beads/:id_or_slug  → permanently delete bead (409 if referenced by designs)
  */
 
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { type ApiBeadProduct, normaliseBeadProduct } from "@/lib/bead-helpers";
 import { slugify } from "@/lib/utils";
+import { TOKEN_KEY } from "@/lib/auth";
 import type { BeadProduct } from "@/types";
 
-export { slugify };
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +52,24 @@ export interface UpdateBeadRequest {
   color?: string | null;
   bail_width_mm?: number | null;
   body_width_mm?: number | null;
+}
+
+/** Lightweight design reference returned by the API in a 409 conflict. */
+export interface BlockingDesign {
+  id: number;
+  name: string;
+  status: string;
+}
+
+/** Thrown when DELETE /beads/:id returns 409 because designs still reference the bead. */
+export class BeadInUseError extends Error {
+  constructor(
+    public readonly designs: BlockingDesign[],
+    message: string,
+  ) {
+    super(message);
+    this.name = "BeadInUseError";
+  }
 }
 
 // ── GLB upload helper ────────────────────────────────────────────────────────
@@ -189,6 +205,57 @@ export function useToggleBeadActive() {
         method: "PUT",
         body: JSON.stringify({ active: active ? 1 : 0 }),
       }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["beads"] });
+    },
+  });
+}
+
+/**
+ * DELETE /beads/:id_or_slug
+ *
+ * Uses a raw fetch (not apiFetch) because the 409 response body includes
+ * structured data (blocking design list) that apiFetch would discard.
+ *
+ * Throws:
+ *  - `BeadInUseError` (409) — bead is referenced by designs; `.designs` lists them.
+ *  - `ApiError` — any other non-2xx response.
+ */
+export function useDeleteBead() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    async mutationFn(idOrSlug: number | string) {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+
+      const res = await fetch(`${BASE_URL}/beads/${idOrSlug}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (res.status === 204) return; // success — no content
+
+      let json: any;
+      try {
+        json = await res.json();
+      } catch {
+        throw new ApiError(res.status, `HTTP ${res.status}`);
+      }
+
+      if (res.status === 409) {
+        const designs: BlockingDesign[] = json.designs ?? json.data ?? [];
+        throw new BeadInUseError(
+          designs,
+          json.error ?? "This bead is used by one or more designs and cannot be deleted.",
+        );
+      }
+
+      throw new ApiError(res.status, json.error ?? "Delete failed");
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["beads"] });
     },

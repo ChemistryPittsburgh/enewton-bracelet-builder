@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
-import { capitalize, slugify } from "@/lib/utils";
+import { capitalize, slugify, formatMm } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
@@ -43,7 +43,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
   return (
     <div
       className={cn(
-        "absolute top-24 right-6 z-50 w-72 transition-all duration-300 ease-out",
+        "absolute top-24 right-6 z-50 w-[340px] transition-all duration-300 ease-out",
         isOpen
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-3 pointer-events-none"
@@ -57,7 +57,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
       >
         {bead && (
           <>
-            <div className="p-2 mb-2 space-y-2">
+            <div className="p-2 mb-2 space-y-2 lg:p-3">
               <h3 className="mb-3">{bead.product.bead_type ? capitalize(bead.product.name) : "Bead Name"}</h3>
               <InfoRow layout="horizontal"
                 label="Bead Type"
@@ -75,7 +75,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
               )}
               <InfoRow layout="horizontal" label="Diameter" value={bead.product.size_mm != null
                 ? `${bead.product.size_mm} mm`
-                : `${Math.round(bead.product.diameter * 1000)} mm`} />
+                : `${formatMm(bead.product.diameter * 1000)} mm`} />
               <InfoRow layout="horizontal" label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
             </div>
             {!isLocked && matchCount > 1 && (

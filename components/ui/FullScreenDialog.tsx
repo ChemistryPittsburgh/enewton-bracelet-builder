@@ -46,12 +46,12 @@ export function FullScreenDialog({
           "dialog-backdrop fixed inset-0 z-[100]",
           includeBackDropBlur ? "backdrop-blur-sm bg-black/30" : "bg-black/10",
         )}
-      />
+      /> 
       {/* Panel */}
       <div
         className={cn(
           "fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2",
-          "w-full max-w-2xl rounded-2xl bg-white shadow-xl border border-neutral-100 overflow-hidden",
+          "w-full max-w-2xl rounded-[2px] bg-white shadow-xl border border-neutral-100 overflow-hidden",
           className
         )}
       >

@@ -99,9 +99,9 @@ export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.0
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
  */
 export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number }> = {
-  wire:    { color: "#ece09b", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0008 }, // silver-grey, ~1.6 mm diameter
-  cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0010 }, // tan/gold, ~2.6 mm diameter
-  elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.0004 }, // off-white, ~0.8 mm diameter
+  wire:    { color: "#ece09b", roughness: 0.15, metalness: 0.9,  tubeRadius: 0.0006 }, // silver-grey, ~1.6 mm diameter
+  cord:    { color: "#000000", roughness: 1,  metalness: 0.0,  tubeRadius: 0.0075 }, // tan/gold, ~2.6 mm diameter
+  elastic: { color: "#e8e0d8", roughness: 0.8,  metalness: 0.05, tubeRadius: 0.00055 }, // off-white, ~0.8 mm diameter
 };
 
 // ─── Material finish presets ────────────────────────────────────────────────
@@ -114,18 +114,23 @@ export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: nu
 //   metalness       — 0 (dielectric) → 1 (full metal)
 //   roughness       — 0 (mirror polish) → 1 (fully matte)
 //   envMapIntensity — 0 (no reflections) → 1 (full environment reflections)
+// 
 
 export interface FinishPreset {
   color?:           string;
   metalness?:       number;
   roughness?:       number;
   envMapIntensity?: number;
+  clearcoat?: number;
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
   gold:      { metalness: 1, roughness: 0.18, envMapIntensity: 0.1 },
   silver:    { metalness: 1,   roughness: 0.18, envMapIntensity: 0.35 },
   rose_gold: { metalness: 0.95, roughness: 0.2, envMapIntensity: 0.9 },
+  gem:       { metalness: 0.5 },
+  pearl:     { metalness: 0.8, roughness: 0, clearcoat: 0.9, envMapIntensity: 0.9 },
+  crystal:   { metalness: 0.5 },
 };
 
 /** Fallback when product.finish is undefined. Set to null to disable. */
@@ -133,8 +138,8 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "tube"] as const;
-export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem", "resin_cross"] as const;
+export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "crystal", "pearl", "resin"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.

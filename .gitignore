@@ -13,4 +13,5 @@ package-lock.json
 # OS files
 .DS_Store
 tsconfig.tsbuildinfo
+public/.DS_Store
 

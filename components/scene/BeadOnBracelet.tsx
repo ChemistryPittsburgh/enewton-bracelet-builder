@@ -41,10 +41,12 @@ export function BeadOnBracelet({
     clone.position.sub(center);
 
     // ── Apply material finish preset ────────────────────────────────────────
-    // product.finish (when the API provides it) → DEFAULT_FINISH → skip
-    // Only overrides meshes whose GLB metalness ≥ 0.5, so stone, enamel, and
-    // other non-metal surfaces stay untouched.
-    const finishKey: string | null = (bead.product as any).finish ?? DEFAULT_FINISH;
+    // Lookup chain: product.finish → product.material → DEFAULT_FINISH.
+    // If the resolved key exists in FINISH_PRESETS (gold, silver, rose_gold),
+    // apply it. If it doesn't (e.g. "metal", "enamel"), the preset lookup
+    // returns undefined and the GLB's original material is preserved — keeping
+    // vibrant colors on painted/colored beads like crosses and gems.
+    const finishKey: string | null = (bead.product as any).finish ?? bead.product.material ?? DEFAULT_FINISH;
     const preset = finishKey ? FINISH_PRESETS[finishKey] : undefined;
     if (preset) {
       clone.traverse((child) => {
@@ -52,16 +54,39 @@ export function BeadOnBracelet({
         const srcMat = child.material;
         if (srcMat.metalness < 0.5) return;
 
-        const mat = srcMat.clone();
+        // If the preset needs clearcoat, upgrade to MeshPhysicalMaterial
+        // (clearcoat is not available on MeshStandardMaterial).
+        const needsPhysical = preset.clearcoat != null && !(srcMat instanceof MeshPhysicalMaterial);
+        const mat = needsPhysical
+          ? new MeshPhysicalMaterial().copy(srcMat as MeshStandardMaterial)
+          : srcMat.clone();
+
         if (preset.color           !== undefined) mat.color.set(preset.color);
         if (preset.metalness       !== undefined) mat.metalness       = preset.metalness;
         if (preset.roughness       !== undefined) mat.roughness       = preset.roughness;
-        mat.roughness = Math.max(mat.roughness, 0.25);
+        mat.roughness = Math.max(mat.roughness, 0.22);
         if (preset.envMapIntensity !== undefined) mat.envMapIntensity = preset.envMapIntensity;
+        if (preset.clearcoat       !== undefined && mat instanceof MeshPhysicalMaterial) {
+          mat.clearcoat = preset.clearcoat;
+        }
 
+        child.material = mat;
+      });
+    } else {
+      // No matching finish preset — this is a colored/painted item (cross,
+      // gem, crystal, etc.). The GLB may have been modelled with metallic
+      // material, which makes colors look dull and washed out. Force
+      // dielectric rendering so the base colour comes through vibrantly.
+      clone.traverse((child) => {
+        if (!(child instanceof Mesh)) return;
+        const srcMat = child.material;
+        if (!(srcMat instanceof MeshStandardMaterial)) return;
+        if (srcMat.metalness <= 0.3) return; // already non-metallic
 
-        mat.clearcoat = 0.1;
-
+        const mat = srcMat.clone();
+        mat.metalness = 0;
+        mat.roughness = Math.max(mat.roughness, 0.55);
+        mat.envMapIntensity = Math.min(mat.envMapIntensity ?? 1, 0.4);
         child.material = mat;
       });
     }

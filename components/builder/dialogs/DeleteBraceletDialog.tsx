@@ -2,27 +2,38 @@
 
 import { AlertTriangle } from "lucide-react";
 import { StandardConfirmDialog } from "@/components/ui/StandardConfirmDialog";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 
 interface DeleteBraceletDialogProps {
   designName: string;      
   isDeleting: boolean;
+  error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
+  includeBackDropBlur?: boolean;
 }
 
 export function DeleteBraceletDialog({
   designName,
   isDeleting,
+  error,
   onConfirm,
   onCancel,
+  includeBackDropBlur = true
 }: DeleteBraceletDialogProps) {
   return (
     <StandardConfirmDialog
       title="Delete bracelet"
+      includeBackDropBlur={includeBackDropBlur}
       message={
         <>
           <span className="font-semibold text-neutral-900">"{designName}"</span>{" "}
           will be permanently removed from the library. This cannot be undone.
+          {error && (
+            <div className="mt-3">
+              <ErrorAlert message={error} />
+            </div>
+          )}
         </>
       }
       icon={<AlertTriangle size={16} />}
