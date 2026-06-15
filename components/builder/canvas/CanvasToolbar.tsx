@@ -220,7 +220,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
         {/* ── Centre — 3D / Line toggle ────────────────────────────────── */}
         <div className="absolute left-1/2 -translate-x-1/2">
-          <div className="flex rounded-xl border border-default bg-white min-w-[140px] overflow-hidden">
+          <div className="flex rounded-[2px] border border-default bg-white min-w-[140px] overflow-hidden">
             {(["3D", "Line"] as const).map((mode) => (
               <button
                 key={mode}
@@ -243,7 +243,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
           {canEdit && !isLocked && (
             <button
               onClick={toggleEditMode}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-[2px] border px-3 py-1.5 text-sm font-semibold transition-colors ${
                 isEditMode
                   ? "border-navy/30 bg-shell text-navy"
                   : "border-default bg-white   hover:bg-mint"
@@ -260,7 +260,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
           )}
           <button
             onClick={onCommentsClick}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-sm font-semibold transition-colors ${
               commentsOpen
                 ? "bg-stone text-white"
                 : "bg-grey text-black hover:bg-stone hover:text-white"

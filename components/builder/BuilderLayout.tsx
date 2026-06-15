@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { BraceletExporter } from "./canvas/BraceletExporter";
 import { BandSelector } from "./canvas/BandSelector";
@@ -153,14 +154,15 @@ export function BuilderLayout() {
       {/* Header */}
       <header className="flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-6">
         <div className="flex flex-1 items-center gap-4">
-          <button
-            onClick={() => setSavedDesignsOpen(true)}
-            className="flex items-center rounded border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
-            aria-label="Saved Designs"
-            title="View All Saved Designs"
-          >
-            <Inbox size={24} />
-          </button>
+        <Tooltip content="Open Saved Designs Panel" placement="bottom-end">
+            <button
+              onClick={() => setSavedDesignsOpen(true)}
+              className="flex items-center rounded-[2px] border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
+              aria-label="Saved Designs"
+            >
+              <Inbox size={24} />
+            </button>
+          </Tooltip>
           <img
             src={LOGO_SRC}
             alt={LOGO_ALT}
