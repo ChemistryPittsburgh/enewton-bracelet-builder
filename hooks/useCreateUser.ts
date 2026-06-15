@@ -1,19 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type { User } from "@/types";
-
-export const AVATAR_COLORS = [
-  "#1F3A5F", // navy
-  "#a38d48", // gold
-  "#0d5c52", // teal
-  "#9b3a3a", // terracotta
-  "#6c3483", // purple
-  "#1e6b3a", // forest
-  "#2471a3", // steel blue
-  "#c0774a", // copper
-  "#8b3040", // rose
-  "#5d6d7e", // slate
-] as const;
+import { AVATAR_COLORS } from "@/lib/category-colors";
 
 function randomAvatarColor(): string {
   return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];

@@ -18,6 +18,7 @@ import { BandSelector } from "./canvas/BandSelector";
 import { CanvasStatsBar } from "./canvas/CanvasStatsBar";
 import { CanvasToolbar } from "./canvas/CanvasToolbar";
 import { EditModeToolbar } from "./canvas/EditModeToolbar";
+import { EditModeHelp } from "./canvas/EditModeHelp";
 import { CanvasWorkflowBar } from "./canvas/CanvasWorkflowBar";
 
 import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
@@ -492,9 +493,11 @@ export function BuilderLayout() {
             <CanvasStatsBar />
 
             {/* Edit mode action toolbar */}
-            <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-lg">
+            <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-[2px]">
               <EditModeToolbar />
             </div>
+
+            <EditModeHelp />
 
             {canEdit && !isLocked && (
               <BandSelector panelOpen={braceletPanelOpen || rightPanelOpen} />

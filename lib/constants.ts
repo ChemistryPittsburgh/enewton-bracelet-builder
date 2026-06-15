@@ -41,7 +41,7 @@ export const THUMBNAIL_SIZE = 600;
 export const EDIT_MODE_BACKGROUND = "#eff6ff";
 
 /** Color of ring when bead is selected/highlights */
-export const HIGHLIGHT_SELECT_COLOR = "#a38d48"; 
+export const HIGHLIGHT_SELECT_COLOR = "#a38d48";  //#a38d48
 export const EDIT_MODE_HIGHLIGHT_SELECT_COLOR = "#1F3A5F";
 
 // ─── Camera ───────────────────────────────────────────────────────────────────

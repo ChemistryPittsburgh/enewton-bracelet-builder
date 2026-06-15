@@ -22,7 +22,7 @@ export const slugify = (str: string): string => {
 /**
  * Converts a slug string into a Capitalize string w/ no hyphen
  */
-export const unslugify = (slug: string, separator: string = '-'): string => {
+export const unslugify = (slug: string, separator: string = '_'): string => {
   return slug
     .split(separator)
     .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
