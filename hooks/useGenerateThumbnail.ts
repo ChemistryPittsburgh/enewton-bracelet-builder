@@ -92,6 +92,7 @@ function captureViaRenderTarget(
   const h = gl.domElement.height;
 
   const target = new THREE.WebGLRenderTarget(w, h);
+  target.texture.colorSpace = gl.outputColorSpace; // match screen output (sRGB gamma + tone mapping)
   gl.setRenderTarget(target);
   gl.render(scene, camera);
   gl.setRenderTarget(null);

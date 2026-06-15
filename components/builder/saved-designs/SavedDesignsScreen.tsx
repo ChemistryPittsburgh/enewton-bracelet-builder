@@ -193,7 +193,11 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
 
   // ── Load handler ───────────────────────────────────────────────────────────
   async function proceedWithLoad(design: Bracelet, lockAlreadyAcquired = false) {
-    if (isDirty) {
+    // Also prompt when beads exist on an unsaved bracelet (activeDesignId === null)
+    // even if isDirty is false — beads restore from localStorage on refresh but
+    // the dirty flag resets, so isDirty alone would silently discard them.
+    const hasUnsavedWork = isDirty || (beads.length > 0 && activeDesignId === null);
+    if (hasUnsavedWork) {
       setPendingDesign(design, onClose);
       return;
     }
