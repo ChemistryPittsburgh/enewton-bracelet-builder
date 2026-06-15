@@ -1213,7 +1213,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
         } catch {
           // Non-fatal — the bead still gets created, thumbnail just falls
           // back to the gradient placeholder in BeadSelectorPanel.
-          console.warn("Thumbnail upload failed; bead will use placeholder.");
+          console.warn("Thumbnail upload failed; item will use placeholder.");
         }
       }
 
@@ -1247,7 +1247,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
           {
             onSuccess: () => resetState(),
             onError: (err) => {
-              setUploadError(err instanceof Error ? err.message : "Failed to update bead. Please try again.");
+              setUploadError(err instanceof Error ? err.message : "Failed to update item. Please try again.");
             },
           },
         );
@@ -1255,7 +1255,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
         createBead(payload, {
           onSuccess: () => resetState(),
           onError: (err) => {
-            setUploadError(err instanceof Error ? err.message : "Failed to create bead. Please try again.");
+            setUploadError(err instanceof Error ? err.message : "Failed to create item. Please try again.");
           },
         });
       }
@@ -1270,7 +1270,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
       className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium text-color-base/70 hover:bg-light-grey hover:text-color-base transition-colors"
     >
       <ArrowLeft size={14} />
-      Back to Bead Library
+      Back to Library
     </button>
   ) : undefined;
 
@@ -1278,7 +1278,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     <FullScreenDialog
       open={open}
       onClose={handleClose}
-      title="Upload / Edit Beads"
+      title="Upload / Edit Inventory"
       className="max-w-3xl"
       bodyClasses="px-5 py-4 max-h-[75vh] overflow-y-auto"
       headerExtra={headerBackButton}
@@ -1287,7 +1287,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
         mode === "list" && "pb-20"
       }`}>
         <p className="text-sm text-color-base/70">
-          Manage the bead and charm library. Upload new GLB models, edit metadata, or deactivate beads that are no longer in use.
+          Manage the inventory library. Upload new GLB models, edit metadata, or deactivate items that are no longer in use.
         </p>
 
         {uploadError && <ErrorAlert message={uploadError} />}
@@ -1314,7 +1314,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
             isInactive={mode === "edit" && editingBead?.active === 0}
             isTogglingActive={toggling && togglingId === editingBead?.id}
             isSaving={creating || updating}
-            submitLabel={mode === "edit" ? "Save changes" : "Create bead"}
+            submitLabel={mode === "edit" ? "Save changes" : "Create item"}
           />
         )}
 
@@ -1444,18 +1444,18 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-error/10">
                 <Trash2 size={16} className="text-error" />
               </div>
-              <h3 className="text-base font-semibold">Delete bead</h3>
+              <h3 className="text-base font-semibold">Delete item</h3>
             </div>
 
             <p className="text-sm text-color-base/80">
-              Permanently delete <span className="font-semibold">"{beadToDelete.name}"</span> from the bead library? This cannot be undone.
+              Permanently delete <span className="font-semibold">"{beadToDelete.name}"</span> from the inventory? This cannot be undone.
             </p>
 
             {/* Blocking designs (409 response) */}
             {blockingDesigns.length > 0 && (
               <div className="mt-3 rounded-lg border border-error/20 bg-error/5 p-3">
                 <p className="text-sm font-medium text-error mb-2">
-                  This bead is used in {blockingDesigns.length} {blockingDesigns.length === 1 ? "design" : "designs"} and cannot be deleted:
+                  This item is used in {blockingDesigns.length} {blockingDesigns.length === 1 ? "design" : "designs"} and cannot be deleted:
                 </p>
                 <ul className="flex flex-col gap-1 max-h-32 overflow-y-auto">
                   {blockingDesigns.map((d) => (
@@ -1492,7 +1492,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
                   disabled={deleting}
                 >
                   {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                  Delete bead
+                  Delete item
                 </Button>
               )}
             </div>
