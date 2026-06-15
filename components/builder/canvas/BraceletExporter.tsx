@@ -27,9 +27,13 @@ interface BraceletExporterProps {
    * but the parent can still use the callback for secondary visual cues.
    */
   onNameRequired?: () => void;
+  /** True when the user's editing session was taken over by another user. */
+  isKicked?: boolean;
+  /** Called instead of saving when `isKicked` is true. */
+  onKickedClick?: () => void;
 }
 
-export function BraceletExporter({ onNameRequired }: BraceletExporterProps) {
+export function BraceletExporter({ onNameRequired, isKicked, onKickedClick }: BraceletExporterProps) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [showNamePopover, setShowNamePopover] = useState(false);
   const [nameInput, setNameInput] = useState("");

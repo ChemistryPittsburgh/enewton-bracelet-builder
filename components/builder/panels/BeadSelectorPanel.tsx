@@ -13,6 +13,7 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import { Plus } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useBeads } from "@/hooks/useBeads";
 import { braceletArc, usedArc, beadFits } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
@@ -23,7 +24,6 @@ import {
 const SPACER_TAB = "__spacer__";
 
 interface BeadSelectorPanelProps {
-  beads: BeadProduct[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -132,7 +132,6 @@ function SpacerPicker({ onAdd, error }: {
 
   const MAX_SPACER_MM = 14;
 
-  // Active size is either a preset or the parsed custom value
   const activeSize = selectedSize ?? (customSize ? parseFloat(customSize) : null);
   const tooLarge = activeSize != null && activeSize > MAX_SPACER_MM;
   const fits = activeSize != null && activeSize > 0 && activeSize <= availableMm && !tooLarge;
@@ -140,7 +139,6 @@ function SpacerPicker({ onAdd, error }: {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 px-5 pb-4 overflow-y-auto">
-        {/* Available space indicator */}
         <div className="rounded-lg border border-default bg-light-grey/50 px-4 py-3 mb-5">
           <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-1">
             Available space
@@ -157,7 +155,6 @@ function SpacerPicker({ onAdd, error }: {
           </p>
         </div>
 
-        {/* Preset sizes */}
         <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-3">
           Spacer size
         </p>
@@ -184,7 +181,6 @@ function SpacerPicker({ onAdd, error }: {
           })}
         </div>
 
-        {/* Custom size */}
         <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-2">
           Custom size
         </p>
@@ -215,7 +211,6 @@ function SpacerPicker({ onAdd, error }: {
         )}
       </div>
 
-      {/* Bottom bar */}
       <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
         {error && <ErrorAlert message={error} />}
         {(1 < availableMm) ? (
@@ -245,7 +240,8 @@ function SpacerPicker({ onAdd, error }: {
 
 // ── Main panel ─────────────────────────────────────────────────────────────
 
-export function BeadSelectorPanel({ beads, isOpen, onClose }: BeadSelectorPanelProps) {
+export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
+  const { data: beads = [] } = useBeads();
   const addBead = useStore((s) => s.addBead);
   const placedBeads = useStore((s) => s.beads);
   const braceletSize = useStore((s) => s.braceletSize);

@@ -4,11 +4,12 @@ import type { Collection, CreateCollectionRequest, UpdateCollectionRequest } fro
 
 // ── Query ─────────────────────────────────────────────────────────────────────
 
-export function useCollections() {
+export function useCollections({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery<Collection[]>({
     queryKey: ["collections"],
     queryFn: () => apiFetch<Collection[]>("/collections"),
     staleTime: 1000 * 60 * 5, // 5 min
+    enabled,
   });
 }
 

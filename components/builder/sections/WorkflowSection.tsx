@@ -51,7 +51,7 @@ const skuSchema = z
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undefined }) {
+export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesign: Bracelet | undefined; isReadOnly?: boolean }) {
   const { mutate: submit,      isPending: submitting,    canSubmit }    = useSubmitDesign();
   const { mutate: approve,     isPending: approving,     canApprove }   = useApproveDesign();
   const { mutate: reject,      isPending: rejecting,     canReject }    = useRejectDesign();
@@ -118,7 +118,7 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
         <p className="text-sm font-semibold  ">
           This design has been discontinued.
         </p>
-        {canUndiscontinue && (
+        {canUndiscontinue && !isReadOnly && (
           confirmReactivate ? (
             <ConfirmationPanel
               message="This will reactivate the bracelet and return it to Published status."
@@ -164,12 +164,14 @@ export function WorkflowSection({ savedDesign }: { savedDesign: Bracelet | undef
   const currentIndex = PIPELINE.findIndex((s) => s.status === effectiveStatus);
 
   const hasActions =
-    (effectiveStatus === "draft"     && canSubmit)  ||
-    (effectiveStatus === "in_review" && (canApprove || canReject || canSendToDraft)) ||
-    (effectiveStatus === "approved"  && (canPublish || canSendToDraft)) ||
-    (effectiveStatus === "published" && (canUnPublish || canDiscontinue));
+    !isReadOnly && (
+      (effectiveStatus === "draft"     && canSubmit)  ||
+      (effectiveStatus === "in_review" && (canApprove || canReject || canSendToDraft)) ||
+      (effectiveStatus === "approved"  && (canPublish || canSendToDraft)) ||
+      (effectiveStatus === "published" && (canUnPublish || canDiscontinue))
+    );
 
-  const showSkuField = canSetSku && effectiveStatus === "approved";
+  const showSkuField = canSetSku && effectiveStatus === "approved" && !isReadOnly;
 
   function handleSkuSave() {
     const result = skuSchema.safeParse(skuInput.trim());

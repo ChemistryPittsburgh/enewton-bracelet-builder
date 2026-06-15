@@ -37,25 +37,14 @@ export function SpacerOnBracelet({
   visible = true,
 }: SpacerOnBraceletProps) {
   const { gl } = useThree();
-  const {
-    selectBead,
-    selectedBead,
-    editSelectedBead,
-    setEditSelectedBead,
-    beads,
-    braceletSize,
-    isEditMode,
-    viewMode,
-  } = useStore((s) => ({
-    selectBead:          s.selectBead,
-    selectedBead:        s.selectedBead,
-    editSelectedBead:    s.editSelectedBead,
-    setEditSelectedBead: s.setEditSelectedBead,
-    beads:               s.beads,
-    braceletSize:        s.braceletSize,
-    isEditMode:          s.isEditMode,
-    viewMode:            s.viewMode,
-  }));
+  const selectBead          = useStore((s) => s.selectBead);
+  const selectedBead        = useStore((s) => s.selectedBead);
+  const editSelectedBead    = useStore((s) => s.editSelectedBead);
+  const setEditSelectedBead = useStore((s) => s.setEditSelectedBead);
+  const beads               = useStore((s) => s.beads);
+  const braceletSize        = useStore((s) => s.braceletSize);
+  const isEditMode          = useStore((s) => s.isEditMode);
+  const viewMode            = useStore((s) => s.viewMode);
 
   const isSelected = isEditMode
     ? editSelectedBead?.instanceId === bead.instanceId

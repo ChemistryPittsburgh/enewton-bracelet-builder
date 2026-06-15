@@ -29,6 +29,7 @@ export function CameraOffset({ leftPanelOpen, rightPanelOpen, panelWidth }: Came
     startTime: 0,
     running: false,
     duration: 300, // match CSS transition ms
+    lastApplied: NaN, // NaN forces first-frame apply
   });
 
   useEffect(() => {
@@ -52,7 +53,10 @@ export function CameraOffset({ leftPanelOpen, rightPanelOpen, panelWidth }: Came
       if (t >= 1) { a.current = a.target; a.running = false; }
     }
 
-    // Apply offset every frame so external camera resets don't undo it
+    // Skip the GPU call when nothing has changed
+    if (a.current === a.lastApplied) return;
+    a.lastApplied = a.current;
+
     if (Math.abs(a.current) < 0.5) {
       if (cam.view?.enabled) cam.clearViewOffset();
     } else {

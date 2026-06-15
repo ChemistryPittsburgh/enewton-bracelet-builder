@@ -22,15 +22,20 @@ import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
 import type { BraceletStatus } from "@/types";
 
 import { Button } from "@/components/ui/Button";
+import { PusherStatusBadge } from "@/components/builder/canvas/PusherStatusBadge";
 
 interface CanvasToolbarProps {
   commentsOpen?: boolean;
   onCommentsClick?: () => void;
   /** Called when the user tries to publish without a Shopify SKU set. */
   onPublishBlocked?: () => void;
+  /** When true the design canvas is read-only — hides the Edit button. */
+  isReadOnly?: boolean;
+  /** When true the user's session was taken over — hides all workflow action buttons. */
+  isKicked?: boolean;
 }
 
-export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked }: CanvasToolbarProps) {
+export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked, isReadOnly = false, isKicked = false }: CanvasToolbarProps) {
   const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId } = useStore((s) => ({
     isEditMode:      s.isEditMode,
     toggleEditMode:  s.toggleEditMode,
@@ -42,8 +47,6 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
   const { canEdit } = usePermissions();
   const { data: savedDesign } = useDesign(activeDesignId);
 
-  const isLocked = savedDesign?.status === "in_review" || savedDesign?.status === "approved" || savedDesign?.status === "published";
-
   // ── Workflow mutations ──────────────────────────────────────────────────────
   const { mutate: submit,        isPending: submitting,      canSubmit }        = useSubmitDesign();
   const { mutate: approve,       isPending: approving,       canApprove }       = useApproveDesign();
@@ -54,11 +57,11 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
   const status =
     savedDesign?.is_discontinued === 1 ? ("discontinued" as const) : savedDesign?.status;
 
-  const showSubmit        = status === "draft"        && canSubmit;
-  const showApprove       = status === "in_review"    && canApprove;
-  const showReject        = status === "in_review"    && canReject;
-  const showPublish       = status === "approved"     && canPublish;
-  const showUndiscontinue = status === "discontinued" && canUndiscontinue;
+  const showSubmit        = status === "draft"        && canSubmit        && !isKicked;
+  const showApprove       = status === "in_review"    && canApprove       && !isKicked;
+  const showReject        = status === "in_review"    && canReject        && !isKicked;
+  const showPublish       = status === "approved"     && canPublish       && !isKicked;
+  const showUndiscontinue = status === "discontinued" && canUndiscontinue && !isKicked;
 
   // ── Publish SKU gate ───────────────────────────────────────────────────────
   // Shows an inline warning for a few seconds when the user tries to publish
@@ -240,7 +243,8 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
         {/* ── Right — Edit + Comments ──────────────────────────────────── */}
         <div className="flex flex-1 items-center gap-2 justify-end border-l border-default pl-3 lg:pl-6 ml-3">
-          {canEdit && !isLocked && (
+          <PusherStatusBadge />
+          {canEdit && !isReadOnly && (
             <button
               onClick={toggleEditMode}
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${

@@ -4,11 +4,12 @@ import type { Tag, CreateTagRequest, UpdateTagRequest } from "@/types";
 
 // ── Query ─────────────────────────────────────────────────────────────────────
 
-export function useTags() {
+export function useTags({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery<Tag[]>({
     queryKey: ["tags"],
     queryFn: () => apiFetch<Tag[]>("/tags"),
     staleTime: 1000 * 60 * 5, // 5 min
+    enabled,
   });
 }
 

@@ -13,6 +13,7 @@ import {
 
 import { useStore } from "@/lib/store";
 import { clearToken } from "@/lib/auth";
+import { disconnectPusher } from "@/lib/pusher";
 import { getInitials } from "@/lib/utils"
 
 import { Panel } from "@/components/ui/Panel";
@@ -262,13 +263,9 @@ export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserSc
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
-  /** Poll every 30 s while the panel is visible; stop when closed. */
-  const POLL_MS = 30_000;
 
-  const { data: allDesigns = [] } = useDesigns();
+  const { data: allDesigns = [] } = useDesigns({ enabled: open });
   const { data: beadList = [] } = useBeads();
-  const { data: inReview   = [] } = useDesigns({ status: "in_review", refetchInterval: open ? POLL_MS : false });
-  const { data: approved   = [] } = useDesigns({ status: "approved",  refetchInterval: open ? POLL_MS : false });
   const { loadDesign }    = useLoadDesign();
 
   const beads            = useStore((s) => s.beads);
@@ -283,13 +280,22 @@ export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserSc
   const showReview = !!(perms?.is_reviewer || perms?.is_admin);
   const showPublish= !!(perms?.is_publisher || perms?.is_admin);
 
+  const inReview = useMemo(
+    () => (showReview ? allDesigns.filter((d) => d.status === "in_review") : []),
+    [allDesigns, showReview],
+  );
+  const approved = useMemo(
+    () => (showPublish ? allDesigns.filter((d) => d.status === "approved") : []),
+    [allDesigns, showPublish],
+  );
+
   // ── Design selection — delegate to global ConfirmReplaceDialog if canvas has unsaved changes ──
-  function requestLoad(design: Bracelet) {
+  async function requestLoad(design: Bracelet) {
     if (isDirty) {
       setPendingDesign(design, onClose);
     } else {
-      loadDesign(design);
-      onClose();
+      const success = await loadDesign(design);
+      if (success) onClose();
     }
   }
 
@@ -300,6 +306,7 @@ export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserSc
 
   function handleSignOut() {
     clearToken();
+    disconnectPusher();
     onClose();
     router.push("/login");
   }

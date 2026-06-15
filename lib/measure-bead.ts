@@ -27,6 +27,16 @@ export interface CharmMeasurement {
 
 const charmCache = new Map<string, CharmMeasurement>();
 
+function disposeObject(obj: THREE.Object3D): void {
+  obj.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    child.geometry?.dispose();
+    const mat = child.material;
+    if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+    else mat?.dispose();
+  });
+}
+
 export function measureCharm(glbPath: string): Promise<CharmMeasurement> {
   const key = `${glbPath}::${CHARM_ROTATION.join(",")}`;
   if (charmCache.has(key)) return Promise.resolve(charmCache.get(key)!);
@@ -50,6 +60,7 @@ export function measureCharm(glbPath: string): Promise<CharmMeasurement> {
         hangLength: Math.abs(rotBox.min.y),
       };
       charmCache.set(key, result);
+      disposeObject(gltf.scene);
       resolve(result);
     }, undefined, reject);
   });
@@ -87,6 +98,7 @@ export function measureBeadDiameter(glbPath: string): Promise<number> {
         // Diameter = max of X and Z extents (hole runs along Y)
         const diameter = Math.max(size.x, size.z);
         cache.set(glbPath, diameter);
+        disposeObject(gltf.scene);
         resolve(diameter);
       },
       undefined,

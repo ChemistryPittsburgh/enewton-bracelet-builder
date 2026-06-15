@@ -8,5 +8,6 @@ export function useComments(designId: number | null, options?: { enabled?: boole
     queryKey: ["designs", designId, "comments"],
     queryFn: () => apiFetch<DesignComment[]>(`/designs/${designId}/comments`),
     enabled: designId !== null && (options?.enabled ?? true),
+    staleTime: 1000 * 30, // 30 s — comment mutations invalidate explicitly
   });
 }
