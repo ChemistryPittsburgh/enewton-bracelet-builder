@@ -5,7 +5,7 @@ import { ThreeEvent } from "@react-three/fiber";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, HIGHLIGHT_SELECT_COLOR, EDIT_MODE_HIGHLIGHT_SELECT_COLOR } from "@/lib/constants";
 
 /** Fixed cross-section radius for all spacers (metres). ~3mm radius = 6mm visual height. */
 const SPACER_CROSS_SECTION = 0.003;
@@ -37,18 +37,35 @@ export function SpacerOnBracelet({
   visible = true,
 }: SpacerOnBraceletProps) {
   const { gl } = useThree();
-  const selectBead          = useStore((s) => s.selectBead);
-  const selectedBead        = useStore((s) => s.selectedBead);
-  const editSelectedBead    = useStore((s) => s.editSelectedBead);
-  const setEditSelectedBead = useStore((s) => s.setEditSelectedBead);
-  const beads               = useStore((s) => s.beads);
-  const braceletSize        = useStore((s) => s.braceletSize);
-  const isEditMode          = useStore((s) => s.isEditMode);
-  const viewMode            = useStore((s) => s.viewMode);
+  const {
+    selectBead,
+    selectedBead,
+    editSelectedIds,
+    toggleEditBead,
+    clearSelectedBead,
+    clearEditSelection,
+    beads,
+    braceletSize,
+    isEditMode,
+    viewMode,
+  } = useStore((s) => ({
+    selectBead:          s.selectBead,
+    selectedBead:        s.selectedBead,
+    editSelectedIds:     s.editSelectedIds,
+    toggleEditBead:      s.toggleEditBead,
+    clearSelectedBead:   s.clearSelectedBead,
+    clearEditSelection:  s.clearEditSelection,
+    beads:               s.beads,
+    braceletSize:        s.braceletSize,
+    isEditMode:          s.isEditMode,
+    viewMode:            s.viewMode,
+  }));
 
   const isSelected = isEditMode
-    ? editSelectedBead?.instanceId === bead.instanceId
+    ? editSelectedIds.includes(bead.instanceId)
     : selectedBead?.instanceId === bead.instanceId;
+
+  const highlightColor = !isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT_SELECT_COLOR;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === "line"
@@ -63,22 +80,52 @@ export function SpacerOnBracelet({
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
-    if (!isEditMode) selectBead(bead);
+    if (isEditMode) {
+      const ne = e.nativeEvent;
+      if (ne && (ne.metaKey || ne.ctrlKey)) {
+        selectBead(bead);
+      } else {
+        clearSelectedBead();
+        toggleEditBead(bead.instanceId);
+      }
+    } else {
+      selectBead(bead);
+    }
   }
 
-  function handleDoubleClick(e: ThreeEvent<MouseEvent>) {
-    e.stopPropagation();
-    if (!isEditMode) return;
-    setEditSelectedBead(bead);
-    selectBead(bead);
-  }
+  /** Pixels of pointer movement before a drag initiates (prevents jump on click). */
+  const DRAG_THRESHOLD = 4;
 
   function handlePointerDown(e: ThreeEvent<PointerEvent>) {
     if (!isEditMode) return;
     e.stopPropagation();
-    gl.domElement.setPointerCapture(e.pointerId);
-    gl.domElement.style.cursor = "grabbing";
-    onDragStart?.(slotIndex);
+
+    const startX = e.nativeEvent.clientX;
+    const startY = e.nativeEvent.clientY;
+
+    function onMove(moveEvent: PointerEvent) {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
+        clearEditSelection();
+        clearSelectedBead();
+        gl.domElement.style.cursor = "grabbing";
+        onDragStart?.(slotIndex);
+        cleanup();
+      }
+    }
+
+    function onUp() {
+      cleanup();
+    }
+
+    function cleanup() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }
 
   function handlePointerEnter() {
@@ -105,7 +152,6 @@ export function SpacerOnBracelet({
       onPointerDown={handlePointerDown}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
-      onDoubleClick={handleDoubleClick}
     >
       <group rotation={innerRotation}>
         {visible && (
@@ -144,7 +190,7 @@ export function SpacerOnBracelet({
         {visible && isSelected && cylRadius > 0 && (
           <mesh rotation={[Math.PI, 0, 0]}>
             <torusGeometry args={[cylRadius * 1.15, 0.0003, 8, 32]} />
-            <meshBasicMaterial color="#c8a97e" />
+            <meshBasicMaterial color={highlightColor} />
           </mesh>
         )}
 

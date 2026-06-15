@@ -38,7 +38,11 @@ export const SCENE_BACKGROUND_PREVIEW_BEAD = "#f1f3f5"; // currently light-grey
 export const THUMBNAIL_SIZE = 600;
 
 /** Canvas background colour when edit mode is active. */
-export const EDIT_MODE_BACKGROUND = "#dbeafe";
+export const EDIT_MODE_BACKGROUND = "#eff6ff";
+
+/** Color of ring when bead is selected/highlights */
+export const HIGHLIGHT_SELECT_COLOR = "#a38d48"; 
+export const EDIT_MODE_HIGHLIGHT_SELECT_COLOR = "#1F3A5F";
 
 // ─── Camera ───────────────────────────────────────────────────────────────────
 

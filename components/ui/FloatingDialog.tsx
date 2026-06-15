@@ -58,7 +58,7 @@ export function FloatingDialog({
           "group transition-transform duration-200",
           includeTitleBar
             ? "flex w-full items-center justify-between px-3 py-2"
-            : "absolute right-2 top-2 z-10"
+            : "absolute right-2 top-2 z-10 icon-only-btn"
         )}
       >
         {title && (
@@ -73,7 +73,7 @@ export function FloatingDialog({
           )}
         >
           {isControlled ? (
-            <X size={20} className="transition-all duration-300 group-hover:scale-130" />
+            <X size={20} className="transition-all duration-300" />
           ) : (
             <ChevronDown
               size={15}

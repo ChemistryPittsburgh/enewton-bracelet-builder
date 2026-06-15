@@ -69,10 +69,10 @@ interface SceneProps {
 
 export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
-  const { isEditMode, clearSelectedBead, setEditSelectedBead, viewMode } = useStore((s) => ({
+  const { isEditMode, clearSelectedBead, clearEditSelection, viewMode } = useStore((s) => ({
     isEditMode: s.isEditMode,
     clearSelectedBead: s.clearSelectedBead,
-    setEditSelectedBead: s.setEditSelectedBead,
+    clearEditSelection: s.clearEditSelection,
     viewMode: s.viewMode,
   }));
   return (
@@ -91,7 +91,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
         style={{ background: isEditMode ? EDIT_MODE_BACKGROUND : SCENE_BACKGROUND }}
         onPointerMissed={() => {
           clearSelectedBead();
-          setEditSelectedBead(null);
+          clearEditSelection();
         }}
       >
         <CanvasRegistrar />

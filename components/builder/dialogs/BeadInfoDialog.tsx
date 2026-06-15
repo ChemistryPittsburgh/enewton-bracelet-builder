@@ -9,7 +9,7 @@ import { capitalize, slugify, formatMm } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
-  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType } = useStore((s) => ({
+  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode} = useStore((s) => ({
     beads: s.beads,
     selectedBead: s.selectedBead,
     clearSelectedBead: s.clearSelectedBead,
@@ -17,6 +17,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
     selectAllActive: s.selectAllActive,
     selectAllOfType: s.selectAllOfType,
     removeAllOfType: s.removeAllOfType,
+    isEditMode: s.isEditMode,
   }));
 
   const isOpen = !isLocked && selectedBead !== null;
@@ -46,7 +47,8 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
         "absolute top-24 right-6 z-50 w-[340px] transition-all duration-300 ease-out",
         isOpen
           ? "opacity-100 translate-y-0 pointer-events-auto"
-          : "opacity-0 translate-y-3 pointer-events-none"
+          : "opacity-0 translate-y-3 pointer-events-none",
+        isEditMode && 'top-[150px]'
       )}
     >
       <FloatingDialog
