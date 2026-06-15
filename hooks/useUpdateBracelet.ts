@@ -39,7 +39,7 @@ function visuallyChanged(
  * current user lacks the `is_bracelet_editor` permission.
  */
 export function useUpdateBracelet() {
-  const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize } = useStore(
+  const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize, hairtieColor } = useStore(
     (s) => ({
       activeDesignId:      s.activeDesignId,
       beads:               s.beads,
@@ -47,6 +47,7 @@ export function useUpdateBracelet() {
       braceletDescription: s.braceletDescription,
       bandMaterial:        s.bandMaterial,
       braceletSize:        s.braceletSize,
+      hairtieColor:        s.hairtieColor,
     }),
   );
 
@@ -77,7 +78,7 @@ export function useUpdateBracelet() {
       }
     }
 
-    const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial);
+    const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor);
 
     await updateDesign({
       id: activeDesignId,

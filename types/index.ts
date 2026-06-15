@@ -32,6 +32,7 @@ export interface BraceletConfigBead {
 export interface BraceletConfiguration {
   band_material: BandMaterial;
   bracelet_size: BraceletSize;
+  hairtie_color?: string | null;
   arc_used_mm: number;
   arc_total_mm: number;
   percent_used: number;
@@ -159,8 +160,13 @@ export interface User {
   color?: string;
 }
 
-export type BandMaterial = "wire" | "cord" | "elastic";
-export type BraceletSize = "x-small" | "small" | "large";
+export type BandMaterial = "stretchy" | "hairtie";
+export type BraceletSize = "small" | "medium" | "large";
+
+export type HairtieColor =
+  | "gray" | "white" | "mint" | "pink" | "bright red"
+  | "navy" | "wine" | "light blue" | "onyx" | "gold"
+  | "orange" | "cobalt" | "bright orange" | "purple" | "dark green";
 
 /**
  * A bead/charm product the user can add to their bracelet.

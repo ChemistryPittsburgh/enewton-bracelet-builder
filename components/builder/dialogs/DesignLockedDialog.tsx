@@ -32,7 +32,7 @@ export function DesignLockedDialog({
     <FullScreenDialog open onClose={onClose} title="Design in use" className="max-w-md">
       <div className="flex flex-col gap-5 py-2">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange/20">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange/10">
             <Lock size={16} className="text-orange" />
           </div>
           <div className="flex flex-col gap-1">

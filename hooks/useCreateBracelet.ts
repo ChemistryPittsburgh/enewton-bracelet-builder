@@ -24,17 +24,18 @@ function uniqueTags(values: (string | null | undefined)[]): string[] {
  */
 export function useCreateBracelet() {
   const queryClient = useQueryClient();
-  const { beads, braceletName, braceletDescription, bandMaterial, braceletSize } = useStore((s) => ({
+  const { beads, braceletName, braceletDescription, bandMaterial, braceletSize, hairtieColor } = useStore((s) => ({
     beads: s.beads,
     braceletName: s.braceletName,
     braceletDescription: s.braceletDescription,
     bandMaterial: s.bandMaterial,
     braceletSize: s.braceletSize,
+    hairtieColor: s.hairtieColor,
   }));
 
   return useMutation({
     mutationFn({ preview_image_url }: { preview_image_url: string | null }) {
-      const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial);
+      const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor);
 
       // Derive material_tags and bead_types from the placed beads
       const material_tags = uniqueTags(beads.map((b) => b.product.material));

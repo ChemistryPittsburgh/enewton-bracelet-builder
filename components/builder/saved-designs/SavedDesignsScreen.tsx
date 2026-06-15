@@ -282,7 +282,7 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
           <div className="flex items-center justify-between pb-8">
             <button
               onClick={onClose}
-              className="flex items-center rounded px-4.5 py-3.5 text-sm font-semibold border border-default bg-white hover:bg-mint hover:border-black transition-colors"
+              className="flex items-center rounded-[2px] px-4.5 py-3.5 text-sm font-semibold border border-default bg-white hover:bg-mint hover:border-black transition-colors"
               aria-label="Close Saved Designs Screen"
             >
               <Inbox size={24} />
@@ -296,7 +296,7 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
                 key={label}
                 onClick={() => { setSelectedStatus(value); setBraceletState("all"); }}
                 className={cn(
-                  "rounded-[2px] border border-navy px-4 py-2 lg:px-4 lg:py-3 text-left text-sm lg:text-[16px] transition-all cursor-pointer",
+                  "rounded-[3px] border border-navy px-4 py-2 lg:px-4 lg:py-3 text-left text-sm lg:text-[16px] transition-all cursor-pointer",
                   selectedStatus === value
                     ? "bg-navy text-white"
                     : "bg-white hover:bg-mint",

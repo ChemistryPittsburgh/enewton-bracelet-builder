@@ -22,6 +22,7 @@ export function useLoadDesign() {
   const loadBeads = useStore((s) => s.loadBeads);
   const setBraceletSize = useStore((s) => s.setBraceletSize);
   const setbandMaterial = useStore((s) => s.setbandMaterial);
+  const setHairtieColor = useStore((s) => s.setHairtieColor);
   const setActiveDesignId = useStore((s) => s.setActiveDesignId);
   const markClean = useStore((s) => s.markClean);
   const setBraceletDescription = useStore((s) => s.setBraceletDescription);
@@ -57,6 +58,9 @@ export function useLoadDesign() {
     // the correct radius for the saved bracelet.
     setBraceletSize(configuration.bracelet_size);
     setbandMaterial(configuration.band_material);
+    if (configuration.hairtie_color) {
+      setHairtieColor(configuration.hairtie_color);
+    }
     loadBeads(placedBeads, name);
 
     // Restore description (empty string when null so the input stays controlled).

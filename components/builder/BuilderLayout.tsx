@@ -11,6 +11,7 @@ import { useProgress } from "@react-three/drei";
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { PANEL_WIDTH } from "@/components/ui/Panel";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { BraceletExporter } from "./canvas/BraceletExporter";
 import { BandSelector } from "./canvas/BandSelector";
@@ -350,14 +351,15 @@ export function BuilderLayout() {
       {/* Header */}
       <header className="flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-6">
         <div className="flex flex-1 items-center gap-4">
-          <button
-            onClick={() => setSavedDesignsOpen(true)}
-            className="flex items-center rounded border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
-            aria-label="Saved Designs"
-            title="View All Saved Designs"
-          >
-            <Inbox size={24} />
-          </button>
+        <Tooltip content="Open Saved Designs Panel" placement="bottom-end">
+            <button
+              onClick={() => setSavedDesignsOpen(true)}
+              className="flex items-center rounded-[2px] border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
+              aria-label="Saved Designs"
+            >
+              <Inbox size={24} />
+            </button>
+          </Tooltip>
           <img
             src={LOGO_SRC}
             alt={LOGO_ALT}
@@ -449,7 +451,7 @@ export function BuilderLayout() {
             {/* Bracelet info overlay */}
             <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
               {(kickedNotification || lockedByOther) && (
-                <div className="mb-1 flex items-center gap-1.5 rounded-md bg-amber-500 px-2.5 py-1 text-xs font-medium text-white">
+                <div className="mb-1 flex items-center gap-1.5 rounded-md bg-orange px-2.5 py-1 text-xs font-medium text-white">
                   <ShieldAlert size={11} className="shrink-0" />
                   {kickedNotification
                     ? "Read-only — your session was taken over"
@@ -457,9 +459,9 @@ export function BuilderLayout() {
                 </div>
               )}
               {lockHeld && (
-                <div className="mb-1 flex items-center gap-1.5 rounded-md bg-amber-500 px-2.5 py-1 text-xs font-medium text-white">
+                <div className="mb-1 flex items-center gap-1.5 rounded-[2px] w-fit bg-orange px-2.5 py-1 text-xs font-medium text-white">
                   <Lock size={11} className="shrink-0" />
-                  You are editing
+                  <span className="font-bold">Locked:</span> You are editing
                 </div>
               )}
               <CanvasWorkflowBar />

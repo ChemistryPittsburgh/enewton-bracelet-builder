@@ -46,7 +46,7 @@ export function FloatingDialog({
   return (
     <div
       className={cn(
-        "rounded-2xl bg-white shadow-lg border border-neutral-100 overflow-hidden",
+        "rounded-[3px] bg-white shadow-lg border border-default overflow-hidden",
         className
       )}
     >
@@ -62,14 +62,14 @@ export function FloatingDialog({
         )}
       >
         {title && (
-          <span className="text-sm font-bold text-neutral-900">{title}</span>
+          <span className="text-sm font-bold text-color-base/80">{title}</span>
         )}
 
         <div
           className={cn(
             "flex h-7 w-7 items-center justify-center rounded-full text-color-base/70",
             includeTitleBar &&
-              "border border-default group-hover:bg-neutral-50 group-hover:ring-2"
+              "border border-default group-hover:bg-mint group-hover:ring-2 group-hover:ring-navy"
           )}
         >
           {isControlled ? (
