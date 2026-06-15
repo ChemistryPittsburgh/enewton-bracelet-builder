@@ -100,7 +100,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
         <directionalLight position={[0.1, 0.2, 0.1]} intensity={0.8} color="#fffaf6" castShadow={viewMode !== 'line'} />
         <directionalLight position={[-0.3, 0, -0.3]} intensity={0.6} color="#fff5f0"/>
         <directionalLight position={[1.5, 0, -1]} intensity={0.8} color="#fffaf6" />
-        <Environment preset="apartment" background={false} resolution={200} blur={0.8} backgroundIntensity={0.1} environmentIntensity={0.45} />
+        <Environment files="/hdri/lebombo_1k.hdr" background={false} resolution={200} blur={0.8} backgroundIntensity={0.1} environmentIntensity={0.45} />
 
         <Suspense fallback={null}>
           <BraceletCord />
