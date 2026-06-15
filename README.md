@@ -20,7 +20,6 @@ Copy `.env.example` to `.env` and fill in all required values before running.
 
 | Variable | Required | Description |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | Yes | Base URL of the backend API (e.g. `https://enewtonbuilder.chemistry.digital`) |
 | `NEXT_PUBLIC_TOKEN_KEY` | Yes | localStorage key name for auth tokens (e.g. `enewton-token`) |
 | `ENEWTON_AWS_ACCESS_KEY_ID` | Yes | AWS credentials for S3 uploads (models + thumbnails) |
 | `ENEWTON_AWS_SECRET_ACCESS_KEY` | Yes | AWS credentials for S3 uploads |
