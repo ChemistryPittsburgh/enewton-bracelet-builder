@@ -23,6 +23,7 @@ export function EditModeToolbar() {
     selectBead,
     selectedBead,
     clearSelectedBead,
+    toggleEditMode,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editSelectedIds: s.editSelectedIds,
@@ -38,6 +39,7 @@ export function EditModeToolbar() {
     selectBead: s.selectBead,
     selectedBead: s.selectedBead,
     clearSelectedBead: s.clearSelectedBead,
+    toggleEditMode: s.toggleEditMode,
   }));
 
   const n = beads.length;
@@ -98,6 +100,9 @@ export function EditModeToolbar() {
         case "Escape":
           e.preventDefault();
           clearEditSelection();
+          if (e.metaKey || e.ctrlKey) {
+            toggleEditMode();
+          }
           break;
       }
     }

@@ -102,7 +102,7 @@ export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.0
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
  */
 export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: number; metalness: number; tubeRadius: number; opacity: number }> = {
-  stretchy: { color: "#e8e0d8", roughness: 0.15, metalness: 0.65, tubeRadius: 0.00015, opacity: 0.7 },
+  stretchy: { color: "#e8e0d8", roughness: 0.15, metalness: 0.65, tubeRadius: 0.00025, opacity: 0.7 },
   hairtie:  { color: "#000000", roughness: 0.8,  metalness: 0,    tubeRadius: 0.00052, opacity: 1 },
 };
 
@@ -146,12 +146,11 @@ export interface FinishPreset {
   metalness?:       number;
   roughness?:       number;
   envMapIntensity?: number;
-  clearcoat?:       number;
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
-  gold:      { metalness: 1, roughness: 0.18, envMapIntensity: 0.1 },
-  silver:    { metalness: 1,   roughness: 0.18, envMapIntensity: 0.35 },
+  gold:      { metalness: 1, roughness: 0.1, envMapIntensity: 0.3 },
+  silver:    { metalness: 1,   roughness: 0.12, envMapIntensity: 0.35 },
   rose_gold: { metalness: 0.95, roughness: 0.2, envMapIntensity: 0.9 },
   gem:       { metalness: 0.5 },
 };

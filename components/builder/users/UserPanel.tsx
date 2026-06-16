@@ -372,14 +372,14 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads }: UserPan
                   onClick={() => onEditUsers?.()}
                   className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
                 >
-                  Edit users
+                  Manage Users
                 </button>
               )}
               <button
                 onClick={() => onManageBeads?.()}
                 className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
               >
-                Upload / Edit Inventory
+                Manage Inventory
               </button>
             </div>
           )}

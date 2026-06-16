@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { computeCharmAdjustments } from "@/lib/charm-collision";
 import { useDesign } from "@/hooks/useDesign";
 import type { PlacedBead } from "@/types";
 import { BeadOnBracelet } from "./BeadOnBracelet";
@@ -20,7 +21,14 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const viewMode                = useStore((s) => s.viewMode);
   const activeDesignId          = useStore((s) => s.activeDesignId);
   const spacersHiddenForCapture = useStore((s) => s.spacersHiddenForCapture);
+  const showCharmCollisions     = useStore((s) => s.showCharmCollisions);
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+
+  // Charm adjustments — layer offset + bail-pivot swing for nearby charms
+  const charmAdjustments = useMemo(
+    () => computeCharmAdjustments(beads, radius),
+    [beads, radius],
+  );
 
   // Design status — new/unsaved bracelets default to "draft"
   const { data: activeDesign } = useDesign(activeDesignId);
@@ -71,6 +79,9 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                   isDragTarget={isDragTarget}
                   onDragStart={handleDragStart}
                   isLocked={isLocked}
+                  layerOffset={charmAdjustments.get(bead.instanceId)?.layerOffset ?? 0}
+                  swingAngle={charmAdjustments.get(bead.instanceId)?.swingAngle ?? 0}
+                  isColliding={showCharmCollisions && charmAdjustments.has(bead.instanceId)}
                 />
               </Suspense>
             )}

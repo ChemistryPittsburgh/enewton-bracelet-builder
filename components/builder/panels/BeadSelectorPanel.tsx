@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import { useQueryClient, useIsFetching } from "@tanstack/react-query";
-import { RotateCcw, Search, MoveHorizontal, X } from "lucide-react";
+import { RotateCcw, Search, MoveHorizontal, X, Dot } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize, formatMm, unslugify } from "@/lib/utils";
 import type { BeadProduct } from "@/types";
@@ -509,8 +509,14 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
                     <p className="truncate text-[15px] font-medium  ">
                       {selectedBead?.bead_type ?? ""}
                     </p>
-                    <p className="text-[12px] text-color-base/70">
+                    <p className="text-[12px] text-color-base/70 flex items-center">
                       {selectedBead?.size_mm ? `${selectedBead.size_mm}mm` : "—"}
+                      {selectedBead?.color && (
+                        <span className="flex items-center gap-0.5">
+                          <Dot size={10} />
+                          {capitalize(selectedBead.color)}
+                        </span>
+                      )}
                     </p>
                   </div>
 

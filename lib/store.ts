@@ -98,6 +98,10 @@ interface Store {
   isEditMode: boolean;
   toggleEditMode: () => void;
 
+  /** Ephemeral — when true, colliding charms are highlighted with an orange ring. */
+  showCharmCollisions: boolean;
+  setShowCharmCollisions: (show: boolean) => void;
+
   /** Ephemeral — not persisted. Which camera view is active in edit mode. */
   editViewMode: 'top' | 'side';
   toggleEditViewMode: () => void;
@@ -177,6 +181,9 @@ export const useStore = create<Store>()(
       hairtieColor: "gray",
       beadLoadErrors: [],
       isEditMode: false,
+
+      showCharmCollisions: false,
+      setShowCharmCollisions: (show) => set({ showCharmCollisions: show }),
       editSelectedIds: [],
       editViewMode: 'top' as const,
       selectAllActive: false,

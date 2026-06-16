@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { ThreeEvent } from "@react-three/fiber";
-import { Box3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial, Vector3 } from "three";
+import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
@@ -18,6 +18,12 @@ interface BeadOnBraceletProps {
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
   isLocked?: boolean;
+  /** Radial depth offset (metres) to layer nearby charms. 0 = no offset. */
+  layerOffset?: number;
+  /** Bail-pivot swing angle (radians) to fan nearby charm bodies apart. 0 = no swing. */
+  swingAngle?: number;
+  /** When true, renders an orange warning ring on this charm. */
+  isColliding?: boolean;
 }
 
 export function BeadOnBracelet({
@@ -27,6 +33,9 @@ export function BeadOnBracelet({
   isDragTarget = false,
   onDragStart,
   isLocked = false,
+  layerOffset = 0,
+  swingAngle = 0,
+  isColliding = false,
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -54,21 +63,13 @@ export function BeadOnBracelet({
         const srcMat = child.material;
         if (srcMat.metalness < 0.5) return;
 
-        // If the preset needs clearcoat, upgrade to MeshPhysicalMaterial
-        // (clearcoat is not available on MeshStandardMaterial).
-        const needsPhysical = preset.clearcoat != null && !(srcMat instanceof MeshPhysicalMaterial);
-        const mat = needsPhysical
-          ? new MeshPhysicalMaterial().copy(srcMat as MeshStandardMaterial)
-          : srcMat.clone();
+        const mat = srcMat.clone();
 
         if (preset.color           !== undefined) mat.color.set(preset.color);
         if (preset.metalness       !== undefined) mat.metalness       = preset.metalness;
         if (preset.roughness       !== undefined) mat.roughness       = preset.roughness;
         mat.roughness = Math.max(mat.roughness, 0.22);
         if (preset.envMapIntensity !== undefined) mat.envMapIntensity = preset.envMapIntensity;
-        if (preset.clearcoat       !== undefined && mat instanceof MeshPhysicalMaterial) {
-          mat.clearcoat = preset.clearcoat;
-        }
 
         child.material = mat;
       });
@@ -159,10 +160,24 @@ const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT
     ? getBeadTransformLine(slotIndex, beads)
     : getBeadTransform(slotIndex, beads, radius);
 
+  // Apply radial layer offset for nearby charms — shifts position outward
+  // or inward along the radial direction so charms stack visually.
+  const layeredPosition: [number, number, number] = layerOffset !== 0
+    ? (() => {
+        const mag = Math.sqrt(position[0] ** 2 + position[2] ** 2);
+        if (mag === 0) return position;
+        return [
+          position[0] + (position[0] / mag) * layerOffset,
+          position[1],
+          position[2] + (position[2] / mag) * layerOffset,
+        ] as [number, number, number];
+      })()
+    : position;
+
   const liftedPosition: [number, number, number] = [
-    position[0],
-    position[1] + hangOffset + (isDragged ? 0.003 : 0),
-    position[2] + depthOffset,
+    layeredPosition[0],
+    layeredPosition[1] + hangOffset + (isDragged ? 0.003 : 0),
+    layeredPosition[2] + depthOffset,
   ];
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
@@ -240,9 +255,24 @@ const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT
     >
       <group rotation={innerRotation} dispose={null}>
         {isCharm ? (
-          <group rotation={CHARM_ROTATION}>
-            <primitive object={cloned} />
-          </group>
+          swingAngle !== 0 ? (
+            /* Bail-pivot swing: translate so bail sits at the group origin,
+               apply the swing rotation, then translate back. The bail stays
+               on the cord while the hanging body fans to one side. */
+            <group position={[0, -hangOffset, 0]}>
+              <group rotation={[0, 0, swingAngle]}>
+                <group position={[0, hangOffset, 0]}>
+                  <group rotation={CHARM_ROTATION}>
+                    <primitive object={cloned} />
+                  </group>
+                </group>
+              </group>
+            </group>
+          ) : (
+            <group rotation={CHARM_ROTATION}>
+              <primitive object={cloned} />
+            </group>
+          )
         ) : (
           <primitive object={cloned} />
         )}
@@ -257,7 +287,7 @@ const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT
         {isSelected && vizRadius > 0 && (
           <mesh rotation={isCharm ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
             <torusGeometry args={[vizRadius * 1.15, 0.0003, 8, 32]} />
-            <meshBasicMaterial color={highlightColor} transparent opacity={0.7} />
+            <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
           </mesh>
         )}
 
@@ -266,6 +296,17 @@ const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[vizRadius * 1.3, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#93c5fd" />
+          </mesh>
+        )}
+
+        {/* Charm collision highlight ring — shown when user clicks the overlap warning */}
+        {isColliding && vizRadius > 0 && (
+          <mesh
+            position={isCharm ? [0, charmBodyCenterY, 0] : [0, 0, 0]}
+            rotation={isCharm ? [Math.PI / 2, 0, 0] : [0, 0, 0]}
+          >
+            <torusGeometry args={[vizRadius * 1.25, 0.00025, 8, 32]} />
+            <meshBasicMaterial color="#be123c" transparent opacity={0.4} />
           </mesh>
         )}
       </group>

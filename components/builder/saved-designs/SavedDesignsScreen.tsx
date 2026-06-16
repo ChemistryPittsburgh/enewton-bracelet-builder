@@ -27,6 +27,7 @@ import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBracele
 import { DiscontinueBraceletDialog } from "@/components/builder/dialogs/DiscontinueBraceletDialog";
 import { DesignLockedDialog } from "@/components/builder/dialogs/DesignLockedDialog";
 import { RejectBraceletDialog } from "@/components/builder/dialogs/RejectBraceletDialog";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface SavedDesignsScreenProps {
   isOpen: boolean;
@@ -435,13 +436,15 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
                       >
                         <span className="opacity-40">{style.label}:</span>
                         {chip.label}
-                        <button
-                          onClick={chip.onRemove}
-                          className="ml-0.5 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                          aria-label={`Remove ${chip.label} filter`}
-                        >
-                          <X size={11} />
-                        </button>
+                        <Tooltip content={`Remove filter ${chip.label}`}>
+                          <button
+                            onClick={chip.onRemove}
+                            className="ml-0.5 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                            aria-label={`Remove ${chip.label} filter`}
+                          >
+                            <X size={11} />
+                          </button>
+                        </Tooltip>
                       </span>
                     );
                   })}
