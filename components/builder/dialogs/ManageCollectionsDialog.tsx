@@ -7,7 +7,7 @@ import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { Button } from "@/components/ui/Button";
 
 import { useDesigns } from "@/hooks/useDesigns";
-import { useCollections, useCreateCollection, useUpdateCollection, useDeleteCollection } from "@/hooks/Collections";
+import { useCollections, useCreateCollection, useUpdateCollection, useDeleteCollection } from "@/hooks/useCollections";
 import type { Collection } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

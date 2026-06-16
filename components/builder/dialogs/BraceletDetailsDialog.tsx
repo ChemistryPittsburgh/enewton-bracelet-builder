@@ -19,8 +19,8 @@ import { useDesign } from "@/hooks/useDesign";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
-import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
+import { useApplyTag, useRemoveTag } from "@/hooks/useTags";
+import { useApplyCollection, useRemoveCollection } from "@/hooks/useCollections";
 
 import { WorkflowSection } from "@/components/builder/sections/WorkflowSection";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";

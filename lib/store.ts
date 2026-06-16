@@ -232,7 +232,7 @@ export const useStore = create<Store>()(
         selectedBead: null,
         isDirty: false,
         braceletSize: "small" as BraceletSize,
-        bandMaterial: "cord" as BandMaterial,
+        bandMaterial: "stretchy" as BandMaterial,
       }),
 
       startNewBracelet: () => set({

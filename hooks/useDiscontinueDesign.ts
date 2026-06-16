@@ -5,7 +5,7 @@ import type { Bracelet } from "@/types";
 
 /**
  * POST /designs/:id — sets is_discontinued = 1.
- * Admin-only. Irreversible.
+ * Admin only can reverse discontinue 
  */
 export function useDiscontinueDesign() {
   const queryClient = useQueryClient();

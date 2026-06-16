@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Loader2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTags } from "@/hooks/Tags";
-import { useCollections } from "@/hooks/Collections";
+import { useTags } from "@/hooks/useTags";
+import { useCollections } from "@/hooks/useCollections";
 import { usePermissions } from "@/hooks/usePermissions";
 import { ManageTagsDialog } from "@/components/builder/dialogs/ManageTagsDialog";
 import { ManageCollectionsDialog } from "@/components/builder/dialogs/ManageCollectionsDialog";

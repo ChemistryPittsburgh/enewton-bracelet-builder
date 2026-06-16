@@ -24,7 +24,7 @@ export type CategoryKey = keyof typeof CATEGORY_STYLES;
 
 // ── Bracelet workflow status ──────────────────────────────────────────────────
 export const STATUS_META: Record<BraceletStatus, { label: string; cls: string }> = {
-  draft:        { label: "In Progress",  cls: "bg-gold/20 text-[8f7b3d]" },
+  draft:        { label: "In Progress",  cls: "bg-gold/20 text-[#8f7b3d]" },
   in_review:    { label: "In Review",    cls: "bg-[#2471a3]/20 text-[#185278]"},
   approved:     { label: "Approved",     cls: "bg-[#0d5c52]/20 text-[#0d5c52]"},
   published:    { label: "Published",    cls: "bg-[#6c3483]/20 text-[#6c3483]"},

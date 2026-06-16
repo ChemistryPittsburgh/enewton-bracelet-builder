@@ -65,7 +65,7 @@ export function SpacerOnBracelet({
     ? editSelectedIds.includes(bead.instanceId)
     : selectedBead?.instanceId === bead.instanceId;
 
-  const highlightColor = !isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT_SELECT_COLOR;
+  const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT_SELECT_COLOR;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === "line"

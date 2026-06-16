@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
 import { useUpdateBracelet } from "@/hooks/useUpdateBracelet";
 import { useDesign } from "@/hooks/useDesign";
+import { useIsDirty } from "@/hooks/useIsDirty";
 import { useStore } from "@/lib/store";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -41,14 +42,10 @@ export function BraceletExporter({ onNameRequired, isKicked, onKickedClick }: Br
   const popoverRef = useRef<HTMLDivElement>(null);
   const { canEdit } = usePermissions();
 
-  const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize } =
+  const { activeDesignId, braceletName } =
     useStore((s) => ({
-      activeDesignId:      s.activeDesignId,
-      beads:               s.beads,
-      braceletName:        s.braceletName,
-      braceletDescription: s.braceletDescription,
-      bandMaterial:        s.bandMaterial,
-      braceletSize:        s.braceletSize,
+      activeDesignId: s.activeDesignId,
+      braceletName:   s.braceletName,
     }));
 
   const setBraceletName = useStore((s) => s.setBraceletName);
@@ -80,19 +77,7 @@ export function BraceletExporter({ onNameRequired, isKicked, onKickedClick }: Br
     doSave();
   }, [pendingSaveAfterName, braceletName]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Dirty check ─────────────────────────────────────────────────────────────
-  const isDirty = (() => {
-    if (!isUpdate) return true;
-    if (!savedDesign) return false;
-    const cfg = savedDesign.configuration;
-    if (braceletName        !== savedDesign.name)                              return true;
-    if ((braceletDescription || null) !== (savedDesign.description || null))  return true;
-    if (braceletSize        !== cfg.bracelet_size)                            return true;
-    if (bandMaterial        !== cfg.band_material)                            return true;
-    if (beads.length        !== cfg.beads.length)                             return true;
-    const sortedCfgBeads = [...cfg.beads].sort((a, b) => a.position - b.position);
-    return beads.some((b, i) => b.product.id !== sortedCfgBeads[i].product_id);
-  })();
+  const isDirty = useIsDirty();
 
   const { save }              = useSaveBracelet();
   const { update, canUpdate } = useUpdateBracelet();

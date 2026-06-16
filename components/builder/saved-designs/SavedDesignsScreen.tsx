@@ -17,8 +17,8 @@ import { useDiscontinueDesign } from "@/hooks/useDiscontinueDesign";
 import { useSubmitDesign } from "@/hooks/useSubmitDesign";
 import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
-import { useTags } from "@/hooks/Tags";
-import { useCollections } from "@/hooks/Collections";
+import { useTags } from "@/hooks/useTags";
+import { useCollections } from "@/hooks/useCollections";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePermissions } from "@/hooks/usePermissions";
 

@@ -250,7 +250,7 @@ export function useDeleteBead() {
         const designs: BlockingDesign[] = json.designs ?? json.data ?? [];
         throw new BeadInUseError(
           designs,
-          json.error ?? "This bead is used by one or more designs and cannot be deleted.",
+          json.error ?? "This item is used by one or more designs and cannot be deleted.",
         );
       }
 

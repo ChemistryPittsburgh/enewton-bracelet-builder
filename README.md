@@ -1,433 +1,231 @@
 # eNewton Bracelet Builder
 
-An internal design tool for building, saving, reviewing, and publishing eNewton bracelet designs. Designers compose bracelets from a bead/charm catalog in an interactive 3D scene, then save and route designs through a review → approve → publish workflow.
+Internal bracelet design tool for composing, saving, reviewing, and publishing bracelet configurations. Designers place 3D bead/charm models onto a virtual bracelet, manage designs through a multi-stage approval workflow, and publish finalized designs with Shopify SKUs.
 
----
+## Tech Stack
 
-## Setup
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router) |
+| 3D Rendering | React Three Fiber + drei |
+| State Management | Zustand (persisted to localStorage) |
+| Server State | TanStack React Query v5 |
+| Styling | Tailwind CSS v4 with custom design tokens |
+| Real-time | Pusher (private channels per design) |
+| Backend API | PHP / MySQL |
+| Storage | AWS S3 (GLB models, thumbnails) |
+| Auth | Email OTP (passwordless) |
+| Deployment | Netlify (frontend), Apache/PHP (API) |
+
+## Project Structure
+
+```
+app/
+├── (protected)/           # Auth-gated layout + main page
+│   ├── layout.tsx         # Redirects to /login if no token
+│   └── page.tsx           # Renders BuilderLayout
+├── api/
+│   ├── thumbnail/route.ts # PNG upload to S3 (bracelet + bead thumbnails)
+│   └── upload-bead/route.ts # GLB upload to S3 with magic-byte validation
+├── login/page.tsx         # Email OTP login flow
+├── globals.css            # Design tokens, base styles, Tailwind @theme
+└── layout.tsx             # Root layout (fonts, QueryProvider)
+
+components/
+├── builder/
+│   ├── canvas/            # Canvas overlays: toolbar, stats bar, band selector,
+│   │                        edit mode toolbar, workflow bar, exporter
+│   ├── dialogs/           # Modal dialogs: bead info, bracelet details, confirm
+│   │                        replace, delete, discontinue, manage beads/tags/
+│   │                        collections, reject, session takeover, design lock
+│   ├── panels/            # Slide-out panels: bead selector, comments
+│   ├── saved-designs/     # Saved designs screen, design cards, filter pickers
+│   ├── sections/          # Workflow + assignment sections (inside details dialog)
+│   ├── users/             # User admin: CRUD, OTP creation, permissions, avatar
+│   └── BuilderLayout.tsx  # Root component — orchestrates panels, lock state,
+│                            Pusher subscriptions, notifications
+├── scene/
+│   ├── AllBeads.tsx        # Maps placed beads → BeadOnBracelet / SpacerOnBracelet
+│   ├── BeadOnBracelet.tsx  # GLB loader, material finish, charm hanging, selection
+│   ├── SpacerOnBracelet.tsx# Procedural wireframe cylinder for virtual spacers
+│   ├── BraceletCord.tsx    # Torus (3D) or cylinder (line) cord mesh
+│   ├── CameraController.tsx# Camera transitions for select, edit, line views
+│   ├── CameraOffset.tsx    # View offset for panel-aware centering
+│   ├── Scene.tsx           # Canvas setup, lighting, environment, shadows
+│   ├── BeadErrorBoundary.tsx # Fallback wireframe sphere for broken GLBs
+│   └── BeadErrorToast.tsx  # Toast notifications for failed model loads
+└── ui/                    # Design system primitives: Button, Panel, Tooltip,
+                             Avatar, ErrorAlert, StandardConfirmDialog, etc.
+
+hooks/
+├── Collections.ts         # CRUD + design↔collection assignment mutations
+├── Tags.ts                # CRUD + design↔tag assignment mutations
+├── useBeads.ts            # Active bead catalog query (filtered, normalised)
+├── useBeadAdmin.ts        # Full bead CRUD, GLB upload, thumbnail upload
+├── useDesigns.ts          # All designs query with client-side filter/sort
+├── useDesign.ts           # Single design query by ID
+├── useCreateBracelet.ts   # POST /designs with derived config
+├── useUpdateBracelet.ts   # PUT /designs/:id with conditional thumbnail regen
+├── useSaveBracelet.ts     # Shared save flow: capture → upload → create
+├── useLoadDesign.ts       # Hydrate store from saved design + acquire lock
+├── useLockDesign.ts       # POST /designs/:id/lock (edit lock acquisition)
+├── useReleaseLock.ts      # DELETE /designs/:id/lock (fire-and-forget)
+├── useDesignHeartbeat.ts  # 30s interval lock keepalive
+├── usePusherDesign.ts     # Per-design Pusher channel subscriptions
+├── usePermissions.ts      # Role-based permission booleans
+├── useGenerateThumbnail.ts# WebGL render target capture + content-aware crop
+├── useDrag.ts             # Canvas drag-to-reorder + panel-to-canvas drop
+├── useIsDirty.ts          # Compares store state to cached saved design
+├── useOptimisticAssignment.ts # Generic optimistic toggle for tags/collections
+├── useNotifications.ts    # Badge counts via Pusher + lightweight endpoint
+└── ... (workflow action hooks: submit, approve, reject, publish, etc.)
+
+lib/
+├── api.ts                 # apiFetch wrapper with auth header, error handling
+├── auth.ts                # Token get/set/clear (localStorage)
+├── store.ts               # Zustand store: beads, selection, camera refs, etc.
+├── bead-layout.ts         # Arc geometry: circular + line layout transforms
+├── bead-helpers.ts        # API→frontend bead normalisation (string→number)
+├── build-bracelet-config.ts # Derives BraceletConfiguration from store state
+├── measure-bead.ts        # GLB bounding box measurement + structural clone
+├── constants.ts           # Scene, camera, cord, finish presets, spacer sizes
+├── category-colors.ts     # Status badges, category chips, avatar colors
+├── sanitize.ts            # HTML-strip + length-limit for comment text
+├── pusher.ts              # Pusher singleton with lazy Bearer auth
+├── query-client.ts        # QueryClient with 401 → logout handler
+└── utils.ts               # cn, slugify, formatMm, formatTimestamp, etc.
+
+types/
+└── index.ts               # All shared TypeScript interfaces and types
+```
+
+## Design Workflow
+
+Designs move through a multi-stage approval pipeline:
+
+```
+draft → in_review → approved → published
+  ↑        │            │
+  └────────┘            │
+  (rejected)            │
+                        ↓
+                   discontinued
+                        ↓
+                   (undiscontinued → published)
+```
+
+Each transition requires specific permissions and uses a dedicated API endpoint. The `usePermissions` hook centralises all role checks. Rejected designs include a `rejection_reason` displayed on the canvas and in the details dialog. Editing a rejected design auto-resets its status to draft on the server.
+
+## Edit Locking
+
+Concurrent editing is prevented via server-side edit locks with a 30-second heartbeat. When a user loads a design, `useLoadDesign` acquires the lock via `POST /designs/:id/lock`. The `useDesignHeartbeat` hook sends keepalive POSTs every 30 seconds. If another user (typically an admin) force-takes the lock, the original editor is kicked to read-only mode and shown a `SessionTakenOverDialog`.
+
+Pusher events (`design.lock-taken`, `design.lock-changed`) provide instant notification of lock changes, supplementing the heartbeat polling.
+
+## Real-time Updates (Pusher)
+
+Each design has a private Pusher channel (`private-design-{id}`) carrying events for design updates, lock changes, and comment CRUD. The `usePusherDesign` hook subscribes when a design is loaded and writes event payloads directly into the React Query cache via `setQueryData` to avoid redundant network round-trips. The global `private-designs` channel carries `design.status-changed` events that update notification badge counts.
+
+## 3D Scene Architecture
+
+The scene renders inside a React Three Fiber `<Canvas>` with `camera-controls` for orbit/zoom. Key components:
+
+- **BeadOnBracelet** — Loads GLB via `useGLTF`, applies material finish presets (gold/silver/rose_gold), handles charm hanging via bounding-box measurement, and renders selection rings and drag targets.
+- **SpacerOnBracelet** — Procedural wireframe cylinder (no GLB). Visible only in draft/rejected states; suppressed during thumbnail capture.
+- **BraceletCord** — Torus (3D view) or cylinder (line view) with material-specific properties. Hairtie cord color is user-selectable.
+- **CameraController** — Manages transitions between free orbit, bead zoom, top-down edit, side edit, and line view modes.
+- **CameraOffset** — Applies view offset to keep the bracelet centred when side panels slide open.
+
+Two canvas layouts are supported: circular (torus in XZ plane) and line (straight along X axis). The `bead-layout.ts` module computes per-bead transforms for both, using actual bead diameters and per-category spacing rules.
+
+## Bead Administration
+
+Admins can manage the bead catalog via `ManageBeadsDialog`:
+
+- Create/edit bead products with metadata (name, SKU, category, material, dimensions)
+- Upload GLB models to S3 with client-side validation (extension, size, magic bytes)
+- Capture bead thumbnails from a preview R3F canvas
+- Toggle active/inactive status (soft delete)
+- Permanently delete beads (409 conflict when referenced by designs)
+
+## Thumbnail Generation
+
+Bracelet thumbnails are captured via `useGenerateThumbnail`:
+
+1. Spacer wireframes are hidden (`spacersHiddenForCapture`)
+2. Two rAF ticks wait for React to flush the state change
+3. A cloned camera renders from `CAMERA_DEFAULT_POSITION` into a `WebGLRenderTarget`
+4. Pixel data is read, row-flipped (WebGL→Canvas origin), and content-aware cropped
+5. The cropped image is scaled to a 600×600 PNG and uploaded to S3
+
+Thumbnails are only regenerated when the visual content changes (beads, size, material). Name-only or description-only edits reuse the existing thumbnail.
+
+## Environment Variables
+
+### Required (Runtime)
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_API_URL` | PHP API base URL |
+| `NEXT_PUBLIC_TOKEN_KEY` | localStorage key for auth token |
+| `NEXT_PUBLIC_PUSHER_APP_KEY` | Pusher application key |
+| `NEXT_PUBLIC_PUSHER_CLUSTER` | Pusher cluster (default: `mt1`) |
+
+### Required (Server-side / Build)
+
+| Variable | Purpose |
+|----------|---------|
+| `ENEWTON_AWS_ACCESS_KEY_ID` | AWS credentials for S3 uploads |
+| `ENEWTON_AWS_SECRET_ACCESS_KEY` | AWS credentials for S3 uploads |
+| `ENEWTON_AWS_REGION` | AWS region for S3 bucket |
+| `S3_BUCKET_NAME` | S3 bucket name for models/thumbnails |
+
+### Optional
+
+| Variable | Purpose |
+|----------|---------|
+| `S3_PUBLIC_URL` | CloudFront/custom domain for S3 assets |
+
+Note: AWS env vars use the `ENEWTON_` prefix because AWS reserves `AWS_*` names on certain platforms (including Netlify). `S3_BUCKET_NAME` and `S3_PUBLIC_URL` are server-side only and not available at Netlify build time when marked as "Secret".
+
+## Design Tokens
+
+Defined in `globals.css` under `@theme`:
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `navy` | `#1F3A5F` | Primary actions, headers |
+| `gold` | `#a38d48` | Accent, selection highlight |
+| `mint` | `#e2ffff` | Secondary backgrounds, hover states |
+| `light-mint` | `#D8F0ED` | Positive action buttons |
+| `blush` | `#F7D9DD` | Soft danger, type filter chips |
+| `stone` | `#9b948e` | Muted text, borders |
+| `shell` | `#f6f3ee` | Tooltip backgrounds, subtle surfaces |
+| `error` | rose-700 | Error states, danger buttons |
+| `orange` | `#c0774a` | Warning banners (lock/kicked) |
+
+Typography uses three font families: Inter (body), Italiana (headlines), and Square Peg (display/decorative).
+
+## Key Patterns & Conventions
+
+- **Targeted diffs over full rewrites** — Prefer minimal, focused changes rather than wholesale component rewrites.
+- **Consolidation over file proliferation** — Hooks, components, and utilities are merged when they share logic (e.g., `Tags.ts`, `Collections.ts`, `Pickers.tsx`).
+- **Feature flags for backend stubs** — Features awaiting API work use feature flags or stubs (e.g., `REJECT_ENDPOINT_READY`).
+- **PHP API quirks** — The backend returns empty strings and zero-dates instead of null; `apiFetch` guards against non-JSON error responses from Apache/PHP.
+- **Tailwind dynamic classes** — Computed class strings don't survive JIT; use inline `style` props with shared constants instead.
+- **React hooks ordering** — All hooks must appear unconditionally before any early `return null` statements.
+- **Camera UX** — Minimal camera movement with natural transitions; avoid disorienting scripted repositioning.
+- **GLB convention** — Bead hole axis is local Y. Charms need pivot at bail top, Y-up, face +Z (standardisation in progress with 3D modeler).
+
+## Development
 
 ```bash
 npm install
 npm run dev
-# → http://localhost:3000
 ```
 
-Copy `.env.example` to `.env` and fill in all required values before running.
+Local PHP API testing uses MAMP. Database access via TablePlus or phpMyAdmin.
 
----
+## Deployment
 
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `NEXT_PUBLIC_TOKEN_KEY` | Yes | localStorage key name for auth tokens (e.g. `enewton-token`) |
-| `ENEWTON_AWS_ACCESS_KEY_ID` | Yes | AWS credentials for S3 uploads (models + thumbnails) |
-| `ENEWTON_AWS_SECRET_ACCESS_KEY` | Yes | AWS credentials for S3 uploads |
-| `ENEWTON_AWS_REGION` | Yes | AWS region for the S3 bucket |
-| `S3_BUCKET_NAME` | Yes | S3 bucket name where GLB models and thumbnails are stored |
-| `S3_PUBLIC_URL` | No | CloudFront or custom CDN base URL (falls back to direct S3 URL) |
-
----
-
-## Authentication
-
-The app uses an **email OTP (one-time password)** flow:
-
-1. User enters their email on `/login`.
-2. The app calls `POST /auth/login` with the email; the backend sends a 6-digit code.
-3. User enters the code; the app calls `POST /auth/verify` with `{ email, code, remember }`.
-4. On success, the returned JWT token is stored in `localStorage` (key configured via `NEXT_PUBLIC_TOKEN_KEY`).
-5. All subsequent API requests include the token as a `Bearer` header via `apiFetch`.
-6. The `(protected)` route group checks for a valid token on mount and redirects to `/login` if absent.
-
----
-
-## Deploying to Netlify Test Environment
-
-1. On `main` branch, run `npm run build`
-2. Fix any linting errors and recommit
-3. Once the build succeeds, push to `main`
-
-Netlify automatically deploys to: `https://enewton-bracelet-builder-test.netlify.app/`
-
-**Netlify-specific notes:**
-- AWS reserved env variable names (`AWS_ACCESS_KEY_ID`, etc.) conflict with Netlify; use the `ENEWTON_AWS_*` prefix.
-- Netlify "secret" variables are runtime-only and cannot be read during Next.js build; use "Sensitive" for build-time variables.
-
----
-
-## How It Works
-
-```
-app/(protected)/page.tsx  ← Entry point (auth-gated)
-     ↓
-BuilderLayout             ← Root layout: header, panels, scene, dialogs
-     │
-     ├── Scene                          ← R3F Canvas, lighting, camera controls
-     │    ├── BraceletCord              ← Procedural torus/cylinder cord mesh (wire / cord / elastic)
-     │    ├── AllBeads                  ← Maps store bead list → BeadOnBracelet + SpacerOnBracelet instances
-     │    │    ├── BeadOnBracelet       ← Loads one GLB, positions + rotates on the cord, material finish presets
-     │    │    └── SpacerOnBracelet     ← Procedural translucent cylinder, no GLB, visible only in draft/rejected
-     │    ├── CameraController          ← Zoom to selected bead; zoom out on deselect; edit/line mode positioning
-     │    └── CameraOffset              ← Shifts camera FOV when side panels are open
-     │
-     ├── canvas/
-     │    ├── BandSelector              ← Wire / Cord / Elastic + bracelet size toggles (FloatingDialog)
-     │    ├── CanvasToolbar             ← Top bar: workflow actions (left), 3D ↔ Line toggle (centre), Edit + Comments (right)
-     │    ├── CanvasWorkflowBar         ← Compact status badge on the canvas overlay
-     │    ├── CanvasStatsBar            ← Arc used / remaining / bead + charm count readout
-     │    ├── EditModeToolbar           ← Floating toolbar: move, duplicate, reverse, delete, camera toggle
-     │    └── BraceletExporter          ← Save (POST) or Update (PUT) bracelet with inline name popover
-     │
-     ├── panels/
-     │    ├── BeadSelectorPanel         ← Slide-in left panel; bead catalog with search + category filters
-     │    └── CommentsPanel             ← Slide-in right panel; per-design comment thread (add/edit/delete)
-     │
-     ├── dialogs/
-     │    ├── BraceletDetailsDialog     ← Full metadata sheet: name, description, config, bead list, history timeline
-     │    ├── BeadInfoDialog            ← Floating dialog on bead tap: info, select all, remove
-     │    ├── ConfirmReplaceDialog      ← "Replace current bracelet?" confirmation with save-and-load flow
-     │    ├── DeleteBraceletDialog      ← Hard-delete confirmation (admin only, uses StandardConfirmDialog)
-     │    ├── DiscontinueBraceletDialog ← Discontinue confirmation (admin only, uses StandardConfirmDialog)
-     │    ├── RejectBraceletDialog      ← Rejection with reason textarea
-     │    ├── ManageBeadsDialog         ← Admin CRUD for bead/charm catalog with R3F preview + GLB upload
-     │    ├── ManageTagsDialog          ← Admin CRUD for tags (name + color)
-     │    └── ManageCollectionsDialog   ← Admin CRUD for collections
-     │
-     ├── sections/
-     │    ├── WorkflowSection           ← Status pipeline stepper, SKU input, all action buttons
-     │    └── AssignmentSection         ← Reusable many-to-many chip manager for tags and collections
-     │
-     ├── saved-designs/
-     │    ├── SavedDesignsScreen        ← Full-screen slide-in: browse, filter, sort, load saved designs
-     │    ├── DesignCard                ← Individual design card with status badge, thumbnail, three-dot menu
-     │    └── Pickers.tsx               ← TagPicker + CollectionPicker (shared useDropdown)
-     │
-     └── users/
-          ├── UserScreen                ← User profile + permission-filtered design queues (review/publish)
-          ├── UsersAdminScreen          ← Admin: list, create (token + OTP), edit, and deactivate users
-          ├── CreateUserDialog          ← Token-based user creation (returns one-time plaintext token)
-          ├── CreateOtpUserDialog       ← OTP user creation (sends welcome email with login link)
-          └── PermissionsDropdown       ← Multi-select permissions editor for admin screens
-```
-
----
-
-## Tech Stack
-
-| Layer | Technologies |
-|---|---|
-| **Framework** | Next.js 14 (App Router) |
-| **3D Rendering** | React Three Fiber, `@react-three/drei`, `camera-controls` |
-| **State** | Zustand (persisted to localStorage), TanStack React Query |
-| **Styling** | Tailwind CSS v4, custom design tokens |
-| **Language** | TypeScript (strict mode) |
-| **Backend** | PHP / MySQL REST API |
-| **Infrastructure** | AWS S3 (GLB models + thumbnails), Netlify (frontend) |
-| **Dev Tools** | TablePlus, phpMyAdmin, MAMP (local PHP/MySQL) |
-
----
-
-## State Management
-
-Global state lives in `lib/store.ts` (Zustand, persisted to `localStorage` as `enewton-beads` v3).
-
-**Persisted across page reloads:** placed beads, bracelet name, description, band material, bracelet size, active design ID.
-
-**Ephemeral (session only):** selected bead, edit mode, edit view mode, view mode, drag state, pending design, canvas element reference, camera controls reference, bead load errors, spacers-hidden-for-capture flag.
-
-**`isDirty` flag:** set by every content mutation (add bead, rename, reorder, etc.) and cleared on load or save. Used to gate confirmation dialogs when the user tries to load a different design over unsaved work. The `useIsDirty` hook provides a more accurate computed dirty check by comparing store state against the React Query cache for the active design.
-
-**`pendingDesign`:** when the user confirms replacing the canvas, the incoming design is stored here and loaded after the confirmation dialog resolves, triggering the originating panel to close via `pendingDesignOnLoad`.
-
-Server data (bead catalog, saved designs, tags, collections, current user) is managed by **TanStack React Query** with shared cache entries — multiple components can subscribe to the same data without extra network requests.
-
----
-
-## Design Workflow (Status Lifecycle)
-
-Designs move through the following states:
-
-```
-draft → in_review → approved → published
-  ↑          |
-  └──── rejected (back to draft)
-```
-
-Additional status: `discontinued` (derived UI state — `is_discontinued === 1`; the DB status column remains `published`).
-
-| Status | Who can advance it |
-|---|---|
-| `draft` → `in_review` | `is_bracelet_editor` (Submit for Review — auto-saves first) |
-| `in_review` → `approved` | `is_reviewer` (Approve) |
-| `in_review` → `rejected` | `is_reviewer` (Reject — with optional reason) |
-| `in_review` → `draft` | `is_bracelet_editor` (Return to Drafts) |
-| `approved` → `published` | `is_publisher` (Publish — requires Shopify SKU) |
-| `approved` → `draft` | `is_bracelet_editor` (Edit Bracelet — reverts approval) |
-| `published` → unpublished | `is_publisher` (Unpublish) |
-| `published` → `discontinued` | `is_admin` (Discontinue) |
-| `discontinued` → `published` | `is_admin` (Reactivate) |
-
-**Rejected designs** appear alongside drafts in the "In-progress" tab with a visual flag (rose border and badge). They can be edited and resubmitted. Editing a rejected design automatically resets its status to `draft`.
-
-Permission logic is centralised in `hooks/usePermissions.ts`. Workflow action buttons are gated through `PermissionGate` or the `can*` booleans from that hook.
-
----
-
-## Canvas Views
-
-| View | Description |
-|---|---|
-| **3D** | Default circular bracelet layout on a torus in the XZ plane |
-| **Line** | Beads laid out linearly along the X axis — useful for bead ordering |
-
-**Edit Mode** (pencil icon): enables drag-to-reorder beads directly on the canvas. Double-click a bead to select it for toolbar operations (move, duplicate, delete). A blue canvas background indicates edit mode is active. Edit mode supports both top-down and side camera views, toggled via the camera button.
-
----
-
-## Spacer Beads
-
-Spacers are invisible gap beads with no GLB model — they only consume arc space on the cord. They appear as translucent cylinders in the 3D scene but only in draft/rejected states. During thumbnail capture and in approved/published states, spacers are hidden but still occupy layout space.
-
-Spacer sizes are defined in `SPACER_SIZES_MM` in `lib/constants.ts`. The `createSpacerProduct` function generates a fake `BeadProduct` with a deterministic negative ID so the same size always maps to the same "product".
-
----
-
-## Tags & Collections
-
-Both use a many-to-many relationship to bracelet designs.
-
-**Tags** are freeform labels with an optional colour. They are created and managed via `ManageTagsDialog` (accessible from `TagPicker` if the user has `is_component_admin` or `is_admin`). Applied to a design via `AssignmentSection` inside `BraceletDetailsDialog`.
-
-**Collections** group related designs. Same management pattern — `ManageCollectionsDialog`, `CollectionPicker`, `AssignmentSection`.
-
-Assignment UI uses **optimistic updates** via `useOptimisticAssignment`: chips appear or disappear immediately, a spinner marks in-flight items, and the UI rolls back automatically on API error.
-
-Filter chips in `SavedDesignsScreen` are colour-coded by category using `CATEGORY_STYLES` from `lib/category-colors.ts`. Tailwind class strings must appear in full in that file — do not construct them dynamically.
-
----
-
-## Bead Administration
-
-The `ManageBeadsDialog` (accessible from `UserScreen` for component admins) provides full CRUD for the bead/charm catalog:
-
-- **Upload**: Drag-and-drop GLB files with client-side validation (extension, size, magic bytes) and server-side validation via `POST /api/upload-bead`. Files are stored in S3 under `models/beads/`.
-- **Preview**: Live R3F preview of the uploaded GLB with orbit controls.
-- **Metadata**: Name, slug (auto-generated), category, material, diameter, and charm-specific fields (bail_width_mm, body_width_mm).
-- **Thumbnail**: Capture from the preview canvas and upload to S3 under `images/`.
-- **Activate/Deactivate**: Soft-delete via `PUT /beads/:slug/status`. Inactive beads are hidden from the selector panel but visible in the admin list.
-
----
-
-## UI Standardization & Reusable Components
-
-### Button Component
-
-Supports variants (`primary`, `secondary`, `ghost`, `danger`, `softDanger`, `positive`, `dashed`), sizes (`xs`, `sm`, `md`, `lg`, `icon`), and a `loading` prop for built-in spinner. Components like `StandardConfirmDialog` prefer manual `Loader2` spinners for explicit control over timing.
-
-### StandardConfirmDialog
-
-Reusable confirmation dialog for destructive actions. Used by `DeleteBraceletDialog` and `DiscontinueBraceletDialog`. Props: `title`, `message` (ReactNode), `icon`, `iconBgClass`, `iconColorClass`, `confirmLabel`, `confirmVariant`, `cancelLabel`, `isLoading`, `onConfirm`, `onCancel`.
-
-### ErrorAlert
-
-Standardized error display with `AlertCircle` icon and consistent styling (`bg-error/10`, `text-error`). Used throughout the app for validation errors, network failures, and workflow action failures.
-
-### Other UI Primitives
-
-- `FloatingDialog` — collapsible floating panel (e.g. BandSelector, BeadInfoDialog)
-- `FullScreenDialog` — modal overlay with header, close button, and optional `headerExtra` slot
-- `Panel` — slide-in side panel with fixed (overlay) and push (inline) variants
-- `PermissionGate` — conditionally renders children based on permission booleans (`hide` or `disable` mode)
-- `ConfirmationPanel` — inline confirmation strip for less-severe actions
-- `Avatar` — circular initials badge with colour-coded current-user treatment
-- `BeadThumbnail` — bead/charm image with gold-gradient fallback
-- `InfoRow` — label/value pair (vertical or horizontal layout)
-- `SectionHeading` — uppercase tracking heading
-
----
-
-## Styling Conventions
-
-### Color Tokens
-
-| Token | Usage |
-|---|---|
-| `text-color-base` | Primary text |
-| `text-color-base/70` | Secondary/muted text |
-| `text-error` | Errors and warnings |
-| `bg-navy` | Primary interactive |
-| `bg-gold` | Approved status |
-| `bg-mint` | Secondary interactive, current-user avatar |
-| `bg-blush` | Soft danger (reject actions) |
-| `bg-light-mint` | Positive actions |
-| `bg-shell` | Collection chips, reviewer badges |
-| `bg-light-blue` | Tag chips, publisher badges |
-| `bg-stone` | Draft status, muted elements |
-
-**Key Principle:** Never use dynamic Tailwind class names (e.g. `` `bg-${color}-500` ``). All color classes must be fully specified in the source code. Tailwind v4 purges unused classes at build time. Use inline `style` props with shared numeric constants for computed layout values.
-
----
-
-## Thumbnail Generation
-
-When a design is saved or updated, a thumbnail is captured automatically:
-
-1. Spacer wireframes are temporarily hidden via `spacersHiddenForCapture`.
-2. The camera is moved to the default position (if controls are available).
-3. The R3F canvas (`preserveDrawingBuffer: true`) is scanned pixel-by-pixel to find the bracelet's bounding box.
-4. The content is cropped, padded, and scaled into a `600 × 600` PNG.
-5. The PNG is uploaded to S3 via `POST /api/thumbnail` (Next.js route → AWS SDK).
-6. The returned S3 URL is stored in the design record as `preview_image_url`.
-
-Thumbnails are only re-generated when the visual content actually changes (different beads, size, or material). Name-only or description-only edits reuse the existing thumbnail, skipping the pixel-scan and S3 upload entirely.
-
----
-
-## Key Files
-
-| File | Purpose |
-|---|---|
-| `lib/bead-layout.ts` | All bracelet geometry — radius, spacing, bead position/rotation, arc maths |
-| `lib/store.ts` | Zustand store — placed beads, UI state, all bead actions |
-| `lib/constants.ts` | Scene, camera, cord material, bracelet size, charm, and spacer constants |
-| `lib/category-colors.ts` | Single source of truth for status badge styles and filter chip category colours |
-| `lib/build-bracelet-config.ts` | Derives `BraceletConfiguration` from store state for API payloads |
-| `lib/measure-bead.ts` | GLB bounding-box measurement, charm measurement, structural cloning |
-| `lib/auth.ts` | Token read/write helpers (`localStorage`) |
-| `lib/api.ts` | Authenticated `apiFetch` wrapper; throws `ApiError` on failure |
-| `lib/sanitize.ts` | HTML-stripping comment sanitizer with max length |
-| `lib/utils.ts` | `cn` (Tailwind merge), `slugify`, `capitalize`, `getInitials`, `formatTimestamp`, `formatDateTime` |
-| `components/scene/BeadOnBracelet.tsx` | Loads one bead/charm GLB, positions on cord, handles selection + drag |
-| `components/scene/SpacerOnBracelet.tsx` | Procedural spacer cylinder, hidden in non-draft states |
-| `components/scene/Scene.tsx` | R3F Canvas setup, lighting, environment, camera config |
-| `components/builder/BuilderLayout.tsx` | Root layout orchestrator |
-| `components/builder/canvas/BraceletExporter.tsx` | Save / update bracelet; inline name popover |
-| `components/builder/canvas/CanvasToolbar.tsx` | Workflow actions, view toggle, edit mode |
-| `components/builder/saved-designs/SavedDesignsScreen.tsx` | Saved designs browser (filter, sort, load) |
-| `components/builder/saved-designs/Pickers.tsx` | `TagPicker` + `CollectionPicker` with shared `useDropdown` |
-| `components/builder/sections/WorkflowSection.tsx` | Status pipeline UI + all action buttons |
-| `components/builder/sections/AssignmentSection.tsx` | Reusable optimistic chip manager for tags / collections |
-| `components/builder/dialogs/ManageBeadsDialog.tsx` | Bead admin: GLB upload, preview, CRUD, thumbnail capture |
-| `components/builder/users/UserScreen.tsx` | User profile + permission-aware design queues |
-| `components/builder/users/UsersAdminScreen.tsx` | Admin user management |
-| `hooks/Tags.ts` | `useTags`, `useCreateTag`, `useUpdateTag`, `useDeleteTag`, `useApplyTag`, `useRemoveTag` |
-| `hooks/Collections.ts` | `useCollections`, `useCreateCollection`, `useUpdateCollection`, `useDeleteCollection`, `useApplyCollection`, `useRemoveCollection` |
-| `hooks/useBeadAdmin.ts` | `useAllBeads`, `useCreateBead`, `useUpdateBead`, `useToggleBeadActive`, `uploadBeadGlb`, `uploadBeadThumbnail` |
-| `hooks/useOptimisticAssignment.ts` | Shared optimistic many-to-many hook (tags, collections) |
-| `hooks/usePermissions.ts` | `canEdit`, `canReview`, `canPublish`, `canManageComponents`, `isAdmin`, etc. |
-| `hooks/useLoadDesign.ts` | Maps a saved `Bracelet` record onto the canvas via the bead catalog cache |
-| `hooks/useBeads.ts` | Fetches + normalises bead catalog from API (active beads only) |
-| `hooks/useDesigns.ts` | Fetches all designs; client-side filter + sort via React Query `select` |
-| `hooks/useSaveBracelet.ts` | Thumbnail capture → S3 upload → POST /designs |
-| `hooks/useUpdateBracelet.ts` | Smart update — skips thumbnail re-upload if bracelet visually unchanged |
-| `hooks/useIsDirty.ts` | Computed dirty check comparing store state against React Query cache |
-| `hooks/useGenerateThumbnail.ts` | Pixel-scan crop + fixed 600×600 PNG capture |
-| `hooks/useDrag.ts` | Edit-mode canvas reorder drag + panel-to-canvas drop |
-| `app/api/upload-bead/route.ts` | Next.js API route: GLB validation + S3 upload |
-| `app/api/thumbnail/route.ts` | Next.js API route: base64 PNG → S3 upload |
-| `types/index.ts` | All shared TypeScript types |
-
----
-
-## Adding a New Bead or Charm
-
-1. Upload the GLB via the **Manage Beads** dialog (UserScreen → "Manage Beads") or drop it into S3 manually under `models/beads/`.
-2. Add the product via the API / backend — it will appear in the bead catalog automatically.
-3. For **charms**, the following fields on `BeadProduct` control placement:
-   - `bail_width_mm` — wire diameter of the bail (used to thread the cord correctly)
-   - `body_width_mm` — width of the charm body (used for arc spacing between adjacent charms)
-   - `depth_offset` — Z offset to push the charm forward from the cord (default `-0.0005`)
-
----
-
-## GLB Conventions
-
-**Beads:** hole on the **Y axis**. `getBeadTransform()` in `bead-layout.ts` handles orientation so the hole aligns with the torus cord.
-
-**Charms:** pivot/origin at the **bail top**, Y-up, face toward +Z. The `CHARM_ROTATION` constant in `lib/constants.ts` (`[Math.PI / 2, 0, Math.PI * 1.5]`) orients the charm hanging from the cord. `autoHangOffset` is computed at runtime from the post-rotation bounding box so the cord threads through the bail opening correctly.
-
-**Material finish presets:** `FINISH_PRESETS` in `constants.ts` override metallic surfaces on GLBs. Only meshes with `metalness >= 0.5` are affected. The `DEFAULT_FINISH` is `"gold"`. Available presets: `gold`, `silver`, `rose_gold`.
-
-If a future GLB has its hole or bail on a non-standard axis, add a per-product rotation override in `BeadOnBracelet.tsx`.
-
----
-
-## Bracelet Sizing
-
-Sizes are derived from wrist circumference in inches:
-
-| Size | Circumference | Cord radius |
-|---|---|---|
-| x-small | 5.5" | ≈ 22.2 mm |
-| small | 6.25" | ≈ 25.3 mm |
-| large | 7.25" | ≈ 29.3 mm |
-
-All sizing constants live in `lib/constants.ts` (`BRACELET_SIZE_RADIUS`). Arc capacity is derived automatically from the radius.
-
----
-
-## Spacing Rules
-
-All spacing constants live in `lib/bead-layout.ts`:
-
-```ts
-CORD_RADIUS     = 0.0008   // cord tube radius (affects bail threading)
-BEAD_SPACING    = -0.00035  // negative = beads closer together; 0 = just touching
-```
-
-- **Bead–bead pairs:** minimum gap = `BEAD_SPACING` (can be negative/zero — beads on a cord touch each other naturally).
-- **Charm–charm pairs:** charms contribute `body_width_mm / 2` (not `diameter / 2`) to the cord arc when adjacent to another charm. A zero minimum gap is valid — they swing freely on the wire.
-- **Bead–charm pairs:** standard `diameter / 2` contribution applies.
-
----
-
-## S3 & Asset Proxying
-
-GLB models and bead thumbnail images are stored in S3. The Next.js `rewrites` in `next.config.mjs` proxy `/models/*` and `/images/*` requests to S3, avoiding cross-origin issues without changing S3 CORS config. This keeps `glb_path` values consistent whether the bead model lives in `/public` or in S3.
-
----
-
-## Notes for Developers
-
-- **Dynamic Tailwind classes won't work.** Tailwind v4 purges unused classes at build time. Computed class names (e.g. `` `bg-${color}-500` ``) are stripped. Use full class strings in `lib/category-colors.ts` and switch on them. Use inline `style` props with shared numeric constants for computed layout values.
-- **React hooks must appear unconditionally** before any return statement. Conditional `return null` guards mid-component cause "rendered more hooks than previous render" errors.
-- **PHP APIs may return empty strings or MySQL zero-dates** instead of null for unset datetime fields; frontend code must guard against this.
-- **`apiFetch` handles non-JSON responses gracefully** by catching `res.json()` failures and throwing an `ApiError` with the HTTP status. 204 No Content returns `undefined`.
-- **AWS reserved env variable names** conflict with Netlify. Use the `ENEWTON_AWS_*` prefix.
-- **Camera constraint timing:** `minPolarAngle`/`maxPolarAngle` enforcement in edit mode uses a `rest` event listener on `CameraControls` to avoid interfering with `setLookAt` transition animations. `setTarget` (not `setLookAt`) avoids orbit pivot snapping on deselect.
-- **React Query cache key consistency** is critical — mismatches (e.g. `"design"` vs `"designs"`) cause stale data bugs across hooks.
-- **Feature flags** (e.g. `REJECT_ENDPOINT_READY`) are a useful pattern for stubbing frontend behavior while waiting for backend endpoints.
-- **PHP FastCGI strips `HTTP_AUTHORIZATION`.** The backend's `Auth.php` falls back to `REDIRECT_HTTP_AUTHORIZATION`. MAMP MySQL runs on a non-standard port — configure `DB_PORT` explicitly.
-
----
-
-## Known Issues
-
-- **`CHARM_ROTATION` correction:** The X rotation may need to be negated (`-Math.PI / 2` instead of `Math.PI / 2`) to ensure charm faces orient outward consistently across all GLB models. Test with real charm assets before changing.
-- **`BeadInfoDialog` spacer category check** uses `'Spacer'` (capital S) but `createSpacerProduct` sets `bead_category: "spacer"` (lowercase), so spacers incorrectly show the Material row.
-- **`BraceletExporter` dirty check** doesn't sort `cfg.beads` by position before comparing, unlike `useIsDirty` which does — can produce false positive "Update" button visibility.
-- **`useReopenDesign` hook** exists but is not used by any component. Consider removing or wiring up if the `POST /designs/:id/reopen` endpoint becomes available.
-
----
-
-## Code Cleanup Opportunities
-
-- **Duplicate `slugify`** — `lib/utils.ts` and `hooks/useBeadAdmin.ts` each export their own version with slightly different implementations. Consolidate to one.
-- **Duplicate `parseDecimal` / `ApiBeadProduct`** — identical definitions in `hooks/useBeads.ts` and `hooks/useBeadAdmin.ts`. Extract into a shared `lib/bead-helpers.ts`.
-- **`createSpacerProduct` missing fields** — lacks `sku`, `color`, and `active` which are required on `BeadProduct`. Adding them with sensible defaults (`null`, `null`, `1`) prevents potential runtime issues.
-- **Commented-out code in `Avatar.tsx`** — the original Avatar component implementation is commented out at the bottom of the file.
-- **`clearcoat` on standard materials** — `BeadOnBracelet.tsx` sets `mat.clearcoat` which only works on `MeshPhysicalMaterial`. If the GLB uses `MeshStandardMaterial`, the property is silently ignored.
-- **`ControlsRegistrar` dependency** — uses `controlsRef.current` in the `useEffect` deps array; ref mutations don't trigger re-renders, so the effect may not fire reliably.
-
----
-
-## Performance (Not Yet Implemented)
-
-Discussed but not yet built:
-
-- GLB preloading and Draco compression
-- Lazy-loading the 3D bundle via `next/dynamic`
-- React Query `staleTime` tuning across hooks
-- Environment HDR preloading
-- 3D modeler standardisation (charm pivot at bail top, Y-up, face toward +Z) to eliminate bounding-box workarounds
+Frontend deploys to Netlify. The `next.config.mjs` rewrites proxy `/models/*` and `/images/*` to the S3 bucket so the frontend never makes cross-origin requests for 3D assets and thumbnails.
