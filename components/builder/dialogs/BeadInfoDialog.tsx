@@ -79,10 +79,10 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
                 : `${formatMm(bead.product.diameter * 1000)} mm`} />
               <InfoRow layout="horizontal" label="Number on Bracelet" value={`${matchCount}`} />
             </div>
-            {!isLocked && matchCount > 1 && !isEditMode && (
+            {!isLocked && matchCount > 1 && (
               <>
                 {selectAllActive ? (
-                  <p className="text-sm font-semibold   mb-3 px-2">All {bead.product.name} {bead.product.bead_category}s selected</p>
+                  <p className="text-sm font-semibold   mb-3 px-2">All {unslugify(bead.product.name)} {unslugify(bead.product.bead_category)}s selected</p>
                 ) : (
                   <Button onClick={() => selectAllOfType()} variant="ghost" className="w-full mb-2">
                   Select All ({matchCount})

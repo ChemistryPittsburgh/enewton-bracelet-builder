@@ -254,14 +254,22 @@ export const useStore = create<Store>()(
       },
 
       selectAllOfType() {
-        set({ selectAllActive: true });
+        const { beads, selectedBead, isEditMode } = get();
+        if (!selectedBead) return;
+        const matchingIds = beads
+          .filter((b) => b.product.id === selectedBead.product.id)
+          .map((b) => b.instanceId);
+        set({
+          selectAllActive: true,
+          ...(isEditMode ? { editSelectedIds: matchingIds } : {}),
+        });
       },
 
       removeAllOfType() {
         const { beads, selectedBead } = get();
         if (!selectedBead) return;
         const filtered = beads.filter((b) => b.product.id !== selectedBead.product.id);
-        set({ beads: filtered, selectedBead: null, selectAllActive: false, isDirty: true });
+        set({ beads: filtered, selectedBead: null, selectAllActive: false, editSelectedIds: [], isDirty: true });
       },
 
       loadBeads(beads, name) {
