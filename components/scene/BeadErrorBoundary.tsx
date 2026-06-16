@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { ErrorBoundary } from "react-error-boundary";
+import { useEffect, useMemo } from "react";
+import { ErrorBoundary, type FallbackProps as EBFallbackProps } from "react-error-boundary";
 import type { PlacedBead } from "@/types";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
@@ -53,8 +53,20 @@ interface Props {
 }
 
 export function BeadErrorBoundary({ bead, slotIndex, children }: Props) {
+  // Stable component reference — avoids unmount/remount on every parent render.
+  // ErrorBoundary compares FallbackComponent by reference; an inline arrow
+  // creates a new type each render, forcing React to destroy and recreate the
+  // fallback even when nothing changed.
+  const Fallback = useMemo(
+    () =>
+      function BeadFallbackWrapper(_props: EBFallbackProps) {
+        return <BeadFallback bead={bead} slotIndex={slotIndex} />;
+      },
+    [bead, slotIndex],
+  );
+
   return (
-    <ErrorBoundary FallbackComponent={() => <BeadFallback bead={bead} slotIndex={slotIndex} />}>
+    <ErrorBoundary FallbackComponent={Fallback}>
       {children}
     </ErrorBoundary>
   );

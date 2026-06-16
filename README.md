@@ -58,27 +58,38 @@ components/
                              Avatar, ErrorAlert, StandardConfirmDialog, etc.
 
 hooks/
-├── Collections.ts         # CRUD + design↔collection assignment mutations
-├── Tags.ts                # CRUD + design↔tag assignment mutations
-├── useBeads.ts            # Active bead catalog query (filtered, normalised)
+├── useAuth.ts             # Login flow: request OTP code + verify code
 ├── useBeadAdmin.ts        # Full bead CRUD, GLB upload, thumbnail upload
-├── useDesigns.ts          # All designs query with client-side filter/sort
-├── useDesign.ts           # Single design query by ID
+├── useBeads.ts            # Active bead catalog query (filtered, normalised)
+├── useCollections.ts      # CRUD + design↔collection assignment mutations
+├── useComments.ts         # Query + add + edit + delete comment mutations
 ├── useCreateBracelet.ts   # POST /designs with derived config
-├── useUpdateBracelet.ts   # PUT /designs/:id with conditional thumbnail regen
-├── useSaveBracelet.ts     # Shared save flow: capture → upload → create
+├── useCurrentUser.ts      # GET /me — current session user
+├── useDeleteDesign.ts     # DELETE /designs/:id
+├── useDesign.ts           # Single design query by ID
+├── useDesignHeartbeat.ts  # 30s interval lock keepalive
+├── useDesigns.ts          # All designs query with client-side filter/sort
+├── useDrag.ts             # Canvas drag-to-reorder + panel-to-canvas drop
+├── useGenerateThumbnail.ts# WebGL render target capture + content-aware crop
+├── useIsDirty.ts          # Compares store state to cached saved design
 ├── useLoadDesign.ts       # Hydrate store from saved design + acquire lock
 ├── useLockDesign.ts       # POST /designs/:id/lock (edit lock acquisition)
-├── useReleaseLock.ts      # DELETE /designs/:id/lock (fire-and-forget)
-├── useDesignHeartbeat.ts  # 30s interval lock keepalive
-├── usePusherDesign.ts     # Per-design Pusher channel subscriptions
-├── usePermissions.ts      # Role-based permission booleans
-├── useGenerateThumbnail.ts# WebGL render target capture + content-aware crop
-├── useDrag.ts             # Canvas drag-to-reorder + panel-to-canvas drop
-├── useIsDirty.ts          # Compares store state to cached saved design
+├── useNotificationCounts.ts # Lightweight counts-only endpoint query
+├── useNotifications.ts    # Badge counts via Pusher + counts endpoint
 ├── useOptimisticAssignment.ts # Generic optimistic toggle for tags/collections
-├── useNotifications.ts    # Badge counts via Pusher + lightweight endpoint
-└── ... (workflow action hooks: submit, approve, reject, publish, etc.)
+├── usePermissions.ts      # Role-based permission booleans
+├── usePusherConnectionStatus.ts # Pusher WebSocket connection state
+├── usePusherDesign.ts     # Per-design Pusher channel subscriptions
+├── useReleaseLock.ts      # DELETE /designs/:id/lock (fire-and-forget)
+├── useSaveBracelet.ts     # Shared save flow: capture → upload → create
+├── useTags.ts             # CRUD + design↔tag assignment mutations
+├── useUpdateBracelet.ts   # PUT /designs/:id with conditional thumbnail regen
+├── useUpdateDesign.ts     # Raw PUT /designs/:id mutation
+├── useUploadThumbnail.ts  # Thumbnail PNG upload to S3
+├── useUsers.ts            # Query + create (token + OTP) + update + delete
+└── useWorkflow.ts         # All workflow transitions: submit, approve, reject,
+                             publish, unpublish, send-to-draft, reopen,
+                             discontinue, undiscontinue, set SKU
 
 lib/
 ├── api.ts                 # apiFetch wrapper with auth header, error handling
@@ -99,6 +110,21 @@ types/
 └── index.ts               # All shared TypeScript interfaces and types
 ```
 
+## Hook Organisation
+
+Hooks are grouped by domain — related query + mutation hooks live in one file rather than scattered across many small files. This follows the same pattern used by TanStack Query's documentation and keeps the hooks directory navigable.
+
+| File | Contents |
+|------|----------|
+| `useAuth.ts` | `useRequestCode`, `useVerifyCode` |
+| `useCollections.ts` | `useCollections`, `useCreateCollection`, `useUpdateCollection`, `useDeleteCollection`, `useApplyCollection`, `useRemoveCollection` |
+| `useComments.ts` | `useComments`, `useAddComment`, `useEditComment`, `useDeleteComment` |
+| `useTags.ts` | `useTags`, `useCreateTag`, `useUpdateTag`, `useDeleteTag`, `useApplyTag`, `useRemoveTag` |
+| `useUsers.ts` | `useUsers`, `useCreateUser`, `useCreateOtpUser`, `useUpdateUser`, `useDeleteUser` |
+| `useWorkflow.ts` | `useSubmitDesign`, `useApproveDesign`, `useRejectDesign`, `usePublishDesign`, `useUnPublishDesign`, `useSendToDraft`, `useReopenDesign`, `useDiscontinueDesign`, `useUndiscontinueDesign`, `useSetDesignSku` |
+
+Hooks that carry enough standalone logic to justify their own file remain separate (e.g. `useLoadDesign`, `useDrag`, `useGenerateThumbnail`, `usePusherDesign`).
+
 ## Design Workflow
 
 Designs move through a multi-stage approval pipeline:
@@ -114,7 +140,7 @@ draft → in_review → approved → published
                    (undiscontinued → published)
 ```
 
-Each transition requires specific permissions and uses a dedicated API endpoint. The `usePermissions` hook centralises all role checks. Rejected designs include a `rejection_reason` displayed on the canvas and in the details dialog. Editing a rejected design auto-resets its status to draft on the server.
+Each transition requires specific permissions and uses a dedicated API endpoint. All workflow mutations are consolidated in `useWorkflow.ts`. The `usePermissions` hook centralises all role checks. Rejected designs include a `rejection_reason` displayed on the canvas and in the details dialog. Editing a rejected design auto-resets its status to draft on the server.
 
 ## Edit Locking
 
@@ -209,8 +235,8 @@ Typography uses three font families: Inter (body), Italiana (headlines), and Squ
 ## Key Patterns & Conventions
 
 - **Targeted diffs over full rewrites** — Prefer minimal, focused changes rather than wholesale component rewrites.
-- **Consolidation over file proliferation** — Hooks, components, and utilities are merged when they share logic (e.g., `Tags.ts`, `Collections.ts`, `Pickers.tsx`).
-- **Feature flags for backend stubs** — Features awaiting API work use feature flags or stubs (e.g., `REJECT_ENDPOINT_READY`).
+- **Consolidation over file proliferation** — Related hooks are grouped by domain in single files (e.g. `useWorkflow.ts`, `useComments.ts`, `useUsers.ts`). Standalone hooks with enough unique logic keep their own files.
+- **Feature flags for backend stubs** — Features awaiting API work use feature flags or stubs (e.g. `REJECT_ENDPOINT_READY`).
 - **PHP API quirks** — The backend returns empty strings and zero-dates instead of null; `apiFetch` guards against non-JSON error responses from Apache/PHP.
 - **Tailwind dynamic classes** — Computed class strings don't survive JIT; use inline `style` props with shared constants instead.
 - **React hooks ordering** — All hooks must appear unconditionally before any early `return null` statements.

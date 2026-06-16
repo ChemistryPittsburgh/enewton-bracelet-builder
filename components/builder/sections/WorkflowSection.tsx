@@ -11,15 +11,17 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 
 import { ApiError } from "@/lib/api";
 import { STATUS_META } from "@/lib/category-colors";
-import { useSubmitDesign }       from "@/hooks/useSubmitDesign";
-import { useApproveDesign }      from "@/hooks/useApproveDesign";
-import { useRejectDesign }       from "@/hooks/useRejectDesign";
-import { usePublishDesign }      from "@/hooks/usePublishDesign";
-import { useUnPublishDesign }    from "@/hooks/useUnPublishDesign";
-import { useSendToDraft }        from "@/hooks/useSendToDraft";
-import { useSetDesignSku }       from "@/hooks/useSetDesignSku";
-import { useDiscontinueDesign }  from "@/hooks/useDiscontinueDesign";
-import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
+import {
+  useSubmitDesign,
+  useApproveDesign,
+  useRejectDesign,
+  usePublishDesign,
+  useUnPublishDesign,
+  useSendToDraft,
+  useSetDesignSku,
+  useDiscontinueDesign,
+  useUndiscontinueDesign,
+} from "@/hooks/useWorkflow";
 import { useUpdateBracelet }    from "@/hooks/useUpdateBracelet";
 import { useStore }             from "@/lib/store";
 

@@ -8,12 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Tooltip } from "@/components/ui/Tooltip";
 
-import { useUsers } from "@/hooks/useUsers";
-import { useUpdateUser } from "@/hooks/useUpdateUser";
-import { useDeleteUser } from "@/hooks/useDeleteUser";
+import { useUsers, useUpdateUser, useDeleteUser, type CreateUserResponse } from "@/hooks/useUsers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getPrimaryRole } from "@/hooks/usePermissions";
-import type { CreateUserResponse } from "@/hooks/useCreateUser";
 
 import { PermissionsDropdown, PERMISSION_FIELDS } from "./PermissionsDropdown";
 import { CreateUserDialog } from "./CreateUserDialog";

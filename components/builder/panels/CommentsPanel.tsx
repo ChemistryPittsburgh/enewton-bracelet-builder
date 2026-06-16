@@ -15,10 +15,7 @@ import { formatTimestamp } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useDesign } from "@/hooks/useDesign";
-import { useComments } from "@/hooks/useComments";
-import { useAddComment } from "@/hooks/useAddComment";
-import { useDeleteComment } from "@/hooks/useDeleteComment";
-import { useEditComment } from "@/hooks/useEditComment";
+import { useComments, useAddComment, useDeleteComment, useEditComment } from "@/hooks/useComments";
 
 import type { DesignComment } from "@/types";
 

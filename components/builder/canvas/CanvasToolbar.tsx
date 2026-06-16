@@ -15,11 +15,7 @@ import { useStore } from "@/lib/store";
 
 import { useDesign } from "@/hooks/useDesign";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useSubmitDesign } from "@/hooks/useSubmitDesign";
-import { useApproveDesign } from "@/hooks/useApproveDesign";
-import { useRejectDesign } from "@/hooks/useRejectDesign";
-import { usePublishDesign } from "@/hooks/usePublishDesign";
-import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
+import { useSubmitDesign, useApproveDesign, useRejectDesign, usePublishDesign, useUndiscontinueDesign } from "@/hooks/useWorkflow";
 
 import type { BraceletStatus } from "@/types";
 
