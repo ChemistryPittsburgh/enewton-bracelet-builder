@@ -84,6 +84,15 @@ export const CHARM_MIN_ARC_HALF = 0.0008;
 /** Euler rotation [rx, ry, rz] applied to every charm GLB to orient it hanging from the cord. */
 export const CHARM_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI * 1.5];
 
+/** Euler rotation for float charms — centred on the cord instead of dangling below.
+ *  Tune this single constant to adjust orientation. */
+export const FLOAT_CHARM_ROTATION: [number, number, number] = [Math.PI / 2, -0.2, -0.2];
+
+/** Z-axis depth offset for float charms (metres). Positive = forward / outward.
+ *  Regular charms default to −0.0005 (slightly inward); float charms sit further
+ *  forward so they clear the cord visually. Tune as needed. */
+export const FLOAT_CHARM_DEPTH_OFFSET = 0.0008;
+
 /** Fixed camera position for line view — locked, no user controls. */
 export const LINE_VIEW_CAMERA_POSITION: [number, number, number] = [0, 0.05, 0.09];
 
@@ -160,7 +169,7 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "tube", "gem"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "float_charm", "tube", "gem"] as const;
 export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────

@@ -52,11 +52,12 @@ export const BEAD_SPACING = -0.000025;
  * Add new categories here as they appear in the catalog.
  */
 const CATEGORY_SPACING: Record<string, number> = {
-  bead:    BEAD_SPACING,     // −0.35 mm — tight stacking
-  charm:   BEAD_SPACING,     // −0.35 mm — same as beads
-  gem:     0.00002,                //  0 mm    — just touching, no overlap
-  tube:    BEAD_SPACING,     // −0.35 mm — same as beads
-  spacer:  0,                //  0 mm    — flush against neighbors
+  bead:        BEAD_SPACING,     // −0.35 mm — tight stacking
+  charm:       BEAD_SPACING,     // −0.35 mm — same as beads
+  float_charm: 0.00002,     // −0.35 mm — same as charms
+  gem:         0.00002,                //  0 mm    — just touching, no overlap
+  tube:        BEAD_SPACING,     // −0.35 mm — same as beads
+  spacer:      0,                //  0 mm    — flush against neighbors
   cross: 0.0001              // slight spacing
 };
 
@@ -76,13 +77,20 @@ export function braceletArc(radius: number): number {
 
 // Returns the half-arc a bead contributes toward a given neighbor.
 // Charm–charm pairs use body_width_mm (disc body width); all others use diameter.
+// Float charms sit sideways on the cord, so their arc contribution is scaled
+// down to match their thin edge profile (same 0.35 factor as the hit box).
+const FLOAT_CHARM_ARC_SCALE = 0.35;
+
 function arcHalf(bead: BeadLike, neighbor: BeadLike): number {
+  const bc = bead.product.bead_category;
+  const nc = neighbor.product.bead_category;
   if (
-    bead.product.bead_category === "charm" &&
-    neighbor.product.bead_category === "charm" &&
+    (bc === "charm" || bc === "float_charm") &&
+    (nc === "charm" || nc === "float_charm") &&
     bead.product.body_width_mm != null
   ) {
-    return bead.product.body_width_mm / 2 / 1000;
+    const half = bead.product.body_width_mm / 2 / 1000;
+    return bc === "float_charm" ? half * FLOAT_CHARM_ARC_SCALE : half;
   }
   return bead.product.diameter / 2;
 }

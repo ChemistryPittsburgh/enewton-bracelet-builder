@@ -35,8 +35,13 @@ export interface CharmAdjustment {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Float charm hit boxes are squashed to 35% depth — use the same factor
+ *  so the collision threshold matches the thin visual footprint. */
+const FLOAT_CHARM_WIDTH_SCALE = 0.35;
+
 function charmBodyWidth(product: BeadProduct): number {
-  return (product.body_width_mm ?? product.diameter * 1000) / 1000;
+  const full = (product.body_width_mm ?? product.diameter * 1000) / 1000;
+  return product.bead_category === "float_charm" ? full * FLOAT_CHARM_WIDTH_SCALE : full;
 }
 
 function cordDistance(angleA: number, angleB: number, radius: number): number {
@@ -71,7 +76,7 @@ export function computeCharmAdjustments(
       angle: getBeadAngle(i, beads as PlacedBead[], radius),
       bodyWidth: charmBodyWidth(b.product),
     }))
-    .filter(({ bead }) => bead.product.bead_category === "charm");
+    .filter(({ bead }) => bead.product.bead_category === "charm" || bead.product.bead_category === "float_charm");
 
   if (charms.length < 2) return adjustments;
 
@@ -98,15 +103,16 @@ export function computeCharmAdjustments(
 
   // ── Assign alternating adjustments ──────────────────────────────────────
   // Strict alternation: forward, backward, forward, backward...
-  // For a pair:  [+, -]
-  // For a trio:  [+, -, +]
-  // For four:    [+, -, +, -]
+  // Float charms are included in collision detection (they appear in the map
+  // so the UI shows the overlap warning) but receive zero adjustments since
+  // they sit on the cord and don't swing or layer.
   for (const group of groups) {
     for (let i = 0; i < group.length; i++) {
+      const isFloat = group[i].bead.product.bead_category === "float_charm";
       const direction = i % 2 === 0 ? 1 : -1;
       adjustments.set(group[i].bead.instanceId, {
-        layerOffset: direction * LAYER_OFFSET,
-        swingAngle: direction * MAX_SWING,
+        layerOffset: isFloat ? 0 : direction * LAYER_OFFSET,
+        swingAngle:  isFloat ? 0 : direction * MAX_SWING,
       });
     }
   }
