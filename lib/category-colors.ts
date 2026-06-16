@@ -24,7 +24,7 @@ export type CategoryKey = keyof typeof CATEGORY_STYLES;
 
 // ── Bracelet workflow status ──────────────────────────────────────────────────
 export const STATUS_META: Record<BraceletStatus, { label: string; cls: string }> = {
-  draft:        { label: "In Progress",  cls: "bg-gold/20 text-[8f7b3d]" },
+  draft:        { label: "In Progress",  cls: "bg-gold/20 text-[#8f7b3d]" },
   in_review:    { label: "In Review",    cls: "bg-[#2471a3]/20 text-[#185278]"},
   approved:     { label: "Approved",     cls: "bg-[#0d5c52]/20 text-[#0d5c52]"},
   published:    { label: "Published",    cls: "bg-[#6c3483]/20 text-[#6c3483]"},
@@ -50,3 +50,17 @@ const DEFAULT_BEAD_CATEGORY: { label: string; cls: string } = {
 export function getBeadCategoryMeta(category: string | null | undefined) {
   return BEAD_CATEGORY_META[category ?? "bead"] ?? DEFAULT_BEAD_CATEGORY;
 }
+
+// ── User/Avatar Colors ──────────────────────────────────────────────────
+export const AVATAR_COLORS = [
+  "#1F3A5F", // navy
+  "#a38d48", // gold
+  "#0d5c52", // teal
+  "#9b3a3a", // terracotta
+  "#6c3483", // purple
+  "#1e6b3a", // forest
+  "#2471a3", // steel blue
+  "#c0774a", // copper
+  "#8b3040", // rose
+  "#5d6d7e", // slate
+] as const;

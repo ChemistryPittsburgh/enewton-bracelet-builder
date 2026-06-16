@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, X } from "lucide-react";
-import type { CreateUserResponse } from "@/hooks/useCreateUser";
+import type { CreateUserResponse } from "@/hooks/useUsers";
 
 export function TokenModal({ result, onClose }: { result: CreateUserResponse; onClose: () => void }) {
   const [copied, setCopied] = useState(false);

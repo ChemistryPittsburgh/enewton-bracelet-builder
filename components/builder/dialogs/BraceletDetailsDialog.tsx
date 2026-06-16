@@ -13,13 +13,14 @@ import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/Pickers";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useDesign } from "@/hooks/useDesign";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useApplyTag, useRemoveTag } from "@/hooks/Tags";
-import { useApplyCollection, useRemoveCollection } from "@/hooks/Collections";
+import { useApplyTag, useRemoveTag } from "@/hooks/useTags";
+import { useApplyCollection, useRemoveCollection } from "@/hooks/useCollections";
 
 import { WorkflowSection } from "@/components/builder/sections/WorkflowSection";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
@@ -76,9 +77,9 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   const { mutate: deleteDesign, isPending: isDeleting } = useDeleteDesign();
 
   const isDiscontinued = savedDesign?.is_discontinued === 1;
-  const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued);
+  const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued) && !isLocked;
   const isDraft = !savedDesign || savedDesign.status === "draft" || savedDesign.status === "rejected";
-  const showClearBeads = isDraft && placedBeads.length > 0;
+  const showClearBeads = isDraft && placedBeads.length > 0 && !isLocked;
 
   // ── Clear beads state ───────────────────────────────────────────────────────
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -214,13 +215,15 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold ">{braceletName}</h3>
                   {(!savedDesign || (canEdit && !isLocked)) && (
-                    <button
-                      onClick={handleEdit}
-                      className="rounded p-0.5 text-color-base/70 opacity-0 transition-opacity hover:text-color-base/70 group-hover:opacity-100"
-                      aria-label="Edit name and description"
-                    >
-                      <Pencil size={13} />
-                    </button>
+                    <Tooltip content="Edit Bracelet Title and Description">
+                      <button
+                        onClick={handleEdit}
+                        className="rounded p-0.5 text-color-base/70 opacity-0 transition-opacity hover:text-color-base/70 group-hover:opacity-100"
+                        aria-label="Edit name and description"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    </Tooltip>
                   )}
                 </div>
                 {braceletDescription

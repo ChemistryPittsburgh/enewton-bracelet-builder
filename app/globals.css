@@ -167,6 +167,13 @@ h2 {
   }
 }
 
+.icon-only-btn--white {
+  &:hover,
+  &:focus {
+    background-color: white;
+  }
+}
+
 .manage-bead-row:hover,
 .manage-bead-row:focus {
   .icon-only-btn {

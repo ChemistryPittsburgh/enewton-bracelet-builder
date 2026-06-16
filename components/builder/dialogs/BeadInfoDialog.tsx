@@ -5,11 +5,10 @@ import { useStore } from "@/lib/store";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
-import { capitalize, slugify, formatMm } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { cn, capitalize, slugify, formatMm, unslugify } from "@/lib/utils";
 
 export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
-  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType } = useStore((s) => ({
+  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode} = useStore((s) => ({
     beads: s.beads,
     selectedBead: s.selectedBead,
     clearSelectedBead: s.clearSelectedBead,
@@ -17,6 +16,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
     selectAllActive: s.selectAllActive,
     selectAllOfType: s.selectAllOfType,
     removeAllOfType: s.removeAllOfType,
+    isEditMode: s.isEditMode,
   }));
 
   const isOpen = !isLocked && selectedBead !== null;
@@ -43,10 +43,11 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
   return (
     <div
       className={cn(
-        "absolute top-24 right-6 z-50 w-[340px] transition-all duration-300 ease-out",
+        "absolute top-24 right-6 z-20 w-[340px] transition-all duration-300 ease-out",
         isOpen
           ? "opacity-100 translate-y-0 pointer-events-auto"
-          : "opacity-0 translate-y-3 pointer-events-none"
+          : "opacity-0 translate-y-3 pointer-events-none",
+        isEditMode && 'top-[150px]'
       )}
     >
       <FloatingDialog
@@ -57,15 +58,15 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
       >
         {bead && (
           <>
-            <div className="p-2 mb-2 space-y-2 lg:p-3">
-              <h3 className="mb-3">{bead.product.bead_type ? capitalize(bead.product.name) : "Bead Name"}</h3>
+            <div className="p-2 mb-2 space-y-2 lg:py-3 lg:px-0">
+              <h3 className="mb-3 pr-3">{bead.product.bead_type ? capitalize(bead.product.name) : "Bead Name"}</h3>
               <InfoRow layout="horizontal"
                 label="Bead Type"
                 value={bead.product.bead_type ? capitalize(bead.product.bead_type) : "—"}
               />
               <InfoRow layout="horizontal"
                 label="Category"
-                value={bead.product.bead_category ? capitalize(bead.product.bead_category) : "—"}
+                value={bead.product.bead_category ? unslugify(bead.product.bead_category) : "—"}
               />
               {bead.product.bead_category && slugify(bead.product.bead_category) !== 'spacer' && (
                 <InfoRow layout="horizontal"
@@ -76,9 +77,9 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
               <InfoRow layout="horizontal" label="Diameter" value={bead.product.size_mm != null
                 ? `${bead.product.size_mm} mm`
                 : `${formatMm(bead.product.diameter * 1000)} mm`} />
-              <InfoRow layout="horizontal" label="On Bracelet" value={`${matchCount} bead${matchCount !== 1 ? "s" : ""}`} />
+              <InfoRow layout="horizontal" label="Number on Bracelet" value={`${matchCount}`} />
             </div>
-            {!isLocked && matchCount > 1 && (
+            {!isLocked && matchCount > 1 && !isEditMode && (
               <>
                 {selectAllActive ? (
                   <p className="text-sm font-semibold   mb-3 px-2">All {bead.product.name} {bead.product.bead_category}s selected</p>
@@ -93,7 +94,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
               <Button onClick={handleRemove} className="w-full" variant="danger">
                 <Trash2 size={15} />
                 {selectAllActive ? `Remove All (${matchCount})` :
-                  bead.product.bead_category ? `Remove ${capitalize(bead.product.bead_category)}` : "Remove Bead"
+                  bead.product.bead_category ? `Remove ${unslugify(bead.product.bead_category)}` : "Remove Bead"
                 }
               </Button>
             )}

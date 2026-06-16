@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Loader2, Plus, X } from "lucide-react";
 import { z } from "zod";
-import { useCreateOtpUser } from "@/hooks/useCreateOtpUser";
+import { useCreateOtpUser } from "@/hooks/useUsers";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { PermissionsDropdown, PERMISSION_FIELDS } from "./PermissionsDropdown";
 import type { User } from "@/types";

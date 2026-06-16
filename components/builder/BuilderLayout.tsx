@@ -18,6 +18,7 @@ import { BandSelector } from "./canvas/BandSelector";
 import { CanvasStatsBar } from "./canvas/CanvasStatsBar";
 import { CanvasToolbar } from "./canvas/CanvasToolbar";
 import { EditModeToolbar } from "./canvas/EditModeToolbar";
+import { EditModeHelp } from "./canvas/EditModeHelp";
 import { CanvasWorkflowBar } from "./canvas/CanvasWorkflowBar";
 
 import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
@@ -32,7 +33,7 @@ import { CommentsPanel } from "./panels/CommentsPanel";
 
 import { SavedDesignsScreen } from "./saved-designs/SavedDesignsScreen";
 
-import { UserScreen } from "./users/UserScreen";
+import { UserPanel } from "./users/UserPanel";
 import { UsersAdminScreen } from "./users/UsersAdminScreen";
 
 import { getInitials } from "@/lib/utils";
@@ -393,9 +394,13 @@ export function BuilderLayout() {
           />
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
+          <Tooltip content={rightPanel === "user" ? "Close User Panel" : "Open User Panel"} placement="bottom-start">
             <button
-              onClick={() => setRightPanel("user")}
-              className="flex h-9 w-9 bg-mint items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors"
+              onClick={() => setRightPanel((p) => p === "user" ? null : "user")}
+              className={cn(
+                "flex h-9 w-9 bg-mint items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors",
+                rightPanel === "user" && "outline outline-navy focus:ring-default focus:ring focus:ring-offset-2"
+              )}
               aria-label="Open user profile"
             >
               {currentUser ? getInitials(currentUser.name) : "?"}
@@ -405,6 +410,7 @@ export function BuilderLayout() {
                 {notificationCount > 99 ? "99+" : notificationCount}
               </span>
             )}
+            </Tooltip>
           </div>
         </span>
       </header>
@@ -419,7 +425,7 @@ export function BuilderLayout() {
 
         <BeadInfoDialog isLocked={isLocked} />
 
-        <UserScreen
+        <UserPanel
           open={rightPanel === "user"}
           onClose={() => setRightPanel(null)}
           onEditUsers={() => { setRightPanel(null); setUsersAdminOpen(true); }}
@@ -437,19 +443,18 @@ export function BuilderLayout() {
           }}
         >
           {canEdit && !isLocked && (
-            <button
-              onClick={openBraceletPanel}
-              className={`bracelet-panel-toggle-btn absolute left-0 top-0 bottom-0 z-40 my-auto h-fit
-              rounded-br-lg rounded-tr-lg bg-navy text-white
-              px-1 py-2
-              transition-all
-              hover:bg-navy/80 hover:pl-2
-              ${braceletPanelOpen ? "open" : ""}`}
-              title={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
-              aria-label={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
-            >
-              <ChevronsRight size={25} />
-            </button>
+            <div className="absolute left-0 top-0 bottom-0 z-40 my-auto h-fit">
+              <Tooltip content={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"} placement="right">
+                <button
+                  onClick={openBraceletPanel}
+                  className={`rounded-br-lg rounded-tr-lg bg-navy text-white px-1 py-2 transition-all hover:bg-navy/80 hover:pl-2
+                  ${braceletPanelOpen ? "open" : ""}`}
+                  aria-label={braceletPanelOpen ? "Close Bead Selector Panel" : "Open Bead Selector Panel"}
+                >
+                  <ChevronsRight size={25} className={`transition-all ${braceletPanelOpen && "rotate-180"}`} />
+                </button>
+              </Tooltip>
+            </div>
           )}
 
           <CanvasToolbar
@@ -489,7 +494,7 @@ export function BuilderLayout() {
                 <span className="text-color-base/70 font-headline">Bracelet Name:</span> {braceletName}
               </p>
 
-              {/* "view bracelet details" — highlights when a name is required */}
+              {/* "view bracelet details" button*/}
               <button
                 onClick={handleDetailsClick}
                 className={cn(
@@ -506,9 +511,11 @@ export function BuilderLayout() {
             <CanvasStatsBar />
 
             {/* Edit mode action toolbar */}
-            <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-lg">
+            <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-[2px]">
               <EditModeToolbar />
             </div>
+
+            <EditModeHelp />
 
             {canEdit && !isLocked && (
               <BandSelector panelOpen={braceletPanelOpen || rightPanelOpen} />

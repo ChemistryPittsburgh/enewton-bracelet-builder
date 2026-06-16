@@ -58,7 +58,7 @@ export function FloatingDialog({
           "group transition-transform duration-200",
           includeTitleBar
             ? "flex w-full items-center justify-between px-3 py-2"
-            : "absolute right-2 top-2 z-10"
+            : "absolute right-2 top-2 z-10 icon-only-btn"
         )}
       >
         {title && (
@@ -67,13 +67,14 @@ export function FloatingDialog({
 
         <div
           className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-full text-color-base/70",
-            includeTitleBar &&
-              "border border-default group-hover:bg-mint group-hover:ring-2 group-hover:ring-navy"
+            "flex items-center justify-center rounded-full text-color-base/70",
+            includeTitleBar ?
+              "h-7 w-7 border border-default group-hover:bg-mint group-hover:ring-2 group-hover:ring-navy"
+              : ""
           )}
         >
           {isControlled ? (
-            <X size={20} className="transition-all duration-300 group-hover:scale-130" />
+            <X size={16} className="transition-all duration-300" />
           ) : (
             <ChevronDown
               size={15}
@@ -94,7 +95,7 @@ export function FloatingDialog({
       >
         <div
           className={cn(
-            "px-4 pb-4 pt-3",
+            "px-4 pb-4 pt-3 lg:px-6",
             includeTitleBar && "border-t border-neutral-100"
           )}
         >

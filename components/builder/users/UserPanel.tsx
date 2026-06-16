@@ -31,7 +31,7 @@ import { useBeads } from "@/hooks/useBeads";
 import type { Bracelet } from "@/types";
 import type { BeadProduct } from "@/types";
 
-interface UserScreenProps {
+interface UserPanelProps {
   open: boolean;
   onClose: () => void;
   onEditUsers?: () => void;
@@ -259,7 +259,7 @@ function HistoryMenu({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserScreenProps) {
+export function UserPanel({ open, onClose, onEditUsers, onManageBeads }: UserPanelProps) {
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
@@ -379,17 +379,8 @@ export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserSc
                 onClick={() => onManageBeads?.()}
                 className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
               >
-                Upload / Edit Beads
+                Upload / Edit Inventory
               </button>
-              {["View components", "View bracelets"].map((label) => (
-                <button
-                  key={label}
-                  disabled
-                  className="text-left text-sm text-neutral-400 underline underline-offset-2 cursor-not-allowed"
-                >
-                  {label}
-                </button>
-              ))}
             </div>
           )}
 
@@ -418,14 +409,16 @@ export function UserScreen({ open, onClose, onEditUsers, onManageBeads }: UserSc
                         <span>{formatEventDate(ev.date)}</span>
                         <span>{formatEventTime(ev.date)}</span>
                         {ev.byName && <span>By {ev.byName}</span>}
-                        <div className="ml-auto">
-                          <HistoryMenu
-                            eventKey={ev.key}
-                            openKey={openMenuKey}
-                            setOpenKey={setOpenMenuKey}
-                            onOpen={() => handleHistoryOpen(ev.braceletId)}
-                          />
-                        </div>
+                        {ev.braceletId !== -1 && (
+                          <div className="ml-auto">
+                            <HistoryMenu
+                              eventKey={ev.key}
+                              openKey={openMenuKey}
+                              setOpenKey={setOpenMenuKey}
+                              onOpen={() => handleHistoryOpen(ev.braceletId)}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

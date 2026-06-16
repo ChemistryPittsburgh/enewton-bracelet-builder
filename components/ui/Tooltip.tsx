@@ -141,7 +141,7 @@ export function Tooltip({
   return (
     <span
       ref={triggerRef}
-      className="relative inline-flex"
+      className={`relative inline-flex ${className}`}
       onMouseEnter={show}
       onMouseLeave={hide}
       onFocus={show}
@@ -153,7 +153,7 @@ export function Tooltip({
         <span
           ref={tooltipRef}
           role="tooltip"
-          className={`absolute z-50 whitespace-nowrap rounded-[2px] bg-shell px-2 py-1 text-[11px] font-medium text-color-base/70 shadow-lg pointer-events-none ${className}`}
+          className={`absolute z-[500] whitespace-nowrap rounded-[2px] bg-shell px-2 py-1 text-[11px] font-medium text-color-base/70 shadow-lg pointer-events-none ${className}`}
           style={positionStyles[adjustedPlacement]}
         >
           {content}

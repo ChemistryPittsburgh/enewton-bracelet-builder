@@ -8,7 +8,7 @@ import { Box3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial, Vector3 
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FINISH_PRESETS, DEFAULT_FINISH } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FINISH_PRESETS, DEFAULT_FINISH, EDIT_MODE_HIGHLIGHT_SELECT_COLOR, HIGHLIGHT_SELECT_COLOR } from "@/lib/constants";
 import { cloneShared } from "@/lib/measure-bead";
 
 interface BeadOnBraceletProps {
@@ -124,15 +124,19 @@ export function BeadOnBracelet({
   }, [scene, bead.product.bead_category, CHARM_ROTATION[0], CHARM_ROTATION[1], CHARM_ROTATION[2]]);
 
   const { gl } = useThree();
-  const selectBead         = useStore((s) => s.selectBead);
-  const selectedBead       = useStore((s) => s.selectedBead);
-  const editSelectedBead   = useStore((s) => s.editSelectedBead);
-  const setEditSelectedBead = useStore((s) => s.setEditSelectedBead);
-  const beads              = useStore((s) => s.beads);
-  const braceletSize       = useStore((s) => s.braceletSize);
-  const isEditMode         = useStore((s) => s.isEditMode);
-  const selectAllActive    = useStore((s) => s.selectAllActive);
-  const viewMode           = useStore((s) => s.viewMode);
+  const { selectBead, selectedBead, editSelectedIds, toggleEditBead, clearSelectedBead, clearEditSelection, beads, braceletSize, isEditMode, viewMode, selectAllActive } = useStore((s) => ({
+    selectBead: s.selectBead,
+    selectedBead: s.selectedBead,
+    editSelectedIds: s.editSelectedIds,
+    toggleEditBead: s.toggleEditBead,
+    clearSelectedBead: s.clearSelectedBead,
+    clearEditSelection: s.clearEditSelection,
+    beads: s.beads,
+    braceletSize: s.braceletSize,
+    isEditMode: s.isEditMode,
+    selectAllActive: s.selectAllActive,
+    viewMode: s.viewMode,
+  }));
 
   const isCharm = bead.product.bead_category === "charm";
 
@@ -144,9 +148,11 @@ export function BeadOnBracelet({
   const depthOffset = isCharm ? (bead.product.depth_offset ?? -0.0005) : 0;
 
   const isSelected = isEditMode
-    ? editSelectedBead?.instanceId === bead.instanceId
+    ? editSelectedIds.includes(bead.instanceId)
     : selectedBead?.instanceId === bead.instanceId
     || (selectAllActive && selectedBead?.product.id === bead.product.id);
+
+const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT_SELECT_COLOR;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === 'line'
@@ -162,22 +168,55 @@ export function BeadOnBracelet({
   function handleClick(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
     if (isLocked) return;
-    if (!isEditMode) selectBead(bead);
+    if (isEditMode) {
+      const ne = e.nativeEvent;
+      if (ne && (ne.metaKey || ne.ctrlKey)) {
+        // Cmd/Ctrl+click opens the info panel for this bead
+        selectBead(bead);
+        toggleEditBead(bead.instanceId);
+      } else {
+        // Plain click toggles edit selection; close info panel if open
+        clearSelectedBead();
+        toggleEditBead(bead.instanceId);
+      }
+    } else {
+      selectBead(bead);
+    }
   }
 
-  function handleDoubleClick(e: ThreeEvent<MouseEvent>) {
-    e.stopPropagation();
-    if (!isEditMode) return;
-    setEditSelectedBead(bead);
-    selectBead(bead);
-  }
+  /** Pixels of pointer movement before a drag initiates (prevents jump on click). */
+  const DRAG_THRESHOLD = 4;
 
   function handlePointerDown(e: ThreeEvent<PointerEvent>) {
     if (!isEditMode) return;
     e.stopPropagation();
-    gl.domElement.setPointerCapture(e.pointerId);
-    gl.domElement.style.cursor = "grabbing";
-    onDragStart?.(slotIndex);
+
+    const startX = e.nativeEvent.clientX;
+    const startY = e.nativeEvent.clientY;
+
+    function onMove(moveEvent: PointerEvent) {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
+        clearEditSelection();
+        clearSelectedBead();
+        gl.domElement.style.cursor = "grabbing";
+        onDragStart?.(slotIndex);
+        cleanup();
+      }
+    }
+
+    function onUp() {
+      cleanup();
+    }
+
+    function cleanup() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }
 
   function handlePointerEnter() {
@@ -198,7 +237,6 @@ export function BeadOnBracelet({
       onPointerDown={handlePointerDown}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
-      onDoubleClick={handleDoubleClick}
     >
       <group rotation={innerRotation} dispose={null}>
         {isCharm ? (
@@ -219,7 +257,7 @@ export function BeadOnBracelet({
         {isSelected && vizRadius > 0 && (
           <mesh rotation={isCharm ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
             <torusGeometry args={[vizRadius * 1.15, 0.0003, 8, 32]} />
-            <meshBasicMaterial color="#c8a97e" />
+            <meshBasicMaterial color={highlightColor} transparent opacity={0.7} />
           </mesh>
         )}
 

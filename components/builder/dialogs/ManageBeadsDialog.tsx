@@ -26,6 +26,7 @@ import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { cn, capitalize, slugify, unslugify } from "@/lib/utils";
 import { STATUS_META, getBeadCategoryMeta } from "@/lib/category-colors";
@@ -365,15 +366,15 @@ function BeadRow({
     <div
       className={`manage-bead-row flex items-center gap-4 pr-2 rounded-[2px] border group transition-colors ${
         isInactive
-          ? "border-default bg-grey opacity-60"
+          ? "border-default bg-grey"
           : "border-default bg-white"
       }`}
     >
       <div className="flex flex-col justify-center items-center w-28 h-full min-h-24 object-cover object-center bg-light-grey">
-        <BeadThumbnail bead={bead} cacheBust={cacheBust} className="h-full w-full flex-1" />
+        <BeadThumbnail bead={bead} cacheBust={cacheBust} className={`h-full w-full flex-1 ${isInactive && 'opacity-50'}`} />
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className={`flex-1 min-w-0 ${isInactive && 'opacity-50'}`} >
         <p className="text-sm font-medium truncate">{bead.name}</p>
         <p className="text-xs text-color-base/60 truncate">
           {bead.bead_type ?? "—"}
@@ -387,7 +388,7 @@ function BeadRow({
       {(() => {
         const cat = getBeadCategoryMeta(bead.bead_category);
         return (
-          <span className={`shrink-0 rounded-[2px] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cat.cls}`}>
+          <span className={`shrink-0 rounded-[2px] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cat.cls} ${isInactive && 'opacity-50'}`}>
             {cat.label}
           </span>
         );
@@ -395,35 +396,39 @@ function BeadRow({
 
       {/* Actions — reveal on hover */}
       <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={() => onEdit(bead)}
-          className={`icon-only-btn ${
-            isInactive
-              ? "inactive"
-              : "active"
-          }`}
-          title="Edit bead"
-        >
-          <Pencil size={16} />
-        </button>
-        <button
-          onClick={() => onToggleActive(bead)}
-          disabled={isTogglingActive}
-          className={`icon-only-btn icon-only-btn--error ${
-            isInactive
-              ? "inactive text-color-base/70 hover:bg-light-mint hover:text-color-base"
-              : "active"
-          } disabled:opacity-40`}
-          title={isInactive ? "Reactivate bead" : "Deactivate bead"}
-        >
-          {isTogglingActive ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : isInactive ? (
-            <Eye size={16} />
-          ) : (
-            <EyeOff size={16} />
-          )}
-        </button>
+        <Tooltip content="Edit item">
+          <button
+            onClick={() => onEdit(bead)}
+            className={`icon-only-btn ${
+              isInactive
+                ? "inactive"
+                : "active"
+            }`}
+            aria-label="Edit item"
+          >
+            <Pencil size={16} />
+          </button>
+        </Tooltip>
+        <Tooltip content={isInactive ? "Reactivate item" : "Deactivate item"} placement="left">
+          <button
+            onClick={() => onToggleActive(bead)}
+            disabled={isTogglingActive}
+            className={`icon-only-btn icon-only-btn--error ${
+              isInactive
+                ? "inactive text-color-base/70 hover:bg-light-mint hover:text-color-base"
+                : "active"
+            } disabled:opacity-40`}
+            aria-label={isInactive ? "Reactivate item" : "Deactivate item"}
+          >
+            {isTogglingActive ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : isInactive ? (
+              <Eye size={16} />
+            ) : (
+              <EyeOff size={16} />
+            )}
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

@@ -2,19 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, MessageSquare, Pencil, X } from "lucide-react";
+
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { Avatar } from "@/components/ui/Avatar";
+
 import { useStore } from "@/lib/store";
+import { COMMENT_MAX_LENGTH } from "@/lib/sanitize";
+import { formatTimestamp } from "@/lib/utils";
+
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useDesign } from "@/hooks/useDesign";
-import { useComments } from "@/hooks/useComments";
-import { useAddComment } from "@/hooks/useAddComment";
-import { useDeleteComment } from "@/hooks/useDeleteComment";
-import { useEditComment } from "@/hooks/useEditComment";
-import { Avatar } from "@/components/ui/Avatar";
-import { COMMENT_MAX_LENGTH } from "@/lib/sanitize";
-import { formatTimestamp } from "@/lib/utils";
+import { useComments, useAddComment, useDeleteComment, useEditComment } from "@/hooks/useComments";
+
 import type { DesignComment } from "@/types";
 
 interface CommentsPanelProps {
@@ -75,20 +77,26 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
     );
   }
 
-  const isOwnComment = (c: DesignComment) =>
-    c.user_id === currentUser?.id || !!currentUser?.permissions?.is_admin;
+  const canEditComment = (c: DesignComment) => c.user_id === currentUser?.id;
 
   return (
     <Panel open={open} onClose={onClose} direction="right">
       <div className="flex flex-col flex-1 overflow-hidden">
 
         {/* Header */}
-        <div className="shrink-0 px-6 pt-6 pb-2">
-          <h2 className="text-2xl font-semibold  ">Comments</h2>
+        <div className="shrink-0 px-6 pt-6 pb-2 flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">Comments</h2>
+          <button
+            onClick={onClose}
+            className="icon-only-btn"
+            aria-label="Close comments"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Comment list */}
-        <div ref={listRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+        <div ref={listRef} className="flex-1 overflow-y-auto py-4 px-4 space-y-3">
           {isLoading && (
             <div className="flex items-center justify-center pt-16 text-color-base/70">
               <Loader2 size={22} className="animate-spin" />
@@ -120,7 +128,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
           )}
 
           {!isLoading && !isError && comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3 group">
+            <div key={comment.id} className="flex gap-3 group bg-stone/10 py-2.5 px-3 rounded-[2px]">
               <Avatar name={comment.user_name} />
               <div className="flex-1 min-w-0">
                 {editingId === comment.id ? (
@@ -135,12 +143,12 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
                       rows={3}
                       autoFocus
                       maxLength={COMMENT_MAX_LENGTH}
-                      className="w-full resize-none rounded-lg border border-default bg-neutral-50 px-3 py-2 text-sm outline-none focus-visible:border-stone"
+                      className="w-full resize-none rounded-[2px] border border-default bg-white px-3 py-2 text-sm outline-none focus:ring-navy"
                     />
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={cancelEdit} className="text-xs text-color-base/70 hover:text-color-base/70 transition-colors">
+                      <Button size="xs" variant="ghost" onClick={cancelEdit} className="hover:bg-white">
                         Cancel
-                      </button>
+                      </Button>
                       <Button
                         size="xs"
                         variant="primary"
@@ -154,25 +162,31 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-baseline gap-2 mb-1">
+                    <div className="flex min-h-[32px] items-center gap-2">
                       <span className="text-sm font-semibold  ">{comment.user_name}</span>
-                      <span className="text-xs text-color-base/70">{formatTimestamp(comment.created_at)}</span>
-                      {isOwnComment(comment) && (
+                      <span className="text-xs text-color-base/80">{formatTimestamp(comment.created_at)}</span>
+                      {(canEditComment(comment)) && (
                         <span className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => startEdit(comment)} className="rounded p-0.5 text-color-base/70 hover:text-color-base/70" aria-label="Edit">
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            onClick={() => activeDesignId && deleteComment({ designId: activeDesignId, commentId: comment.id })}
-                            className="rounded p-0.5 text-color-base/70 hover:text-error/80"
-                            aria-label="Delete"
-                          >
-                            <X size={14} />
-                          </button>
+                          {canEditComment(comment) && (
+                            <Tooltip content="Edit Comment">
+                              <button onClick={() => startEdit(comment)} className="icon-only-btn icon-only-btn--white p-0.5" aria-label="Edit">
+                                <Pencil size={14} />
+                              </button>
+                            </Tooltip>
+                          )}
+                          <Tooltip content="Delete Comment">
+                            <button
+                                onClick={() => activeDesignId && deleteComment({ designId: activeDesignId, commentId: comment.id })}
+                                className="icon-only-btn icon-only-btn--error p-0.5"
+                                aria-label="Delete"
+                              >
+                                <X size={14} />
+                              </button>
+                            </Tooltip>
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-color-base/70 leading-relaxed whitespace-pre-wrap">{comment.body}</p>
+                    <p className="text-sm text-color-base leading-relaxed whitespace-pre-wrap">{comment.body}</p>
                   </>
                 )}
               </div>
@@ -184,7 +198,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
         {canEdit && !isLocked && (
           <div className={`shrink-0 border-t border-default px-6 py-5 transition-opacity ${!canInteract ? "opacity-40 pointer-events-none" : ""}`}>
             <p className="text-sm font-semibold   mb-3">Leave a comment</p>
-            <div className="flex gap-3 rounded-lg border border-default px-3 py-3 focus-within:border-gold transition-colors">
+            <div className="flex gap-3 rounded-[2px] border border-default px-3 py-3 focus-within:border-navy focus-within:ring-navy transition-colors">
               {currentUser && <Avatar name={currentUser.name} color={currentUser.color} size="sm" />}
               <textarea
                 value={draft}
@@ -208,7 +222,7 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
                 <span />
               )}
               <Button
-                size="sm"
+                size="xs"
                 variant="primary"
                 onClick={handleSubmit}
                 disabled={!draft.trim() || adding || !canInteract}

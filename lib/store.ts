@@ -85,9 +85,14 @@ interface Store {
   beadLoadErrors: { instanceId: string; name: string; filename: string }[];
   addBeadLoadError: (instanceId: string, name: string, filename: string) => void;
 
-  /** Ephemeral — not persisted. Bead selected inside edit mode — drives EditModeToolbar only. */
-  editSelectedBead: PlacedBead | null;
-  setEditSelectedBead: (bead: PlacedBead | null) => void;
+  /** Ephemeral — not persisted. Bead(s) selected inside edit mode — drives EditModeToolbar. */
+  editSelectedIds: string[];
+  /** Replace selection with a single bead (normal click). */
+  selectEditBead: (instanceId: string) => void;
+  /** Toggle a bead in/out of the selection (Cmd/Ctrl+click). */
+  toggleEditBead: (instanceId: string) => void;
+  /** Clear the entire edit selection. */
+  clearEditSelection: () => void;
 
   /** Ephemeral — not persisted. True when the canvas is in drag-to-reorder edit mode. */
   isEditMode: boolean;
@@ -172,7 +177,7 @@ export const useStore = create<Store>()(
       hairtieColor: "gray",
       beadLoadErrors: [],
       isEditMode: false,
-      editSelectedBead: null,
+      editSelectedIds: [],
       editViewMode: 'top' as const,
       selectAllActive: false,
       viewMode: '3D' as const,
@@ -208,8 +213,8 @@ export const useStore = create<Store>()(
           beads: s.beads.filter((b) => b.instanceId !== instanceId),
           selectedBead:
             s.selectedBead?.instanceId === instanceId ? null : s.selectedBead,
-          editSelectedBead:
-            s.editSelectedBead?.instanceId === instanceId ? null : s.editSelectedBead,
+          editSelectedIds:
+            s.editSelectedIds.filter((id) => id !== instanceId),
           beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
           isDirty: true,
         }));
@@ -227,7 +232,7 @@ export const useStore = create<Store>()(
         selectedBead: null,
         isDirty: false,
         braceletSize: "small" as BraceletSize,
-        bandMaterial: "cord" as BandMaterial,
+        bandMaterial: "stretchy" as BandMaterial,
       }),
 
       startNewBracelet: () => set({
@@ -299,15 +304,30 @@ export const useStore = create<Store>()(
       setBraceletSize: (braceletSize) => set({ braceletSize, isDirty: true }),
       setHairtieColor: (hairtieColor) => set({ hairtieColor, isDirty: true }),
 
-      setEditSelectedBead(bead) {
-        set({ editSelectedBead: bead });
+      selectEditBead(instanceId) {
+        set({ editSelectedIds: [instanceId] });
+      },
+
+      toggleEditBead(instanceId) {
+        set((s) => {
+          const exists = s.editSelectedIds.includes(instanceId);
+          return {
+            editSelectedIds: exists
+              ? s.editSelectedIds.filter((id) => id !== instanceId)
+              : [...s.editSelectedIds, instanceId],
+          };
+        });
+      },
+
+      clearEditSelection() {
+        set({ editSelectedIds: [] });
       },
 
       toggleEditMode() {
         set((s) => ({
           isEditMode: !s.isEditMode,
           selectedBead: null,
-          editSelectedBead: null,
+          editSelectedIds: [],
           editViewMode: s.viewMode === 'line' ? 'side' : 'top',
         }));
       },

@@ -3,10 +3,13 @@
 import { useRef, useState, useEffect } from "react";
 import { Archive, CheckCircle, Eye, Lock, MoreHorizontal, Send, Trash2, XCircle, Radio, Ban } from "lucide-react";
 import type { Bracelet } from "@/types";
+
 import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store";
+import { Tooltip } from "@/components/ui/Tooltip";
+
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useStore } from "@/lib/store";
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -93,12 +96,12 @@ export function DesignCard({
   const hasWorkflowActions = showSubmit || showApprove || showReject;
   const hasAdminActions    = showDiscontinue || showDelete;
 
-  const menuItemCls = "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors";
+  const menuItemClasses = "flex w-full items-center gap-2 px-3 py-3 text-left text-sm transition-colors";
 
   return (
     <div
       className={cn(
-        "group flex flex-col rounded-[3px] border overflow-hidden cursor-pointer hover:shadow-sm transition-all",
+        "group flex flex-col rounded-[3px] border cursor-pointer hover:shadow-sm transition-all",
         isDiscontinued ? "border-default opacity-50 grayscale pointer-events-auto" :
         wasRejected    ? "border-error/40 hover:border-error/60" :
                          "border-default hover:border-navy focus:ring-navy",
@@ -156,7 +159,7 @@ export function DesignCard({
           )}
 
           {/* ── Three-dot menu ── */}
-          {!isDiscontinued && (
+          {!isDiscontinued && !lockedByOther && (
             <div
               ref={menuRef}
               className="absolute right-2 top-2"
@@ -176,14 +179,14 @@ export function DesignCard({
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-lg border border-default bg-white py-1 shadow-lg">
+                <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-[3px] overflow-hidden border border-default bg-white shadow-lg">
                   {/* ── Open Design ── */}
                   <button
                     onClick={() => {
                       setMenuOpen(false);
                       onClick?.();
                     }}
-                    className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
+                    className={cn(menuItemClasses, "text-navy hover:bg-mint")}
                   >
                     <Eye size={14} />
                     Open design
@@ -191,7 +194,7 @@ export function DesignCard({
 
                   {/* ── Workflow actions ── */}
                   {hasWorkflowActions && (
-                    <div className="my-1 border-t border-default" />
+                    <div className="border-t border-default" />
                   )}
                   {showSubmit && (
                     <button
@@ -199,7 +202,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onSubmitForReview?.(design);
                       }}
-                      className={cn(menuItemCls, "text-navy hover:bg-navy/10")}
+                      className={cn(menuItemClasses, "text-navy hover:bg-mint")}
                     >
                       <Send size={14} />
                       Submit for review
@@ -211,7 +214,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onApprove?.(design);
                       }}
-                      className={cn(menuItemCls, "text-green hover:bg-green/10")}
+                      className={cn(menuItemClasses, "text-green hover:bg-green/10")}
                     >
                       <CheckCircle size={14} />
                       Approve
@@ -223,7 +226,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onRejectRequest?.(design);
                       }}
-                      className={cn(menuItemCls, "text-error hover:bg-error/10")}
+                      className={cn(menuItemClasses, "text-error hover:bg-error/10")}
                     >
                       <XCircle size={14} />
                       Reject
@@ -232,7 +235,7 @@ export function DesignCard({
 
                   {/* ── Admin actions ── */}
                   {hasAdminActions && (
-                    <div className="my-1 border-t border-default" />
+                    <div className="border-t border-default" />
                   )}
                   {showDiscontinue && (
                     <button
@@ -240,7 +243,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onDiscontinueRequest!(design);
                       }}
-                      className={cn(menuItemCls, "text-gold hover:bg-gold/10")}
+                      className={cn(menuItemClasses, "text-gold hover:bg-gold/10")}
                     >
                       <Archive size={14} />
                       Discontinue
@@ -252,7 +255,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onDeleteRequest(design);
                       }}
-                      className={cn(menuItemCls, "text-error hover:bg-error/10")}
+                      className={cn(menuItemClasses, "text-error hover:bg-error/10")}
                     >
                       <Trash2 size={14} />
                       Delete bracelet
@@ -276,12 +279,16 @@ export function DesignCard({
         </div>
         <div className="flex shrink-0 items-center">
           { !isDiscontinued ? (
-            <Radio size={20} 
-              className={`${
-                isLive ? "text-green animate-pulse" : "text-color-base/30"
-              }`} />
+            <Tooltip content={isLive ? "Bracelet is live" : "Braclet is unpublished"}>
+              <Radio size={20} 
+                className={`${
+                  isLive ? "text-green animate-pulse" : "text-color-base/30"
+                }`} />
+              </Tooltip>
           ) : (
-            <Ban size={20} className="text-error/40" />
+            <Tooltip content="Bracelet is discontinued">
+              <Ban size={20} className="text-error/40" />
+            </Tooltip>
           )}
         </div>
       </div>

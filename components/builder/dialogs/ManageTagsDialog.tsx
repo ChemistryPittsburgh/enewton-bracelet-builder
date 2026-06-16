@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 
 import { useDesigns } from "@/hooks/useDesigns";
 
-import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/hooks/Tags";
+import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/hooks/useTags";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { Tag } from "@/types";
 
