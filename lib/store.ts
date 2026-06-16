@@ -98,6 +98,10 @@ interface Store {
   isEditMode: boolean;
   toggleEditMode: () => void;
 
+  /** Ephemeral — when true, colliding charms are highlighted with an orange ring. */
+  showCharmCollisions: boolean;
+  setShowCharmCollisions: (show: boolean) => void;
+
   /** Ephemeral — not persisted. Which camera view is active in edit mode. */
   editViewMode: 'top' | 'side';
   toggleEditViewMode: () => void;
@@ -177,6 +181,9 @@ export const useStore = create<Store>()(
       hairtieColor: "gray",
       beadLoadErrors: [],
       isEditMode: false,
+
+      showCharmCollisions: false,
+      setShowCharmCollisions: (show) => set({ showCharmCollisions: show }),
       editSelectedIds: [],
       editViewMode: 'top' as const,
       selectAllActive: false,
@@ -254,14 +261,22 @@ export const useStore = create<Store>()(
       },
 
       selectAllOfType() {
-        set({ selectAllActive: true });
+        const { beads, selectedBead, isEditMode } = get();
+        if (!selectedBead) return;
+        const matchingIds = beads
+          .filter((b) => b.product.id === selectedBead.product.id)
+          .map((b) => b.instanceId);
+        set({
+          selectAllActive: true,
+          ...(isEditMode ? { editSelectedIds: matchingIds } : {}),
+        });
       },
 
       removeAllOfType() {
         const { beads, selectedBead } = get();
         if (!selectedBead) return;
         const filtered = beads.filter((b) => b.product.id !== selectedBead.product.id);
-        set({ beads: filtered, selectedBead: null, selectAllActive: false, isDirty: true });
+        set({ beads: filtered, selectedBead: null, selectAllActive: false, editSelectedIds: [], isDirty: true });
       },
 
       loadBeads(beads, name) {

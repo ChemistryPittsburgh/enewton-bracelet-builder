@@ -1283,7 +1283,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     <FullScreenDialog
       open={open}
       onClose={handleClose}
-      title="Upload / Edit Inventory"
+      title="Manage Inventory"
       className="max-w-3xl"
       bodyClasses="px-5 py-4 max-h-[75vh] overflow-y-auto"
       headerExtra={headerBackButton}

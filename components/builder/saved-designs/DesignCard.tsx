@@ -123,14 +123,14 @@ export function DesignCard({
         )}
         {/* Currently open by this user */}
         {isCurrentlyEditing && (
-          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 rounded-[2px] bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
+          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 rounded-[2px] bg-navy px-2 py-0.5 text-[10px] font-semibold text-white bg-orange">
             <Lock size={9} />
             Currently Editing
           </div>
         )}
         {/* Locked by another user */}
         {lockedByOther && (
-          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 bg-orange px-2 py-0.5 text-[10px] font-semibold text-white">
+          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
             <Lock size={9} />
             {design.active_lock!.user_name}
           </div>
@@ -165,18 +165,20 @@ export function DesignCard({
               className="absolute right-2 top-2"
               onClick={(e) => e.stopPropagation()}
             >
-              <button
-                onClick={() => setMenuOpen((o) => !o)}
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-mint hover:text-color-base focus:ring focus:ring-navy",
-                  menuOpen
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-100",
-                )}
-                aria-label="More options"
-              >
-                <MoreHorizontal size={15} />
-              </button>
+              <Tooltip content="Bracelet Actions">
+                <button
+                  onClick={() => setMenuOpen((o) => !o)}
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-mint hover:text-color-base focus:ring focus:ring-navy",
+                    menuOpen
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100",
+                  )}
+                  aria-label="More options"
+                >
+                  <MoreHorizontal size={15} />
+                </button>
+              </Tooltip>
 
               {menuOpen && (
                 <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-[3px] overflow-hidden border border-default bg-white shadow-lg">

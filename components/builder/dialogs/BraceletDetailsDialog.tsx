@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Eraser, Loader2, Pencil, Trash2, X } from "lucide-react";
+import { Check, Eraser, Loader2, Pencil, Trash2, X, AlertTriangle } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
+import { getCollidingCharmIds } from "@/lib/charm-collision";
 import { formatDateTime, formatMm } from "@/lib/utils";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
@@ -48,6 +49,8 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     setBraceletName,
     setBraceletDescription,
     clearBeads,
+    showCharmCollisions,
+    setShowCharmCollisions,
   } = useStore((s) => ({
     braceletName:            s.braceletName,
     braceletDescription:     s.braceletDescription,
@@ -58,11 +61,15 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     setBraceletName:         s.setBraceletName,
     setBraceletDescription:  s.setBraceletDescription,
     clearBeads:              s.clearBeads,
+    showCharmCollisions:     s.showCharmCollisions,
+    setShowCharmCollisions:  s.setShowCharmCollisions,
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
   const { canEdit, canDeleteBracelet, isAdmin } = usePermissions();
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published" || isKicked;
+
+  const isPublished = savedDesign?.status === "published";
 
   // ── Name / description edit state ───────────────────────────────────────────
   const [isEditing,        setIsEditing]        = useState(false);
@@ -138,7 +145,13 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     [placedBeads],
   );
 
-  const dialogSectionClass = "border-b border-default pb-3";
+  const collidingIds = useMemo(
+    () => getCollidingCharmIds(placedBeads, BRACELET_SIZE_RADIUS[braceletSize]),
+    [placedBeads, braceletSize],
+  );
+  const hasCharmCollisions = collidingIds.length > 0;
+
+  const dialogSectionClass = "border-b border-default pb-4 pt-2";
 
   const statusMeta = isDiscontinued
     ? STATUS_META.discontinued
@@ -259,13 +272,41 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
               <InfoRow label="Types" value={beadTypes.join(", ")} />
             )}
           </div>
+
+          {/* ── Charm collision warning ──────────────────────────────────── */}
+          {hasCharmCollisions && !isPublished && (
+            <div className="flex flex-col gap-5 my-2 bg-error/5 border border-error rounded-[3px] p-4">
+              <div className="flex items-start gap-3">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-error text-white`}>
+                      <AlertTriangle size={16} />
+                  </div>
+                  <div className="max-w-[80%]">
+                    <p className="text-sm font-semibold text-error leading-relaxed mb-1">Charms may be overlapping</p>
+                    <p className="text-xs">Before publishing a bracelet, ensure all charms look correct. <br />If two charms are overlapping, add more beads or space between them.</p>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className={`w-fit mt-3 ${showCharmCollisions && 'bg-error text-white hover:bg-error/70 hover:text-white hover:border-error focus:border-error focus:ring-error'}`}
+                      onClick={() => {
+                        setShowCharmCollisions(!showCharmCollisions);
+                        onClose();
+                      }}
+                    >
+                      {showCharmCollisions && <X className="text-white" size={15} /> }
+                      {!showCharmCollisions ? "Show possible collisions" : "Hide collisions" }
+                      
+                    </Button>
+                  </div>
+                </div>
+            </div>
+          )}
         </div>
 
         {/* ── Bead list ───────────────────────────────────────────────── */}
         {placedBeads.length > 0 && (
           <div className={dialogSectionClass} >
             <SectionHeading>Beads ({placedBeads.length})</SectionHeading>
-            <div className="overflow-hidden rounded-lg border border-black/50 mb-4">
+            <div className="overflow-hidden rounded-[2px] border border-black/50 mb-4">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-mint/80 text-left text-xs text-color-base/80">
