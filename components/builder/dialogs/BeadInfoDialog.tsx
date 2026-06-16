@@ -43,7 +43,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
   return (
     <div
       className={cn(
-        "absolute top-24 right-6 z-50 w-[340px] transition-all duration-300 ease-out",
+        "absolute top-24 right-6 z-20 w-[340px] transition-all duration-300 ease-out",
         isOpen
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-3 pointer-events-none",

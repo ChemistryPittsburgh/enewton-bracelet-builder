@@ -5,6 +5,7 @@ import { ArrowUp, ArrowDown, CopyPlus, Repeat2, Trash2, SwitchCamera, Info } fro
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export function EditModeToolbar() {
   const {
@@ -20,6 +21,8 @@ export function EditModeToolbar() {
     toggleEditViewMode,
     clearEditSelection,
     selectBead,
+    selectedBead,
+    clearSelectedBead,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editSelectedIds: s.editSelectedIds,
@@ -33,6 +36,8 @@ export function EditModeToolbar() {
     toggleEditViewMode: s.toggleEditViewMode,
     clearEditSelection: s.clearEditSelection,
     selectBead: s.selectBead,
+    selectedBead: s.selectedBead,
+    clearSelectedBead: s.clearSelectedBead,
   }));
 
   const n = beads.length;
@@ -104,61 +109,84 @@ export function EditModeToolbar() {
   if (!isEditMode) return null;
 
   return (
-    <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[3px] overflow-hidden divide-x divide-default">
-      <EditBtn
-        onClick={() => reorderBeads(singleIdx, (singleIdx - 1 + n) % n)}
-        disabled={singleIdx === -1}
-        label="Move bead back"
-        title="Move bead back"
-      >
-        <ArrowUp size={22} />
-      </EditBtn>
-      <EditBtn
-        onClick={() => reorderBeads(singleIdx, (singleIdx + 1) % n)}
-        disabled={singleIdx === -1}
-        label="Move bead forward"
-        title="Move bead forward"
-      >
-        <ArrowDown size={22} />
-      </EditBtn>
-      <EditBtn
-        onClick={() => editSelectedIds.forEach((id) => duplicateBead(id))}
-        disabled={!canDuplicate}
-        label="Duplicate bead"
-        title={hasSelection && !canDuplicate ? "Bracelet is full" : "Duplicate bead"}
-      >
-        <CopyPlus size={22} />
-      </EditBtn>
-      <EditBtn onClick={() => reverseBracelet()} label="Reverse bracelet" title="Reverse Bracelet">
-        <Repeat2 size={22} />
-      </EditBtn>
-      <EditBtn
-        onClick={() => {
-          if (!isSingleSelection) return;
-          const bead = beads.find((b) => b.instanceId === editSelectedIds[0]);
-          if (bead) selectBead(bead);
-        }}
-        disabled={!isSingleSelection}
-        label="Bead info"
-        title="Bead info"
-      >
-        <Info size={22} />
-      </EditBtn>
-      <EditBtn
-        onClick={() => editSelectedIds.forEach((id) => removeBead(id))}
-        disabled={!hasSelection}
-        label="Delete bead"
-        title="Delete bead"
-      >
-        <Trash2 size={22} />
-      </EditBtn>
-      <EditBtn
-        onClick={toggleEditViewMode}
-        label={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
-        title={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
-      >
-        <SwitchCamera size={22} />
-      </EditBtn>
+    <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[3px] divide-x divide-default">
+      <Tooltip content={singleIdx !== -1 ? ( "Move item back" ) : ("Select one item to move")} placement="bottom">
+        <EditBtn
+          onClick={() => reorderBeads(singleIdx, (singleIdx - 1 + n) % n)}
+          disabled={singleIdx === -1}
+          label="Move item back"
+        >
+          <ArrowUp size={22} />
+        </EditBtn>
+      </Tooltip>
+      <Tooltip content={singleIdx !== -1 ? ( "Move item forward" ) : ("Select one item to move")} placement="bottom">
+        <EditBtn
+          onClick={() => reorderBeads(singleIdx, (singleIdx + 1) % n)}
+          disabled={singleIdx === -1}
+          label="Move item forward"
+        >
+          <ArrowDown size={22} />
+        </EditBtn>
+      </Tooltip>
+      <Tooltip content={hasSelection && !canDuplicate ? ( "Bracelet is full" ) : !hasSelection ? ("Select item(s) to duplicate") : ("Duplicate item")} placement="bottom">
+        <EditBtn
+          onClick={() => editSelectedIds.forEach((id) => duplicateBead(id))}
+          disabled={!canDuplicate}
+          label={hasSelection && !canDuplicate ? "Bracelet is full" : "Duplicate bead"}
+        >
+          <CopyPlus size={22} />
+        </EditBtn>
+      </Tooltip>
+      <Tooltip content="Reverse order" placement="bottom">
+        <EditBtn onClick={() => reverseBracelet()} label="Reverse bracelet">
+          <Repeat2 size={22} />
+        </EditBtn>
+      </Tooltip>
+      <Tooltip content={isSingleSelection
+        ? selectedBead?.instanceId === editSelectedIds[0]
+          ? "Close item info window"
+          : "Open item info window"
+        : "Select one item to view info"
+      } placement="bottom">
+        <EditBtn
+          onClick={() => {
+            if (!isSingleSelection) return;
+            const bead = beads.find((b) => b.instanceId === editSelectedIds[0]);
+            if (!bead) return;
+            
+            // If this bead's info is already open, close it — otherwise open it
+            if (selectedBead?.instanceId === bead.instanceId) {
+              clearSelectedBead();
+            } else {
+              selectBead(bead);
+            }
+          }}
+          disabled={!isSingleSelection}
+          label="Bead info"
+          className={`${
+                  (selectedBead?.instanceId) && "bg-navy color-white hover:bg-navy/80"
+                }`}
+        >
+          <Info size={22} className={`${selectedBead?.instanceId && "text-white"}`} />
+        </EditBtn>
+      </Tooltip>
+      <Tooltip content={hasSelection ? ( "Delete items" ) : ("Select item(s) to delete")} placement="bottom">
+        <EditBtn
+          onClick={() => editSelectedIds.forEach((id) => removeBead(id))}
+          disabled={!hasSelection}
+          label="Delete bead"
+        >
+          <Trash2 size={22} />
+        </EditBtn>
+      </Tooltip>
+      <Tooltip content={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'} placement="bottom-start">
+        <EditBtn
+          onClick={toggleEditViewMode}
+          label={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
+        >
+          <SwitchCamera size={22} />
+        </EditBtn>
+      </Tooltip>
     </div>
   );
 }
@@ -168,25 +196,24 @@ function EditBtn({
   disabled = false,
   label,
   children,
-  title,
+  className,
 }: {
   onClick: () => void;
   disabled?: boolean;
   label: string;
   children: React.ReactNode;
-  title: string;
+  className?: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      title={title}
       className={`flex items-center justify-center px-4 py-3 transition-colors ${
         disabled
           ? "cursor-not-allowed text-grey pointer-events-none"
           : "text-color-base/70 hover:bg-light-blue/50 hover:text-color-base"
-      }`}
+      } ${className}`}
     >
       {children}
     </button>

@@ -2,9 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, MessageSquare, Pencil, X } from "lucide-react";
+
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { Avatar } from "@/components/ui/Avatar";
+
 import { useStore } from "@/lib/store";
+import { COMMENT_MAX_LENGTH } from "@/lib/sanitize";
+import { formatTimestamp } from "@/lib/utils";
+
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useDesign } from "@/hooks/useDesign";
@@ -12,9 +19,7 @@ import { useComments } from "@/hooks/useComments";
 import { useAddComment } from "@/hooks/useAddComment";
 import { useDeleteComment } from "@/hooks/useDeleteComment";
 import { useEditComment } from "@/hooks/useEditComment";
-import { Avatar } from "@/components/ui/Avatar";
-import { COMMENT_MAX_LENGTH } from "@/lib/sanitize";
-import { formatTimestamp } from "@/lib/utils";
+
 import type { DesignComment } from "@/types";
 
 interface CommentsPanelProps {
@@ -166,17 +171,21 @@ export function CommentsPanel({ open, onClose }: CommentsPanelProps) {
                       {(canEditComment(comment)) && (
                         <span className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {canEditComment(comment) && (
-                            <button onClick={() => startEdit(comment)} className="icon-only-btn icon-only-btn--white p-0.5" aria-label="Edit">
-                              <Pencil size={14} />
-                            </button>
+                            <Tooltip content="Edit Comment">
+                              <button onClick={() => startEdit(comment)} className="icon-only-btn icon-only-btn--white p-0.5" aria-label="Edit">
+                                <Pencil size={14} />
+                              </button>
+                            </Tooltip>
                           )}
-                          <button
-                              onClick={() => activeDesignId && deleteComment({ designId: activeDesignId, commentId: comment.id })}
-                              className="icon-only-btn icon-only-btn--error p-0.5"
-                              aria-label="Delete"
-                            >
-                              <X size={14} />
-                            </button>
+                          <Tooltip content="Delete Comment">
+                            <button
+                                onClick={() => activeDesignId && deleteComment({ designId: activeDesignId, commentId: comment.id })}
+                                className="icon-only-btn icon-only-btn--error p-0.5"
+                                aria-label="Delete"
+                              >
+                                <X size={14} />
+                              </button>
+                            </Tooltip>
                         </span>
                       )}
                     </div>

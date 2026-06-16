@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/Pickers";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useDesign } from "@/hooks/useDesign";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
@@ -214,13 +215,15 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold ">{braceletName}</h3>
                   {(!savedDesign || (canEdit && !isLocked)) && (
-                    <button
-                      onClick={handleEdit}
-                      className="rounded p-0.5 text-color-base/70 opacity-0 transition-opacity hover:text-color-base/70 group-hover:opacity-100"
-                      aria-label="Edit name and description"
-                    >
-                      <Pencil size={13} />
-                    </button>
+                    <Tooltip content="Edit Bracelet Title and Description">
+                      <button
+                        onClick={handleEdit}
+                        className="rounded p-0.5 text-color-base/70 opacity-0 transition-opacity hover:text-color-base/70 group-hover:opacity-100"
+                        aria-label="Edit name and description"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    </Tooltip>
                   )}
                 </div>
                 {braceletDescription

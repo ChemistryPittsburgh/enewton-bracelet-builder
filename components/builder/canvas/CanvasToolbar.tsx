@@ -12,6 +12,7 @@ import { useState } from "react";
 import { AlertTriangle, Loader2, List, Pencil, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
+
 import { useDesign } from "@/hooks/useDesign";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubmitDesign } from "@/hooks/useSubmitDesign";
@@ -19,10 +20,12 @@ import { useApproveDesign } from "@/hooks/useApproveDesign";
 import { useRejectDesign } from "@/hooks/useRejectDesign";
 import { usePublishDesign } from "@/hooks/usePublishDesign";
 import { useUndiscontinueDesign } from "@/hooks/useUndiscontinueDesign";
+
 import type { BraceletStatus } from "@/types";
 
 import { Button } from "@/components/ui/Button";
 import { PusherStatusBadge } from "@/components/builder/canvas/PusherStatusBadge";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface CanvasToolbarProps {
   commentsOpen?: boolean;
@@ -223,20 +226,23 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
         {/* ── Centre — 3D / Line toggle ────────────────────────────────── */}
         <div className="absolute left-1/2 -translate-x-1/2">
-          <div className="flex rounded-[2px] border border-default bg-white min-w-[140px] overflow-hidden">
+          <div className="flex rounded-[2px] border border-default bg-white min-w-[140px]">
             {(["3D", "Line"] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode === "3D" ? "3D" : "line")}
-                title={`${mode} View`}
-                className={`px-5 py-2 flex-1 text-sm font-semibold transition-all ${
-                  (mode === "3D" ? "3D" : "line") === viewMode
-                    ? "bg-navy text-white"
-                    : "hover:bg-mint"
-                }`}
-              >
-                {mode}
-              </button>
+              <div key={mode} className="flex-1">
+                <Tooltip content={`${mode} View`} placement="bottom" className="w-full text-center">
+                  <button
+                    onClick={() => setViewMode(mode === "3D" ? "3D" : "line")}
+                    title={`${mode} View`}
+                    className={`w-full px-5 py-2 text-sm font-semibold transition-all ${
+                      (mode === "3D" ? "3D" : "line") === viewMode
+                        ? "bg-navy text-white"
+                        : "hover:bg-mint"
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                </Tooltip>
+              </div>
             ))}
           </div>
         </div>
@@ -245,39 +251,43 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
         <div className="flex flex-1 items-center gap-2 justify-end border-l border-default pl-3 lg:pl-6 ml-3">
           <PusherStatusBadge />
           {canEdit && !isReadOnly && (
-            <button
-              onClick={toggleEditMode}
-              className={`flex items-center gap-1.5 rounded-[2px] border px-3 py-1.5 text-sm font-semibold transition-colors ${
-                isEditMode
-                  ? "bg-stone text-white"
-                  : "border-default bg-white hover:bg-mint"
-              }`}
-              aria-label={isEditMode ? "Exit edit mode" : "Enter Edit Mode"}
-            >
-              {isEditMode ? (
-                <X size={14} />
-              ): (
-                <Pencil size={14} />
-              )}
-              Edit
-            </button>
+            <Tooltip content={isEditMode ? "Exit edit mode" : "Enter Edit Mode"} placement="bottom">
+              <button
+                onClick={toggleEditMode}
+                className={`flex items-center gap-1.5 rounded-[2px] border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  isEditMode
+                    ? "bg-stone text-white"
+                    : "border-default bg-white hover:bg-mint"
+                }`}
+                aria-label={isEditMode ? "Exit edit mode" : "Enter Edit Mode"}
+              >
+                {isEditMode ? (
+                  <X size={14} />
+                ): (
+                  <Pencil size={14} />
+                )}
+                Edit
+              </button>
+            </Tooltip>
           )}
-          <button
-            onClick={onCommentsClick}
-            className={`flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-sm font-semibold transition-colors ${
-              commentsOpen
-                ? "bg-stone text-white"
-                : "bg-grey text-black hover:bg-stone hover:text-white"
-            }`}
-            aria-label="Open comments"
-          >
-            {commentsOpen ? (
-                <X size={14} />
-              ) : (
-                <List size={14} />
-              )}
-            Comments
-          </button>
+          <Tooltip content={!commentsOpen ? "Open Comments" : "Close Comments"} placement="bottom-start">
+            <button
+              onClick={onCommentsClick}
+              className={`flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-sm font-semibold transition-colors ${
+                commentsOpen
+                  ? "bg-stone text-white"
+                  : "bg-grey text-black hover:bg-stone hover:text-white"
+              }`}
+              aria-label="Open comments"
+            >
+              {commentsOpen ? (
+                  <X size={14} />
+                ) : (
+                  <List size={14} />
+                )}
+              Comments
+            </button>
+          </Tooltip>
         </div>
 
       </div>

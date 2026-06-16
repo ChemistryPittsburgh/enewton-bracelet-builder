@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { HelpCircle, X } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 const IS_MAC =
   typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
@@ -76,18 +77,20 @@ export function EditModeHelp() {
           </ul>
         </div>
       )}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className={`pointer-events-auto ml-auto flex items-center justify-center w-8 h-8 rounded-full shadow-sm border transition-colors ${
-          open
-            ? "bg-navy text-white border-navy"
-            : "bg-white text-color-base/50 border-default hover:text-color-base hover:bg-light-grey/50"
-        }`}
-        aria-label="Edit mode help"
-        title="Keyboard shortcuts"
-      >
-        <HelpCircle size={16} />
-      </button>
+      <Tooltip content={!open ? 'Open Keyboard Shortcuts' : ''} placement="top-start" className="absolute !flex">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className={`pointer-events-auto ml-auto flex items-center justify-center w-8 h-8 rounded-full shadow-sm border transition-colors ${
+            open
+              ? "bg-navy text-white border-navy hover:bg-navy/80"
+              : "bg-white text-color-base/50 border-default hover:text-color-base hover:bg-light-grey/50"
+          }`}
+          aria-label="Edit mode help"
+          title="Keyboard shortcuts"
+        >
+          <HelpCircle size={16} />
+        </button>
+      </Tooltip>
     </div>
   );
 }

@@ -3,10 +3,13 @@
 import { useRef, useState, useEffect } from "react";
 import { Archive, CheckCircle, Eye, Lock, MoreHorizontal, Send, Trash2, XCircle, Radio, Ban } from "lucide-react";
 import type { Bracelet } from "@/types";
+
 import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store";
+import { Tooltip } from "@/components/ui/Tooltip";
+
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useStore } from "@/lib/store";
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -98,7 +101,7 @@ export function DesignCard({
   return (
     <div
       className={cn(
-        "group flex flex-col rounded-[3px] border overflow-hidden cursor-pointer hover:shadow-sm transition-all",
+        "group flex flex-col rounded-[3px] border cursor-pointer hover:shadow-sm transition-all",
         isDiscontinued ? "border-default opacity-50 grayscale pointer-events-auto" :
         wasRejected    ? "border-error/40 hover:border-error/60" :
                          "border-default hover:border-navy focus:ring-navy",
@@ -276,12 +279,16 @@ export function DesignCard({
         </div>
         <div className="flex shrink-0 items-center">
           { !isDiscontinued ? (
-            <Radio size={20} 
-              className={`${
-                isLive ? "text-green animate-pulse" : "text-color-base/30"
-              }`} />
+            <Tooltip content={isLive ? "Bracelet is live" : "Braclet is unpublished"}>
+              <Radio size={20} 
+                className={`${
+                  isLive ? "text-green animate-pulse" : "text-color-base/30"
+                }`} />
+              </Tooltip>
           ) : (
-            <Ban size={20} className="text-error/40" />
+            <Tooltip content="Bracelet is discontinued">
+              <Ban size={20} className="text-error/40" />
+            </Tooltip>
           )}
         </div>
       </div>

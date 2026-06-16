@@ -6,17 +6,21 @@ import { ArrowLeft, Check, ChevronDown, Loader2, Plus, Search, Trash2, X, Radio 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { Tooltip } from "@/components/ui/Tooltip";
+
 import { useUsers } from "@/hooks/useUsers";
 import { useUpdateUser } from "@/hooks/useUpdateUser";
 import { useDeleteUser } from "@/hooks/useDeleteUser";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getPrimaryRole } from "@/hooks/usePermissions";
+import type { CreateUserResponse } from "@/hooks/useCreateUser";
+
 import { PermissionsDropdown, PERMISSION_FIELDS } from "./PermissionsDropdown";
 import { CreateUserDialog } from "./CreateUserDialog";
 import { CreateOtpUserDialog } from "./CreateOtpUserDialog";
 import { OtpCreatedModal } from "./OtpCreatedModal";
 import { TokenModal } from "./TokenModal";
-import type { CreateUserResponse } from "@/hooks/useCreateUser";
+
 import type { User } from "@/types";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -185,21 +189,28 @@ function UserRow({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => (isEditing ? onCancelEdit() : onEditClick(user.id))}
+        onClick={() => ((isEditing || isSelf) ? onCancelEdit() : onEditClick(user.id))}
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (isEditing ? onCancelEdit() : onEditClick(user.id))}
-        className="flex items-center gap-3 px-8 py-4 cursor-pointer hover:bg-light-grey/60 transition-colors"
+        className={`flex items-center gap-3 px-8 py-4 transition-colors ${
+          isSelf ? 'bg-shell' : 'hover:bg-light-grey/60 cursor-pointer'
+        }`}
       >
         {/* Expand chevron */}
-        <ChevronDown
-          size={14}
-          className={`shrink-0 text-color-base/50 transition-transform ${isEditing ? "rotate-180" : ""}`}
-        />
+        <Tooltip content={isSelf ? "Cannot edit self" : ""}>
+          <ChevronDown
+            size={14}
+            className={`shrink-0 text-color-base/50 transition-transform ${isEditing ? "rotate-180" : ""} ${isSelf && "opacity-0"}`}
+          />
+        </Tooltip>
 
         {/* Avatar */}
-        <Avatar name={user.name} color={user.color} size="md" />
+        <Avatar name={user.name} color={user.color} size="md" className={`${isSelf && "!bg-white"}`} />
 
         {/* Name + email */}
         <div className="flex flex-col min-w-0 flex-1">
+          {isSelf && 
+            <span className="text-[9px] font-bold w-fit bg-navy rounded-full py-[2px] px-2 text-white mb-1">Current user</span>
+          }
           <span className="text-sm font-medium truncate">{user.name}</span>
           <span className="text-xs text-color-base/70 truncate">{user.email}</span>
         </div>
@@ -216,30 +227,33 @@ function UserRow({
           })()}
 
         {/* Active chip */}
-
-        <Radio size={26} 
+        <Tooltip content={isActive ? "Active User" : "Inactive User"} placement="bottom">
+          <Radio size={26} 
               aria-label={isActive ? "Active User" : "Inactive User"}
               className={`shrink-0 py-0.5 ${
                 isActive ? "text-green" : "text-error"
               }`} />
+        </Tooltip>
 
         {/* Actions — stop propagation so they don't toggle the row */}
         <div className="shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           {/* Activate / deactivate */}
-          <button
-            onClick={handleToggleActive}
-            disabled={isUpdating || isSelf}
-            title={isActive ? "Deactivate user" : "Activate user"}
-            className="rounded-[2px] border border-default p-1.5 text-color-base/70 hover:bg-mint disabled:opacity-40 transition-colors"
-          >
-            {isUpdating ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : isActive ? (
-              <X size={13} />
-            ) : (
-              <Check size={13} />
-            )}
-          </button>
+          <Tooltip content={isActive ? "Deactivate user" : "Activate user"} placement="bottom">
+            <button
+              onClick={handleToggleActive}
+              disabled={isUpdating || isSelf}
+              aria-label={isSelf ? "Cannot edit self" : isActive ? "Deactivate user" : "Activate user"}
+              className={`icon-only-btn ${isSelf && 'pointer-events-none opacity-50'}`}
+            >
+              {isUpdating ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : isActive ? (
+                <X size={13} />
+              ) : (
+                <Check size={13} />
+              )}
+            </button>
+          </Tooltip>
 
           {/* Delete */}
           {confirmDelete ? (
@@ -261,14 +275,16 @@ function UserRow({
               </Button>
             </div>
           ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              disabled={isSelf}
-              title="Delete user"
-              className="rounded-[2px] border border-default p-1.5 text-color-base/70 hover:bg-error/20 hover:border-error hover:text-error disabled:opacity-40 transition-colors"
-            >
-              <Trash2 size={13} />
-            </button>
+            <Tooltip content={isSelf ? "Cannot edit self" : "Delete user"} placement="bottom">
+              <button
+                onClick={() => setConfirmDelete(true)}
+                disabled={isSelf}
+                aria-label="Delete user"
+                className={`icon-only-btn icon-only-btn--error ${isSelf && 'pointer-events-none opacity-50'}`}
+              >
+                <Trash2 size={13} />
+              </button>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -330,9 +346,10 @@ export function UsersAdminScreen({ isOpen, onClose }: UsersAdminScreenProps) {
         <h1 className="text-lg font-semibold text-neutral-900">Users</h1>
         <button
           onClick={onClose}
-          className="flex items-center gap-1.5 text-sm text-color-base/70 hover:text-text-base transition-colors"
+          aria-label="Close Users Screen"
+          className="flex items-center gap-1.5 transition-all transition-all group text-sm font-semibold text-color-base/70 hover:text-neutral-900 transition-colors"
         >
-          <ArrowLeft size={15} />
+          <ArrowLeft size={15} className="transition-all translate-x-0 group-hover:-translate-x-1" />
           Return to builder
         </button>
       </div>
