@@ -115,6 +115,7 @@ export function SeedSegmentOnBracelet({
     if (!geo) return { seedGeometry: null, nativeDiameter: NATIVE_DIAMETER, roundMaterial: null };
 
     const geometry = geo as THREE.BufferGeometry;
+    const extractedMat = mat as THREE.MeshStandardMaterial | null;
 
     // Compute actual diameter from the geometry's own bounding box
     geometry.computeBoundingBox();
@@ -127,8 +128,8 @@ export function SeedSegmentOnBracelet({
     // preset (gold or silver) — same approach as BeadOnBracelet.
     // Silver needs a color override since both share the gold-toned GLB.
     let finishedMat: THREE.MeshStandardMaterial | null = null;
-    if (mat) {
-      finishedMat = mat.clone();
+    if (extractedMat) {
+      finishedMat = extractedMat.clone();
       const finishKey = bead.product.material ?? DEFAULT_FINISH ?? "gold";
       if (finishKey === "silver") finishedMat.color.set("#E5E5E5");
       const preset = FINISH_PRESETS[finishKey];
