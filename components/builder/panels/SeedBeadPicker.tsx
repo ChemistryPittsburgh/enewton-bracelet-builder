@@ -66,12 +66,28 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
   const [colorway, setColorway] = useState<SeedColorEntry[]>([]);
   const [fillMode, setFillMode] = useState<"remaining" | "custom">("remaining");
   const [customMm, setCustomMm] = useState("");
+  const [customMode, setCustomMode] = useState<"mm" | "quantity">("mm");
+  const [customQuantity, setCustomQuantity] = useState("");
   const [seed, setSeed] = useState(() => newRandomSeed());
   const [seedShape, setSeedShape] = useState<"seed" | "round">("seed");
   const [roundSizeMm, setRoundSizeMm] = useState<number>(2);
   const [roundColor, setRoundColor] = useState<string>("gold");
 
   const isRound = seedShape === "round";
+
+  /** Seed bead thickness ratio (disc-shaped, flat faces flush). */
+  const SEED_THICKNESS_RATIO = 0.72;
+  /** Max quantity of beads in quantity mode. */
+  const MAX_QUANTITY = 30;
+
+  /** Estimate the arc length in mm needed for a given number of beads. */
+  function arcFromQuantity(qty: number): number {
+    if (isRound) {
+      return qty * roundSizeMm;
+    }
+    const avgDiameter = (SEED_BEAD_SIZE_RANGE[0] + SEED_BEAD_SIZE_RANGE[1]) / 2;
+    return qty * avgDiameter * SEED_THICKNESS_RATIO;
+  }
 
   // Initialise colorway from API default once presets load
   const [initialised, setInitialised] = useState(false);
@@ -85,8 +101,15 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
   const used         = usedArc(placedBeads);
   const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
 
-  const arcMm = fillMode === "remaining" ? availableMm : parseFloat(customMm) || 0;
-  const validArc = arcMm > 0 && arcMm <= availableMm;
+  const parsedQuantity = parseInt(customQuantity) || 0;
+  const tooMany = parsedQuantity > MAX_QUANTITY;
+
+  const arcMm = fillMode === "remaining"
+    ? availableMm
+    : customMode === "quantity"
+      ? arcFromQuantity(Math.min(parsedQuantity, MAX_QUANTITY))
+      : parseFloat(customMm) || 0;
+  const validArc = arcMm > 0 && arcMm <= availableMm && !tooMany;
 
   // Preview: generate a small sample of the color distribution
   const previewBeads = useMemo(() => {
@@ -396,24 +419,89 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
                 : "border-default bg-white hover:border-neutral-400"
             }`}
           >
-            Custom size
+            Custom
           </button>
         </div>
 
         {fillMode === "custom" && (
-          <div className="flex items-center gap-2 mb-3">
-            <input
-              type="number"
-              min={2}
-              max={availableMm}
-              step={1}
-              value={customMm}
-              onChange={(e) => setCustomMm(e.target.value)}
-              placeholder={`2 – ${availableMm}`}
-              className="w-full rounded-[2px] border border-default px-3 py-2.5 text-sm outline-none placeholder:text-color-base/70 focus:border-navy focus:ring-navy"
-            />
-            <span className="shrink-0 text-sm text-color-base/70">mm</span>
-          </div>
+          <>
+            {/* mm vs quantity sub-toggle */}
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setCustomMode("mm")}
+                className={`flex-1 rounded-[2px] border py-1.5 text-xs transition-all ${
+                  customMode === "mm"
+                    ? "ring-1 ring-navy border-navy bg-white font-medium"
+                    : "border-default bg-white hover:border-neutral-400"
+                }`}
+              >
+                By size (mm)
+              </button>
+              <button
+                onClick={() => setCustomMode("quantity")}
+                className={`flex-1 rounded-[2px] border py-1.5 text-xs transition-all ${
+                  customMode === "quantity"
+                    ? "ring-1 ring-navy border-navy bg-white font-medium"
+                    : "border-default bg-white hover:border-neutral-400"
+                }`}
+              >
+                By quantity
+              </button>
+            </div>
+
+            {customMode === "mm" ? (
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="number"
+                  min={2}
+                  max={availableMm}
+                  step={1}
+                  value={customMm}
+                  onChange={(e) => setCustomMm(e.target.value)}
+                  placeholder={`2 – ${availableMm}`}
+                  className="w-full rounded-[2px] border border-default px-3 py-2.5 text-sm outline-none placeholder:text-color-base/70 focus:border-navy focus:ring-navy"
+                />
+                <span className="shrink-0 text-sm text-color-base/70">mm</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_QUANTITY}
+                  step={1}
+                  value={customQuantity}
+                  onChange={(e) => setCustomQuantity(e.target.value)}
+                  placeholder={`1 – ${MAX_QUANTITY}`}
+                  className={`w-full rounded-[2px] border px-3 py-2.5 text-sm outline-none placeholder:text-color-base/70 ${
+                    tooMany || (parsedQuantity > 0 && arcFromQuantity(parsedQuantity) > availableMm)
+                      ? "border-error focus:border-error"
+                      : "border-default focus:border-navy focus:ring-navy"
+                  }`}
+                />
+                <span className="shrink-0 text-sm text-color-base/70">beads</span>
+              </div>
+            )}
+
+            {/* Validation messages for quantity mode */}
+            {customMode === "quantity" && tooMany && (
+              <p className="text-xs text-error -mt-1 mb-3">
+                Maximum is {MAX_QUANTITY} beads.
+              </p>
+            )}
+
+            {/* Show estimated arc when in quantity mode */}
+            {customMode === "quantity" && parsedQuantity > 0 && !tooMany && (
+              <p className="text-xs text-color-base/50 -mt-1 mb-3">
+                ≈ {Math.round(arcFromQuantity(parsedQuantity) * 10) / 10}mm
+                {arcFromQuantity(parsedQuantity) > availableMm && (
+                  <span className="text-error ml-1">
+                    (exceeds {availableMm}mm available)
+                  </span>
+                )}
+              </p>
+            )}
+          </>
         )}
       </div>
 
@@ -423,13 +511,19 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
 
         {availableMm >= 2 ? (
           <>
-            <SectionHeading>
-              {arcMm > 0
-                ? isRound
-                  ? `${arcMm}mm round ${roundSizeMm}mm ${roundColor} beads`
-                  : `${arcMm}mm seed beads`
-                : isRound ? "Select color & size" : "Configure colorway"}
-            </SectionHeading>
+            {!tooMany && (
+              <SectionHeading>
+                {arcMm > 0
+                  ? isRound
+                    ? fillMode === "custom" && customMode === "quantity"
+                      ? `${parsedQuantity}× round ${roundSizeMm}mm ${roundColor} beads`
+                      : `${arcMm}mm round ${roundSizeMm}mm ${roundColor} beads`
+                    : fillMode === "custom" && customMode === "quantity"
+                      ? `${parsedQuantity}× seed beads (≈${Math.round(arcMm * 10) / 10}mm)`
+                      : `${arcMm}mm seed beads`
+                  : isRound ? "Select color & size" : "Configure colorway"}
+              </SectionHeading>
+            )}
             {canEdit && (
               <Button
                 onClick={handleAdd}
