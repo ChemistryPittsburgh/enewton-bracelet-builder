@@ -322,7 +322,11 @@ export const useStore = create<Store>()(
         const bead = beads[index];
         const radius = BRACELET_SIZE_RADIUS[braceletSize];
         if (!beadFits(beads, bead, radius)) return;
-        const copy: PlacedBead = { instanceId: nanoid(), product: bead.product };
+        const copy: PlacedBead = {
+          instanceId: nanoid(),
+          product: bead.product,
+          ...(bead.seedConfig ? { seedConfig: bead.seedConfig } : {}),
+        };
         set({ beads: [...beads.slice(0, index + 1), copy, ...beads.slice(index + 1)], isDirty: true });
       },
 

@@ -16,6 +16,9 @@ import {
   BRACELET_SIZE_RADIUS,
   HIGHLIGHT_SELECT_COLOR,
   EDIT_MODE_HIGHLIGHT_SELECT_COLOR,
+  ROUND_SEED_BEAD_MODEL,
+  FINISH_PRESETS,
+  DEFAULT_FINISH,
 } from "@/lib/constants";
 import {
   generateSeedBeads,
@@ -27,8 +30,9 @@ const NATIVE_DIAMETER = 0.0016;
 /** Path to the seed bead GLB model. */
 const SEED_BEAD_MODEL = "/models/seed-bead.glb";
 
-// Preload the model so it's ready before first render
+// Preload both models so they're ready before first render
 useGLTF.preload(SEED_BEAD_MODEL);
+useGLTF.preload(ROUND_SEED_BEAD_MODEL);
 
 interface SeedSegmentOnBraceletProps {
   bead: PlacedBead;
@@ -89,16 +93,26 @@ export function SeedSegmentOnBracelet({
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
 
-  // Load the seed bead GLB model — geometry is shared across all beads
-  const { scene: glbScene } = useGLTF(SEED_BEAD_MODEL);
-  const { seedGeometry, nativeDiameter } = useMemo(() => {
+  // Load both GLB models — hooks must be called unconditionally
+  const { scene: seedGlbScene } = useGLTF(SEED_BEAD_MODEL);
+  const { scene: roundGlbScene } = useGLTF(ROUND_SEED_BEAD_MODEL);
+
+  const isRound = bead.seedConfig?.seed_shape === "round";
+  const activeGlbScene = isRound ? roundGlbScene : seedGlbScene;
+
+  const { seedGeometry, nativeDiameter, roundMaterial } = useMemo(() => {
     let geo: THREE.BufferGeometry | null = null;
-    glbScene.traverse((child) => {
+    let mat: THREE.MeshStandardMaterial | null = null;
+    activeGlbScene.traverse((child) => {
       if (!geo && child instanceof THREE.Mesh && child.geometry) {
         geo = child.geometry;
+        // Grab the material from the round GLB for native gold appearance
+        if (child.material instanceof THREE.MeshStandardMaterial) {
+          mat = child.material;
+        }
       }
     });
-    if (!geo) return { seedGeometry: null, nativeDiameter: NATIVE_DIAMETER };
+    if (!geo) return { seedGeometry: null, nativeDiameter: NATIVE_DIAMETER, roundMaterial: null };
 
     const geometry = geo as THREE.BufferGeometry;
 
@@ -109,8 +123,29 @@ export function SeedSegmentOnBracelet({
     const extentY = bb.max.y - bb.min.y;
     const diam = Math.max(extentX, extentY, bb.max.z - bb.min.z);
 
-    return { seedGeometry: geometry, nativeDiameter: diam || NATIVE_DIAMETER };
-  }, [glbScene]);
+    // For round beads: clone the GLB material and apply the appropriate finish
+    // preset (gold or silver) — same approach as BeadOnBracelet.
+    // Silver needs a color override since both share the gold-toned GLB.
+    let finishedMat: THREE.MeshStandardMaterial | null = null;
+    if (mat) {
+      finishedMat = mat.clone();
+      const finishKey = bead.product.material ?? DEFAULT_FINISH ?? "gold";
+      if (finishKey === "silver") finishedMat.color.set("#E5E5E5");
+      const preset = FINISH_PRESETS[finishKey];
+      if (preset) {
+        if (preset.metalness !== undefined) finishedMat.metalness = preset.metalness;
+        if (preset.roughness !== undefined) finishedMat.roughness = preset.roughness;
+        if (preset.envMapIntensity !== undefined) finishedMat.envMapIntensity = preset.envMapIntensity;
+        finishedMat.roughness = Math.max(finishedMat.roughness, 0.22);
+      }
+    }
+
+    return {
+      seedGeometry: geometry,
+      nativeDiameter: diam || NATIVE_DIAMETER,
+      roundMaterial: finishedMat,
+    };
+  }, [activeGlbScene, bead.product.material]);
 
   // Generate the individual tiny beads from the segment config
   const config = bead.seedConfig;
@@ -141,6 +176,7 @@ export function SeedSegmentOnBracelet({
           diameter: sb.diameter,
           color: sb.color,
           isMetallic: sb.isMetallic,
+          finishKey: sb.finishKey,
         };
       });
     }
@@ -161,6 +197,7 @@ export function SeedSegmentOnBracelet({
         diameter: sb.diameter,
         color: sb.color,
         isMetallic: sb.isMetallic,
+        finishKey: sb.finishKey,
       };
     });
   }, [config, generatedBeads, slotIndex, beads, radius, viewMode, bead.product.diameter]);
@@ -302,6 +339,11 @@ export function SeedSegmentOnBracelet({
       {/* Individual seed beads — GLB model with per-bead color and scale */}
       {seedBead3DData.map((sb, i) => {
         const scale = sb.diameter / nativeDiameter;
+        // Seed beads: tip disc flat faces along cord (rotate 90° around X)
+        // Round beads: align hole with cord tangent (rotate 90° around Z)
+        const innerRotation: [number, number, number] = isRound
+          ? [0, 0, Math.PI / 2]
+          : [Math.PI / 2, 0, 0];
 
         return (
           <group
@@ -313,27 +355,36 @@ export function SeedSegmentOnBracelet({
             ]}
             rotation={sb.outerRotation}
           >
-            <mesh
-              geometry={seedGeometry}
-              rotation={[Math.PI / 2, 0, 0]}
-              scale={[scale, scale, scale]}
-            >
-              {sb.isMetallic ? (
-                <meshStandardMaterial
-                  color={sb.color}
-                  metalness={1}
-                  roughness={0.12}
-                  envMapIntensity={0.3}
-                />
-              ) : (
-                <meshStandardMaterial
-                  color={sb.color}
-                  metalness={0.05}
-                  roughness={0.45}
-                  envMapIntensity={0.2}
-                />
-              )}
-            </mesh>
+            {isRound && roundMaterial ? (
+              <mesh
+                geometry={seedGeometry}
+                material={roundMaterial}
+                rotation={innerRotation}
+                scale={[scale, scale, scale]}
+              />
+            ) : (
+              <mesh
+                geometry={seedGeometry}
+                rotation={innerRotation}
+                scale={[scale, scale, scale]}
+              >
+                {sb.isMetallic ? (
+                  <meshStandardMaterial
+                    color={sb.color}
+                    metalness={FINISH_PRESETS[sb.finishKey]?.metalness ?? 1}
+                    roughness={Math.max(FINISH_PRESETS[sb.finishKey]?.roughness ?? 0.1, 0.22)}
+                    envMapIntensity={FINISH_PRESETS[sb.finishKey]?.envMapIntensity ?? 0.3}
+                  />
+                ) : (
+                  <meshStandardMaterial
+                    color={sb.color}
+                    metalness={0.05}
+                    roughness={0.45}
+                    envMapIntensity={0.2}
+                  />
+                )}
+              </mesh>
+            )}
           </group>
         );
       })}

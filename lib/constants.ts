@@ -208,6 +208,12 @@ export function createSpacerProduct(sizeMm: number) {
 /** Default individual bead diameter range for seed beads (mm). */
 export const SEED_BEAD_SIZE_RANGE: [number, number] = [1.2, 2.0];
 
+/** Available sizes for round seed beads (mm). */
+export const ROUND_SEED_SIZES_MM = [1, 2] as const;
+
+/** Path to the round seed bead GLB model (Classic Bead 2mm). */
+export const ROUND_SEED_BEAD_MODEL = "/models/classic-bead-2mm.glb";
+
 /** Maximum arc length a single seed segment can occupy (mm). */
 export const SEED_SEGMENT_MAX_MM = 190;
 
@@ -223,15 +229,19 @@ const SEED_ID_OFFSET = -100_000;
  * `diameter` is set to the total arc length (metres) so the existing layout
  * math works without modification.
  */
-export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number) {
+export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number, seedShape?: "seed" | "round", roundSizeMm?: number, material?: string) {
+  const isRound = seedShape === "round";
+  const label = isRound
+    ? `Round ${roundSizeMm ?? 2}mm beads (${arcLengthMm}mm)`
+    : `Seed beads (${arcLengthMm}mm)`;
   return {
     id:             SEED_ID_OFFSET - randomSeed,
-    name:           `Seed beads (${arcLengthMm}mm)`,
+    name:           label,
     slug:           `seed-segment-${randomSeed}`,
     glb_path:       "",
     bead_category:  "seed_segment" as const,
-    bead_type:      "Seed",
-    material:       "gold" as const,
+    bead_type:      isRound ? "Round Seed" : "Seed",
+    material:       (material ?? "gold") as string,
     diameter:       arcLengthMm / 1000,
     size_mm:        arcLengthMm,
     sku:            null,
