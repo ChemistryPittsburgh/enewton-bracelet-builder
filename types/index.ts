@@ -23,6 +23,8 @@ export interface BraceletConfigBead {
   position: number;
   product_id: number;
   instance_id: string;
+  /** Present only for seed_segment items — serialises the colorway + arc config. */
+  seed_config?: SeedSegmentConfig;
 }
 
 /**
@@ -195,6 +197,30 @@ export interface BeadProduct {
   body_width_mm?: number;
 }
 
+// ─── Seed bead segments ───────────────────────────────────────────────────────
+
+/** One colour entry in a seed bead colorway. */
+export interface SeedColorEntry {
+  hex: string;
+  percent: number;
+  label?: string;
+}
+
+/**
+ * Configuration for a seed bead segment — a run of tiny procedurally-generated
+ * beads that fills a specific arc length on the bracelet.
+ */
+export interface SeedSegmentConfig {
+  /** Colours and their proportions (must sum to 100). */
+  colorway: SeedColorEntry[];
+  /** Total arc length this segment occupies, in millimetres. */
+  arc_length_mm: number;
+  /** Min/max individual bead diameter range in mm — randomised per bead. */
+  bead_size_range: [number, number];
+  /** Deterministic seed for the PRNG — ensures consistent rendering. */
+  random_seed: number;
+}
+
 /**
  * A single bead that has been placed on the bracelet.
  */
@@ -202,6 +228,8 @@ export interface PlacedBead {
   /** Unique instance ID — same product can appear multiple times */
   instanceId: string;
   product: BeadProduct;
+  /** Present only when bead_category === "seed_segment". */
+  seedConfig?: SeedSegmentConfig;
 }
 
 // ─── Collections ──────────────────────────────────────────────────────────────

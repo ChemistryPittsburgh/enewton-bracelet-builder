@@ -202,3 +202,43 @@ export function createSpacerProduct(sizeMm: number) {
     depth_offset:   null,
   };
 }
+
+// ─── Seed bead segments ─────────────────────────────────────────────────────
+
+/** Default individual bead diameter range for seed beads (mm). */
+export const SEED_BEAD_SIZE_RANGE: [number, number] = [1.2, 2.0];
+
+/** Maximum arc length a single seed segment can occupy (mm). */
+export const SEED_SEGMENT_MAX_MM = 190;
+
+/**
+ * ID offset for seed segment fake products — well below spacer IDs (-100 to -1400)
+ * to avoid collisions. Each segment gets a unique negative ID based on its
+ * random seed, so Select-All treats each independently.
+ */
+const SEED_ID_OFFSET = -100_000;
+
+/**
+ * Creates a fake BeadProduct for a seed bead segment.
+ * `diameter` is set to the total arc length (metres) so the existing layout
+ * math works without modification.
+ */
+export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number) {
+  return {
+    id:             SEED_ID_OFFSET - randomSeed,
+    name:           `Seed beads (${arcLengthMm}mm)`,
+    slug:           `seed-segment-${randomSeed}`,
+    glb_path:       "",
+    bead_category:  "seed_segment" as const,
+    bead_type:      "Seed",
+    material:       "gold" as const,
+    diameter:       arcLengthMm / 1000,
+    size_mm:        arcLengthMm,
+    sku:            null,
+    color:          null,
+    active:         1,
+    body_width_mm:  null,
+    bail_width_mm:  null,
+    depth_offset:   null,
+  };
+}

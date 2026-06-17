@@ -217,6 +217,27 @@ h2 {
   }
 }
 
+.manage-btn {
+  display: flex; 
+  gap: 0.25rem; 
+  align-items: center; 
+  font-size: 0.75rem;
+  line-height: 1rem; 
+  color: var(--color-orange);
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms; 
+  &:hover,
+  &:focus {
+    color: color-mix(in srgb, var(--color-orange) 70%, transparent);
+  }
+  &:focus {
+    outline: none; 
+    outline: 0.5px solid var(--color-stone);
+    outline-offset: 2px;
+  }
+}
+
 
 /* ─── Bead Picker Swiper ────────────── */
 /*.bead-picker-slider.swiper {
