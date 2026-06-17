@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { useStore } from "@/lib/store";
 import { THUMBNAIL_SIZE, SCENE_BACKGROUND, CAMERA_DEFAULT_POSITION } from "@/lib/constants";
 
-// ─── Background colour channels (from SCENE_BACKGROUND = "#f5f0eb") ──────────
+// ─── Background color channels (from SCENE_BACKGROUND = "#f5f0eb") ──────────
 const BG_R = 0xf5;
 const BG_G = 0xf0;
 const BG_B = 0xeb;

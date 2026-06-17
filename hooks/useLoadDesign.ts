@@ -2,7 +2,8 @@ import { useBeads } from "@/hooks/useBeads";
 import { useStore } from "@/lib/store";
 import { useLockDesign } from "@/hooks/useLockDesign";
 import { useReleaseLock } from "@/hooks/useReleaseLock";
-import type { Bracelet, PlacedBead } from "@/types";
+import type { Bracelet, PlacedBead, BeadProduct } from "@/types";
+import { createSeedSegmentProduct } from "@/lib/constants";
 
 /**
  * Returns a `loadDesign()` function that maps a saved `Bracelet` record onto
@@ -49,6 +50,18 @@ export function useLoadDesign() {
       .slice()
       .sort((a, b) => a.position - b.position)
       .flatMap((configBead) => {
+        // Seed segments: reconstruct from seed_config rather than catalog lookup
+        if (configBead.seed_config) {
+          const product = createSeedSegmentProduct(
+            configBead.seed_config.arc_length_mm,
+            configBead.seed_config.random_seed,
+          );
+          return [{
+            instanceId: configBead.instance_id,
+            product: product as unknown as BeadProduct,
+            seedConfig: configBead.seed_config,
+          }];
+        }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return []; // product removed from catalog — skip gracefully
         return [{ instanceId: configBead.instance_id, product }];
@@ -102,6 +115,17 @@ export function useLoadDesign() {
       .slice()
       .sort((a, b) => a.position - b.position)
       .flatMap((configBead) => {
+        if (configBead.seed_config) {
+          const product = createSeedSegmentProduct(
+            configBead.seed_config.arc_length_mm,
+            configBead.seed_config.random_seed,
+          );
+          return [{
+            instanceId: configBead.instance_id,
+            product: product as unknown as BeadProduct,
+            seedConfig: configBead.seed_config,
+          }];
+        }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return [];
         return [{ instanceId: configBead.instance_id, product }];

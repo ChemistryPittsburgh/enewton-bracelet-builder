@@ -9,7 +9,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
-import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize } from "@/types";
+import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize, SeedSegmentConfig } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
@@ -34,6 +34,9 @@ interface Store {
 
   /** Add a bead to the next available slot. Returns an error string or null. */
   addBead: (product: BeadProduct) => string | null;
+
+  /** Add a seed bead segment. Returns an error string or null. */
+  addSeedSegment: (product: BeadProduct, seedConfig: SeedSegmentConfig) => string | null;
 
   /** Remove a bead by instanceId. Closes the panel if that bead was selected. */
   removeBead: (instanceId: string) => void;
@@ -210,6 +213,18 @@ export const useStore = create<Store>()(
         }
         set((s) => ({
           beads: [...s.beads, { instanceId: nanoid(), product }],
+          isDirty: true,
+        }));
+        return null;
+      },
+
+      addSeedSegment(product, seedConfig) {
+        const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
+        if (!beadFits(get().beads, { product }, radius)) {
+          return "Bracelet is full — no room for that segment.";
+        }
+        set((s) => ({
+          beads: [...s.beads, { instanceId: nanoid(), product, seedConfig }],
           isDirty: true,
         }));
         return null;

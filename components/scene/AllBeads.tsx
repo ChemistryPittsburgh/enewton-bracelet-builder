@@ -8,6 +8,7 @@ import { useDesign } from "@/hooks/useDesign";
 import type { PlacedBead } from "@/types";
 import { BeadOnBracelet } from "./BeadOnBracelet";
 import { SpacerOnBracelet } from "./SpacerOnBracelet";
+import { SeedSegmentOnBracelet } from "./SeedSegmentOnBracelet";
 import { BeadErrorBoundary } from "./BeadErrorBoundary";
 import { useBraceletReorderDrag, usePanelDrop } from "@/hooks/useDrag";
 
@@ -52,6 +53,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
     <group name="all-beads">
       {beads.map((bead, index) => {
         const isSpacer = bead.product.bead_category === "spacer";
+        const isSeedSegment = bead.product.bead_category === "seed_segment";
         const isDragged = dragState?.fromIndex === index;
         const isDragTarget =
           (dragState !== null &&
@@ -69,6 +71,15 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                 isDragTarget={isDragTarget}
                 onDragStart={handleDragStart}
                 visible={spacersVisible}
+              />
+            ) : isSeedSegment ? (
+              <SeedSegmentOnBracelet
+                bead={bead}
+                slotIndex={index}
+                isDragged={isDragged}
+                isDragTarget={isDragTarget}
+                onDragStart={handleDragStart}
+                isLocked={isLocked}
               />
             ) : (
               <Suspense fallback={null}>

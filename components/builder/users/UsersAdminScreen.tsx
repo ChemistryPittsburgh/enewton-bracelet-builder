@@ -212,7 +212,7 @@ function UserRow({
           <span className="text-xs text-color-base/70 truncate">{user.email}</span>
         </div>
 
-        {/* Role badge — colour driven by PERMISSION_FIELDS in category-colors */}
+        {/* Role badge — color driven by PERMISSION_FIELDS in category-colors */}
         {(() => {
           const role  = getPrimaryRole(user.permissions);
           const entry = PERMISSION_FIELDS.find((f) => f.label === role);
