@@ -199,6 +199,7 @@ h2 {
 .dashed-border {
   border-radius: 2px;
   position: relative;
+  outline: none;
   &:hover,
   &:focus {
     &:after {

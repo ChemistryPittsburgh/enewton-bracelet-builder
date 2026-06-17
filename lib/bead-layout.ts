@@ -52,13 +52,13 @@ export const BEAD_SPACING = -0.000025;
  * Add new categories here as they appear in the catalog.
  */
 const CATEGORY_SPACING: Record<string, number> = {
-  bead:        BEAD_SPACING,     // −0.35 mm — tight stacking
-  charm:       BEAD_SPACING,     // −0.35 mm — same as beads
-  float_charm: 0.00002,     // −0.35 mm — same as charms
-  gem:         0.00002,                //  0 mm    — just touching, no overlap
-  tube:        BEAD_SPACING,     // −0.35 mm — same as beads
-  spacer:      0,                //  0 mm    — flush against neighbors
-  cross: 0.0001              // slight spacing
+  bead:        BEAD_SPACING,     
+  charm:       0.00004,     
+  float_charm: 0.00002,     
+  gem:         0.00001,             
+  tube:        BEAD_SPACING,    
+  spacer:      0,               
+  cross: 0.0001              
 };
 
 /** Returns the gap (metres) to place between two adjacent beads. */

@@ -149,7 +149,7 @@ export function BeadOnBracelet({
   const activeCharmRotation = isFloatCharm ? FLOAT_CHARM_ROTATION : CHARM_ROTATION;
 
   const vizRadius = isCharm
-    ? (bead.product.body_width_mm ?? bead.product.diameter * 1000) / 2 / 1000
+    ? (bead.product.body_width_mm ?? bead.product.diameter * 1000) / 2.7 / 1000
     : bead.product.diameter / 2;
 
   const hangOffset = isCharm ? autoHangOffset : 0;
@@ -291,14 +291,14 @@ const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT
              Float charms are thin/flat, so the sphere is squashed along Z
              to form a disc-shaped hit zone that fits the model better. */}
         <mesh visible={false} position={[0, 0, 0]} scale={isFloatCharm ? [1, 1, 0.35] : [1, 1, 1]}>
-          <sphereGeometry args={isCharm ? [vizRadius * 1.3, 8, 8] : [vizRadius * 1.1, 8, 8]} />
+          <sphereGeometry args={isCharm ? [vizRadius * 1.3, 8, 8] : [vizRadius * 1.2, 8, 8]} />
           <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>
 
         {/* Selection highlight ring — sits at cord level for charms (bail attachment point) */}
         {isSelected && vizRadius > 0 && (
           <mesh rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]} scale={isFloatCharm ? [1, 0.4, 1] : [1, 1, 1]}>
-            <torusGeometry args={[vizRadius * 1.15, 0.0003, 8, 32]} />
+            <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
           </mesh>
         )}
@@ -306,7 +306,7 @@ const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT
         {/* Drag target indicator ring — edit mode only */}
         {isDragTarget && vizRadius > 0 && (
           <mesh rotation={[Math.PI / 2, 0, 0]} scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}>
-            <torusGeometry args={[vizRadius * 1.3, 0.0002, 8, 32]} />
+            <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#93c5fd" />
           </mesh>
         )}
@@ -318,7 +318,7 @@ const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT
             rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}
             scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}
           >
-            <torusGeometry args={[vizRadius * 1.25, 0.00025, 8, 32]} />
+            <torusGeometry args={[vizRadius * 1.4, 0.00025, 8, 32]} />
             <meshBasicMaterial color="#be123c" transparent opacity={0.4} />
           </mesh>
         )}

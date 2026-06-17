@@ -90,7 +90,11 @@ export function computeCharmAdjustments(
     const prev = charms[i - 1];
     const curr = charms[i];
     const dist = cordDistance(prev.angle, curr.angle, radius);
-    const threshold = Math.max(prev.bodyWidth, curr.bodyWidth);
+    // Sum of half-widths scaled by a tolerance factor. Without the factor,
+    // charms placed at normal arc spacing (which includes tight BEAD_SPACING
+    // overlap) would false-positive. 0.6 means charms must be within 60%
+    // of the sum of their radii to flag — i.e. noticeably overlapping.
+    const threshold = (prev.bodyWidth + curr.bodyWidth) / 2 * 0.8;
 
     if (dist < threshold) {
       currentGroup.push(curr);
