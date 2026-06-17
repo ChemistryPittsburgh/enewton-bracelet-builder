@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import { ThreeEvent } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
+import * as THREE from "three";
 import type { PlacedBead } from "@/types";
 import {
   getBeadAngle,
@@ -25,8 +27,14 @@ const METALLIC_HEXES = new Set([
   "#C0C0C0", "#A8A9AD", "#808080",             // silvers
 ]);
 
-/** Rotation to orient the cylinder axis along the cord tangent (local Z). */
-const SEED_BEAD_ROTATION: [number, number, number] = [Math.PI / 2, 0, 0];
+/** Native cross-section diameter of the seed bead GLB (metres). */
+const NATIVE_DIAMETER = 0.0016;
+
+/** Path to the seed bead GLB model. */
+const SEED_BEAD_MODEL = "/models/seed-bead.glb";
+
+// Preload the model so it's ready before first render
+useGLTF.preload(SEED_BEAD_MODEL);
 
 interface SeedSegmentOnBraceletProps {
   bead: PlacedBead;
@@ -86,6 +94,27 @@ export function SeedSegmentOnBracelet({
     : HIGHLIGHT_SELECT_COLOR;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+
+  // Load the seed bead GLB model — geometry is shared across all beads
+  const { scene: glbScene } = useGLTF(SEED_BEAD_MODEL);
+  const { seedGeometry, nativeDiameter } = useMemo(() => {
+    let geo: THREE.BufferGeometry | null = null;
+    glbScene.traverse((child) => {
+      if (!geo && child instanceof THREE.Mesh && child.geometry) {
+        geo = child.geometry;
+      }
+    });
+    if (!geo) return { seedGeometry: null, nativeDiameter: NATIVE_DIAMETER };
+
+    // Compute actual diameter from the geometry's own bounding box
+    geo.computeBoundingBox();
+    const bb = geo.boundingBox!;
+    const extentX = bb.max.x - bb.min.x;
+    const extentY = bb.max.y - bb.min.y;
+    const diam = Math.max(extentX, extentY, bb.max.z - bb.min.z);
+
+    return { seedGeometry: geo, nativeDiameter: diam || NATIVE_DIAMETER };
+  }, [glbScene]);
 
   // Generate the individual tiny beads from the segment config
   const config = bead.seedConfig;
@@ -198,7 +227,7 @@ export function SeedSegmentOnBracelet({
     gl.domElement.style.cursor = "";
   }
 
-  if (!config || seedBead3DData.length === 0) return null;
+  if (!config || seedBead3DData.length === 0 || !seedGeometry) return null;
 
   // Cross-section radius for hit area and selection — matches the visual
   // height of the tiny seed beads (~3mm, same as spacer cross-section).
@@ -272,9 +301,9 @@ export function SeedSegmentOnBracelet({
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
     >
-      {/* Individual seed bead cylinders */}
+      {/* Individual seed beads — GLB model with per-bead color and scale */}
       {seedBead3DData.map((sb, i) => {
-        const r = sb.diameter / 2;
+        const scale = sb.diameter / nativeDiameter;
         const isMetallic = METALLIC_HEXES.has(sb.color);
 
         return (
@@ -287,8 +316,11 @@ export function SeedSegmentOnBracelet({
             ]}
             rotation={sb.outerRotation}
           >
-            <mesh rotation={SEED_BEAD_ROTATION}>
-              <cylinderGeometry args={[r, r, sb.diameter, 16]} />
+            <mesh
+              geometry={seedGeometry}
+              rotation={[Math.PI / 2, 0, 0]}
+              scale={[scale, scale, scale]}
+            >
               {isMetallic ? (
                 <meshStandardMaterial
                   color={sb.color}

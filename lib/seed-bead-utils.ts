@@ -33,9 +33,18 @@ export interface GeneratedSeedBead {
 }
 
 /**
+ * Thickness-to-diameter ratio of the seed bead GLB model.
+ * Native dimensions: 1.6mm diameter × 1.15mm thick → 0.72.
+ * Packing advances by this fraction of the diameter so adjacent
+ * beads' flat faces sit flush against each other.
+ */
+const SEED_BEAD_THICKNESS_RATIO = 0.72;
+
+/**
  * Generates the list of individual tiny beads that compose a seed segment.
  *
- * Packs beads tightly along the arc by their full diameter.
+ * Packs beads tightly along the arc by their physical thickness (diameter × 0.72),
+ * matching the actual GLB model proportions so flat faces sit flush.
  * Colours are distributed according to the colorway percentages using a
  * weighted random pick per bead.
  */
@@ -60,10 +69,11 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
     // Random diameter within the range
     const dMm = minMm + rng() * (maxMm - minMm);
     const dM = dMm / 1000;
-    const halfD = dM / 2;
+    // Physical thickness along the cord
+    const thick = dM * SEED_BEAD_THICKNESS_RATIO;
 
     // Would this bead extend past the segment end?
-    if (cursor + dM > arcLengthM + 0.0001) break;
+    if (cursor + thick > arcLengthM + 0.0001) break;
 
     // Pick a colour based on weighted random
     const roll = rng() * cumTotal;
@@ -78,10 +88,10 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
     beads.push({
       diameter: dM,
       color: config.colorway[colorIdx].hex,
-      arcOffset: cursor + halfD,
+      arcOffset: cursor + thick / 2,
     });
 
-    cursor += dM;
+    cursor += thick;
   }
 
   return beads;
