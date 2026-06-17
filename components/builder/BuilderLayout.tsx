@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronsRight, Inbox, Loader2, Lock, Plus, ShieldAlert } from "lucide-react";
+import { ChevronsRight, Inbox, LayoutTemplate, Loader2, Lock, Plus, ShieldAlert } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ import { ManageBeadsDialog } from "./dialogs/ManageBeadsDialog";
 
 import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
 import { CommentsPanel } from "./panels/CommentsPanel";
+import { PatternsPanel } from "./panels/PatternsPanel";
 
 import { SavedDesignsScreen } from "./saved-designs/SavedDesignsScreen";
 
@@ -101,6 +102,7 @@ export function BuilderLayout() {
 
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
+  const [patternsOpen, setPatternsOpen] = useState(false);
   const { inReviewCount, approvedCount } = useNotifications();
   const notificationCount = inReviewCount + approvedCount;
   const [braceletDetailsOpen, setBraceletDetailsOpen] = useState(false);
@@ -375,6 +377,15 @@ export function BuilderLayout() {
               <Inbox size={24} />
             </button>
           </Tooltip>
+          <Tooltip content="Open Patterns Panel" placement="bottom-end">
+            <button
+              onClick={() => setPatternsOpen(true)}
+              className="flex items-center rounded-[2px] border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
+              aria-label="Patterns"
+            >
+              <LayoutTemplate size={24} />
+            </button>
+          </Tooltip>
           <img
             src={LOGO_SRC}
             alt={LOGO_ALT}
@@ -552,6 +563,11 @@ export function BuilderLayout() {
         onClose={() => setSavedDesignsOpen(false)}
         isKickedFromActiveDesign={kickedNotification}
         onRetryLock={handleRetryLock}
+      />
+
+      <PatternsPanel
+        open={patternsOpen}
+        onClose={() => setPatternsOpen(false)}
       />
 
       <UsersAdminScreen

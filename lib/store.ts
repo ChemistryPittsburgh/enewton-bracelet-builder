@@ -156,6 +156,16 @@ interface Store {
   setPendingDesign: (design: Bracelet, onLoad: () => void) => void;
   clearPendingDesign: () => void;
 
+  /**
+   * Ephemeral — not persisted.
+   * Set when the user clicks a pattern while the canvas already has beads.
+   * ConfirmReplaceDialog reads this and shows a "Replace?" prompt.
+   * After confirm/cancel the pending state is cleared.
+   */
+  pendingPattern: Bracelet | null;
+  setPendingPattern: (pattern: Bracelet) => void;
+  clearPendingPattern: () => void;
+
   /** True when the bracelet has unsaved changes since the last save/load. */
   isDirty: boolean;
   /** Reset the dirty flag — called after a successful save. */
@@ -193,6 +203,7 @@ export const useStore = create<Store>()(
       activeDesignId: null,
       pendingDesign: null,
       pendingDesignOnLoad: null,
+      pendingPattern: null,
       controlsEl: null,
       glRenderer: null,
       threeScene: null,
@@ -384,6 +395,14 @@ export const useStore = create<Store>()(
 
       clearPendingDesign() {
         set({ pendingDesign: null, pendingDesignOnLoad: null });
+      },
+
+      setPendingPattern(pattern) {
+        set({ pendingPattern: pattern });
+      },
+
+      clearPendingPattern() {
+        set({ pendingPattern: null });
       },
 
       insertBead(product, atIndex) {
