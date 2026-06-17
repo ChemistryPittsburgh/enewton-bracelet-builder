@@ -1,7 +1,7 @@
 /**
  * seed-bead-utils.ts
  *
- * Utilities for procedurally generating seed bead positions, sizes, and colours
+ * Utilities for procedurally generating seed bead positions, sizes, and colors
  * within a segment. Uses a deterministic PRNG so the same random_seed always
  * produces the same visual arrangement.
  */
@@ -26,8 +26,10 @@ export function createRng(seed: number): () => number {
 export interface GeneratedSeedBead {
   /** Diameter in metres. */
   diameter: number;
-  /** Hex colour string. */
+  /** Hex color string. */
   color: string;
+  /** Whether this bead uses metallic material. */
+  isMetallic: boolean;
   /** Offset along the segment's arc from the segment start, in metres. */
   arcOffset: number;
 }
@@ -45,7 +47,7 @@ const SEED_BEAD_THICKNESS_RATIO = 0.72;
  *
  * Packs beads tightly along the arc by their physical thickness (diameter × 0.72),
  * matching the actual GLB model proportions so flat faces sit flush.
- * Colours are distributed according to the colorway percentages using a
+ * colors are distributed according to the colorway percentages using a
  * weighted random pick per bead.
  */
 export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[] {
@@ -54,7 +56,7 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
   const [minMm, maxMm] = config.bead_size_range;
   const arcLengthM = config.arc_length_mm / 1000;
 
-  // Build cumulative weight array for colour picking
+  // Build cumulative weight array for color picking
   const cumWeights: number[] = [];
   let cumTotal = 0;
   for (const entry of config.colorway) {
@@ -75,7 +77,7 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
     // Would this bead extend past the segment end?
     if (cursor + thick > arcLengthM + 0.0001) break;
 
-    // Pick a colour based on weighted random
+    // Pick a color based on weighted random
     const roll = rng() * cumTotal;
     let colorIdx = 0;
     for (let i = 0; i < cumWeights.length; i++) {
@@ -88,6 +90,7 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
     beads.push({
       diameter: dM,
       color: config.colorway[colorIdx].hex,
+      isMetallic: config.colorway[colorIdx].is_metallic ?? false,
       arcOffset: cursor + thick / 2,
     });
 

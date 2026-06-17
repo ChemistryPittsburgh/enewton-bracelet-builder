@@ -16,6 +16,8 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
+import { useSeedColors } from "@/hooks/useSeedColors";
+import { useSeedPresets } from "@/hooks/useSeedPresets";
 import { braceletArc, usedArc, beadFits } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
@@ -171,7 +173,9 @@ function SpacerPicker({ onAdd, error }: {
           })}
         </div>
 
-        <SectionHeading>Custom size</SectionHeading>
+        <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-2">
+          Custom size
+        </p>
         <div className="flex items-center gap-2">
           <input
             type="number"
@@ -219,83 +223,14 @@ function SpacerPicker({ onAdd, error }: {
           </>
         ) : (
           <div className="rounded-[2px] border border-error/20 bg-error/5 px-4 py-3 text-center">
-            <SectionHeading>Bracelet is full</SectionHeading>
-            <p className="text-xs text-color-base/60 mt-1">Remove beads to free up space.</p>
+            <SectionHeading className="mb-1 text-error">Bracelet is full</SectionHeading>
+            <p className="text-xs text-color-base/80 mt-0">Remove beads to free up space.</p>
           </div>
         )}
       </div>
     </div>
   );
 }
-
-// ── Seed bead colorway presets ─────────────────────────────────────────────
-
-const SEED_PRESETS: { name: string; colorway: SeedColorEntry[] }[] = [
-  {
-    name: "Gold",
-    colorway: [{ hex: "#D4AF37", percent: 100, label: "Gold" }],
-  },
-  {
-    name: "Silver",
-    colorway: [{ hex: "#C0C0C0", percent: 100, label: "Silver" }],
-  },
-  {
-    name: "Pearl mix",
-    colorway: [
-      { hex: "#F5F0E8", percent: 60, label: "Pearl" },
-      { hex: "#D4AF37", percent: 40, label: "Gold" },
-    ],
-  },
-  {
-    name: "Berry",
-    colorway: [
-      { hex: "#C2185B", percent: 30, label: "Magenta" },
-      { hex: "#7B1FA2", percent: 25, label: "Purple" },
-      { hex: "#FFFFFF", percent: 25, label: "White" },
-      { hex: "#D4AF37", percent: 20, label: "Gold" },
-    ],
-  },
-  {
-    name: "Ocean",
-    colorway: [
-      { hex: "#1565C0", percent: 30, label: "Blue" },
-      { hex: "#00897B", percent: 25, label: "Teal" },
-      { hex: "#FFFFFF", percent: 25, label: "White" },
-      { hex: "#D4AF37", percent: 20, label: "Gold" },
-    ],
-  },
-  {
-    name: "Blush",
-    colorway: [
-      { hex: "#F8BBD0", percent: 35, label: "Pink" },
-      { hex: "#FFFFFF", percent: 35, label: "White" },
-      { hex: "#D4AF37", percent: 30, label: "Gold" },
-    ],
-  },
-];
-
-// ── Available individual seed bead colours ──────────────────────────────────
-
-const SEED_COLOR_OPTIONS: { hex: string; label: string }[] = [
-  { hex: "#D4AF37", label: "Gold" },
-  { hex: "#C0C0C0", label: "Silver" },
-  { hex: "#FFFFFF", label: "White" },
-  { hex: "#F5F0E8", label: "Pearl" },
-  { hex: "#F8BBD0", label: "Pink" },
-  { hex: "#C2185B", label: "Magenta" },
-  { hex: "#E53935", label: "Red" },
-  { hex: "#FF7043", label: "Coral" },
-  { hex: "#FFB74D", label: "Orange" },
-  { hex: "#7B1FA2", label: "Purple" },
-  { hex: "#5C6BC0", label: "Indigo" },
-  { hex: "#1565C0", label: "Blue" },
-  { hex: "#039BE5", label: "Light blue" },
-  { hex: "#00897B", label: "Teal" },
-  { hex: "#43A047", label: "Green" },
-  { hex: "#8D6E63", label: "Brown" },
-  { hex: "#78909C", label: "Slate" },
-  { hex: "#1C1C1C", label: "Onyx" },
-];
 
 // ── Seed bead picker ──────────────────────────────────────────────────────
 
@@ -310,10 +245,33 @@ function SeedBeadPicker({ onAdd, error }: {
   const { canEdit } = usePermissions();
   const { isAdmin } = usePermissions();
 
-  const [colorway, setColorway] = useState<SeedColorEntry[]>(SEED_PRESETS[0].colorway);
+  const { data: apiColors = [] } = useSeedColors();
+  const { data: apiPresets = [] } = useSeedPresets();
+
+  // Default colorway: first preset if available, otherwise a single gold entry
+  const defaultColorway = useMemo<SeedColorEntry[]>(() => {
+    if (apiPresets.length > 0) {
+      return apiPresets[0].colors.map((c) => ({
+        hex: c.hex,
+        percent: c.percent,
+        label: c.label,
+        is_metallic: c.is_metallic,
+      }));
+    }
+    return [{ hex: "#D4AF37", percent: 100, label: "Gold", is_metallic: true }];
+  }, [apiPresets]);
+
+  const [colorway, setColorway] = useState<SeedColorEntry[]>([]);
   const [fillMode, setFillMode] = useState<"remaining" | "custom">("remaining");
   const [customMm, setCustomMm] = useState("");
   const [seed, setSeed] = useState(() => newRandomSeed());
+
+  // Initialise colorway from API default once presets load
+  const [initialised, setInitialised] = useState(false);
+  if (!initialised && defaultColorway.length > 0) {
+    setColorway(defaultColorway);
+    setInitialised(true);
+  }
 
   const radius       = BRACELET_SIZE_RADIUS[braceletSize];
   const totalArc     = braceletArc(radius);
@@ -323,7 +281,7 @@ function SeedBeadPicker({ onAdd, error }: {
   const arcMm = fillMode === "remaining" ? availableMm : parseFloat(customMm) || 0;
   const validArc = arcMm > 0 && arcMm <= availableMm;
 
-  // Preview: generate a small sample of the colour distribution
+  // Preview: generate a small sample of the color distribution
   const previewBeads = useMemo(() => {
     if (colorway.length === 0) return [];
     return generateSeedBeads({
@@ -334,12 +292,17 @@ function SeedBeadPicker({ onAdd, error }: {
     });
   }, [colorway, arcMm, seed]);
 
-  function handlePresetClick(preset: typeof SEED_PRESETS[number]) {
-    setColorway([...preset.colorway]);
+  function handlePresetClick(preset: typeof apiPresets[number]) {
+    setColorway(preset.colors.map((c) => ({
+      hex: c.hex,
+      percent: c.percent,
+      label: c.label,
+      is_metallic: c.is_metallic,
+    })));
     setSeed(newRandomSeed());
   }
 
-  function handleAddColor(hex: string, label: string) {
+  function handleAddColor(hex: string, label: string, is_metallic: boolean) {
     if (colorway.length >= 6) return;
     if (colorway.some((c) => c.hex === hex)) return;
 
@@ -351,7 +314,7 @@ function SeedBeadPicker({ onAdd, error }: {
       ...c,
       percent: evenPercent + (i === 0 ? remainder : 0),
     }));
-    updated.push({ hex, percent: evenPercent, label });
+    updated.push({ hex, percent: evenPercent, label, is_metallic });
     setColorway(updated);
     setSeed(newRandomSeed());
   }
@@ -411,9 +374,7 @@ function SeedBeadPicker({ onAdd, error }: {
 
         {/* Preset colorways */}
         <div className="flex items-center gap-2 mb-2.5">
-          <p className="flex-1 text-xs font-semibold text-color-base/70 uppercase tracking-wide">
-            <SectionHeading className="mb-0">Colorway presets</SectionHeading>
-          </p>
+          <SectionHeading className="mb-0 flex-1">Colorway presets</SectionHeading>
           {isAdmin && (
             <button
               className="manage-btn"
@@ -422,15 +383,16 @@ function SeedBeadPicker({ onAdd, error }: {
             </button>
           )}
         </div>
+
         <div className="flex gap-2 flex-wrap mb-5">
-          {SEED_PRESETS.map((preset) => (
+          {apiPresets.map((preset) => (
             <button
-              key={preset.name}
+              key={preset.id}
               onClick={() => handlePresetClick(preset)}
               className="flex items-center gap-1.5 rounded-[2px] border border-default bg-white px-2.5 py-1.5 text-xs hover:border-neutral-400 transition-all"
             >
               <span className="flex gap-0.5">
-                {preset.colorway.map((c, i) => (
+                {preset.colors.map((c, i) => (
                   <span
                     key={i}
                     className="w-3 h-3 rounded-full border border-black/10"
@@ -444,7 +406,9 @@ function SeedBeadPicker({ onAdd, error }: {
         </div>
 
         {/* Active colorway editor */}
-        <SectionHeading>Colorway</SectionHeading>
+        <SectionHeading>
+          Colorway
+        </SectionHeading>
 
         <div className="space-y-2 mb-4">
           {colorway.map((entry, i) => (
@@ -467,7 +431,7 @@ function SeedBeadPicker({ onAdd, error }: {
                 <button
                   onClick={() => handleRemoveColor(i)}
                   className="p-0.5 rounded-[2px] text-color-base/40 hover:text-error transition-colors"
-                  aria-label="Remove colour"
+                  aria-label="Remove color"
                 >
                   <X size={12} />
                 </button>
@@ -476,17 +440,19 @@ function SeedBeadPicker({ onAdd, error }: {
           ))}
         </div>
 
-        {/* Add colour swatches */}
+        {/* Add color swatches */}
         {colorway.length < 6 && (
           <>
-            <SectionHeading>Add colour</SectionHeading>
+            <SectionHeading>
+              Add color
+            </SectionHeading>
             <div className="flex gap-1.5 flex-wrap mb-5">
-              {SEED_COLOR_OPTIONS.filter(
+              {apiColors.filter(
                 (opt) => !colorway.some((c) => c.hex === opt.hex)
               ).map((opt) => (
                 <button
-                  key={opt.hex}
-                  onClick={() => handleAddColor(opt.hex, opt.label)}
+                  key={opt.id}
+                  onClick={() => handleAddColor(opt.hex, opt.label, opt.is_metallic)}
                   className="w-6 h-6 rounded-full border border-black/10 hover:ring-2 hover:ring-navy/40 transition-all"
                   style={{ backgroundColor: opt.hex }}
                   title={opt.label}
@@ -499,7 +465,9 @@ function SeedBeadPicker({ onAdd, error }: {
         {/* Preview strip */}
         {previewBeads.length > 0 && (
           <>
-            <SectionHeading>Preview</SectionHeading>
+            <SectionHeading>
+              Preview
+            </SectionHeading>
             <div className="flex items-center overflow-hidden rounded-full border border-default h-5 mb-2 bg-light-grey/50">
               {(() => {
                 const totalD = previewBeads.reduce((s, pb) => s + pb.diameter, 0);
@@ -526,7 +494,9 @@ function SeedBeadPicker({ onAdd, error }: {
         )}
 
         {/* Fill mode */}
-        <SectionHeading>Fill amount</SectionHeading>
+        <SectionHeading>
+          Fill amount
+        </SectionHeading>
         <div className="flex gap-2 mb-3">
           <button
             onClick={() => setFillMode("remaining")}
@@ -573,7 +543,9 @@ function SeedBeadPicker({ onAdd, error }: {
 
         {availableMm >= 2 ? (
           <>
-            <SectionHeading>{arcMm > 0 ? `${arcMm}mm seed beads` : "Configure colorway"}</SectionHeading>
+            <SectionHeading>
+              {arcMm > 0 ? `${arcMm}mm seed beads` : "Configure colorway"}
+            </SectionHeading>
             {canEdit && (
               <Button
                 onClick={handleAdd}
@@ -587,8 +559,8 @@ function SeedBeadPicker({ onAdd, error }: {
           </>
         ) : (
           <div className="rounded-[2px] border border-error/20 bg-error/5 px-4 py-3 text-center">
-            <SectionHeading>Bracelet is full</SectionHeading>
-            <p className="text-xs text-color-base/60 mt-1">Remove beads to free up space.</p>
+            <SectionHeading className="text-error mb-1">Bracelet is full</SectionHeading>
+            <p className="text-xs text-color-base/80 mt-0">Remove beads to free up space.</p>
           </div>
         )}
       </div>
@@ -886,9 +858,9 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
 
               {filteredBeads.length === 0 || (availableMm >= 1 && filteredBeads.some(b => beadFits(placedBeads, { product: b }, braceletRadius))) ? (
                 <>
-                <SectionHeading>
+                <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
                   {selectedBead?.name ? "Item Selected" : "Select a bead"}
-                </SectionHeading>
+                </p>
 
                 <div className="flex items-center gap-3">
 
@@ -952,8 +924,8 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
                 </>
               ) : (
                 <div className="rounded-[2px] border border-error/20 bg-error/5 px-4 py-3 text-center">
-                  <SectionHeading>Bracelet is full</SectionHeading>
-                  <p className="text-xs text-color-base/60 mt-1">No more items can fit. Remove beads to free up space.</p>
+                  <SectionHeading className="text-error mb-1">Bracelet is full</SectionHeading>
+                  <p className="text-xs text-color-base/80 mt-0">No more items can fit. Remove beads to free up space.</p>
                 </div>
               )}
 

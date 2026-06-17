@@ -77,7 +77,7 @@ export function BeadOnBracelet({
       // No matching finish preset — this is a colored/painted item (cross,
       // gem, crystal, etc.). The GLB may have been modelled with metallic
       // material, which makes colors look dull and washed out. Force
-      // dielectric rendering so the base colour comes through vibrantly.
+      // dielectric rendering so the base color comes through vibrantly.
       clone.traverse((child) => {
         if (!(child instanceof Mesh)) return;
         const srcMat = child.material;

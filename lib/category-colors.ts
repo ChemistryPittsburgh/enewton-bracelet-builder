@@ -1,10 +1,10 @@
 /**
  * category-colors.ts
  *
- * Single source of truth for all colour-coded UI elements:
+ * Single source of truth for all color-coded UI elements:
  *   - Filter chip / badge categories (material, type, creator, tag, collection)
  *   - Bracelet workflow status badges
- *   - User role badge colours
+ *   - User role badge colors
  *
  * NOTE: Tailwind class strings must appear in full (no interpolation) so the
  * compiler keeps them. Don't construct them dynamically.

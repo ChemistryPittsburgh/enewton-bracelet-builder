@@ -21,12 +21,6 @@ import {
   generateSeedBeads,
 } from "@/lib/seed-bead-utils";
 
-/** Hex colours that should render with metallic material properties. */
-const METALLIC_HEXES = new Set([
-  "#D4AF37", "#FFD700", "#C5A44E", "#B8860B", // golds
-  "#C0C0C0", "#A8A9AD", "#808080",             // silvers
-]);
-
 /** Native cross-section diameter of the seed bead GLB (metres). */
 const NATIVE_DIAMETER = 0.0016;
 
@@ -106,14 +100,16 @@ export function SeedSegmentOnBracelet({
     });
     if (!geo) return { seedGeometry: null, nativeDiameter: NATIVE_DIAMETER };
 
+    const geometry = geo as THREE.BufferGeometry;
+
     // Compute actual diameter from the geometry's own bounding box
-    geo.computeBoundingBox();
-    const bb = geo.boundingBox!;
+    geometry.computeBoundingBox();
+    const bb = geometry.boundingBox!;
     const extentX = bb.max.x - bb.min.x;
     const extentY = bb.max.y - bb.min.y;
     const diam = Math.max(extentX, extentY, bb.max.z - bb.min.z);
 
-    return { seedGeometry: geo, nativeDiameter: diam || NATIVE_DIAMETER };
+    return { seedGeometry: geometry, nativeDiameter: diam || NATIVE_DIAMETER };
   }, [glbScene]);
 
   // Generate the individual tiny beads from the segment config
@@ -144,6 +140,7 @@ export function SeedSegmentOnBracelet({
           outerRotation: lineTransform.outerRotation,
           diameter: sb.diameter,
           color: sb.color,
+          isMetallic: sb.isMetallic,
         };
       });
     }
@@ -163,6 +160,7 @@ export function SeedSegmentOnBracelet({
         outerRotation: [0, outerRotY, 0] as [number, number, number],
         diameter: sb.diameter,
         color: sb.color,
+        isMetallic: sb.isMetallic,
       };
     });
   }, [config, generatedBeads, slotIndex, beads, radius, viewMode, bead.product.diameter]);
@@ -304,7 +302,6 @@ export function SeedSegmentOnBracelet({
       {/* Individual seed beads — GLB model with per-bead color and scale */}
       {seedBead3DData.map((sb, i) => {
         const scale = sb.diameter / nativeDiameter;
-        const isMetallic = METALLIC_HEXES.has(sb.color);
 
         return (
           <group
@@ -321,7 +318,7 @@ export function SeedSegmentOnBracelet({
               rotation={[Math.PI / 2, 0, 0]}
               scale={[scale, scale, scale]}
             >
-              {isMetallic ? (
+              {sb.isMetallic ? (
                 <meshStandardMaterial
                   color={sb.color}
                   metalness={1}

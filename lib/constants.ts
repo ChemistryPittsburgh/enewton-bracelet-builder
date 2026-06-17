@@ -30,14 +30,14 @@ export const LOGO_ALT = "eNewton Logo";
 
 // ─── Scene ────────────────────────────────────────────────────────────────────
 
-/** Default canvas background colour. */
+/** Default canvas background color. */
 export const SCENE_BACKGROUND = "#f5f0eb";
 export const SCENE_BACKGROUND_PREVIEW_BEAD = "#f1f3f5"; // currently light-grey
 
 /** Fixed pixel dimensions for saved bracelet thumbnail PNGs (square). */
 export const THUMBNAIL_SIZE = 600;
 
-/** Canvas background colour when edit mode is active. */
+/** Canvas background color when edit mode is active. */
 export const EDIT_MODE_BACKGROUND = "#eff6ff";
 
 /** Color of ring when bead is selected/highlights */
@@ -105,7 +105,7 @@ export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.0
 // ─── Cord ─────────────────────────────────────────────────────────────────────
 
 /** Visual properties for the cord torus mesh, keyed by string material.
- *  color      — hex base colour of the cord
+ *  color      — hex base color of the cord
  *  roughness  — 0 (mirror) → 1 (fully diffuse)
  *  metalness  — 0 (dielectric) → 1 (metal); wire is nearly full metal
  *  tubeRadius — torus tube radius in metres; controls how thick the cord appears
@@ -120,7 +120,7 @@ export const CORD_MATERIALS: Record<BandMaterial, { color: string; roughness: nu
 /** Fixed bracelet size when hairtie material is selected (5.25" circumference). */
 export const HAIRTIE_DEFAULT_SIZE: BraceletSize = "medium";
 
-/** Available hairtie cord colours — value is persisted, hex drives the 3D cord. */
+/** Available hairtie cord colors — value is persisted, hex drives the 3D cord. */
 export const HAIRTIE_COLORS: { value: string; label: string; hex: string }[] = [
   { value: "gray",          label: "Gray",          hex: "#9CA3AF" },
   { value: "white",         label: "White",         hex: "#F5F5F4" },
@@ -145,7 +145,7 @@ export const HAIRTIE_COLORS: { value: string; label: string; hex: string }[] = [
 // skips any mesh whose GLB metalness is < 0.5, so stone, enamel, and other
 // non-metal surfaces are never touched.
 //
-//   color           — hex base colour of the metal
+//   color           — hex base color of the metal
 //   metalness       — 0 (dielectric) → 1 (full metal)
 //   roughness       — 0 (mirror polish) → 1 (fully matte)
 //   envMapIntensity — 0 (no reflections) → 1 (full environment reflections)

@@ -199,11 +199,12 @@ export interface BeadProduct {
 
 // ─── Seed bead segments ───────────────────────────────────────────────────────
 
-/** One colour entry in a seed bead colorway. */
+/** One color entry in a seed bead colorway. */
 export interface SeedColorEntry {
   hex: string;
   percent: number;
   label?: string;
+  is_metallic?: boolean;
 }
 
 /**
@@ -211,7 +212,7 @@ export interface SeedColorEntry {
  * beads that fills a specific arc length on the bracelet.
  */
 export interface SeedSegmentConfig {
-  /** Colours and their proportions (must sum to 100). */
+  /** colors and their proportions (must sum to 100). */
   colorway: SeedColorEntry[];
   /** Total arc length this segment occupies, in millimetres. */
   arc_length_mm: number;

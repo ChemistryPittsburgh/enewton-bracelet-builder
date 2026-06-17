@@ -146,7 +146,7 @@ function GlbModel({ url, isCharm, finish, onMeasured }: { url: string; isCharm: 
       });
     } else {
       // Non-metal material — force dielectric so painted/colored items
-      // (crosses, gems, crystals) render with vibrant base colours.
+      // (crosses, gems, crystals) render with vibrant base colors.
       clone.traverse((child) => {
         if (!(child instanceof Mesh)) return;
         const srcMat = child.material;

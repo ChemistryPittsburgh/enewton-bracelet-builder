@@ -7,9 +7,9 @@
  * 3D mode:  TorusGeometry in the XZ plane (rotated 90° on X so it lies flat).
  * Line mode: CylinderGeometry along the X axis (rotated 90° on Z).
  *
- * When the band material is "hairtie", the cord colour is driven by
+ * When the band material is "hairtie", the cord color is driven by
  * the user's selected hairtieColor (from the store) rather than the
- * static CORD_MATERIALS colour.
+ * static CORD_MATERIALS color.
  */
 
 import { useMemo } from "react";
@@ -27,7 +27,7 @@ export function BraceletCord() {
   const mat    = CORD_MATERIALS[bandMaterial] ?? CORD_MATERIALS["stretchy"];
   const radius = BRACELET_SIZE_RADIUS[braceletSize] ?? BRACELET_SIZE_RADIUS["medium"];
 
-  // For hairtie, override the cord colour with the selected hairtie colour
+  // For hairtie, override the cord color with the selected hairtie color
   const cordColor = bandMaterial === "hairtie"
     ? (HAIRTIE_COLORS.find((c) => c.value === hairtieColor)?.hex ?? mat.color)
     : mat.color;
