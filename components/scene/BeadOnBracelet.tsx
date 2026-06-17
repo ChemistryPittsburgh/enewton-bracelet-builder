@@ -38,7 +38,10 @@ export function BeadOnBracelet({
     const rawBox = new Box3().setFromObject(clone);
     const center = new Vector3();
     rawBox.getCenter(center);
-    clone.position.sub(center);
+    // Move children (not the scene root) so geometry is centered at the root's origin.
+    // Moving the root itself causes its position to be rotated by outerRotation,
+    // displacing beads whose GLB node has a non-zero translation offset.
+    clone.children.forEach((child) => child.position.sub(center));
 
     // ── Apply material finish preset ────────────────────────────────────────
     // Lookup chain: product.finish → product.material → DEFAULT_FINISH.

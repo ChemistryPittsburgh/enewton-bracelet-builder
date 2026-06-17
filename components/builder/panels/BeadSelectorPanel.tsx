@@ -22,6 +22,7 @@ import {
 } from "@/lib/constants";
 
 const SPACER_TAB = "__spacer__";
+const BAR_TAB    = "bar";
 
 interface BeadSelectorPanelProps {
   isOpen: boolean;
@@ -238,6 +239,164 @@ function SpacerPicker({ onAdd, error }: {
   );
 }
 
+// ── Bar picker ─────────────────────────────────────────────────────────────
+
+function BarPicker({ bars, onAdd, error }: {
+  bars: BeadProduct[];
+  onAdd: (bar: BeadProduct) => void;
+  error: string | null;
+}) {
+  const { placedBeads, braceletSize } = useStore((s) => ({
+    placedBeads:  s.beads,
+    braceletSize: s.braceletSize,
+  }));
+  const { canEdit } = usePermissions();
+
+  const [selectedBar, setSelectedBar]   = useState<BeadProduct | null>(null);
+  const [selectedSize, setSelectedSize] = useState<number | null>(null);
+
+  const radius      = BRACELET_SIZE_RADIUS[braceletSize];
+  const totalArc    = braceletArc(radius);
+  const used        = usedArc(placedBeads);
+  const availableMm = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+
+  // Use sizes[] from the API when available; fall back to [size_mm] for backward compat
+  const sizesForBar = useMemo(
+    () =>
+      selectedBar
+        ? (selectedBar.sizes?.length
+            ? [...selectedBar.sizes].sort((a, b) => a - b)
+            : selectedBar.size_mm != null ? [selectedBar.size_mm] : [])
+        : [],
+    [selectedBar],
+  );
+
+  // Show size picker only when there are genuinely multiple size options
+  const showSizePicker = sizesForBar.length > 1;
+
+  // If no size picker, use the bar's own diameter directly; otherwise create on-the-fly variant
+  // Only override size_mm (visual Z depth) — diameter stays as the bar's fixed cord-thickness
+  const productToAdd = useMemo(
+    () =>
+      selectedBar && (selectedSize !== null || !showSizePicker)
+        ? { ...selectedBar, size_mm: selectedSize ?? selectedBar.size_mm }
+        : null,
+    [selectedBar, selectedSize, showSizePicker],
+  );
+
+  const canAdd = productToAdd !== null && beadFits(placedBeads, { product: productToAdd }, radius);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 px-5 pb-4 overflow-y-auto">
+        <div className="rounded-lg border border-default bg-light-grey/50 px-4 py-3 mb-5">
+          <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-1">
+            Available space
+          </p>
+          <p className="text-2xl font-semibold text-navy">{availableMm}mm</p>
+          <div className="mt-2 h-1.5 w-full rounded-full bg-light-grey overflow-hidden">
+            <div
+              className="h-full rounded-full bg-navy transition-all"
+              style={{ width: `${Math.min(100, (used / totalArc) * 100)}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-color-base/70 mt-1">
+            {Math.round((used / totalArc) * 100)}% occupied
+          </p>
+        </div>
+
+        {/* Step 1 — Select a bar */}
+        <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-3">
+          Select bar
+        </p>
+        <div className="flex flex-col gap-2 mb-5">
+          {bars.map((bar) => {
+            const barFits    = beadFits(placedBeads, { product: bar }, radius);
+            const isSelected = selectedBar?.id === bar.id;
+            return (
+              <button
+                key={bar.id}
+                disabled={!barFits}
+                onClick={() => {
+                  setSelectedBar((prev) => (prev?.id === bar.id ? null : bar));
+                  setSelectedSize(null);
+                }}
+                className={`flex items-center rounded-[2px] border px-4 py-3 text-sm transition-all text-left ${
+                  isSelected
+                    ? "ring-2 ring-navy border-navy bg-white shadow-sm"
+                    : barFits
+                      ? "border-default bg-white hover:border-neutral-400"
+                      : "border-default bg-light-grey/50 opacity-40 cursor-not-allowed"
+                }`}
+              >
+                <span className="font-medium">{bar.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Step 2 — Select a size (only when multiple size options exist) */}
+        {showSizePicker && selectedBar !== null && (
+          <>
+            <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-3">
+              Select size
+            </p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              {sizesForBar.map((size) => {
+                const canFit   = size <= availableMm;
+                const isActive = selectedSize === size;
+                return (
+                  <button
+                    key={size}
+                    disabled={!canFit}
+                    onClick={() => setSelectedSize(size)}
+                    className={`flex flex-col items-center gap-0.5 rounded-[2px] border py-3 text-sm transition-all ${
+                      isActive
+                        ? "ring-2 ring-navy border-navy bg-white shadow-sm"
+                        : canFit
+                          ? "border-default bg-white hover:border-neutral-400"
+                          : "border-default bg-light-grey/50 text-color-base/30 cursor-not-allowed"
+                    }`}
+                  >
+                    <span className="font-semibold">{size}mm</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
+        {error && <ErrorAlert message={error} />}
+        {availableMm >= 1 ? (
+          <>
+            <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
+              {productToAdd
+                ? productToAdd.name
+                : showSizePicker && selectedBar
+                  ? "Select a size"
+                  : "Select a bar"}
+            </p>
+            {canEdit && (
+              <Button
+                onClick={() => productToAdd && onAdd(productToAdd)}
+                disabled={!canAdd}
+                variant="secondary"
+                className="flex w-full items-center justify-center gap-2"
+              >
+                ✦ Add bar
+              </Button>
+            )}
+          </>
+        ) : (
+          <p className="text-error font-semibold text-sm">Bracelet is full</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main panel ─────────────────────────────────────────────────────────────
 
 export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
@@ -260,6 +419,7 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
   const [error, setError] = useState<string | null>(null);
 
   const isSpacerMode = activeTab === SPACER_TAB;
+  const isBarMode    = activeTab === BAR_TAB;
 
   const radius       = BRACELET_SIZE_RADIUS[braceletSize];
   const totalArc     = braceletArc(radius);
@@ -267,10 +427,14 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
   const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
 
   // Unique bead categories for the pill tabs (bead, charm, tube, etc.)
+  // Exclude "bar" from the data-driven pills — the bar tab renders BarPicker, not the card grid.
   const beadCategories = useMemo(
-    () => [...new Set(beads.map((b) => b.bead_category).filter(Boolean))] as string[],
+    () => [...new Set(beads.map((b) => b.bead_category).filter(Boolean))].filter((c) => c !== BAR_TAB) as string[],
     [beads],
   );
+
+  // Bar products — fed into BarPicker when the Bar tab is active
+  const bars = useMemo(() => beads.filter((b) => b.bead_category === BAR_TAB), [beads]);
 
   // Unique materials for the dropdown, filtered by active category tab
   const materials = useMemo(() => {
@@ -292,13 +456,13 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
     return beads
       .filter((b) => {
         const matchesSearch = !search || b.name.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory = !activeTab || isSpacerMode || b.bead_category === activeTab;
+        const matchesCategory = !activeTab || isSpacerMode || isBarMode || b.bead_category === activeTab;
         const matchesMaterial = !activeMaterial || b.material === activeMaterial;
         const matchesType = !activeType || b.bead_type === activeType;
         return matchesSearch && matchesCategory && matchesMaterial && matchesType;
       })
       .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
-  }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode]);
+  }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode, isBarMode]);
 
   function handleAddToDesign() {
     if (!selectedBead) return;
@@ -340,6 +504,14 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
     }
   }
 
+  function handleAddBar(bar: BeadProduct) {
+    const err = addBead(bar);
+    if (err) {
+      setError(err);
+      setTimeout(() => setError(null), 3000);
+    }
+  }
+
   function handleSelectBead(bead: BeadProduct) {
     if (selectedBead?.id === bead.id) {
       setSelectedBead(null);
@@ -353,8 +525,8 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
     <Panel open={isOpen} onClose={onClose} title="Bead Selector" direction="left" overflowYScroll={false} className="bottom-0 h-auto">
       <div className="flex flex-col h-full overflow-y-scroll border-b border-default">
 
-        {/* Search — hidden in spacer mode */}
-        {!isSpacerMode && (
+        {/* Search — hidden in spacer/bar mode */}
+        {!isSpacerMode && !isBarMode && (
           <div className="px-5 pt-4">
             <div className="relative">
               <input
@@ -409,9 +581,22 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
               setSelectedBead(null);
             }}
           />
+          <MaterialPill
+            label="Bar"
+            active={isBarMode}
+            onClick={() => {
+              setActiveTab((prev) => (prev === BAR_TAB ? null : BAR_TAB));
+              setActiveMaterial("");
+              setActiveType(null);
+              setSelectedBead(null);
+            }}
+          />
         </div>
 
-        {isSpacerMode ? (
+        {isBarMode ? (
+          /* ── Bar picker ── */
+          <BarPicker bars={bars} onAdd={handleAddBar} error={error} />
+        ) : isSpacerMode ? (
           /* ── Spacer picker ── */
           <SpacerPicker onAdd={handleAddSpacer} error={error} />
         ) : (
