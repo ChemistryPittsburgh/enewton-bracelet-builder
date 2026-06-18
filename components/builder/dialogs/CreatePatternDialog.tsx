@@ -35,7 +35,7 @@ export function CreatePatternDialog({ initialName, onClose, onSaved }: CreatePat
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
-      onClick={(e) => { if (e.target === e.currentTarget && !isPending) onClose(); }}
+      onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget && !isPending) onClose(); }}
     >
       <div className="w-[420px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-4">
         <div className="flex items-center justify-between">

@@ -145,6 +145,7 @@ export function useLoadDesign() {
     setbandMaterial(configuration.band_material);
     loadBeads(placedBeads, name);
     setBraceletDescription(description ?? "");
+    setActivePatternId(null);
     markClean();
   }
 

@@ -15,18 +15,15 @@ export function useSavePattern() {
   const queryClient = useQueryClient();
   const { capture } = useGenerateThumbnail();
   const markClean = useStore((s) => s.markClean);
-  const { activePatternId, beads, bandMaterial, braceletSize, hairtieColor, braceletName } = useStore((s) => ({
-    activePatternId: s.activePatternId,
-    beads:           s.beads,
-    bandMaterial:    s.bandMaterial,
-    braceletSize:    s.braceletSize,
-    hairtieColor:    s.hairtieColor,
-    braceletName:    s.braceletName,
-  }));
 
   return useMutation({
     mutationFn: async () => {
-      if (!activePatternId) throw new Error("No active pattern to save");
+      // Read live store values at execution time to avoid stale closure issues
+      // during the async thumbnail capture + upload window.
+      const { activePatternId, beads, bandMaterial, braceletSize, hairtieColor, braceletName } =
+        useStore.getState();
+
+      if (activePatternId === null) throw new Error("No active pattern to save");
 
       const dataUrl = await capture();
       const filename = `pattern-${slugify(braceletName)}-${Date.now()}.png`;

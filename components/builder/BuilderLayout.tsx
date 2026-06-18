@@ -84,7 +84,7 @@ export function BuilderLayout() {
 
   const { data: currentUser } = useCurrentUser();
   const { canEdit, canManageComponents } = usePermissions();
-  const { mutate: savePattern, isPending: isSavingPattern } = useSavePattern();
+  const { mutate: savePattern, isPending: isSavingPattern, isError: savePatternFailed } = useSavePattern();
   const { data: savedDesign, isFetching: designFetching, isError: designIsError, error: designErrorObj } = useDesign(activeDesignId);
   const { active: glbsLoading } = useProgress();
   const isCanvasLoading = glbsLoading || (activeDesignId !== null && designFetching);
@@ -393,12 +393,12 @@ export function BuilderLayout() {
           </Button>
           {activePatternId !== null && canManageComponents && (
             <Button
-              variant="secondary"
+              variant={savePatternFailed ? "danger" : "secondary"}
               onClick={() => savePattern()}
               disabled={isSavingPattern}
             >
               {isSavingPattern ? <Loader2 size={14} className="animate-spin" /> : null}
-              Save Pattern
+              {savePatternFailed ? "Save failed — retry?" : "Save Pattern"}
             </Button>
           )}
           {activePatternId === null && <BraceletExporter

@@ -45,7 +45,7 @@ export function useLoadPattern() {
 
     setBraceletSize(configuration.bracelet_size);
     setbandMaterial(configuration.band_material);
-    if (configuration.hairtie_color) setHairtieColor(configuration.hairtie_color);
+    if (configuration.hairtie_color != null) setHairtieColor(configuration.hairtie_color);
     // When editing a pattern keep its name; when creating a new bracelet reset to default.
     loadBeads(placedBeads, patternId !== null ? pattern.name : DEFAULT_BRACELET_NAME);
     markClean();

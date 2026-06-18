@@ -36,6 +36,7 @@ export function ConfirmReplaceDialog() {
   const pendingPattern        = useStore((s) => s.pendingPattern);
   const pendingPatternEditMode = useStore((s) => s.pendingPatternEditMode);
   const clearPendingPattern   = useStore((s) => s.clearPendingPattern);
+  const isDirty               = useStore((s) => s.isDirty);
   const braceletName     = useStore((s) => s.braceletName);
   const activeDesignId   = useStore((s) => s.activeDesignId);
   const setBraceletName  = useStore((s) => s.setBraceletName);
@@ -86,6 +87,7 @@ export function ConfirmReplaceDialog() {
         patternName={pendingPattern.name}
         braceletName={braceletName}
         editMode={pendingPatternEditMode}
+        isDirty={isDirty}
         onConfirm={() => {
           applyPattern(pendingPattern, pendingPatternEditMode ? pendingPattern.id : null);
           clearPendingPattern();
@@ -255,12 +257,14 @@ function PatternConfirmDialog({
   patternName,
   braceletName,
   editMode,
+  isDirty,
   onConfirm,
   onCancel,
 }: {
   patternName: string;
   braceletName: string;
   editMode: boolean;
+  isDirty: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -282,8 +286,14 @@ function PatternConfirmDialog({
           <div>
             <h3 className="text-[20px] font-semibold">{editMode ? "Edit pattern?" : "Load pattern?"}</h3>
             <p className="mt-2 text-sm text-color-base/80 leading-relaxed">
-              You have unsaved beads on{" "}
-              <span className="font-medium">"{braceletName}"</span> that will be discarded.{" "}
+              {isDirty ? (
+                <>
+                  You have unsaved beads on{" "}
+                  <span className="font-medium">"{braceletName}"</span> that will be discarded.{" "}
+                </>
+              ) : (
+                <>The current bracelet will be replaced. </>
+              )}
               {editMode ? "Edit" : "Load"} the pattern{" "}
               <span className="font-medium">"{patternName}"</span>?
             </p>
