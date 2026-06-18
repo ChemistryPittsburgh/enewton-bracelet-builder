@@ -310,7 +310,7 @@ export const useStore = create<Store>()(
         activeDesignId: null,
         selectedBead: null,
         isDirty: false,
-        braceletSize: "small" as BraceletSize,
+        braceletSize: "medium" as BraceletSize,
         bandMaterial: "stretchy" as BandMaterial,
         undoStack: [],
         redoStack: [],

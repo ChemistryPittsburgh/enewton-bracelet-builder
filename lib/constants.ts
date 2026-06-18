@@ -93,6 +93,11 @@ export const FLOAT_CHARM_ROTATION: [number, number, number] = [Math.PI / 2, -0.2
  *  forward so they clear the cord visually. Tune as needed. */
 export const FLOAT_CHARM_DEPTH_OFFSET = 0.0008;
 
+/** Float charms sit sideways on the cord, presenting only their thin edge.
+ *  Their layout arc contribution, collision body width, and hit-box depth are
+ *  all scaled by this single factor so the thin profile is treated consistently. */
+export const FLOAT_CHARM_THIN_SCALE = 0.35;
+
 /** Fixed camera position for line view — locked, no user controls. */
 export const LINE_VIEW_CAMERA_POSITION: [number, number, number] = [0, 0.05, 0.09];
 
@@ -207,6 +212,40 @@ export function createSpacerProduct(sizeMm: number) {
 
 /** Default individual bead diameter range for seed beads (mm). */
 export const SEED_BEAD_SIZE_RANGE: [number, number] = [1.2, 2.0];
+
+/**
+ * Selectable nominal seed bead sizes (mm) for the "seed" shape — Small (1) and
+ * Large (2). Each bead still varies slightly around the chosen nominal (see
+ * SEED_BEAD_SIZE_VARIANCE / seedBeadSizeRange).
+ */
+export const SEED_BEAD_SIZES_MM = [1, 2] as const;
+
+/** Human labels for the selectable seed sizes. */
+export const SEED_BEAD_SIZE_LABELS: Record<number, string> = { 1: "Small", 2: "Large" };
+
+/** ± per-bead size variance as a fraction of the nominal size. */
+export const SEED_BEAD_SIZE_VARIANCE = 0.15;
+
+/** Per-bead diameter range [min,max] (mm) for a chosen nominal seed size. */
+export function seedBeadSizeRange(sizeMm: number): [number, number] {
+  const d = sizeMm * SEED_BEAD_SIZE_VARIANCE;
+  return [Math.round((sizeMm - d) * 100) / 100, Math.round((sizeMm + d) * 100) / 100];
+}
+
+/**
+ * Thickness-to-diameter ratio of the seed bead GLB model.
+ * Native dimensions: 1.6mm diameter × 1.15mm thick → 0.72.
+ * Packing advances by this fraction of the diameter so adjacent beads'
+ * flat faces sit flush. Shared by the packing math (seed-bead-utils) and the
+ * quantity→arc estimate in the picker so the two never drift apart.
+ */
+export const SEED_BEAD_THICKNESS_RATIO = 0.72;
+
+/** Thickness-to-diameter ratio for round beads (spherical, so thickness === diameter). */
+export const ROUND_BEAD_THICKNESS_RATIO = 1.0;
+
+/** Native cross-section diameter of the seed bead GLB (metres). */
+export const SEED_BEAD_NATIVE_DIAMETER = 0.0016;
 
 /** Available sizes for round seed beads (mm). */
 export const ROUND_SEED_SIZES_MM = [1, 2] as const;

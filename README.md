@@ -37,16 +37,19 @@ components/
 │   │                        edit mode toolbar, workflow bar, exporter
 │   ├── dialogs/           # Modal dialogs: bead info, bracelet details, confirm
 │   │                        replace, delete, discontinue, manage beads/tags/
-│   │                        collections, reject, session takeover, design lock
-│   ├── panels/            # Slide-out panels: bead selector, comments
+│   │                        collections/seed colors, reject, session takeover,
+│   │                        design lock
+│   ├── panels/            # Slide-out panels: bead selector, seed bead picker,
+│   │                        spacer picker, comments
 │   ├── saved-designs/     # Saved designs screen, design cards, filter pickers
 │   ├── sections/          # Workflow + assignment sections (inside details dialog)
 │   ├── users/             # User admin: CRUD, OTP creation, permissions, avatar
 │   └── BuilderLayout.tsx  # Root component — orchestrates panels, lock state,
 │                            Pusher subscriptions, notifications
 ├── scene/
-│   ├── AllBeads.tsx        # Maps placed beads → BeadOnBracelet / SpacerOnBracelet
+│   ├── AllBeads.tsx        # Maps placed beads → BeadOnBracelet / SeedSegmentOnBracelet / SpacerOnBracelet
 │   ├── BeadOnBracelet.tsx  # GLB loader, material finish, charm hanging, selection
+│   ├── SeedSegmentOnBracelet.tsx # Procedurally placed seed/round beads along an arc segment
 │   ├── SpacerOnBracelet.tsx# Procedural wireframe cylinder for virtual spacers
 │   ├── BraceletCord.tsx    # Torus (3D) or cylinder (line) cord mesh
 │   ├── CameraController.tsx# Camera transitions for select, edit, line views
@@ -82,6 +85,9 @@ hooks/
 ├── usePusherDesign.ts     # Per-design Pusher channel subscriptions
 ├── useReleaseLock.ts      # DELETE /designs/:id/lock (fire-and-forget)
 ├── useSaveBracelet.ts     # Shared save flow: capture → upload → create
+├── useSceneItemInteraction.ts # Shared click/drag/selection logic for on-cord items
+├── useSeedColors.ts       # Seed color catalog: query + CRUD + status toggle
+├── useSeedPresets.ts      # Seed colorway presets: query + CRUD + status toggle
 ├── useTags.ts             # CRUD + design↔tag assignment mutations
 ├── useUpdateBracelet.ts   # PUT /designs/:id with conditional thumbnail regen
 ├── useUpdateDesign.ts     # Raw PUT /designs/:id mutation
@@ -98,8 +104,10 @@ lib/
 ├── bead-layout.ts         # Arc geometry: circular + line layout transforms
 ├── bead-helpers.ts        # API→frontend bead normalisation (string→number)
 ├── build-bracelet-config.ts # Derives BraceletConfiguration from store state
+├── charm-collision.ts     # Layer-offset + bail-swing adjustments for close charms
 ├── measure-bead.ts        # GLB bounding box measurement + structural clone
-├── constants.ts           # Scene, camera, cord, finish presets, spacer sizes
+├── seed-bead-utils.ts     # Deterministic seed-bead placement, sizing, colors
+├── constants.ts           # Scene, camera, cord, finish presets, spacer + seed sizes
 ├── category-colors.ts     # Status badges, category chips, avatar colors
 ├── sanitize.ts            # HTML-strip + length-limit for comment text
 ├── pusher.ts              # Pusher singleton with lazy Bearer auth
@@ -119,6 +127,8 @@ Hooks are grouped by domain — related query + mutation hooks live in one file 
 | `useAuth.ts` | `useRequestCode`, `useVerifyCode` |
 | `useCollections.ts` | `useCollections`, `useCreateCollection`, `useUpdateCollection`, `useDeleteCollection`, `useApplyCollection`, `useRemoveCollection` |
 | `useComments.ts` | `useComments`, `useAddComment`, `useEditComment`, `useDeleteComment` |
+| `useSeedColors.ts` | `useSeedColors`, `useCreateSeedColor`, `useUpdateSeedColor`, `useToggleSeedColorStatus`, `useDeleteSeedColor` |
+| `useSeedPresets.ts` | `useSeedPresets`, `useCreateSeedPreset`, `useUpdateSeedPreset`, `useToggleSeedPresetStatus`, `useDeleteSeedPreset` |
 | `useTags.ts` | `useTags`, `useCreateTag`, `useUpdateTag`, `useDeleteTag`, `useApplyTag`, `useRemoveTag` |
 | `useUsers.ts` | `useUsers`, `useCreateUser`, `useCreateOtpUser`, `useUpdateUser`, `useDeleteUser` |
 | `useWorkflow.ts` | `useSubmitDesign`, `useApproveDesign`, `useRejectDesign`, `usePublishDesign`, `useUnPublishDesign`, `useSendToDraft`, `useReopenDesign`, `useDiscontinueDesign`, `useUndiscontinueDesign`, `useSetDesignSku` |
@@ -157,12 +167,35 @@ Each design has a private Pusher channel (`private-design-{id}`) carrying events
 The scene renders inside a React Three Fiber `<Canvas>` with `camera-controls` for orbit/zoom. Key components:
 
 - **BeadOnBracelet** — Loads GLB via `useGLTF`, applies material finish presets (gold/silver/rose_gold), handles charm hanging via bounding-box measurement, and renders selection rings and drag targets.
+- **SeedSegmentOnBracelet** — Renders a run of procedurally placed seed beads (or fixed-size round beads) along an arc segment. Per-bead diameters, positions, and colors come from `seed-bead-utils` and are deterministic for a given `random_seed`.
 - **SpacerOnBracelet** — Procedural wireframe cylinder (no GLB). Visible only in draft/rejected states; suppressed during thumbnail capture.
 - **BraceletCord** — Torus (3D view) or cylinder (line view) with material-specific properties. Hairtie cord color is user-selectable.
 - **CameraController** — Manages transitions between free orbit, bead zoom, top-down edit, side edit, and line view modes.
 - **CameraOffset** — Applies view offset to keep the bracelet centred when side panels slide open.
 
+All three on-cord items (bead, seed segment, spacer) share pointer, drag-threshold, and selection logic via `useSceneItemInteraction`. When charms sit close together, `charm-collision.ts` applies a small radial layer offset plus a bail-pivot swing so hanging bodies fan apart rather than overlap.
+
 Two canvas layouts are supported: circular (torus in XZ plane) and line (straight along X axis). The `bead-layout.ts` module computes per-bead transforms for both, using actual bead diameters and per-category spacing rules.
+
+## Seed Beads
+
+Seed beads are placed as a **segment** — a single `PlacedBead` whose `seedConfig` describes a whole run of tiny beads, rather than one model per bead. Two shapes are supported:
+
+- **Seed** — irregular seed beads. Each bead's diameter is randomised within a ±15% band (`SEED_BEAD_SIZE_VARIANCE`) around a nominal size. Two nominal sizes are offered: **Small (1 mm)** and **Large (2 mm)** (`SEED_BEAD_SIZES_MM` / `SEED_BEAD_SIZE_LABELS`).
+- **Round** — uniform round beads at a fixed diameter (`ROUND_SEED_SIZES_MM`, 1 or 2 mm) rendered from the Classic Bead GLB, in a gold or silver finish.
+
+A segment carries a **colorway** of up to six `SeedColorEntry` weights (hex, label, percent, metallic flag) that must sum to 100%. `seed-bead-utils.ts` uses a deterministic PRNG seeded by `random_seed` to lay out bead positions, sizes, and colors, so the same seed always reproduces the same arrangement — "Shuffle" just picks a new seed and saved designs need only store the seed, not every bead.
+
+The **SeedBeadPicker** panel composes a segment: shape, size, colorway (built from the color catalog or a preset, with metallic/matte groupings), and fill amount (remaining space, custom mm, or bead count). `seedSizeLabel()` in `seed-bead-utils` produces the readable size shown in the bead info and bracelet details dialogs.
+
+### Seed Color & Preset Administration
+
+Admins manage the shared palette via **ManageSeedColorsDialog**, which has two tabs:
+
+- **Colors** — the catalog of color swatches (hex, label, metallic/matte). Create, edit, reorder, deactivate/reactivate, or delete. Deleting a color still referenced by a preset is blocked server-side (`409`, with the offending presets listed).
+- **Presets** — named colorways referencing those colors, with weights that must total 100%.
+
+Both lists support an Active / Inactive / All status filter; inactive rows are fetched with `?include_inactive=1` for admins only. Colors and presets are served from `/seed-colors` and `/seed-presets` and managed through the `useSeedColors` / `useSeedPresets` hook families.
 
 ## Bead Administration
 
@@ -239,6 +272,8 @@ Typography uses three font families: Inter (body), Italiana (headlines), and Squ
 - **Feature flags for backend stubs** — Features awaiting API work use feature flags or stubs (e.g. `REJECT_ENDPOINT_READY`).
 - **PHP API quirks** — The backend returns empty strings and zero-dates instead of null; `apiFetch` guards against non-JSON error responses from Apache/PHP.
 - **Tailwind dynamic classes** — Computed class strings don't survive JIT; use inline `style` props with shared constants instead.
+- **GLB finish overrides** — Apply finish presets by traversing materials with a per-instance color override, never by mutating the shared `FINISH_PRESETS` (which would bleed into other bead types).
+- **Deterministic procedural content** — Seed segments regenerate from a stored `random_seed`, so designs render identically without persisting every individual bead.
 - **React hooks ordering** — All hooks must appear unconditionally before any early `return null` statements.
 - **Camera UX** — Minimal camera movement with natural transitions; avoid disorienting scripted repositioning.
 - **GLB convention** — Bead hole axis is local Y. Charms need pivot at bail top, Y-up, face +Z (standardisation in progress with 3D modeler).
@@ -249,8 +284,6 @@ Typography uses three font families: Inter (body), Italiana (headlines), and Squ
 npm install
 npm run dev
 ```
-
-Local PHP API testing uses MAMP. Database access via TablePlus or phpMyAdmin.
 
 ## Deployment
 

@@ -14,6 +14,7 @@
  */
 
 import { getBeadAngle } from "./bead-layout";
+import { FLOAT_CHARM_THIN_SCALE } from "@/lib/constants";
 import type { PlacedBead, BeadProduct } from "@/types";
 
 // ── Tuning ────────────────────────────────────────────────────────────────────
@@ -35,13 +36,11 @@ export interface CharmAdjustment {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Float charm hit boxes are squashed to 35% depth — use the same factor
+/** Float charm hit boxes are squashed to a thin edge — use the same factor
  *  so the collision threshold matches the thin visual footprint. */
-const FLOAT_CHARM_WIDTH_SCALE = 0.35;
-
 function charmBodyWidth(product: BeadProduct): number {
   const full = (product.body_width_mm ?? product.diameter * 1000) / 1000;
-  return product.bead_category === "float_charm" ? full * FLOAT_CHARM_WIDTH_SCALE : full;
+  return product.bead_category === "float_charm" ? full * FLOAT_CHARM_THIN_SCALE : full;
 }
 
 function cordDistance(angleA: number, angleB: number, radius: number): number {
@@ -92,8 +91,8 @@ export function computeCharmAdjustments(
     const dist = cordDistance(prev.angle, curr.angle, radius);
     // Sum of half-widths scaled by a tolerance factor. Without the factor,
     // charms placed at normal arc spacing (which includes tight BEAD_SPACING
-    // overlap) would false-positive. 0.6 means charms must be within 60%
-    // of the sum of their radii to flag — i.e. noticeably overlapping.
+    // overlap) would false-positive. 0.8 means charms must be within 80%
+    // of the sum of their half-widths to flag — i.e. noticeably overlapping.
     const threshold = (prev.bodyWidth + curr.bodyWidth) / 2 * 0.8;
 
     if (dist < threshold) {

@@ -7,6 +7,12 @@
  */
 
 import type { SeedSegmentConfig } from "@/types";
+import {
+  SEED_BEAD_THICKNESS_RATIO,
+  ROUND_BEAD_THICKNESS_RATIO,
+  seedBeadSizeRange,
+  SEED_BEAD_SIZE_LABELS,
+} from "@/lib/constants";
 
 // ─── Seeded PRNG (mulberry32) ──────────────────────────────────────────────
 
@@ -35,20 +41,6 @@ export interface GeneratedSeedBead {
   /** Finish preset key derived from the colorway label (e.g. "gold", "silver"). */
   finishKey: string;
 }
-
-/**
- * Thickness-to-diameter ratio of the seed bead GLB model.
- * Native dimensions: 1.6mm diameter × 1.15mm thick → 0.72.
- * Packing advances by this fraction of the diameter so adjacent
- * beads' flat faces sit flush against each other.
- */
-const SEED_BEAD_THICKNESS_RATIO = 0.72;
-
-/**
- * Thickness-to-diameter ratio for round beads.
- * Round beads are spherical, so thickness === diameter → ratio 1.0.
- */
-const ROUND_BEAD_THICKNESS_RATIO = 1.0;
 
 /**
  * Derives a FINISH_PRESETS key from a colorway entry label.
@@ -82,7 +74,11 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
 
   const rng = createRng(config.random_seed);
 
-  const [minMm, maxMm] = config.bead_size_range;
+  // Prefer the nominal seed size (Small/Large) when set; fall back to the
+  // stored range for legacy configs saved before sizes existed.
+  const [minMm, maxMm] = config.seed_size_mm
+    ? seedBeadSizeRange(config.seed_size_mm)
+    : config.bead_size_range;
   const arcLengthM = config.arc_length_mm / 1000;
 
   // Build cumulative weight array for color picking
@@ -167,4 +163,22 @@ function generateRoundBeads(config: SeedSegmentConfig): GeneratedSeedBead[] {
 /** Returns a random integer suitable for use as a PRNG seed. */
 export function newRandomSeed(): number {
   return Math.floor(Math.random() * 2147483647);
+}
+/**
+ * Readable size for a seed segment — "Small (1mm)" / "Large (2mm)" for the
+ * seed shape, or the millimetre value for round. Prefers the stored nominal
+ * size, falling back to the range midpoint for legacy configs.
+ *
+ * @param includeMM  When false, returns just the word label (e.g. "Small").
+ */
+export function seedSizeLabel(cfg: SeedSegmentConfig, includeMM: boolean): string {
+  if (cfg.seed_shape === "round") {
+    const mm = cfg.round_size_mm ?? 2;
+    return includeMM ? `${mm}mm` : `${mm}`;
+  }
+  const size =
+    cfg.seed_size_mm ?? Math.round((cfg.bead_size_range[0] + cfg.bead_size_range[1]) / 2);
+  const label = SEED_BEAD_SIZE_LABELS[size];
+  if (label) return includeMM ? `${label} (${size}mm)` : label;
+  return includeMM ? `${size}mm` : `${size}`;
 }

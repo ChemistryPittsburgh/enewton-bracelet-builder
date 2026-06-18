@@ -69,13 +69,8 @@ export function measureCharm(glbPath: string): Promise<CharmMeasurement> {
 export async function measureAllCharms(
   glbPaths: string[]
 ): Promise<Map<string, CharmMeasurement>> {
-  await Promise.all(glbPaths.map(measureCharm));
-  const out = new Map<string, CharmMeasurement>();
-  for (const p of glbPaths) {
-    const m = await measureCharm(p);
-    out.set(p, m);
-  }
-  return out;
+  const results = await Promise.all(glbPaths.map(measureCharm));
+  return new Map(glbPaths.map((p, i) => [p, results[i]]));
 }
 
 /**

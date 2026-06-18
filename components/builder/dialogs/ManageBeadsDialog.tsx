@@ -28,7 +28,7 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import { Tooltip } from "@/components/ui/Tooltip";
 
-import { cn, capitalize, slugify, unslugify } from "@/lib/utils";
+import { cn, slugify, unslugify } from "@/lib/utils";
 import { STATUS_META, getBeadCategoryMeta } from "@/lib/category-colors";
 
 import {

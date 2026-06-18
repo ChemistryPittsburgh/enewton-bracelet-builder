@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { AvailableSpaceBox } from "@/components/ui/AvailableSpaceBox";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSeedColors } from "@/hooks/useSeedColors";
@@ -16,7 +17,10 @@ import { useSeedPresets } from "@/hooks/useSeedPresets";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
-  SEED_BEAD_SIZE_RANGE,
+  SEED_BEAD_THICKNESS_RATIO,
+  SEED_BEAD_SIZES_MM,
+  SEED_BEAD_SIZE_LABELS,
+  seedBeadSizeRange,
   ROUND_SEED_SIZES_MM,
 } from "@/lib/constants";
 import { newRandomSeed, generateSeedBeads } from "@/lib/seed-bead-utils";
@@ -35,17 +39,18 @@ interface SeedBeadPickerProps {
     seedShape?: "seed" | "round",
     roundSizeMm?: number,
     material?: string,
+    seedSizeMm?: number,
   ) => void;
   error: string | null;
+  onManageColors: () => void;
 }
 
-export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
+export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerProps) {
   const { placedBeads, braceletSize } = useStore((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
   }));
-  const { canEdit } = usePermissions();
-  const { isAdmin } = usePermissions();
+  const { canEdit, isAdmin } = usePermissions();
 
   const { data: apiColors = [] } = useSeedColors();
   const { data: apiPresets = [] } = useSeedPresets();
@@ -69,6 +74,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
   const [customQuantity, setCustomQuantity] = useState("");
   const [seed, setSeed] = useState(() => newRandomSeed());
   const [seedShape, setSeedShape] = useState<"seed" | "round">("seed");
+  const [seedSizeMm, setSeedSizeMm] = useState<number>(1);
   const [roundSizeMm, setRoundSizeMm] = useState<number>(2);
   const [roundColor, setRoundColor] = useState<string>("gold");
   const [activePresetId, setActivePresetId] = useState<number | null>(null);
@@ -79,8 +85,6 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
   const fillModeButtonClass = "flex w-full items-center gap-2.5 rounded-[2px] border px-3 py-2.5 text-sm text-left transition-all mb-1.5 min-h-[50px] bg-light-grey/50";
   const fillModeInputClass = "flex-1 min-w-0 rounded-[2px] max-w-[65%] border px-2 py-1 text-sm outline-none bg-white focus:ring-light-grey";
 
-  /** Seed bead thickness ratio (disc-shaped, flat faces flush). */
-  const SEED_THICKNESS_RATIO = 0.72;
   /** Max quantity of beads in quantity mode. */
   const MAX_QUANTITY = 30;
 
@@ -89,8 +93,9 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
     if (isRound) {
       return qty * roundSizeMm;
     }
-    const avgDiameter = (SEED_BEAD_SIZE_RANGE[0] + SEED_BEAD_SIZE_RANGE[1]) / 2;
-    return qty * avgDiameter * SEED_THICKNESS_RATIO;
+    const [minMm, maxMm] = seedBeadSizeRange(seedSizeMm);
+    const avgDiameter = (minMm + maxMm) / 2;
+    return qty * avgDiameter * SEED_BEAD_THICKNESS_RATIO;
   }
 
   // Initialise colorway from API default once presets load
@@ -122,10 +127,11 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
     return generateSeedBeads({
       colorway,
       arc_length_mm: Math.min(arcMm || 20, 50),
-      bead_size_range: SEED_BEAD_SIZE_RANGE,
+      bead_size_range: seedBeadSizeRange(seedSizeMm),
+      seed_size_mm: seedSizeMm,
       random_seed: seed,
     });
-  }, [colorway, arcMm, seed]);
+  }, [colorway, arcMm, seed, seedSizeMm]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -206,7 +212,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
       ];
       onAdd(arcMm, roundColorway, seed, "round", roundSizeMm, roundColor);
     } else {
-      onAdd(arcMm, colorway, seed, "seed", undefined, undefined);
+      onAdd(arcMm, colorway, seed, "seed", undefined, undefined, seedSizeMm);
     }
     setSeed(newRandomSeed());
   }
@@ -298,14 +304,37 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
         {/* ── Seed mode: colorway presets + editor + preview ───────────────── */}
         {!isRound && (
           <>
+            {/* Size — Small (1mm) / Large (2mm); individual beads still vary slightly */}
+            <div className={seedPickerSectionClass}>
+              <SectionHeading>Size</SectionHeading>
+              <div className="flex gap-2 mb-3">
+                {SEED_BEAD_SIZES_MM.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setSeedSizeMm(size)}
+                    className={`flex-1 rounded-[2px] border py-3 text-sm transition-all hover:bg-mint ${
+                      seedSizeMm === size
+                        ? "border-navy bg-white shadow-sm font-medium"
+                        : "border-default bg-white hover:border-neutral-400"
+                    }`}
+                  >
+                    {SEED_BEAD_SIZE_LABELS[size]} ({size}mm)
+                  </button>
+                ))}
+              </div>
+              <p className="text-color-base/50 text-xs pb-3"><sup>*</sup>Seed beads will vary slightly in size.</p>
+            </div>
+
             <div className={seedPickerSectionClass}>
               {/* Preset colorways */}
               <div className="flex items-center gap-2 mb-2.5">
                 <SectionHeading className="mb-0 flex-1">Colorway presets</SectionHeading>
                 {isAdmin && (
-                  <button className="manage-btn">
-                    <Settings size={12} /> Manage
-                  </button>
+                  <Tooltip content="Open Seed Bead Color + Preset Manager" placement="left">
+                    <button className="manage-btn" onClick={onManageColors}>
+                      <Settings size={12} /> Manage
+                    </button>
+                  </Tooltip>
                 )}
               </div>
 
@@ -347,48 +376,75 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
                       style={{ backgroundColor: entry.hex }}
                     />
                     <span className="flex-1 text-[12.5px] truncate">{entry.label ?? entry.hex}</span>
-                    <input
-                      type="range"
-                      min={5}
-                      max={95}
-                      value={entry.percent}
-                      onChange={(e) => handlePercentChange(i, parseInt(e.target.value))}
-                      className="w-20 accent-navy"
-                    />
-                    <span className="text-xs w-8 text-right text-color-base/90">{entry.percent}%</span>
+                    <Tooltip content={colorway.length === 1 ? "Only one color selected" : ""} >
+                      <input
+                        type="range"
+                        min={colorway.length === 1 ? 0 : 5}
+                        max={colorway.length === 1 ? 100 : 95}
+                        value={colorway.length === 1 ? 100 : entry.percent}
+                        readOnly={colorway.length === 1}
+                        tabIndex={colorway.length === 1 ? -1 : undefined}
+                        onChange={(e) => {
+                          if (colorway.length === 1) return;
+                          handlePercentChange(i, parseInt(e.target.value));
+                        }}
+                        className={`w-20 accent-navy ${colorway.length === 1 ? "pointer-events-none" : ""}`}
+                      />
+                    </Tooltip>
+                    <span className="text-xs w-8 text-right text-color-base/90">{colorway.length === 1 ? 100 : entry.percent}%</span>
                     {colorway.length > 1 && (
-                      <button
-                        onClick={() => handleRemoveColor(i)}
-                        className="icon-only-btn icon-only-btn--error"
-                        aria-label="Remove color"
-                      >
-                        <X size={13} />
-                      </button>
+                      <Tooltip content={`Remove ${entry.label}`} placement="left">
+                        <button
+                          onClick={() => handleRemoveColor(i)}
+                          className="icon-only-btn icon-only-btn--error"
+                          aria-label="Remove color"
+                        >
+                          <X size={13} />
+                        </button>
+                      </Tooltip>
                     )}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Add color swatches */}
-            {colorway.length < 6 && (
-              <div className={seedPickerSectionClass}>
-                <SectionHeading>Add color</SectionHeading>
-                <div className="flex gap-1.5 flex-wrap mb-5 mt-3">
-                  {apiColors.filter(
-                    (opt) => !colorway.some((c) => c.hex === opt.hex)
-                  ).map((opt) => (
-                    <button
-                      key={opt.id}
-                      onClick={() => handleAddColor(opt.hex, opt.label, opt.is_metallic)}
-                      className="w-6 h-6 rounded-full border border-color-base/50 hover:ring-2 hover:ring-navy transition-all"
-                      style={{ backgroundColor: opt.hex }}
-                      title={opt.label}
-                    />
-                  ))}
+            {/* Add color swatches — grouped by finish */}
+            {colorway.length < 6 && (() => {
+              const available = apiColors.filter((opt) => !colorway.some((c) => c.hex === opt.hex));
+              if (available.length === 0) return null;
+              const metallic = available.filter((opt) => opt.is_metallic);
+              const matte = available.filter((opt) => !opt.is_metallic);
+
+              const swatch = (opt: typeof available[number]) => (
+                <Tooltip content={opt.label}>
+                  <button
+                    key={opt.id}
+                    onClick={() => handleAddColor(opt.hex, opt.label, opt.is_metallic)}
+                    className="w-6 h-6 rounded-full border border-color-base/50 hover:ring-2 hover:ring-navy transition-all"
+                    style={{ backgroundColor: opt.hex }}
+                    aria-label={opt.label}
+                  />
+                </Tooltip>
+              );
+
+              return (
+                <div className={seedPickerSectionClass}>
+                  <SectionHeading>Add color</SectionHeading>
+                  {metallic.length > 0 && (
+                    <div className="mt-3 mb-3">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-color-base/50 mb-1.5">Metallic</p>
+                      <div className="flex gap-1.5 flex-wrap">{metallic.map(swatch)}</div>
+                    </div>
+                  )}
+                  {matte.length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-color-base/50 mb-1.5">Matte</p>
+                      <div className="flex gap-1.5 flex-wrap">{matte.map(swatch)}</div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Preview strip */}
             {previewBeads.length > 0 && (
@@ -577,6 +633,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
           </div>
         )}
       </div>
+
     </div>
   );
 }

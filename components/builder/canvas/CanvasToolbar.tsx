@@ -17,7 +17,6 @@ import { useDesign } from "@/hooks/useDesign";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubmitDesign, useApproveDesign, useRejectDesign, usePublishDesign, useUndiscontinueDesign } from "@/hooks/useWorkflow";
 
-import type { BraceletStatus } from "@/types";
 
 import { Button } from "@/components/ui/Button";
 import { PusherStatusBadge } from "@/components/builder/canvas/PusherStatusBadge";

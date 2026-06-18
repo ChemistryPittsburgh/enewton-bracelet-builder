@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { useThree } from "@react-three/fiber";
-import { ThreeEvent } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import type { PlacedBead } from "@/types";
@@ -14,18 +12,15 @@ import {
 import { useStore } from "@/lib/store";
 import {
   BRACELET_SIZE_RADIUS,
-  HIGHLIGHT_SELECT_COLOR,
-  EDIT_MODE_HIGHLIGHT_SELECT_COLOR,
   ROUND_SEED_BEAD_MODEL,
+  SEED_BEAD_NATIVE_DIAMETER,
   FINISH_PRESETS,
   DEFAULT_FINISH,
 } from "@/lib/constants";
+import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 import {
   generateSeedBeads,
 } from "@/lib/seed-bead-utils";
-
-/** Native cross-section diameter of the seed bead GLB (metres). */
-const NATIVE_DIAMETER = 0.0016;
 
 /** Path to the seed bead GLB model. */
 const SEED_BEAD_MODEL = "/models/seed-bead.glb";
@@ -58,38 +53,18 @@ export function SeedSegmentOnBracelet({
   onDragStart,
   isLocked = false,
 }: SeedSegmentOnBraceletProps) {
-  const { gl } = useThree();
+  const beads        = useStore((s) => s.beads);
+  const braceletSize = useStore((s) => s.braceletSize);
+  const viewMode     = useStore((s) => s.viewMode);
+
   const {
-    selectBead,
-    selectedBead,
-    editSelectedIds,
-    toggleEditBead,
-    clearSelectedBead,
-    clearEditSelection,
-    beads,
-    braceletSize,
-    isEditMode,
-    viewMode,
-  } = useStore((s) => ({
-    selectBead: s.selectBead,
-    selectedBead: s.selectedBead,
-    editSelectedIds: s.editSelectedIds,
-    toggleEditBead: s.toggleEditBead,
-    clearSelectedBead: s.clearSelectedBead,
-    clearEditSelection: s.clearEditSelection,
-    beads: s.beads,
-    braceletSize: s.braceletSize,
-    isEditMode: s.isEditMode,
-    viewMode: s.viewMode,
-  }));
-
-  const isSelected = isEditMode
-    ? editSelectedIds.includes(bead.instanceId)
-    : selectedBead?.instanceId === bead.instanceId;
-
-  const highlightColor = isEditMode
-    ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR
-    : HIGHLIGHT_SELECT_COLOR;
+    isSelected,
+    highlightColor,
+    handleClick,
+    handlePointerDown,
+    handlePointerEnter,
+    handlePointerLeave,
+  } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
 
@@ -112,7 +87,7 @@ export function SeedSegmentOnBracelet({
         }
       }
     });
-    if (!geo) return { seedGeometry: null, nativeDiameter: NATIVE_DIAMETER, roundMaterial: null };
+    if (!geo) return { seedGeometry: null, nativeDiameter: SEED_BEAD_NATIVE_DIAMETER, roundMaterial: null };
 
     const geometry = geo as THREE.BufferGeometry;
     const extractedMat = mat as THREE.MeshStandardMaterial | null;
@@ -131,7 +106,7 @@ export function SeedSegmentOnBracelet({
     if (extractedMat) {
       finishedMat = extractedMat.clone();
       const finishKey = bead.product.material ?? DEFAULT_FINISH ?? "gold";
-      if (finishKey === "silver") finishedMat.color.set("#E5E5E5");
+      // if (finishKey === "silver") finishedMat.color.set("#E5E5E5");
       const preset = FINISH_PRESETS[finishKey];
       if (preset) {
         if (preset.metalness !== undefined) finishedMat.metalness = preset.metalness;
@@ -143,7 +118,7 @@ export function SeedSegmentOnBracelet({
 
     return {
       seedGeometry: geometry,
-      nativeDiameter: diam || NATIVE_DIAMETER,
+      nativeDiameter: diam || SEED_BEAD_NATIVE_DIAMETER,
       roundMaterial: finishedMat,
     };
   }, [activeGlbScene, bead.product.material]);
@@ -203,79 +178,14 @@ export function SeedSegmentOnBracelet({
     });
   }, [config, generatedBeads, slotIndex, beads, radius, viewMode, bead.product.diameter]);
 
-  // ── Interaction handlers ─────────────────────────────────────────────────
-
-  function handleClick(e: ThreeEvent<MouseEvent>) {
-    e.stopPropagation();
-    if (isLocked) return;
-    if (isEditMode) {
-      const ne = e.nativeEvent;
-      if (ne && (ne.metaKey || ne.ctrlKey)) {
-        selectBead(bead);
-        toggleEditBead(bead.instanceId);
-      } else {
-        clearSelectedBead();
-        toggleEditBead(bead.instanceId);
-      }
-    } else {
-      selectBead(bead);
-    }
-  }
-
-  const DRAG_THRESHOLD = 4;
-
-  function handlePointerDown(e: ThreeEvent<PointerEvent>) {
-    if (!isEditMode) return;
-    e.stopPropagation();
-    const startX = e.nativeEvent.clientX;
-    const startY = e.nativeEvent.clientY;
-
-    function onMove(moveEvent: PointerEvent) {
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-      if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
-        clearEditSelection();
-        clearSelectedBead();
-        gl.domElement.style.cursor = "grabbing";
-        onDragStart?.(slotIndex);
-        cleanup();
-      }
-    }
-
-    function onUp() { cleanup(); }
-
-    function cleanup() {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    }
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }
-
-  function handlePointerEnter() {
-    if (!isEditMode) return;
-    gl.domElement.style.cursor = "grab";
-  }
-
-  function handlePointerLeave() {
-    if (!isEditMode) return;
-    gl.domElement.style.cursor = "";
-  }
-
-  if (!config || seedBead3DData.length === 0 || !seedGeometry) return null;
-
-  // Cross-section radius for hit area and selection — matches the visual
-  // height of the tiny seed beads (~3mm, same as spacer cross-section).
-  const crossSection = 0.003;
-  // Total arc consumed by this segment (metres)
+  // Total arc consumed by this segment (metres). Declared here (before any
+  // early return) because the hitChunks memo below depends on it.
   const segArcM = bead.product.diameter;
-
-  // Rotate cylinder from default Y-axis to lie along the cord tangent
-  const cylRotation: [number, number, number] = [Math.PI / 2, 0, 0];
 
   // ── Hit area chunks — many small cylinders that follow the arc ──────────
   // One chunk every ~8mm so they approximate the curve even on long segments.
+  // NOTE: this memo MUST stay above the early return so the hook order is
+  // identical on every render (Rules of Hooks).
   const HIT_CHUNK_MM = 8;
   const hitChunks = useMemo(() => {
     if (viewMode === "line") {
@@ -316,6 +226,15 @@ export function SeedSegmentOnBracelet({
     }
     return chunks;
   }, [viewMode, slotIndex, beads, radius, segArcM]);
+
+  if (!config || seedBead3DData.length === 0 || !seedGeometry) return null;
+
+  // Cross-section radius for hit area and selection — matches the visual
+  // height of the tiny seed beads (~3mm, same as spacer cross-section).
+  const crossSection = 0.003;
+
+  // Rotate cylinder from default Y-axis to lie along the cord tangent
+  const cylRotation: [number, number, number] = [Math.PI / 2, 0, 0];
 
   // Center transform for selection ring (stays at midpoint)
   const centerTransform =

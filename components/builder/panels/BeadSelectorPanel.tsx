@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { Search, X, Dot, Sparkle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize, unslugify } from "@/lib/utils";
@@ -21,6 +20,7 @@ import {
   createSpacerProduct,
   createSeedSegmentProduct,
   SEED_BEAD_SIZE_RANGE,
+  seedBeadSizeRange,
 } from "@/lib/constants";
 
 import { SpacerPicker } from "./SpacerPicker";
@@ -118,9 +118,10 @@ function MaterialPill({ label, active, onClick }: {
 interface BeadSelectorPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onManageSeedColors: () => void;
 }
 
-export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
+export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadSelectorPanelProps) {
   const { data: beads = [] } = useBeads();
   const addBead = useStore((s) => s.addBead);
   const addSeedSegment = useStore((s) => s.addSeedSegment);
@@ -226,14 +227,18 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
     seedShape?: "seed" | "round",
     roundSizeMm?: number,
     material?: string,
+    seedSizeMm?: number,
   ) {
     const product = createSeedSegmentProduct(arcMm, randomSeed, seedShape, roundSizeMm, material);
+    const isRound = seedShape === "round";
     const seedConfig = {
       colorway,
       arc_length_mm: arcMm,
-      bead_size_range: SEED_BEAD_SIZE_RANGE as [number, number],
+      bead_size_range: (seedSizeMm ? seedBeadSizeRange(seedSizeMm) : SEED_BEAD_SIZE_RANGE) as [number, number],
       random_seed: randomSeed,
-      ...(seedShape === "round" ? { seed_shape: "round" as const, round_size_mm: roundSizeMm ?? 2 } : {}),
+      ...(isRound
+        ? { seed_shape: "round" as const, round_size_mm: roundSizeMm ?? 2 }
+        : { seed_size_mm: seedSizeMm ?? 1 }),
     };
     const err = addSeedSegment(product as any, seedConfig);
     if (err) {
@@ -328,7 +333,7 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
         {isSpacerMode ? (
           <SpacerPicker onAdd={handleAddSpacer} error={error} />
         ) : isSeedMode ? (
-          <SeedBeadPicker onAdd={handleAddSeedSegment} error={error} />
+          <SeedBeadPicker onAdd={handleAddSeedSegment} error={error} onManageColors={onManageSeedColors} />
         ) : (
           /* ── Normal bead selector ── */
           <>

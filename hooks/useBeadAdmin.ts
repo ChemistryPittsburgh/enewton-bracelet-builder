@@ -15,7 +15,6 @@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
 import { type ApiBeadProduct, normaliseBeadProduct } from "@/lib/bead-helpers";
-import { slugify } from "@/lib/utils";
 import { TOKEN_KEY } from "@/lib/auth";
 import type { BeadProduct } from "@/types";
 

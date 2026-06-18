@@ -1,11 +1,10 @@
 "use client";
 
-import { useThree } from "@react-three/fiber";
-import { ThreeEvent } from "@react-three/fiber";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, HIGHLIGHT_SELECT_COLOR, EDIT_MODE_HIGHLIGHT_SELECT_COLOR } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 
 /** Fixed cross-section radius for all spacers (metres). ~3mm radius = 6mm visual height. */
 const SPACER_CROSS_SECTION = 0.003;
@@ -36,36 +35,18 @@ export function SpacerOnBracelet({
   onDragStart,
   visible = true,
 }: SpacerOnBraceletProps) {
-  const { gl } = useThree();
+  const beads        = useStore((s) => s.beads);
+  const braceletSize = useStore((s) => s.braceletSize);
+  const viewMode     = useStore((s) => s.viewMode);
+
   const {
-    selectBead,
-    selectedBead,
-    editSelectedIds,
-    toggleEditBead,
-    clearSelectedBead,
-    clearEditSelection,
-    beads,
-    braceletSize,
-    isEditMode,
-    viewMode,
-  } = useStore((s) => ({
-    selectBead:          s.selectBead,
-    selectedBead:        s.selectedBead,
-    editSelectedIds:     s.editSelectedIds,
-    toggleEditBead:      s.toggleEditBead,
-    clearSelectedBead:   s.clearSelectedBead,
-    clearEditSelection:  s.clearEditSelection,
-    beads:               s.beads,
-    braceletSize:        s.braceletSize,
-    isEditMode:          s.isEditMode,
-    viewMode:            s.viewMode,
-  }));
-
-  const isSelected = isEditMode
-    ? editSelectedIds.includes(bead.instanceId)
-    : selectedBead?.instanceId === bead.instanceId;
-
-  const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT_SELECT_COLOR;
+    isSelected,
+    highlightColor,
+    handleClick,
+    handlePointerDown,
+    handlePointerEnter,
+    handlePointerLeave,
+  } = useSceneItemInteraction(bead, slotIndex, { onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === "line"
@@ -77,66 +58,6 @@ export function SpacerOnBracelet({
     position[1] + (isDragged ? 0.003 : 0),
     position[2],
   ];
-
-  function handleClick(e: ThreeEvent<MouseEvent>) {
-    e.stopPropagation();
-    if (isEditMode) {
-      const ne = e.nativeEvent;
-      if (ne && (ne.metaKey || ne.ctrlKey)) {
-        selectBead(bead);
-      } else {
-        clearSelectedBead();
-        toggleEditBead(bead.instanceId);
-      }
-    } else {
-      selectBead(bead);
-    }
-  }
-
-  /** Pixels of pointer movement before a drag initiates (prevents jump on click). */
-  const DRAG_THRESHOLD = 4;
-
-  function handlePointerDown(e: ThreeEvent<PointerEvent>) {
-    if (!isEditMode) return;
-    e.stopPropagation();
-
-    const startX = e.nativeEvent.clientX;
-    const startY = e.nativeEvent.clientY;
-
-    function onMove(moveEvent: PointerEvent) {
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-      if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
-        clearEditSelection();
-        clearSelectedBead();
-        gl.domElement.style.cursor = "grabbing";
-        onDragStart?.(slotIndex);
-        cleanup();
-      }
-    }
-
-    function onUp() {
-      cleanup();
-    }
-
-    function cleanup() {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    }
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }
-
-  function handlePointerEnter() {
-    if (!isEditMode) return;
-    gl.domElement.style.cursor = "grab";
-  }
-
-  function handlePointerLeave() {
-    if (!isEditMode) return;
-    gl.domElement.style.cursor = "";
-  }
 
   // Fixed cross-section for all spacers; only length (along the cord) varies.
   // Cylinder default axis is Y; rotate π/2 on X to lie along local Z (cord tangent).
