@@ -47,8 +47,11 @@ export function DesignCard({
   const { canDeleteBracelet, isAdmin, canSubmit, canApprove: hasApprovePermission, canReject: hasRejectPermission } = usePermissions();
   const { data: currentUser } = useCurrentUser();
   const activeDesignId = useStore((s) => s.activeDesignId);
+  const thumbSrc = design.preview_image_url
+    ? `${design.preview_image_url}?v=${new Date(design.updated_at).getTime()}`
+    : null;
   const [imgState, setImgState] = useState<"loading" | "loaded" | "error" | "empty">(
-    design.preview_image_url ? "loading" : "empty",
+    thumbSrc ? "loading" : "empty",
   );
 
   // Close menu when clicking outside
@@ -141,9 +144,9 @@ export function DesignCard({
           )}
 
           {/* Actual image */}
-          {design.preview_image_url && imgState !== "error" && (
+          {thumbSrc && imgState !== "error" && (
             <img
-              src={design.preview_image_url}
+              src={thumbSrc}
               alt={design.name}
               className={`w-full h-full object-cover transition-opacity duration-300 ${
                 imgState === "loaded" ? "opacity-100" : "opacity-0"
@@ -154,7 +157,7 @@ export function DesignCard({
           )}
 
           {/* Fallback — no URL or load error */}
-          {(!design.preview_image_url || imgState === "error") && (
+          {(!thumbSrc || imgState === "error") && (
             <div className="h-20 w-20 rounded-full border-2 border-dashed" />
           )}
 
