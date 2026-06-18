@@ -16,8 +16,10 @@ import { useSeedPresets } from "@/hooks/useSeedPresets";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
-  SEED_BEAD_SIZE_RANGE,
   SEED_BEAD_THICKNESS_RATIO,
+  SEED_BEAD_SIZES_MM,
+  SEED_BEAD_SIZE_LABELS,
+  seedBeadSizeRange,
   ROUND_SEED_SIZES_MM,
 } from "@/lib/constants";
 import { newRandomSeed, generateSeedBeads } from "@/lib/seed-bead-utils";
@@ -36,6 +38,7 @@ interface SeedBeadPickerProps {
     seedShape?: "seed" | "round",
     roundSizeMm?: number,
     material?: string,
+    seedSizeMm?: number,
   ) => void;
   error: string | null;
   onManageColors: () => void;
@@ -70,6 +73,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
   const [customQuantity, setCustomQuantity] = useState("");
   const [seed, setSeed] = useState(() => newRandomSeed());
   const [seedShape, setSeedShape] = useState<"seed" | "round">("seed");
+  const [seedSizeMm, setSeedSizeMm] = useState<number>(1);
   const [roundSizeMm, setRoundSizeMm] = useState<number>(2);
   const [roundColor, setRoundColor] = useState<string>("gold");
   const [activePresetId, setActivePresetId] = useState<number | null>(null);
@@ -88,7 +92,8 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
     if (isRound) {
       return qty * roundSizeMm;
     }
-    const avgDiameter = (SEED_BEAD_SIZE_RANGE[0] + SEED_BEAD_SIZE_RANGE[1]) / 2;
+    const [minMm, maxMm] = seedBeadSizeRange(seedSizeMm);
+    const avgDiameter = (minMm + maxMm) / 2;
     return qty * avgDiameter * SEED_BEAD_THICKNESS_RATIO;
   }
 
@@ -121,10 +126,11 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
     return generateSeedBeads({
       colorway,
       arc_length_mm: Math.min(arcMm || 20, 50),
-      bead_size_range: SEED_BEAD_SIZE_RANGE,
+      bead_size_range: seedBeadSizeRange(seedSizeMm),
+      seed_size_mm: seedSizeMm,
       random_seed: seed,
     });
-  }, [colorway, arcMm, seed]);
+  }, [colorway, arcMm, seed, seedSizeMm]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -205,7 +211,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
       ];
       onAdd(arcMm, roundColorway, seed, "round", roundSizeMm, roundColor);
     } else {
-      onAdd(arcMm, colorway, seed, "seed", undefined, undefined);
+      onAdd(arcMm, colorway, seed, "seed", undefined, undefined, seedSizeMm);
     }
     setSeed(newRandomSeed());
   }
@@ -297,6 +303,26 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
         {/* ── Seed mode: colorway presets + editor + preview ───────────────── */}
         {!isRound && (
           <>
+            {/* Size — Small (1mm) / Large (2mm); individual beads still vary slightly */}
+            <div className={seedPickerSectionClass}>
+              <SectionHeading>Size</SectionHeading>
+              <div className="flex gap-2 mb-5">
+                {SEED_BEAD_SIZES_MM.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setSeedSizeMm(size)}
+                    className={`flex-1 rounded-[2px] border py-3 text-sm transition-all hover:bg-mint ${
+                      seedSizeMm === size
+                        ? "border-navy bg-white shadow-sm font-medium"
+                        : "border-default bg-white hover:border-neutral-400"
+                    }`}
+                  >
+                    {SEED_BEAD_SIZE_LABELS[size]} ({size}mm)
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className={seedPickerSectionClass}>
               {/* Preset colorways */}
               <div className="flex items-center gap-2 mb-2.5">

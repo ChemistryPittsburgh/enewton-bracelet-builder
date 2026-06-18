@@ -10,6 +10,7 @@ import type { SeedSegmentConfig } from "@/types";
 import {
   SEED_BEAD_THICKNESS_RATIO,
   ROUND_BEAD_THICKNESS_RATIO,
+  seedBeadSizeRange,
 } from "@/lib/constants";
 
 // ─── Seeded PRNG (mulberry32) ──────────────────────────────────────────────
@@ -72,7 +73,11 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
 
   const rng = createRng(config.random_seed);
 
-  const [minMm, maxMm] = config.bead_size_range;
+  // Prefer the nominal seed size (Small/Large) when set; fall back to the
+  // stored range for legacy configs saved before sizes existed.
+  const [minMm, maxMm] = config.seed_size_mm
+    ? seedBeadSizeRange(config.seed_size_mm)
+    : config.bead_size_range;
   const arcLengthM = config.arc_length_mm / 1000;
 
   // Build cumulative weight array for color picking

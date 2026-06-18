@@ -214,6 +214,25 @@ export function createSpacerProduct(sizeMm: number) {
 export const SEED_BEAD_SIZE_RANGE: [number, number] = [1.2, 2.0];
 
 /**
+ * Selectable nominal seed bead sizes (mm) for the "seed" shape — Small (1) and
+ * Large (2). Each bead still varies slightly around the chosen nominal (see
+ * SEED_BEAD_SIZE_VARIANCE / seedBeadSizeRange).
+ */
+export const SEED_BEAD_SIZES_MM = [1, 2] as const;
+
+/** Human labels for the selectable seed sizes. */
+export const SEED_BEAD_SIZE_LABELS: Record<number, string> = { 1: "Small", 2: "Large" };
+
+/** ± per-bead size variance as a fraction of the nominal size. */
+export const SEED_BEAD_SIZE_VARIANCE = 0.15;
+
+/** Per-bead diameter range [min,max] (mm) for a chosen nominal seed size. */
+export function seedBeadSizeRange(sizeMm: number): [number, number] {
+  const d = sizeMm * SEED_BEAD_SIZE_VARIANCE;
+  return [Math.round((sizeMm - d) * 100) / 100, Math.round((sizeMm + d) * 100) / 100];
+}
+
+/**
  * Thickness-to-diameter ratio of the seed bead GLB model.
  * Native dimensions: 1.6mm diameter × 1.15mm thick → 0.72.
  * Packing advances by this fraction of the diameter so adjacent beads'

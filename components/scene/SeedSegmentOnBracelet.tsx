@@ -106,7 +106,7 @@ export function SeedSegmentOnBracelet({
     if (extractedMat) {
       finishedMat = extractedMat.clone();
       const finishKey = bead.product.material ?? DEFAULT_FINISH ?? "gold";
-      if (finishKey === "silver") finishedMat.color.set("#E5E5E5");
+      // if (finishKey === "silver") finishedMat.color.set("#E5E5E5");
       const preset = FINISH_PRESETS[finishKey];
       if (preset) {
         if (preset.metalness !== undefined) finishedMat.metalness = preset.metalness;

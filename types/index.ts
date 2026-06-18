@@ -231,6 +231,13 @@ export interface SeedSegmentConfig {
    * Currently 1 or 2 (mm). Ignored for seed_shape === "seed".
    */
   round_size_mm?: number;
+  /**
+   * Nominal individual bead size in mm when seed_shape === "seed" — 1 (Small)
+   * or 2 (Large). Each bead still varies slightly around this value. When set,
+   * it drives bead_size_range; absent on legacy configs (which use the stored
+   * bead_size_range directly).
+   */
+  seed_size_mm?: number;
 }
 
 /**

@@ -21,6 +21,7 @@ import {
   createSpacerProduct,
   createSeedSegmentProduct,
   SEED_BEAD_SIZE_RANGE,
+  seedBeadSizeRange,
 } from "@/lib/constants";
 
 import { SpacerPicker } from "./SpacerPicker";
@@ -227,14 +228,18 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     seedShape?: "seed" | "round",
     roundSizeMm?: number,
     material?: string,
+    seedSizeMm?: number,
   ) {
     const product = createSeedSegmentProduct(arcMm, randomSeed, seedShape, roundSizeMm, material);
+    const isRound = seedShape === "round";
     const seedConfig = {
       colorway,
       arc_length_mm: arcMm,
-      bead_size_range: SEED_BEAD_SIZE_RANGE as [number, number],
+      bead_size_range: (seedSizeMm ? seedBeadSizeRange(seedSizeMm) : SEED_BEAD_SIZE_RANGE) as [number, number],
       random_seed: randomSeed,
-      ...(seedShape === "round" ? { seed_shape: "round" as const, round_size_mm: roundSizeMm ?? 2 } : {}),
+      ...(isRound
+        ? { seed_shape: "round" as const, round_size_mm: roundSizeMm ?? 2 }
+        : { seed_size_mm: seedSizeMm ?? 1 }),
     };
     const err = addSeedSegment(product as any, seedConfig);
     if (err) {
