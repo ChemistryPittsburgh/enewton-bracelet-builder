@@ -3,7 +3,11 @@ import { braceletArc, usedArc } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
-export function AvailableSpaceBox() {
+interface AvailableSpaceBoxProps {
+  className?: string;
+}
+
+export function AvailableSpaceBox({ className = "" }: AvailableSpaceBoxProps) {
   const placedBeads = useStore((s) => s.beads);
   const braceletSize = useStore((s) => s.braceletSize);
 
@@ -15,7 +19,7 @@ export function AvailableSpaceBox() {
   return (
     <>
     {/* Available space */}
-    <div className="rounded-lg border border-default bg-light-grey/50 px-4 py-3 mb-5">
+    <div className={`rounded-[3px] border border-default bg-light-grey/50 px-4 py-3 mb-3 ${className}`}>
       <SectionHeading>
         Available space
       </SectionHeading>

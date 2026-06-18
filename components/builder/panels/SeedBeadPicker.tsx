@@ -64,16 +64,20 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
   }, [apiPresets]);
 
   const [colorway, setColorway] = useState<SeedColorEntry[]>([]);
-  const [fillMode, setFillMode] = useState<"remaining" | "custom">("remaining");
+  const [fillMode, setFillMode] = useState<"remaining" | "size" | "quantity">("remaining");
   const [customMm, setCustomMm] = useState("");
-  const [customMode, setCustomMode] = useState<"mm" | "quantity">("mm");
   const [customQuantity, setCustomQuantity] = useState("");
   const [seed, setSeed] = useState(() => newRandomSeed());
   const [seedShape, setSeedShape] = useState<"seed" | "round">("seed");
   const [roundSizeMm, setRoundSizeMm] = useState<number>(2);
   const [roundColor, setRoundColor] = useState<string>("gold");
+  const [activePresetId, setActivePresetId] = useState<number | null>(null);
 
   const isRound = seedShape === "round";
+
+  const seedPickerSectionClass = "border-b border-default";
+  const fillModeButtonClass = "flex w-full items-center gap-2.5 rounded-[2px] border px-3 py-2.5 text-sm text-left transition-all mb-1.5 min-h-[50px] bg-light-grey/50";
+  const fillModeInputClass = "flex-1 min-w-0 rounded-[2px] max-w-[65%] border px-2 py-1 text-sm outline-none bg-white focus:ring-light-grey";
 
   /** Seed bead thickness ratio (disc-shaped, flat faces flush). */
   const SEED_THICKNESS_RATIO = 0.72;
@@ -93,6 +97,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
   const [initialised, setInitialised] = useState(false);
   if (!initialised && defaultColorway.length > 0) {
     setColorway(defaultColorway);
+    if (apiPresets.length > 0) setActivePresetId(apiPresets[0].id);
     setInitialised(true);
   }
 
@@ -102,11 +107,11 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
   const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
 
   const parsedQuantity = parseInt(customQuantity) || 0;
-  const tooMany = parsedQuantity > MAX_QUANTITY;
+  const tooMany = fillMode === "quantity" && parsedQuantity > MAX_QUANTITY;
 
   const arcMm = fillMode === "remaining"
     ? availableMm
-    : customMode === "quantity"
+    : fillMode === "quantity"
       ? arcFromQuantity(Math.min(parsedQuantity, MAX_QUANTITY))
       : parseFloat(customMm) || 0;
   const validArc = arcMm > 0 && arcMm <= availableMm && !tooMany;
@@ -131,6 +136,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
       label: c.label,
       is_metallic: c.is_metallic,
     })));
+    setActivePresetId(preset.id);
     setSeed(newRandomSeed());
   }
 
@@ -147,6 +153,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
     }));
     updated.push({ hex, percent: evenPercent, label, is_metallic });
     setColorway(updated);
+    setActivePresetId(null);
     setSeed(newRandomSeed());
   }
 
@@ -160,6 +167,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
       percent: evenPercent + (i === 0 ? remainder : 0),
     }));
     setColorway(rebalanced);
+    setActivePresetId(null);
     setSeed(newRandomSeed());
   }
 
@@ -186,6 +194,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
       }
     }
     setColorway(updated);
+    setActivePresetId(null);
   }
 
   function handleAdd() {
@@ -206,76 +215,82 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 px-5 pb-4">
+      <div className="flex-1 px-5 pb-4 flex flex-col gap-4">
 
-        <AvailableSpaceBox />
+        <AvailableSpaceBox className="!mb-0" />
 
-        {/* Shape picker — always visible at the top */}
-        <SectionHeading>Shape</SectionHeading>
-        <div className="flex gap-2 mb-5">
-          <button
-            onClick={() => setSeedShape("seed")}
-            className={`flex-1 flex flex-col items-center gap-1.5 rounded-[2px] border py-3 text-sm transition-all ${
-              seedShape === "seed"
-                ? "ring-2 ring-navy border-navy bg-white shadow-sm font-medium"
-                : "border-default bg-white hover:border-neutral-400"
-            }`}
-          >
-            <Square size={16} className="text-color-base/60" />
-            Seed
-          </button>
-          <button
-            onClick={() => setSeedShape("round")}
-            className={`flex-1 flex flex-col items-center gap-1.5 rounded-[2px] border py-3 text-sm transition-all ${
-              seedShape === "round"
-                ? "ring-2 ring-navy border-navy bg-white shadow-sm font-medium"
-                : "border-default bg-white hover:border-neutral-400"
-            }`}
-          >
-            <Circle size={16} className="text-color-base/60" />
-            Round
-          </button>
+        <div className={seedPickerSectionClass}>
+          {/* Shape picker — always visible at the top */}
+          <SectionHeading>Shape</SectionHeading>
+          <div className="flex gap-2 mb-5">
+            <button
+              onClick={() => setSeedShape("seed")}
+              className={`flex-1 flex flex-col items-center gap-1.5 border py-3 text-sm transition-all hover:bg-mint ${
+                seedShape === "seed"
+                  ? "border-navy bg-white shadow-sm font-medium"
+                  : "border-default bg-white hover:border-neutral-400"
+              }`}
+            >
+              <Square size={16} className="text-navy" />
+              Seed
+            </button>
+            <button
+              onClick={() => setSeedShape("round")}
+              className={`flex-1 flex flex-col items-center gap-1.5 rounded-[2px] border py-3 text-sm transition-all hover:bg-mint ${
+                seedShape === "round"
+                  ? "border-navy bg-white shadow-sm font-medium"
+                  : "border-default bg-white hover:border-neutral-400"
+              }`}
+            >
+              <Circle size={16} className="text-navy" />
+              Round
+            </button>
+          </div>
         </div>
 
         {/* ── Round mode: color + size ─────────────────────────────────────── */}
         {isRound && (
           <>
+          <div className={seedPickerSectionClass}>
             <SectionHeading>Color</SectionHeading>
-            <div className="flex gap-2 mb-5">
-              {ROUND_COLOR_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setRoundColor(opt.value)}
-                  className={`flex-1 flex items-center justify-center gap-2 rounded-[2px] border py-3 text-sm transition-all ${
-                    roundColor === opt.value
-                      ? "ring-2 ring-navy border-navy bg-white shadow-sm font-medium"
-                      : "border-default bg-white hover:border-neutral-400"
-                  }`}
-                >
-                  <span
-                    className="w-4 h-4 rounded-full border border-black/10"
-                    style={{ backgroundColor: opt.hex }}
-                  />
-                  {opt.label}
-                </button>
-              ))}
+              <div className="flex gap-2 mb-5">
+                {ROUND_COLOR_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setRoundColor(opt.value)}
+                    className={`flex min-w-[25%] px-2 py-2 hover:bg-white items-center bg-light-grey border border-color-base/30 justify-center gap-2 border text-sm transition-all ${
+                      roundColor === opt.value
+                        ? "border-navy bg-white shadow-sm font-medium"
+                        : ""
+                    }`}
+                  >
+                    <span className="flex-1 text-left">{opt.label}</span>
+                    <span
+                      className="w-4 h-4 rounded-full border border-black/10"
+                      style={{ backgroundColor: opt.hex }}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <SectionHeading>Size</SectionHeading>
-            <div className="flex gap-2 mb-5">
-              {ROUND_SEED_SIZES_MM.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setRoundSizeMm(size)}
-                  className={`flex-1 rounded-[2px] border py-3 text-sm transition-all ${
-                    roundSizeMm === size
-                      ? "ring-2 ring-navy border-navy bg-white shadow-sm font-medium"
-                      : "border-default bg-white hover:border-neutral-400"
-                  }`}
-                >
-                  {size}mm
-                </button>
-              ))}
+            <div className={seedPickerSectionClass} >
+              <SectionHeading>Size</SectionHeading>
+              <div className="flex gap-2 mb-5">
+                {ROUND_SEED_SIZES_MM.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setRoundSizeMm(size)}
+                    className={`flex-1 rounded-[2px] border py-3 text-sm transition-all hover:bg-mint ${
+                      roundSizeMm === size
+                        ? "border-navy bg-white shadow-sm font-medium"
+                        : "border-default bg-white hover:border-neutral-400"
+                    }`}
+                  >
+                    {size}mm
+                  </button>
+                ))}
+              </div>
             </div>
           </>
         )}
@@ -283,101 +298,109 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
         {/* ── Seed mode: colorway presets + editor + preview ───────────────── */}
         {!isRound && (
           <>
-            {/* Preset colorways */}
-            <div className="flex items-center gap-2 mb-2.5">
-              <SectionHeading className="mb-0 flex-1">Colorway presets</SectionHeading>
-              {isAdmin && (
-                <button className="manage-btn">
-                  <Settings size={12} /> Manage
-                </button>
-              )}
+            <div className={seedPickerSectionClass}>
+              {/* Preset colorways */}
+              <div className="flex items-center gap-2 mb-2.5">
+                <SectionHeading className="mb-0 flex-1">Colorway presets</SectionHeading>
+                {isAdmin && (
+                  <button className="manage-btn">
+                    <Settings size={12} /> Manage
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2 flex-wrap mb-5">
+                {apiPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => handlePresetClick(preset)}
+                    className={`flex items-center min-w-[32%] gap-1.5 rounded-[1px] border px-2.5 py-1.5 text-xs hover:border-navy transition-all ${
+                    activePresetId === preset.id
+                      ? "border-navy bg-white font-medium"
+                      : "bg-light-grey border-color-base/30"
+                  }`}
+                  >
+                    <span className="flex-1 text-left">{preset.name}</span>
+                    <span className="flex gap-0.5">
+                      {preset.colors.map((c, i) => (
+                        <span
+                          key={i}
+                          className="w-3.5 h-3.5 rounded-full border border-color-base/30"
+                          style={{ backgroundColor: c.hex }}
+                        />
+                      ))}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex gap-2 flex-wrap mb-5">
-              {apiPresets.map((preset) => (
-                <button
-                  key={preset.id}
-                  onClick={() => handlePresetClick(preset)}
-                  className="flex items-center gap-1.5 rounded-[2px] border border-default bg-white px-2.5 py-1.5 text-xs hover:border-neutral-400 transition-all"
-                >
-                  <span className="flex gap-0.5">
-                    {preset.colors.map((c, i) => (
-                      <span
-                        key={i}
-                        className="w-3 h-3 rounded-full border border-black/10"
-                        style={{ backgroundColor: c.hex }}
-                      />
-                    ))}
-                  </span>
-                  <span>{preset.name}</span>
-                </button>
-              ))}
-            </div>
+            <div className={seedPickerSectionClass}>
+              {/* Active colorway editor */}
+              <SectionHeading>Colorway</SectionHeading>
 
-            {/* Active colorway editor */}
-            <SectionHeading>Colorway</SectionHeading>
-
-            <div className="space-y-2 mb-4">
-              {colorway.map((entry, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span
-                    className="w-5 h-5 shrink-0 rounded-full border border-black/10"
-                    style={{ backgroundColor: entry.hex }}
-                  />
-                  <span className="flex-1 text-xs truncate">{entry.label ?? entry.hex}</span>
-                  <input
-                    type="range"
-                    min={5}
-                    max={95}
-                    value={entry.percent}
-                    onChange={(e) => handlePercentChange(i, parseInt(e.target.value))}
-                    className="w-20 accent-navy"
-                  />
-                  <span className="text-xs w-8 text-right text-color-base/70">{entry.percent}%</span>
-                  {colorway.length > 1 && (
-                    <button
-                      onClick={() => handleRemoveColor(i)}
-                      className="p-0.5 rounded-[2px] text-color-base/40 hover:text-error transition-colors"
-                      aria-label="Remove color"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              ))}
+              <div className="space-y-2 mb-4">
+                {colorway.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span
+                      className="w-6 h-6 shrink-0 rounded-full border border-color-base/50"
+                      style={{ backgroundColor: entry.hex }}
+                    />
+                    <span className="flex-1 text-[12.5px] truncate">{entry.label ?? entry.hex}</span>
+                    <input
+                      type="range"
+                      min={5}
+                      max={95}
+                      value={entry.percent}
+                      onChange={(e) => handlePercentChange(i, parseInt(e.target.value))}
+                      className="w-20 accent-navy"
+                    />
+                    <span className="text-xs w-8 text-right text-color-base/90">{entry.percent}%</span>
+                    {colorway.length > 1 && (
+                      <button
+                        onClick={() => handleRemoveColor(i)}
+                        className="icon-only-btn icon-only-btn--error"
+                        aria-label="Remove color"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Add color swatches */}
             {colorway.length < 6 && (
-              <>
+              <div className={seedPickerSectionClass}>
                 <SectionHeading>Add color</SectionHeading>
-                <div className="flex gap-1.5 flex-wrap mb-5">
+                <div className="flex gap-1.5 flex-wrap mb-5 mt-3">
                   {apiColors.filter(
                     (opt) => !colorway.some((c) => c.hex === opt.hex)
                   ).map((opt) => (
                     <button
                       key={opt.id}
                       onClick={() => handleAddColor(opt.hex, opt.label, opt.is_metallic)}
-                      className="w-6 h-6 rounded-full border border-black/10 hover:ring-2 hover:ring-navy/40 transition-all"
+                      className="w-6 h-6 rounded-full border border-color-base/50 hover:ring-2 hover:ring-navy transition-all"
                       style={{ backgroundColor: opt.hex }}
                       title={opt.label}
                     />
                   ))}
                 </div>
-              </>
+              </div>
             )}
 
             {/* Preview strip */}
             {previewBeads.length > 0 && (
-              <>
+              <div className={seedPickerSectionClass}>
                 <SectionHeading>Preview</SectionHeading>
-                <div className="flex items-center overflow-hidden rounded-full border border-default h-5 mb-2 bg-light-grey/50">
+                <div className="flex items-center overflow-hidden rounded-[2px] border border-color-base/20 h-5 mb-2 bg-light-grey/50">
                   {(() => {
                     const totalD = previewBeads.reduce((s, pb) => s + pb.diameter, 0);
                     return previewBeads.map((pb, i) => (
                       <div
                         key={i}
-                        className="h-full border-r border-black/5 last:border-r-0"
+                        className="h-full border-r border-color-base/10 last:border-r-0"
                         style={{
                           backgroundColor: pb.color,
                           width: `${(pb.diameter / totalD) * 100}%`,
@@ -386,123 +409,131 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
                     ));
                   })()}
                 </div>
-                <button
+                <Button 
+                  variant="ghost"
+                  size="xs"
                   onClick={() => setSeed(newRandomSeed())}
-                  className="flex items-center gap-1.5 text-xs text-color-base/60 hover:text-navy transition-colors mb-4"
+                  className="w-fit mt-2 mb-4"
                 >
                   <Shuffle size={12} />
                   Shuffle pattern
-                </button>
-              </>
+                </Button>
+              </div>
             )}
           </>
         )}
 
-        {/* Fill mode — shared by both shapes */}
-        <SectionHeading>Fill amount</SectionHeading>
-        <div className="flex gap-2 mb-3">
+        {/* Fill amount — flat radio group, no nesting */}
+        <div>
+          <SectionHeading>Fill amount</SectionHeading>
+
+          {/* Fill remaining */}
           <button
             onClick={() => setFillMode("remaining")}
-            className={`flex-1 rounded-[2px] border py-2 text-sm transition-all ${
+            className={`${fillModeButtonClass} ${
               fillMode === "remaining"
-                ? "ring-2 ring-navy border-navy bg-white shadow-sm font-medium"
-                : "border-default bg-white hover:border-neutral-400"
+                ? "ring-1 ring-navy border-navy"
+                : "border-default hover:border-neutral-400"
             }`}
           >
-            Fill remaining
+            <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+              fillMode === "remaining" ? "border-navy" : "border-neutral-300"
+            }`}>
+              {fillMode === "remaining" && <span className="w-1.5 h-1.5 rounded-full bg-navy" />}
+            </span>
+            <span className="flex-1">Fill remaining</span>
+            <span className="text-xs text-color-base/50">{availableMm}mm</span>
           </button>
+
+          {/* Custom size (mm) */}
           <button
-            onClick={() => setFillMode("custom")}
-            className={`flex-1 rounded-[2px] border py-2 text-sm transition-all ${
-              fillMode === "custom"
-                ? "ring-2 ring-navy border-navy bg-white shadow-sm font-medium"
-                : "border-default bg-white hover:border-neutral-400"
+            onClick={() => setFillMode("size")}
+            className={`${fillModeButtonClass} ${
+              fillMode === "size"
+                ? "ring-1 ring-navy border-navy"
+                : "border-default hover:border-neutral-400"
             }`}
           >
-            Custom
+            <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+              fillMode === "size" ? "border-navy" : "border-neutral-300"
+            }`}>
+              {fillMode === "size" && <span className="w-1.5 h-1.5 rounded-full bg-navy" />}
+            </span>
+            <span className="shrink-0 min-w-[55px]">Size</span>
+            <input
+              type="number"
+              min={2}
+              max={availableMm}
+              step={1}
+              value={customMm}
+              onChange={(e) => { setCustomMm(e.target.value); setFillMode("size"); }}
+              onFocus={() => setFillMode("size")}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={`2 – ${availableMm}`}
+              className={`${fillModeInputClass} ${
+                fillMode === "size"
+                  ? "border-default bg-white focus:border-navy"
+                  : "border-transparent bg-light-grey/50 text-color-base/40"
+              }`}
+            />
+            <span className="text-xs text-color-base/50 shrink-0">mm</span>
           </button>
+
+          {/* Custom quantity */}
+          <button
+            onClick={() => setFillMode("quantity")}
+            className={`${fillModeButtonClass} ${
+              fillMode === "quantity"
+                ? tooMany
+                  ? "ring-1 ring-error border-error"
+                  : "ring-1 ring-navy border-navy"
+                : "border-default hover:border-neutral-400"
+            }`}
+          >
+            <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+              fillMode === "quantity"
+                ? tooMany ? "border-error" : "border-navy"
+                : "border-neutral-300"
+            }`}>
+              {fillMode === "quantity" && <span className={`w-1.5 h-1.5 rounded-full ${tooMany ? "bg-error" : "bg-navy"}`} />}
+            </span>
+            <span className="shrink-0 min-w-[55px]">Quantity</span>
+            <input
+              type="number"
+              min={1}
+              max={MAX_QUANTITY}
+              step={1}
+              value={customQuantity}
+              onChange={(e) => { setCustomQuantity(e.target.value); setFillMode("quantity"); }}
+              onFocus={() => setFillMode("quantity")}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={`1 – ${MAX_QUANTITY}`}
+              className={`${fillModeInputClass} ${
+                fillMode === "quantity"
+                  ? tooMany
+                    ? "border-error bg-white focus:border-error"
+                    : "border-default bg-white focus:border-navy"
+                  : "border-transparent bg-light-grey/50 text-color-base/40"
+              }`}
+            />
+            <span className="text-xs text-color-base/50 shrink-0">beads</span>
+          </button>
+
+          {/* Validation / info for quantity mode */}
+          {fillMode === "quantity" && tooMany && (
+            <p className="text-xs text-error mt-0.5 mb-1 pl-6">
+              Maximum is {MAX_QUANTITY} beads.
+            </p>
+          )}
+          {fillMode === "quantity" && parsedQuantity > 0 && !tooMany && (
+            <p className="text-xs text-color-base/50 mt-0.5 mb-1 pl-6">
+              ≈ {Math.round(arcFromQuantity(parsedQuantity) * 10) / 10}mm
+              {arcFromQuantity(parsedQuantity) > availableMm && (
+                <span className="text-error ml-1">(exceeds {availableMm}mm available)</span>
+              )}
+            </p>
+          )}
         </div>
-
-        {fillMode === "custom" && (
-          <>
-            {/* mm vs quantity sub-toggle */}
-            <div className="flex gap-2 mb-3">
-              <button
-                onClick={() => setCustomMode("mm")}
-                className={`flex-1 rounded-[2px] border py-1.5 text-xs transition-all ${
-                  customMode === "mm"
-                    ? "ring-1 ring-navy border-navy bg-white font-medium"
-                    : "border-default bg-white hover:border-neutral-400"
-                }`}
-              >
-                By size (mm)
-              </button>
-              <button
-                onClick={() => setCustomMode("quantity")}
-                className={`flex-1 rounded-[2px] border py-1.5 text-xs transition-all ${
-                  customMode === "quantity"
-                    ? "ring-1 ring-navy border-navy bg-white font-medium"
-                    : "border-default bg-white hover:border-neutral-400"
-                }`}
-              >
-                By quantity
-              </button>
-            </div>
-
-            {customMode === "mm" ? (
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="number"
-                  min={2}
-                  max={availableMm}
-                  step={1}
-                  value={customMm}
-                  onChange={(e) => setCustomMm(e.target.value)}
-                  placeholder={`2 – ${availableMm}`}
-                  className="w-full rounded-[2px] border border-default px-3 py-2.5 text-sm outline-none placeholder:text-color-base/70 focus:border-navy focus:ring-navy"
-                />
-                <span className="shrink-0 text-sm text-color-base/70">mm</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="number"
-                  min={1}
-                  max={MAX_QUANTITY}
-                  step={1}
-                  value={customQuantity}
-                  onChange={(e) => setCustomQuantity(e.target.value)}
-                  placeholder={`1 – ${MAX_QUANTITY}`}
-                  className={`w-full rounded-[2px] border px-3 py-2.5 text-sm outline-none placeholder:text-color-base/70 ${
-                    tooMany || (parsedQuantity > 0 && arcFromQuantity(parsedQuantity) > availableMm)
-                      ? "border-error focus:border-error"
-                      : "border-default focus:border-navy focus:ring-navy"
-                  }`}
-                />
-                <span className="shrink-0 text-sm text-color-base/70">beads</span>
-              </div>
-            )}
-
-            {/* Validation messages for quantity mode */}
-            {customMode === "quantity" && tooMany && (
-              <p className="text-xs text-error -mt-1 mb-3">
-                Maximum is {MAX_QUANTITY} beads.
-              </p>
-            )}
-
-            {/* Show estimated arc when in quantity mode */}
-            {customMode === "quantity" && parsedQuantity > 0 && !tooMany && (
-              <p className="text-xs text-color-base/50 -mt-1 mb-3">
-                ≈ {Math.round(arcFromQuantity(parsedQuantity) * 10) / 10}mm
-                {arcFromQuantity(parsedQuantity) > availableMm && (
-                  <span className="text-error ml-1">
-                    (exceeds {availableMm}mm available)
-                  </span>
-                )}
-              </p>
-            )}
-          </>
-        )}
       </div>
 
       {/* Bottom bar */}
@@ -515,10 +546,10 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
               <SectionHeading>
                 {arcMm > 0
                   ? isRound
-                    ? fillMode === "custom" && customMode === "quantity"
+                    ? fillMode === "quantity"
                       ? `${parsedQuantity}× round ${roundSizeMm}mm ${roundColor} beads`
                       : `${arcMm}mm round ${roundSizeMm}mm ${roundColor} beads`
-                    : fillMode === "custom" && customMode === "quantity"
+                    : fillMode === "quantity"
                       ? `${parsedQuantity}× seed beads (≈${Math.round(arcMm * 10) / 10}mm)`
                       : `${arcMm}mm seed beads`
                   : isRound ? "Select color & size" : "Configure colorway"}
