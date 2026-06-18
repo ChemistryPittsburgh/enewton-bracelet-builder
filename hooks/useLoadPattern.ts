@@ -1,7 +1,7 @@
 import { useBeads } from "@/hooks/useBeads";
 import { useStore } from "@/lib/store";
-import { DEFAULT_BRACELET_NAME } from "@/lib/constants";
-import type { Bracelet, PlacedBead } from "@/types";
+import { DEFAULT_BRACELET_NAME, createSeedSegmentProduct } from "@/lib/constants";
+import type { Bracelet, PlacedBead, BeadProduct } from "@/types";
 
 /**
  * Returns two functions:
@@ -38,6 +38,21 @@ export function useLoadPattern() {
       .slice()
       .sort((a, b) => a.position - b.position)
       .flatMap((configBead) => {
+        if (configBead.seed_config) {
+          const seedMaterial = configBead.seed_config.colorway[0]?.label?.toLowerCase().includes("silver") ? "silver" : "gold";
+          const product = createSeedSegmentProduct(
+            configBead.seed_config.arc_length_mm,
+            configBead.seed_config.random_seed,
+            configBead.seed_config.seed_shape,
+            configBead.seed_config.round_size_mm,
+            seedMaterial,
+          );
+          return [{
+            instanceId: configBead.instance_id,
+            product: product as unknown as BeadProduct,
+            seedConfig: configBead.seed_config,
+          }];
+        }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return [];
         return [{ instanceId: configBead.instance_id, product }];
