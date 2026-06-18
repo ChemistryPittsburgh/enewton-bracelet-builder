@@ -25,6 +25,7 @@ import { useApplyCollection, useRemoveCollection } from "@/hooks/useCollections"
 
 import { WorkflowSection } from "@/components/builder/sections/WorkflowSection";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
+import { CreatePatternDialog } from "@/components/builder/dialogs/CreatePatternDialog";
 import { STATUS_META } from "@/lib/category-colors";
 import { AssignmentSection } from "@/components/builder/sections/AssignmentSection";
 
@@ -66,7 +67,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
-  const { canEdit, canDeleteBracelet, isAdmin } = usePermissions();
+  const { canEdit, canDeleteBracelet, isAdmin, canManageComponents, canCreatePattern } = usePermissions();
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published" || isKicked;
 
   const isPublished = savedDesign?.status === "published";
@@ -77,6 +78,9 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   const [localDescription, setLocalDescription] = useState(braceletDescription ?? "");
 
   const { mutate: updateDesign, isPending: saving } = useUpdateDesign();
+
+  // ── Create pattern state ────────────────────────────────────────────────────
+  const [createPatternOpen, setCreatePatternOpen] = useState(false);
 
   // ── Delete state ────────────────────────────────────────────────────────────
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -159,8 +163,27 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
       ? STATUS_META[savedDesign.status]
       : null;
 
+  const defaultPatternName = braceletName === "New Bracelet" ? "" : braceletName;
+
   return (
-    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl" bodyClasses="py-0 px-0">
+    <FullScreenDialog
+      open={open}
+      onClose={onClose}
+      title="Bracelet Details"
+      className="max-w-3xl"
+      bodyClasses="py-0 px-0"
+      headerExtra={
+        canCreatePattern ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setCreatePatternOpen(true)}
+          >
+            Create Pattern
+          </Button>
+        ) : undefined
+      }
+    >
       <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto py-4 px-4 lg:py-8 md:px-6 lg:px-8">
 
         {/* ── Preview + status + name + description ────────────────────── */}
@@ -454,6 +477,15 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
         )}
 
       </div>
+
+      {/* ── Create pattern dialog ───────────────────────────────────── */}
+      {createPatternOpen && (
+        <CreatePatternDialog
+          initialName={defaultPatternName}
+          onClose={() => setCreatePatternOpen(false)}
+          onSaved={() => setCreatePatternOpen(false)}
+        />
+      )}
 
       {/* ── Delete confirmation (rendered outside scroll area) ──────── */}
       {showDeleteConfirm && savedDesign && (

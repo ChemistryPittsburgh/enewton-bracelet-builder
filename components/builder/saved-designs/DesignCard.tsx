@@ -132,7 +132,7 @@ export function DesignCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [saveAsPatternOpen, setSaveAsPatternOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { canDeleteBracelet, isAdmin, canSubmit, canApprove: hasApprovePermission, canReject: hasRejectPermission, canManageComponents } = usePermissions();
+  const { canDeleteBracelet, isAdmin, canSubmit, canApprove: hasApprovePermission, canReject: hasRejectPermission, canManageComponents, canCreatePattern } = usePermissions();
   const { data: currentUser } = useCurrentUser();
   const activeDesignId = useStore((s) => s.activeDesignId);
   const thumbSrc = design.preview_image_url
@@ -327,7 +327,7 @@ export function DesignCard({
                   )}
 
                   {/* ── Pattern actions ── */}
-                  {canManageComponents && (
+                  {canCreatePattern && (
                     <>
                       <div className="border-t border-default" />
                       <button
