@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ArrowUp, ArrowDown, CopyPlus, Repeat2, Trash2, SwitchCamera, Info } from "lucide-react";
+import { ArrowUp, ArrowDown, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
@@ -24,6 +24,10 @@ export function EditModeToolbar() {
     selectedBead,
     clearSelectedBead,
     toggleEditMode,
+    undoStack,
+    redoStack,
+    undo,
+    redo,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editSelectedIds: s.editSelectedIds,
@@ -40,6 +44,10 @@ export function EditModeToolbar() {
     selectedBead: s.selectedBead,
     clearSelectedBead: s.clearSelectedBead,
     toggleEditMode: s.toggleEditMode,
+    undoStack: s.undoStack,
+    redoStack: s.redoStack,
+    undo: s.undo,
+    redo: s.redo,
   }));
 
   const n = beads.length;
@@ -66,6 +74,17 @@ export function EditModeToolbar() {
       // Don't capture if user is typing in an input/textarea
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+        return;
+      }
 
       switch (e.key) {
         case "ArrowUp":
@@ -109,12 +128,22 @@ export function EditModeToolbar() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canDuplicate, reorderBeads, removeBead, duplicateBead, clearEditSelection]);
+  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canDuplicate, reorderBeads, removeBead, duplicateBead, clearEditSelection, undo, redo]);
 
   if (!isEditMode) return null;
 
   return (
     <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[3px] divide-x divide-default">
+      <Tooltip content="Undo (⌘Z)" placement="bottom">
+        <EditBtn onClick={undo} disabled={undoStack.length === 0} label="Undo">
+          <Undo2 size={22} />
+        </EditBtn>
+      </Tooltip>
+      <Tooltip content="Redo (⌘⇧Z)" placement="bottom">
+        <EditBtn onClick={redo} disabled={redoStack.length === 0} label="Redo">
+          <Redo2 size={22} />
+        </EditBtn>
+      </Tooltip>
       <Tooltip content={singleIdx !== -1 ? ( "Move item back" ) : ("Select one item to move")} placement="bottom">
         <EditBtn
           onClick={() => reorderBeads(singleIdx, (singleIdx - 1 + n) % n)}
