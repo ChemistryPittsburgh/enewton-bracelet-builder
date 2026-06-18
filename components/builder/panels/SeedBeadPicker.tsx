@@ -416,9 +416,8 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
               const matte = available.filter((opt) => !opt.is_metallic);
 
               const swatch = (opt: typeof available[number]) => (
-                <Tooltip content={opt.label}>
+                <Tooltip key={opt.id} content={opt.label}>
                   <button
-                    key={opt.id}
                     onClick={() => handleAddColor(opt.hex, opt.label, opt.is_metallic)}
                     className="w-6 h-6 rounded-full border border-color-base/50 hover:ring-2 hover:ring-navy transition-all"
                     style={{ backgroundColor: opt.hex }}

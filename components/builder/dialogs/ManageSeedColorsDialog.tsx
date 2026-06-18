@@ -550,9 +550,8 @@ function PresetEditor({
           <SectionHeading className="mb-1.5">Add color</SectionHeading>
           <div className="flex flex-wrap gap-1.5">
             {available.map((c) => (
-              <Tooltip content={c.label}>
+              <Tooltip content={c.label} key={c.id}>
                 <button
-                  key={c.id}
                   onClick={() => addColor(c)}
                   title={c.label}
                   className="h-6 w-6 rounded-full border border-color-base/30 transition-all hover:ring-2 hover:ring-navy"
