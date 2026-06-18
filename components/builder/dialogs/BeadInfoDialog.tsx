@@ -6,22 +6,7 @@ import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
 import { cn, capitalize, slugify, formatMm, unslugify } from "@/lib/utils";
-import { SEED_BEAD_SIZE_LABELS } from "@/lib/constants";
-import type { SeedSegmentConfig } from "@/types";
-
-/** Readable size for a seed segment (Small/Large for seed, mm for round). */
-function seedSizeLabel(cfg: SeedSegmentConfig, includeMM: boolean): string {
-  if (cfg.seed_shape === "round") {
-    const mm = cfg.round_size_mm ?? 2;
-    return includeMM ? `${mm}mm` : `${mm}`;
-  }
-  // Prefer the stored nominal; fall back to the range midpoint for legacy configs.
-  const size =
-    cfg.seed_size_mm ?? Math.round((cfg.bead_size_range[0] + cfg.bead_size_range[1]) / 2);
-  const label = SEED_BEAD_SIZE_LABELS[size];
-  if (label) return includeMM ? `${label} (${size}mm)` : label;
-  return includeMM ? `${size}mm` : `${size}`;
-}
+import { seedSizeLabel } from "@/lib/seed-bead-utils";
 
 export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
   const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode} = useStore((s) => ({

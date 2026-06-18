@@ -5,7 +5,6 @@ import { ArrowLeft, Check, ChevronDown, Loader2, Plus, Search, Trash2, X, Radio 
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useUsers, useUpdateUser, useDeleteUser, type CreateUserResponse } from "@/hooks/useUsers";

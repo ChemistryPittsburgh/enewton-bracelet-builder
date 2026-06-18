@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
 import { getCollidingCharmIds } from "@/lib/charm-collision";
+import { seedSizeLabel } from "@/lib/seed-bead-utils";
 import { formatDateTime, formatMm } from "@/lib/utils";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
@@ -318,19 +319,52 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-default">
-                  {placedBeads.map((b, i) => (
-                    <tr key={b.instanceId} className="transition-colors">
-                      <td className="px-3 py-2 text-color-base/70">{i + 1}</td>
-                      <td className="px-3 py-2 font-medium">{b.product.name}</td>
-                      <td className="px-3 py-2 capitalize text-color-base/70">{b.product.material ?? "—"}</td>
-                      <td className="px-3 py-2 text-color-base/70">{b.product.bead_type ?? "—"}</td>
-                      <td className="px-3 py-2 text-right text-color-base/70">
-                        {b.product.size_mm != null
-                          ? `${b.product.size_mm} mm`
-                          : `${Math.round(b.product.diameter * 1000)} mm`}
-                      </td>
-                    </tr>
-                  ))}
+                  {placedBeads.map((b, i) => {
+                    const seedConfig = b.seedConfig;
+                    return (
+                      <tr key={b.instanceId} className="transition-colors">
+                        <td className="px-3 py-2 text-color-base/70">{i + 1}</td>
+                        <td className="px-3 py-2 font-medium">
+                          {seedConfig ? (
+                            <>
+                              {seedSizeLabel(seedConfig, false)} Seed Beeds
+                            </>
+                          ) : (
+                            <>
+                              {b.product.name}
+                            </>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 capitalize text-color-base/70">
+                          {seedConfig ? (
+                            <span className="flex items-center gap-1">
+                              {seedConfig.colorway.map((c, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-color-base/30"
+                                  style={{ backgroundColor: c.hex }}
+                                  title={`${c.label ?? ""} ${c.percent}%`.trim()}
+                                />
+                              ))}
+                              {seedConfig.colorway.length === 1 && seedConfig.colorway[0].label && (
+                                <span className="ml-1">{seedConfig.colorway[0].label}</span>
+                              )}
+                            </span>
+                          ) : (
+                            b.product.material ?? "—"
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-color-base/70">{b.product.bead_type ?? "—"}</td>
+                        <td className="px-3 py-2 text-right text-color-base/70">
+                          {seedConfig
+                            ? `${formatMm(seedConfig.arc_length_mm)} mm`
+                            : b.product.size_mm != null
+                              ? `${b.product.size_mm} mm`
+                              : `${Math.round(b.product.diameter * 1000)} mm`}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

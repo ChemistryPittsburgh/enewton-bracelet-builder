@@ -21,6 +21,7 @@ import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import {
@@ -120,49 +121,55 @@ function ColorRow({
         style={{ backgroundColor: color.hex }}
       />
       <span className={`flex-1 text-sm font-medium ${inactive ? "opacity-50" : ""}`}>{color.label}</span>
-      <span className={`font-mono text-xs uppercase text-color-base/50 ${inactive ? "opacity-50" : ""}`}>
-        {color.hex}
-      </span>
+      {inactive && (
+        <span className="rounded-full bg-error/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-error">
+          Inactive
+        </span>
+      )}
       {color.is_metallic && (
         <span
-          className={`flex items-center gap-1 rounded-full bg-shell px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-color-base/70 ${
+          className={`flex items-center gap-1 rounded-[2px] bg-gold/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gold ${
             inactive ? "opacity-50" : ""
           }`}
         >
           <Sparkle size={10} /> Metallic
         </span>
       )}
-      {inactive && (
-        <span className="rounded-full bg-shell px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-color-base/60">
-          Inactive
-        </span>
-      )}
+      <span className={`font-mono text-xs uppercase text-color-base/70 ${inactive ? "opacity-50" : ""}`}>
+        {color.hex}
+      </span>
 
-      <div className="flex items-center gap-1 opacity-80 transition-opacity group-hover:opacity-100">
-        <button onClick={() => onEdit(color)} className="icon-only-btn" title="Edit color">
-          <Pencil size={14} />
-        </button>
-        <button
-          onClick={() => onToggle(color)}
-          disabled={busy}
-          className={`icon-only-btn disabled:opacity-40 ${inactive ? "icon-only-btn--green" : "icon-only-btn--error"}`}
-          title={inactive ? "Reactivate color" : "Deactivate color"}
-        >
-          {busy ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : inactive ? (
-            <Eye size={14} />
-          ) : (
-            <EyeOff size={14} />
-          )}
-        </button>
-        <button
-          onClick={() => onDelete(color)}
-          className="icon-only-btn icon-only-btn--error"
-          title="Delete color permanently"
-        >
-          <Trash2 size={14} />
-        </button>
+      <div className="flex items-center gap-1 opacity-50 transition-opacity group-hover:opacity-100">
+        <Tooltip content="Edit Color">
+          <button onClick={() => onEdit(color)} className="icon-only-btn" title="Edit color">
+            <Pencil size={14} />
+          </button>
+        </Tooltip>
+        <Tooltip content={inactive ? "Reactivate Color" : "Activate Color"} >
+          <button
+            onClick={() => onToggle(color)}
+            disabled={busy}
+            className={`icon-only-btn disabled:opacity-40 ${inactive ? "icon-only-btn--green" : "icon-only-btn--error"}`}
+            aria-label={inactive ? "Reactivate color" : "Deactivate color"}
+          >
+            {busy ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : inactive ? (
+              <Eye size={14} />
+            ) : (
+              <EyeOff size={14} />
+            )}
+          </button>
+        </Tooltip>
+        <Tooltip content="Delete Color">
+          <button
+            onClick={() => onDelete(color)}
+            className="icon-only-btn icon-only-btn--error"
+            aria-label="Delete color permanently"
+          >
+            <Trash2 size={14} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );
@@ -368,11 +375,11 @@ function PresetRow({
       {/* Proportional bar */}
       <div className={`flex h-4 flex-1 overflow-hidden rounded-[2px] border border-color-base/10 ${inactive ? "opacity-50" : ""}`}>
         {preset.colors.map((c, i) => (
-          <span
-            key={i}
-            title={`${c.label} · ${c.percent}%`}
-            style={{ backgroundColor: c.hex, width: `${(c.percent / total) * 100}%` }}
-          />
+            <span
+              key={i}
+              title={`${c.label} · ${c.percent}%`}
+              style={{ backgroundColor: c.hex, width: `${(c.percent / total) * 100}%` }}
+            />
         ))}
       </div>
 
@@ -384,31 +391,37 @@ function PresetRow({
         <span className="shrink-0 text-xs text-color-base/50">{preset.colors.length} colors</span>
       )}
 
-      <div className="flex items-center gap-1 opacity-80 transition-opacity group-hover:opacity-100">
-        <button onClick={() => onEdit(preset)} className="icon-only-btn" title="Edit preset">
-          <Pencil size={14} />
-        </button>
-        <button
-          onClick={() => onToggle(preset)}
-          disabled={busy}
-          className="icon-only-btn icon-only-btn--error disabled:opacity-40"
-          title={inactive ? "Reactivate preset" : "Deactivate preset"}
-        >
-          {busy ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : inactive ? (
-            <Eye size={14} />
-          ) : (
-            <EyeOff size={14} />
-          )}
-        </button>
-        <button
-          onClick={() => onDelete(preset)}
-          className="icon-only-btn icon-only-btn--error"
-          title="Delete preset permanently"
-        >
-          <Trash2 size={14} />
-        </button>
+      <div className="flex items-center gap-1 opacity-50 transition-opacity group-hover:opacity-100">
+        <Tooltip content="Edit Preset">
+          <button onClick={() => onEdit(preset)} className="icon-only-btn" aria-label="Edit preset">
+            <Pencil size={14} />
+          </button>
+        </Tooltip>
+        <Tooltip content={inactive ? "Reactivate preset" : "Deactivate preset"}>
+          <button
+            onClick={() => onToggle(preset)}
+            disabled={busy}
+            className="icon-only-btn icon-only-btn--error disabled:opacity-40"
+            aria-label={inactive ? "Reactivate preset" : "Deactivate preset"}
+          >
+            {busy ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : inactive ? (
+              <Eye size={14} />
+            ) : (
+              <EyeOff size={14} />
+            )}
+          </button>
+        </Tooltip>
+        <Tooltip content="Delete Preset">
+          <button
+            onClick={() => onDelete(preset)}
+            className="icon-only-btn icon-only-btn--error"
+            title="Delete preset permanently"
+          >
+            <Trash2 size={14} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );
@@ -502,13 +515,15 @@ function PresetEditor({
                 className="w-16 rounded border border-default px-2 py-1 text-right text-sm outline-none focus:border-grey"
               />
               <span className="w-3 text-xs text-color-base/50">%</span>
-              <button
-                onClick={() => removeColor(c.color_id)}
-                className="icon-only-btn icon-only-btn--error"
-                aria-label="Remove color"
-              >
-                <X size={13} />
-              </button>
+              <Tooltip content={`Remove ${c.label}`} placement="left">
+                <button
+                  onClick={() => removeColor(c.color_id)}
+                  className="icon-only-btn icon-only-btn--error"
+                  aria-label="Remove color"
+                >
+                  <X size={13} />
+                </button>
+              </Tooltip>
             </div>
           ))}
 
@@ -535,13 +550,15 @@ function PresetEditor({
           <SectionHeading className="mb-1.5">Add color</SectionHeading>
           <div className="flex flex-wrap gap-1.5">
             {available.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => addColor(c)}
-                title={c.label}
-                className="h-6 w-6 rounded-full border border-color-base/30 transition-all hover:ring-2 hover:ring-navy"
-                style={{ backgroundColor: c.hex }}
-              />
+              <Tooltip content={c.label}>
+                <button
+                  key={c.id}
+                  onClick={() => addColor(c)}
+                  title={c.label}
+                  className="h-6 w-6 rounded-full border border-color-base/30 transition-all hover:ring-2 hover:ring-navy"
+                  style={{ backgroundColor: c.hex }}
+                />
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -842,100 +859,106 @@ export function ManageSeedColorsDialog({
       onClose={handleClose}
       title="Manage Seed Beads"
       className="max-w-2xl"
-      bodyClasses="h-full overflow-y-scroll max-h-[70vh] py-4 px-4"
+      bodyClasses="h-full"
       includeBackDropBlur={includeBackDropBlur}
       headerExtra={headerExtra}
     >
       {tab === "colors" ? (
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-color-base/70">
-            Manage the seed bead color palette. These colors are the building blocks for colorway
-            presets and custom colorways in the seed bead picker.
-          </p>
-
-          {colorMutationErr && <ErrorAlert message={colorMutationErr.message} />}
-
-          {/* Count + status filter */}
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-color-base/50">
-              {visibleColors.length} {visibleColors.length === 1 ? "color" : "colors"}
-            </span>
-            <StatusToggle value={statusFilter} onChange={setStatusFilter} />
-          </div>
-
-          {colorsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-color-base/70" />
-            </div>
-          ) : visibleColors.length === 0 && colorEdit !== "new" ? (
-            <p className="py-4 text-center text-sm text-color-base/70">
-              {colors.length === 0 ? "No colors yet." : "No colors match this filter."}
+        <div className="flex flex-col">
+          <div className="flex flex-col gap-4 overflow-y-scroll max-h-[70vh] py-6 px-4">
+            <p className="text-sm text-color-base/70">
+              Manage the seed bead color palette. These colors are the building blocks for colorway
+              presets and custom colorways in the seed bead picker.
             </p>
-          ) : (
-            <div className="flex flex-col gap-2">{visibleColors.map((color) => renderColor(color))}</div>
-          )}
 
-          {/* New color — hidden while viewing inactive-only (a new color is active) */}
-          {statusFilter !== "inactive" &&
-            (colorEdit === "new" ? (
-              <ColorEditRow
-                initial={{ hex: "#d4af37", label: "", is_metallic: true }}
-                isSaving={creatingColor}
-                submitLabel="Add color"
-                onSave={saveNewColor}
-                onCancel={() => setColorEdit(null)}
-              />
+            {colorMutationErr && <ErrorAlert message={colorMutationErr.message} />}
+
+            {/* Count + status filter */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-color-base/50">
+                {visibleColors.length} {visibleColors.length === 1 ? "color" : "colors"}
+              </span>
+              <StatusToggle value={statusFilter} onChange={setStatusFilter} />
+            </div>
+
+            {colorsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={20} className="animate-spin text-color-base/70" />
+              </div>
+            ) : visibleColors.length === 0 && colorEdit !== "new" ? (
+              <p className="py-4 text-center text-sm text-color-base/70">
+                {colors.length === 0 ? "No colors yet." : "No colors match this filter."}
+              </p>
             ) : (
-              <Button onClick={() => { resetAll(); setColorEdit("new"); }} variant="dashed">
-                <Plus size={15} /> New color
-              </Button>
-            ))}
+              <div className="flex flex-col gap-2">{visibleColors.map((color) => renderColor(color))}</div>
+            )}
+          </div>
+          <div className="border-t border-default py-3 px-4">
+            {/* New color — hidden while viewing inactive-only (a new color is active) */}
+            {statusFilter !== "inactive" &&
+              (colorEdit === "new" ? (
+                <ColorEditRow
+                  initial={{ hex: "#d4af37", label: "", is_metallic: true }}
+                  isSaving={creatingColor}
+                  submitLabel="Add color"
+                  onSave={saveNewColor}
+                  onCancel={() => setColorEdit(null)}
+                />
+              ) : (
+                <Button onClick={() => { resetAll(); setColorEdit("new"); }} variant="dashed" className="min-w-[180px]">
+                  <Plus size={15} /> New color
+                </Button>
+              ))}
+          </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-color-base/70">
-            Build reusable colorway presets from the palette. Presets appear as one-tap starting
-            points in the seed bead picker. Percentages must total 100%.
-          </p>
-
-          {presetMutationErr && <ErrorAlert message={presetMutationErr.message} />}
-
-          {/* Count + status filter */}
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-color-base/50">
-              {visiblePresets.length} {visiblePresets.length === 1 ? "preset" : "presets"}
-            </span>
-            <StatusToggle value={statusFilter} onChange={setStatusFilter} />
-          </div>
-
-          {presetsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-color-base/70" />
-            </div>
-          ) : visiblePresets.length === 0 && presetEdit !== "new" ? (
-            <p className="py-4 text-center text-sm text-color-base/70">
-              {presets.length === 0 ? "No presets yet." : "No presets match this filter."}
+        <div className="flex flex-col">
+          <div className="flex flex-col gap-4 overflow-y-scroll max-h-[70vh] py-6 px-4">
+            <p className="text-sm text-color-base/70">
+              Build reusable colorway presets from the palette. Presets appear as one-tap starting
+              points in the seed bead picker. Percentages must total 100%.
             </p>
-          ) : (
-            <div className="flex flex-col gap-2">{visiblePresets.map((preset) => renderPreset(preset))}</div>
-          )}
 
-          {/* New preset — hidden while viewing inactive-only */}
-          {statusFilter !== "inactive" &&
-            (presetEdit === "new" ? (
-              <PresetEditor
-                initial={{ name: "", colors: [] }}
-                palette={activeColors}
-                isSaving={creatingPreset}
-                submitLabel="Create preset"
-                onSave={saveNewPreset}
-                onCancel={() => setPresetEdit(null)}
-              />
+            {presetMutationErr && <ErrorAlert message={presetMutationErr.message} />}
+
+            {/* Count + status filter */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-color-base/50">
+                {visiblePresets.length} {visiblePresets.length === 1 ? "preset" : "presets"}
+              </span>
+              <StatusToggle value={statusFilter} onChange={setStatusFilter} />
+            </div>
+
+            {presetsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={20} className="animate-spin text-color-base/70" />
+              </div>
+            ) : visiblePresets.length === 0 && presetEdit !== "new" ? (
+              <p className="py-4 text-center text-sm text-color-base/70">
+                {presets.length === 0 ? "No presets yet." : "No presets match this filter."}
+              </p>
             ) : (
-              <Button onClick={() => { resetAll(); setPresetEdit("new"); }} variant="dashed">
-                <Plus size={15} /> New preset
-              </Button>
-            ))}
+              <div className="flex flex-col gap-2">{visiblePresets.map((preset) => renderPreset(preset))}</div>
+            )}
+          </div>
+          <div className="border-t border-default py-3 px-4">
+            {/* New preset — hidden while viewing inactive-only */}
+            {statusFilter !== "inactive" &&
+              (presetEdit === "new" ? (
+                <PresetEditor
+                  initial={{ name: "", colors: [] }}
+                  palette={activeColors}
+                  isSaving={creatingPreset}
+                  submitLabel="Create preset"
+                  onSave={saveNewPreset}
+                  onCancel={() => setPresetEdit(null)}
+                />
+              ) : (
+                <Button onClick={() => { resetAll(); setPresetEdit("new"); }} variant="dashed">
+                  <Plus size={15} /> New preset
+                </Button>
+              ))}
+            </div>
         </div>
       )}
     </FullScreenDialog>

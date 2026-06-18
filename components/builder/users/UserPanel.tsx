@@ -14,7 +14,6 @@ import {
 import { useStore } from "@/lib/store";
 import { clearToken } from "@/lib/auth";
 import { disconnectPusher } from "@/lib/pusher";
-import { getInitials } from "@/lib/utils"
 
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";

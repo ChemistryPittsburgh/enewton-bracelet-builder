@@ -11,6 +11,7 @@ import {
   SEED_BEAD_THICKNESS_RATIO,
   ROUND_BEAD_THICKNESS_RATIO,
   seedBeadSizeRange,
+  SEED_BEAD_SIZE_LABELS,
 } from "@/lib/constants";
 
 // ─── Seeded PRNG (mulberry32) ──────────────────────────────────────────────
@@ -162,4 +163,22 @@ function generateRoundBeads(config: SeedSegmentConfig): GeneratedSeedBead[] {
 /** Returns a random integer suitable for use as a PRNG seed. */
 export function newRandomSeed(): number {
   return Math.floor(Math.random() * 2147483647);
+}
+/**
+ * Readable size for a seed segment — "Small (1mm)" / "Large (2mm)" for the
+ * seed shape, or the millimetre value for round. Prefers the stored nominal
+ * size, falling back to the range midpoint for legacy configs.
+ *
+ * @param includeMM  When false, returns just the word label (e.g. "Small").
+ */
+export function seedSizeLabel(cfg: SeedSegmentConfig, includeMM: boolean): string {
+  if (cfg.seed_shape === "round") {
+    const mm = cfg.round_size_mm ?? 2;
+    return includeMM ? `${mm}mm` : `${mm}`;
+  }
+  const size =
+    cfg.seed_size_mm ?? Math.round((cfg.bead_size_range[0] + cfg.bead_size_range[1]) / 2);
+  const label = SEED_BEAD_SIZE_LABELS[size];
+  if (label) return includeMM ? `${label} (${size}mm)` : label;
+  return includeMM ? `${size}mm` : `${size}`;
 }

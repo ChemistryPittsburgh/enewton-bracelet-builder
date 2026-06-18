@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { Search, X, Dot, Sparkle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize, unslugify } from "@/lib/utils";
