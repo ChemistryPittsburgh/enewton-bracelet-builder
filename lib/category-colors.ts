@@ -1,10 +1,10 @@
 /**
  * category-colors.ts
  *
- * Single source of truth for all colour-coded UI elements:
+ * Single source of truth for all color-coded UI elements:
  *   - Filter chip / badge categories (material, type, creator, tag, collection)
  *   - Bracelet workflow status badges
- *   - User role badge colours
+ *   - User role badge colors
  *
  * NOTE: Tailwind class strings must appear in full (no interpolation) so the
  * compiler keeps them. Don't construct them dynamically.
@@ -34,12 +34,13 @@ export const STATUS_META: Record<BraceletStatus, { label: string; cls: string }>
 
 // ── Bead / charm category badges ──────────────────────────────────────────────
 export const BEAD_CATEGORY_META: Record<string, { label: string; cls: string }> = {
-  bead:    { label: "Bead",    cls: "bg-green/20 text-[#1e6b3a]"  },
-  charm:   { label: "Charm",   cls: "bg-gold/30 text-color-base/80" },
-  spacer:  { label: "Spacer",  cls: "bg-stone/30 text-color-base/60" },
-  tube:  { label: "Tube",  cls: "bg-[#2471a3]/20 text-[#0d5c52]" },
-  gem:  { label: "Gem",  cls: "bg-[#c0774a]/20 text-[#c0774a]" },
-  resin_cross:  { label: "Resin Cross",  cls: "bg-[#6c3483]/20 text-[#6c3483]" }
+  bead:        { label: "Bead",        cls: "bg-green/20 text-[#1e6b3a]"  },
+  charm:       { label: "Charm",       cls: "bg-gold/30 text-color-base/80" },
+  float_charm: { label: "Float Charm", cls: "bg-[#c0774a]/30 text-[#8b5e3c]" },
+  spacer:      { label: "Spacer",      cls: "bg-stone/30 text-color-base/60" },
+  tube:        { label: "Tube",        cls: "bg-[#2471a3]/20 text-[#0d5c52]" },
+  gem:         { label: "Gem",         cls: "bg-[#c0774a]/20 text-[#c0774a]" },
+  resin_cross: { label: "Resin Cross", cls: "bg-[#6c3483]/20 text-[#6c3483]" }
 };
 
 const DEFAULT_BEAD_CATEGORY: { label: string; cls: string } = {

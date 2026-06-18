@@ -28,7 +28,7 @@ export interface CreateBeadRequest {
   slug: string;
   glb_path: string;
   bead_type: string;
-  bead_category: string;      // "bead" | "charm"
+  bead_category: string;      // "bead" | "charm" | "float_charm" | "tube" | "gem" | …
   diameter: number;            // in metres (e.g. 0.006)
   size_mm: number | null;
   sku: string | null;

@@ -9,11 +9,22 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
-import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize } from "@/types";
+import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize, SeedSegmentConfig } from "@/types";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
 import type { WebGLRenderer, Scene as ThreeScene, Camera } from "three";
+
+const UNDO_LIMIT = 50;
+
+type CanvasSnapshot = {
+  beads:               PlacedBead[];
+  braceletSize:        BraceletSize;
+  bandMaterial:        BandMaterial;
+  hairtieColor:        string;
+  braceletName:        string;
+  braceletDescription: string;
+};
 
 type PersistedState = {
   beads?: PlacedBead[];
@@ -34,6 +45,9 @@ interface Store {
 
   /** Add a bead to the next available slot. Returns an error string or null. */
   addBead: (product: BeadProduct) => string | null;
+
+  /** Add a seed bead segment. Returns an error string or null. */
+  addSeedSegment: (product: BeadProduct, seedConfig: SeedSegmentConfig) => string | null;
 
   /** Remove a bead by instanceId. Closes the panel if that bead was selected. */
   removeBead: (instanceId: string) => void;
@@ -171,6 +185,13 @@ interface Store {
   /** Reset the dirty flag — called after a successful save. */
   markClean: () => void;
 
+  /** Ephemeral — not persisted. Undo/redo history for bead mutations. */
+  undoStack: CanvasSnapshot[];
+  redoStack: CanvasSnapshot[];
+  pushUndoSnapshot: () => void;
+  undo: () => void;
+  redo: () => void;
+
   /** Ephemeral — temporarily hides spacer visuals during thumbnail capture. */
   spacersHiddenForCapture: boolean;
   setSpacersHiddenForCapture: (hidden: boolean) => void;
@@ -211,6 +232,41 @@ export const useStore = create<Store>()(
       isDirty: false,
       markClean: () => set({ isDirty: false }),
 
+      undoStack: [],
+      redoStack: [],
+
+      pushUndoSnapshot() {
+        const s = get();
+        const snapshot: CanvasSnapshot = {
+          beads:               [...s.beads],
+          braceletSize:        s.braceletSize,
+          bandMaterial:        s.bandMaterial,
+          hairtieColor:        s.hairtieColor,
+          braceletName:        s.braceletName,
+          braceletDescription: s.braceletDescription,
+        };
+        set((st) => ({
+          undoStack: [snapshot, ...st.undoStack].slice(0, UNDO_LIMIT),
+          redoStack: [],
+        }));
+      },
+
+      undo() {
+        const { undoStack, redoStack, beads, braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription } = get();
+        if (undoStack.length === 0) return;
+        const [snapshot, ...rest] = undoStack;
+        const current: CanvasSnapshot = { beads: [...beads], braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription };
+        set({ ...snapshot, undoStack: rest, redoStack: [current, ...redoStack], isDirty: true, selectedBead: null, editSelectedIds: [] });
+      },
+
+      redo() {
+        const { undoStack, redoStack, beads, braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription } = get();
+        if (redoStack.length === 0) return;
+        const [snapshot, ...rest] = redoStack;
+        const current: CanvasSnapshot = { beads: [...beads], braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription };
+        set({ ...snapshot, redoStack: rest, undoStack: [current, ...undoStack], isDirty: true, selectedBead: null, editSelectedIds: [] });
+      },
+
       spacersHiddenForCapture: false,
       setSpacersHiddenForCapture: (hidden) => set({ spacersHiddenForCapture: hidden }),
 
@@ -219,6 +275,7 @@ export const useStore = create<Store>()(
         if (!beadFits(get().beads, { product }, radius)) {
           return "Bracelet is full — no room for that bead.";
         }
+        get().pushUndoSnapshot();
         set((s) => ({
           beads: [...s.beads, { instanceId: nanoid(), product }],
           isDirty: true,
@@ -226,7 +283,21 @@ export const useStore = create<Store>()(
         return null;
       },
 
+      addSeedSegment(product, seedConfig) {
+        const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
+        if (!beadFits(get().beads, { product }, radius)) {
+          return "Bracelet is full — no room for that segment.";
+        }
+        get().pushUndoSnapshot();
+        set((s) => ({
+          beads: [...s.beads, { instanceId: nanoid(), product, seedConfig }],
+          isDirty: true,
+        }));
+        return null;
+      },
+
       removeBead(instanceId) {
+        get().pushUndoSnapshot();
         set((s) => ({
           beads: s.beads.filter((b) => b.instanceId !== instanceId),
           selectedBead:
@@ -239,6 +310,7 @@ export const useStore = create<Store>()(
       },
 
       clearBeads() {
+        get().pushUndoSnapshot();
         set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, isDirty: false });
       },
 
@@ -251,6 +323,8 @@ export const useStore = create<Store>()(
         isDirty: false,
         braceletSize: "small" as BraceletSize,
         bandMaterial: "stretchy" as BandMaterial,
+        undoStack: [],
+        redoStack: [],
       }),
 
       startNewBracelet: () => set({
@@ -260,6 +334,8 @@ export const useStore = create<Store>()(
         activeDesignId: null,
         selectedBead: null,
         isDirty: false,
+        undoStack: [],
+        redoStack: [],
         // braceletSize and bandMaterial intentionally preserved
       }),
 
@@ -286,12 +362,13 @@ export const useStore = create<Store>()(
       removeAllOfType() {
         const { beads, selectedBead } = get();
         if (!selectedBead) return;
+        get().pushUndoSnapshot();
         const filtered = beads.filter((b) => b.product.id !== selectedBead.product.id);
         set({ beads: filtered, selectedBead: null, selectAllActive: false, editSelectedIds: [], isDirty: true });
       },
 
       loadBeads(beads, name) {
-        set({ beads, selectedBead: null, isDirty: false, ...(name ? { braceletName: name } : {}) });
+        set({ beads, selectedBead: null, isDirty: false, undoStack: [], redoStack: [], ...(name ? { braceletName: name } : {}) });
       },
 
       setBraceletName(name) {
@@ -303,6 +380,7 @@ export const useStore = create<Store>()(
       },
 
       reorderBeads(fromIndex, toIndex) {
+        get().pushUndoSnapshot();
         set((s) => {
           const arr = [...s.beads];
           const [moved] = arr.splice(fromIndex, 1);
@@ -318,11 +396,17 @@ export const useStore = create<Store>()(
         const bead = beads[index];
         const radius = BRACELET_SIZE_RADIUS[braceletSize];
         if (!beadFits(beads, bead, radius)) return;
-        const copy: PlacedBead = { instanceId: nanoid(), product: bead.product };
+        get().pushUndoSnapshot();
+        const copy: PlacedBead = {
+          instanceId: nanoid(),
+          product: bead.product,
+          ...(bead.seedConfig ? { seedConfig: bead.seedConfig } : {}),
+        };
         set({ beads: [...beads.slice(0, index + 1), copy, ...beads.slice(index + 1)], isDirty: true });
       },
 
       reverseBracelet() {
+        get().pushUndoSnapshot();
         set((s) => ({ beads: [...s.beads].reverse(), isDirty: true }));
       },
 
@@ -410,6 +494,7 @@ export const useStore = create<Store>()(
         if (!beadFits(get().beads, { product }, radius)) {
           return "Bracelet is full — no room for that bead.";
         }
+        get().pushUndoSnapshot();
         const newBead: PlacedBead = { instanceId: nanoid(), product };
         set((s) => {
           const arr = [...s.beads];

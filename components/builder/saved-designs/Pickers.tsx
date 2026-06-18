@@ -85,7 +85,7 @@ export function TagPicker({
                 <span className="text-xs font-semibold text-color-base/70 uppercase tracking-wide">Custom Tags</span>
                 <button
                   onClick={() => { setOpen(false); setManageOpen(true); }}
-                  className="flex items-center gap-1 text-xs text-yellow-600 hover:text-yellow-800 transition-colors"
+                  className="manage-btn"
                 >
                   <Settings size={12} /> Manage
                 </button>
@@ -176,7 +176,7 @@ export function CollectionPicker({
                 <span className="text-xs font-semibold text-color-base/70 uppercase tracking-wide">Collections</span>
                 <button
                   onClick={() => { setOpen(false); setManageOpen(true); }}
-                  className="flex items-center gap-1 text-xs text-gold hover:text-gold/80 transition-colors"
+                  className="manage-btn"
                 >
                   <Settings size={12} /> Manage
                 </button>
