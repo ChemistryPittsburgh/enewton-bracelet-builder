@@ -616,7 +616,7 @@ const PATTERN_SORT_OPTIONS: { label: string; value: DesignSortOption }[] = [
 
 function PatternsGrid({ onClose }: { onClose: () => void }) {
   const { data: patterns = [], isLoading } = usePatterns();
-  const { loadPattern } = useLoadPattern();
+  const { loadPattern, editPattern } = useLoadPattern();
   const { canManageComponents } = usePermissions();
   const [search, setSearch]   = useState("");
   const [sortBy, setSortBy]   = useState<DesignSortOption>("newest");
@@ -643,6 +643,11 @@ function PatternsGrid({ onClose }: { onClose: () => void }) {
 
   function handleLoad(pattern: Bracelet) {
     loadPattern(pattern);
+    onClose();
+  }
+
+  function handleEdit(pattern: Bracelet) {
+    editPattern(pattern);
     onClose();
   }
 
@@ -721,6 +726,7 @@ function PatternsGrid({ onClose }: { onClose: () => void }) {
                 pattern={pattern}
                 canDelete={canManageComponents}
                 onLoad={() => handleLoad(pattern)}
+                onEdit={canManageComponents ? () => handleEdit(pattern) : undefined}
               />
             ))}
           </div>

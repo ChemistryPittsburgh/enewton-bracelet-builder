@@ -20,13 +20,18 @@ interface PatternsPanelProps {
 
 export function PatternsPanel({ open, onClose }: PatternsPanelProps) {
   const { data: patterns = [], isLoading } = usePatterns();
-  const { loadPattern } = useLoadPattern();
+  const { loadPattern, editPattern } = useLoadPattern();
   const { canManageComponents } = usePermissions();
   const braceletName = useStore((s) => s.braceletName);
   const [createOpen, setCreateOpen] = useState(false);
 
   function handleSelect(pattern: Bracelet) {
     loadPattern(pattern);
+    onClose();
+  }
+
+  function handleEdit(pattern: Bracelet) {
+    editPattern(pattern);
     onClose();
   }
 
@@ -64,7 +69,13 @@ export function PatternsPanel({ open, onClose }: PatternsPanelProps) {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {patterns.map((pattern) => (
-                <PatternCard key={pattern.id} pattern={pattern} onLoad={() => handleSelect(pattern)} canDelete={canManageComponents} />
+                <PatternCard
+                  key={pattern.id}
+                  pattern={pattern}
+                  canDelete={canManageComponents}
+                  onLoad={() => handleSelect(pattern)}
+                  onEdit={canManageComponents ? () => handleEdit(pattern) : undefined}
+                />
               ))}
             </div>
           )}

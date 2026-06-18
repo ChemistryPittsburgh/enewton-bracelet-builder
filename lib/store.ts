@@ -33,6 +33,7 @@ type PersistedState = {
   bandMaterial?: string;
   braceletSize?: string;
   activeDesignId?: number | null;
+  activePatternId?: number | null;
 };
 
 interface Store {
@@ -158,6 +159,16 @@ interface Store {
 
   /**
    * Ephemeral — not persisted.
+   * ID of the pattern being edited on the canvas. Set when the user clicks
+   * "Edit pattern", cleared when they start a new bracelet or clear beads.
+   * When set, the header shows a "Save Pattern" button that writes back to
+   * PUT /patterns/:id instead of creating a new design.
+   */
+  activePatternId: number | null;
+  setActivePatternId: (id: number | null) => void;
+
+  /**
+   * Ephemeral — not persisted.
    * When a panel tries to load a design while the canvas already has beads,
    * it calls setPendingDesign() instead of loadDesign() directly.
    * ConfirmReplaceDialog (rendered at the root) reads this and shows the
@@ -177,7 +188,9 @@ interface Store {
    * After confirm/cancel the pending state is cleared.
    */
   pendingPattern: Bracelet | null;
-  setPendingPattern: (pattern: Bracelet) => void;
+  /** When true, confirming the pending pattern load sets activePatternId (edit mode). */
+  pendingPatternEditMode: boolean;
+  setPendingPattern: (pattern: Bracelet, editMode?: boolean) => void;
   clearPendingPattern: () => void;
 
   /** True when the bracelet has unsaved changes since the last save/load. */
@@ -222,9 +235,11 @@ export const useStore = create<Store>()(
       dragFromPanel: null,
       canvasEl: null,
       activeDesignId: null,
+      activePatternId: null,
       pendingDesign: null,
       pendingDesignOnLoad: null,
       pendingPattern: null,
+      pendingPatternEditMode: false,
       controlsEl: null,
       glRenderer: null,
       threeScene: null,
@@ -311,7 +326,7 @@ export const useStore = create<Store>()(
 
       clearBeads() {
         get().pushUndoSnapshot();
-        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, isDirty: false });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false });
       },
 
       resetBracelet: () => set({
@@ -319,6 +334,7 @@ export const useStore = create<Store>()(
         braceletName: "New Bracelet",
         braceletDescription: "",
         activeDesignId: null,
+        activePatternId: null,
         selectedBead: null,
         isDirty: false,
         braceletSize: "small" as BraceletSize,
@@ -332,6 +348,7 @@ export const useStore = create<Store>()(
         braceletName: "New Bracelet",
         braceletDescription: "",
         activeDesignId: null,
+        activePatternId: null,
         selectedBead: null,
         isDirty: false,
         undoStack: [],
@@ -473,6 +490,10 @@ export const useStore = create<Store>()(
         set({ activeDesignId: id });
       },
 
+      setActivePatternId(id) {
+        set({ activePatternId: id });
+      },
+
       setPendingDesign(design, onLoad) {
         set({ pendingDesign: design, pendingDesignOnLoad: onLoad });
       },
@@ -481,12 +502,12 @@ export const useStore = create<Store>()(
         set({ pendingDesign: null, pendingDesignOnLoad: null });
       },
 
-      setPendingPattern(pattern) {
-        set({ pendingPattern: pattern });
+      setPendingPattern(pattern, editMode = false) {
+        set({ pendingPattern: pattern, pendingPatternEditMode: editMode });
       },
 
       clearPendingPattern() {
-        set({ pendingPattern: null });
+        set({ pendingPattern: null, pendingPatternEditMode: false });
       },
 
       insertBead(product, atIndex) {
@@ -514,7 +535,7 @@ export const useStore = create<Store>()(
     {
       name: "enewton-beads",
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       migrate(persistedState: unknown, fromVersion: number) {
         const s = (persistedState ?? {}) as PersistedState;
         if (fromVersion < 1) {
@@ -532,6 +553,10 @@ export const useStore = create<Store>()(
           // activeDesignId added to persisted state
           s.activeDesignId ??= null;
         }
+        if (fromVersion < 4) {
+          // activePatternId added to persisted state
+          s.activePatternId ??= null;
+        }
         return s;
       },
       partialize: (s) => ({
@@ -542,6 +567,7 @@ export const useStore = create<Store>()(
         braceletSize: s.braceletSize,
         hairtieColor: s.hairtieColor,
         activeDesignId: s.activeDesignId,
+        activePatternId: s.activePatternId,
       }),
     }
   )

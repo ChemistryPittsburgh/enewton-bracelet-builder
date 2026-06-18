@@ -17,6 +17,7 @@ import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useDesign } from "@/hooks/useDesign";
+import { usePatterns } from "@/hooks/usePatterns";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -47,6 +48,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     braceletSize,
     placedBeads,
     activeDesignId,
+    activePatternId,
     setBraceletName,
     setBraceletDescription,
     clearBeads,
@@ -59,6 +61,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     braceletSize:            s.braceletSize,
     placedBeads:             s.beads,
     activeDesignId:          s.activeDesignId,
+    activePatternId:         s.activePatternId,
     setBraceletName:         s.setBraceletName,
     setBraceletDescription:  s.setBraceletDescription,
     clearBeads:              s.clearBeads,
@@ -67,6 +70,8 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
+  const { data: patterns = [] } = usePatterns();
+  const activePattern = activePatternId !== null ? patterns.find((p) => p.id === activePatternId) ?? null : null;
   const { canEdit, canDeleteBracelet, isAdmin, canManageComponents, canCreatePattern } = usePermissions();
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published" || isKicked;
 
@@ -169,11 +174,11 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     <FullScreenDialog
       open={open}
       onClose={onClose}
-      title="Bracelet Details"
+      title={activePatternId !== null ? "Pattern Details" : "Bracelet Details"}
       className="max-w-3xl"
       bodyClasses="py-0 px-0"
       headerExtra={
-        canCreatePattern ? (
+        canCreatePattern && activePatternId === null ? (
           <Button
             variant="secondary"
             size="sm"
@@ -191,8 +196,8 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
 
           {/* Thumbnail */}
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-light-grey/80 flex items-center justify-center">
-            {savedDesign?.preview_image_url ? (
-              <img src={savedDesign.preview_image_url} alt={braceletName} className="h-full w-full object-cover" />
+            {(activePattern?.preview_image_url ?? savedDesign?.preview_image_url) ? (
+              <img src={(activePattern?.preview_image_url ?? savedDesign?.preview_image_url)!} alt={braceletName} className="h-full w-full object-cover" />
             ) : (
               <div className="h-10 w-10 rounded-full border-2 border-dashed" />
             )}

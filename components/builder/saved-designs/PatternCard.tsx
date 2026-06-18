@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutTemplate, Loader2, Plus, Trash2 } from "lucide-react";
+import { LayoutTemplate, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Bracelet } from "@/types";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useDeletePattern } from "@/hooks/useDeletePattern";
@@ -10,9 +10,10 @@ interface PatternCardProps {
   pattern: Bracelet;
   canDelete: boolean;
   onLoad: () => void;
+  onEdit?: () => void;
 }
 
-export function PatternCard({ pattern, canDelete, onLoad }: PatternCardProps) {
+export function PatternCard({ pattern, canDelete, onLoad, onEdit }: PatternCardProps) {
   const [confirming, setConfirming] = useState(false);
   const { mutate: deletePattern, isPending } = useDeletePattern();
 
@@ -52,9 +53,20 @@ export function PatternCard({ pattern, canDelete, onLoad }: PatternCardProps) {
 
         {canDelete && !confirming && (
           <div
-            className="absolute right-2 top-2"
+            className="absolute right-2 top-2 flex items-center gap-1"
             onClick={(e) => e.stopPropagation()}
           >
+            {onEdit && (
+              <Tooltip content="Edit pattern beads">
+                <button
+                  onClick={onEdit}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-color-base/70 shadow-sm backdrop-blur-sm transition-all hover:bg-mint hover:text-navy opacity-0 group-hover:opacity-100"
+                  aria-label="Edit pattern"
+                >
+                  <Pencil size={13} />
+                </button>
+              </Tooltip>
+            )}
             <Tooltip content="Delete pattern">
               <button
                 onClick={() => setConfirming(true)}

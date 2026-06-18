@@ -33,8 +33,9 @@ export function ConfirmReplaceDialog() {
   const pendingDesign    = useStore((s) => s.pendingDesign);
   const pendingOnLoad    = useStore((s) => s.pendingDesignOnLoad);
   const clearPending     = useStore((s) => s.clearPendingDesign);
-  const pendingPattern   = useStore((s) => s.pendingPattern);
-  const clearPendingPattern = useStore((s) => s.clearPendingPattern);
+  const pendingPattern        = useStore((s) => s.pendingPattern);
+  const pendingPatternEditMode = useStore((s) => s.pendingPatternEditMode);
+  const clearPendingPattern   = useStore((s) => s.clearPendingPattern);
   const braceletName     = useStore((s) => s.braceletName);
   const activeDesignId   = useStore((s) => s.activeDesignId);
   const setBraceletName  = useStore((s) => s.setBraceletName);
@@ -84,7 +85,11 @@ export function ConfirmReplaceDialog() {
       <PatternConfirmDialog
         patternName={pendingPattern.name}
         braceletName={braceletName}
-        onConfirm={() => { applyPattern(pendingPattern); clearPendingPattern(); }}
+        editMode={pendingPatternEditMode}
+        onConfirm={() => {
+          applyPattern(pendingPattern, pendingPatternEditMode ? pendingPattern.id : null);
+          clearPendingPattern();
+        }}
         onCancel={() => clearPendingPattern()}
       />
     );
@@ -249,11 +254,13 @@ export function ConfirmReplaceDialog() {
 function PatternConfirmDialog({
   patternName,
   braceletName,
+  editMode,
   onConfirm,
   onCancel,
 }: {
   patternName: string;
   braceletName: string;
+  editMode: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -273,11 +280,11 @@ function PatternConfirmDialog({
       <div className="w-[420px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-[20px] font-semibold">Load pattern?</h3>
+            <h3 className="text-[20px] font-semibold">{editMode ? "Edit pattern?" : "Load pattern?"}</h3>
             <p className="mt-2 text-sm text-color-base/80 leading-relaxed">
               You have unsaved beads on{" "}
               <span className="font-medium">"{braceletName}"</span> that will be discarded.{" "}
-              Load the pattern{" "}
+              {editMode ? "Edit" : "Load"} the pattern{" "}
               <span className="font-medium">"{patternName}"</span>?
             </p>
           </div>
@@ -291,7 +298,7 @@ function PatternConfirmDialog({
         </div>
         <div className="flex gap-2">
           <Button onClick={onConfirm} variant="primary" size="sm" className="w-full">
-            Discard &amp; Load Pattern
+            {editMode ? "Discard & Edit Pattern" : "Discard & Load Pattern"}
           </Button>
           <Button onClick={onCancel} variant="danger" size="sm">
             Cancel

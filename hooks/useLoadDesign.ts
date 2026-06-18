@@ -24,7 +24,8 @@ export function useLoadDesign() {
   const setBraceletSize = useStore((s) => s.setBraceletSize);
   const setbandMaterial = useStore((s) => s.setbandMaterial);
   const setHairtieColor = useStore((s) => s.setHairtieColor);
-  const setActiveDesignId = useStore((s) => s.setActiveDesignId);
+  const setActiveDesignId  = useStore((s) => s.setActiveDesignId);
+  const setActivePatternId = useStore((s) => s.setActivePatternId);
   const markClean = useStore((s) => s.markClean);
   const setBraceletDescription = useStore((s) => s.setBraceletDescription);
   const startNewBracelet = useStore((s) => s.startNewBracelet);
@@ -85,6 +86,7 @@ export function useLoadDesign() {
 
     // Mark this design as the active one — subsequent saves become updates.
     setActiveDesignId(design.id);
+    setActivePatternId(null);
 
     // All fields restored — clear the dirty flag so loading another design
     // without making changes won't trigger the confirm dialog.
