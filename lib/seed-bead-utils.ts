@@ -32,6 +32,8 @@ export interface GeneratedSeedBead {
   isMetallic: boolean;
   /** Offset along the segment's arc from the segment start, in metres. */
   arcOffset: number;
+  /** Finish preset key derived from the colorway label (e.g. "gold", "silver"). */
+  finishKey: string;
 }
 
 /**
@@ -43,14 +45,41 @@ export interface GeneratedSeedBead {
 const SEED_BEAD_THICKNESS_RATIO = 0.72;
 
 /**
+ * Thickness-to-diameter ratio for round beads.
+ * Round beads are spherical, so thickness === diameter → ratio 1.0.
+ */
+const ROUND_BEAD_THICKNESS_RATIO = 1.0;
+
+/**
+ * Derives a FINISH_PRESETS key from a colorway entry label.
+ * Falls back to "gold" for unrecognised or missing labels.
+ */
+function finishKeyFromLabel(label?: string): string {
+  if (!label) return "gold";
+  const l = label.toLowerCase();
+  if (l.includes("silver")) return "silver";
+  if (l.includes("rose")) return "rose_gold";
+  return "gold";
+}
+
+/**
  * Generates the list of individual tiny beads that compose a seed segment.
  *
- * Packs beads tightly along the arc by their physical thickness (diameter × 0.72),
- * matching the actual GLB model proportions so flat faces sit flush.
- * colors are distributed according to the colorway percentages using a
- * weighted random pick per bead.
+ * In "seed" mode (default): packs beads tightly along the arc by their
+ * physical thickness (diameter × 0.72), matching the actual GLB model
+ * proportions so flat faces sit flush. Colors are distributed according
+ * to the colorway percentages using a weighted random pick per bead.
+ *
+ * In "round" mode: packs uniform spherical beads at a fixed diameter
+ * (round_size_mm). All beads share the same color from colorway[0].
  */
 export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[] {
+  const isRound = config.seed_shape === "round";
+
+  if (isRound) {
+    return generateRoundBeads(config);
+  }
+
   const rng = createRng(config.random_seed);
 
   const [minMm, maxMm] = config.bead_size_range;
@@ -92,6 +121,41 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
       color: config.colorway[colorIdx].hex,
       isMetallic: config.colorway[colorIdx].is_metallic ?? false,
       arcOffset: cursor + thick / 2,
+      finishKey: finishKeyFromLabel(config.colorway[colorIdx].label),
+    });
+
+    cursor += thick;
+  }
+
+  return beads;
+}
+
+/**
+ * Generates uniform round beads for a seed segment.
+ * All beads are the same size and color — no randomisation.
+ */
+function generateRoundBeads(config: SeedSegmentConfig): GeneratedSeedBead[] {
+  const dMm = config.round_size_mm ?? 2;
+  const dM = dMm / 1000;
+  const thick = dM * ROUND_BEAD_THICKNESS_RATIO;
+  const arcLengthM = config.arc_length_mm / 1000;
+
+  const color = config.colorway[0]?.hex ?? "#D4AF37";
+  const isMetallic = config.colorway[0]?.is_metallic ?? true;
+  const finishKey = finishKeyFromLabel(config.colorway[0]?.label);
+
+  const beads: GeneratedSeedBead[] = [];
+  let cursor = 0;
+
+  while (cursor < arcLengthM) {
+    if (cursor + thick > arcLengthM + 0.0001) break;
+
+    beads.push({
+      diameter: dM,
+      color,
+      isMetallic,
+      arcOffset: cursor + thick / 2,
+      finishKey,
     });
 
     cursor += thick;

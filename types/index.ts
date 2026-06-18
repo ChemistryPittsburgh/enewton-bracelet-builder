@@ -220,6 +220,17 @@ export interface SeedSegmentConfig {
   bead_size_range: [number, number];
   /** Deterministic seed for the PRNG — ensures consistent rendering. */
   random_seed: number;
+  /**
+   * Shape of the individual beads in this segment.
+   * - "seed" (default): flat disc-shaped seed beads with randomised size/color
+   * - "round": uniform spherical beads (like Classic Bead) — no size or color variation
+   */
+  seed_shape?: "seed" | "round";
+  /**
+   * Fixed bead diameter in mm when seed_shape === "round".
+   * Currently 1 or 2 (mm). Ignored for seed_shape === "seed".
+   */
+  round_size_mm?: number;
 }
 
 /**

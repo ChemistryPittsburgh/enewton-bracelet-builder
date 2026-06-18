@@ -52,9 +52,13 @@ export function useLoadDesign() {
       .flatMap((configBead) => {
         // Seed segments: reconstruct from seed_config rather than catalog lookup
         if (configBead.seed_config) {
+          const seedMaterial = configBead.seed_config.colorway[0]?.label?.toLowerCase().includes('silver') ? 'silver' : 'gold';
           const product = createSeedSegmentProduct(
             configBead.seed_config.arc_length_mm,
             configBead.seed_config.random_seed,
+            configBead.seed_config.seed_shape,
+            configBead.seed_config.round_size_mm,
+            seedMaterial,
           );
           return [{
             instanceId: configBead.instance_id,
@@ -116,9 +120,13 @@ export function useLoadDesign() {
       .sort((a, b) => a.position - b.position)
       .flatMap((configBead) => {
         if (configBead.seed_config) {
+          const seedMaterial = configBead.seed_config.colorway[0]?.label?.toLowerCase().includes('silver') ? 'silver' : 'gold';
           const product = createSeedSegmentProduct(
             configBead.seed_config.arc_length_mm,
             configBead.seed_config.random_seed,
+            configBead.seed_config.seed_shape,
+            configBead.seed_config.round_size_mm,
+            seedMaterial,
           );
           return [{
             instanceId: configBead.instance_id,
