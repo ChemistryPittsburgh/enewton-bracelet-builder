@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { AlertCircle, Search, X, Inbox } from "lucide-react";
+import { AlertCircle, Search, X, Inbox, LayoutTemplate } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -18,10 +18,13 @@ import { useTags } from "@/hooks/useTags";
 import { useCollections } from "@/hooks/useCollections";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePermissions } from "@/hooks/usePermissions";
+import { usePatterns } from "@/hooks/usePatterns";
+import { useLoadPattern } from "@/hooks/useLoadPattern";
 
 import type { Bracelet, BraceletStatus, Collection, Tag, DesignLock } from "@/types";
 
 import { DesignCard } from "./DesignCard";
+import { PatternCard } from "./PatternCard";
 import { TagPicker, CollectionPicker } from "./Pickers";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
 import { DiscontinueBraceletDialog } from "@/components/builder/dialogs/DiscontinueBraceletDialog";
@@ -65,7 +68,10 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
   const [isVisible, setIsVisible] = useState(false);
 
   // ── Filters ────────────────────────────────────────────────────────────────
-  const [selectedStatus,        setSelectedStatus]        = useState<BraceletStatus | undefined>(undefined);
+  type SidebarView = BraceletStatus | undefined | "patterns";
+  const [sidebarView,           setSidebarView]           = useState<SidebarView>(undefined);
+  const selectedStatus = sidebarView === "patterns" ? undefined : sidebarView;
+  const showPatterns   = sidebarView === "patterns";
   const [braceletState,         setBraceletState]         = useState<BraceletState>("all");
   const [selectedMaterials,     setSelectedMaterials]     = useState<string[]>([]);
   const [selectedTypes,         setSelectedTypes]         = useState<string[]>([]);
@@ -289,13 +295,14 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
           </div>
 
           <nav className="flex max-lg:flex-wrap lg:flex-col gap-3">
+            <p className={cn(formLabel, "max-lg:w-full")}>Status</p>
             {STATUS_FILTERS.map(({ label, value }) => (
               <button
                 key={label}
-                onClick={() => { setSelectedStatus(value); setBraceletState("all"); }}
+                onClick={() => { setSidebarView(value); setBraceletState("all"); }}
                 className={cn(
                   "rounded-[3px] border border-navy px-4 py-2 lg:px-4 lg:py-3 text-left text-sm lg:text-[16px] transition-all cursor-pointer",
-                  selectedStatus === value
+                  sidebarView === value
                     ? "bg-navy text-white"
                     : "bg-white hover:bg-mint",
                 )}
@@ -303,6 +310,16 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
                 {label}
               </button>
             ))}
+            <p className={cn(formLabel, "max-lg:w-full lg:mt-3")}>Tools</p>
+            <button
+              onClick={() => { setSidebarView("patterns"); setBraceletState("all"); }}
+              className={cn(
+                "rounded-[3px] border border-navy px-4 py-2 lg:px-4 lg:py-3 text-left text-sm lg:text-[16px] transition-all cursor-pointer",
+                showPatterns ? "bg-navy text-white" : "bg-white hover:bg-mint",
+              )}
+            >
+              Patterns
+            </button>
           </nav>
         </aside>
 
@@ -316,206 +333,215 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
 
         {/* ── Main content ──────────────────────────────────────────────── */}
         <div className="flex flex-1 flex-col md:pt-14 overflow-scroll lg:overflow-hidden">
-          <div className="designs-panel-header px-6 lg:px-10 border-b border-default">
-            <h2 className="text-xl pb-3 lg:py-6">Saved designs</h2>
 
-            {/* Filter bar */}
-            <div className="shrink-0 flex flex-col gap-1 lg:gap-4 pb-3">
+          {showPatterns ? (
+            /* ── Patterns view ──────────────────────────────────────── */
+            <PatternsGrid onClose={onClose} />
+          ) : (
+            /* ── Designs view ───────────────────────────────────────── */
+            <>
+              <div className="designs-panel-header px-6 lg:px-10 border-b border-default">
+                <h2 className="text-xl pb-3 lg:py-6">Saved designs</h2>
 
-              {/* Row 1: dropdowns · bracelet state · search */}
-              <div className="flex flex-col lg:flex-wrap lg:flex-row lg:items-center gap-3 lg:gap-6">
+                {/* Filter bar */}
+                <div className="shrink-0 flex flex-col gap-1 lg:gap-4 pb-3">
 
-                {/* Dropdowns */}
-                <div className="flex flex-col gap-2">
-                  <p className={formLabel}>Filter</p>
-                  <div className="flex max-lg:flex-wrap items-center gap-2">
-                    <select
-                      value=""
-                      onChange={(e) => addMaterial(e.target.value)}
-                      className={selectCls}
-                      aria-label="Filter Bracelets by Material"
-                    >
-                      <option value="">{selectedMaterials.length > 0 ? `Material (${selectedMaterials.length})` : "Material"}</option>
-                      {allMaterials.map((m) => (
-                        <option key={m} value={m} disabled={selectedMaterials.includes(m)}>
-                          {m ? m.charAt(0).toUpperCase() + m.slice(1) : m}
-                        </option>
-                      ))}
-                    </select>
+                  {/* Row 1: dropdowns · bracelet state · search */}
+                  <div className="flex flex-col lg:flex-wrap lg:flex-row lg:items-center gap-3 lg:gap-6">
 
-                    <select
-                      value=""
-                      onChange={(e) => addType(e.target.value)}
-                      className={selectCls}
-                      aria-label="Filter Bracelets by Type"
-                    >
-                      <option value="">{selectedTypes.length > 0 ? `Type (${selectedTypes.length})` : "Type"}</option>
-                      {allTypes.map((t) => (
-                        <option key={t} value={t} disabled={selectedTypes.includes(t)}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
+                    {/* Dropdowns */}
+                    <div className="flex flex-col gap-2">
+                      <p className={formLabel}>Filter</p>
+                      <div className="flex max-lg:flex-wrap items-center gap-2">
+                        <select
+                          value=""
+                          onChange={(e) => addMaterial(e.target.value)}
+                          className={selectCls}
+                          aria-label="Filter Bracelets by Material"
+                        >
+                          <option value="">{selectedMaterials.length > 0 ? `Material (${selectedMaterials.length})` : "Material"}</option>
+                          {allMaterials.map((m) => (
+                            <option key={m} value={m} disabled={selectedMaterials.includes(m)}>
+                              {m ? m.charAt(0).toUpperCase() + m.slice(1) : m}
+                            </option>
+                          ))}
+                        </select>
 
-                    <CollectionPicker
-                      selectedIds={selectedCollectionIds}
-                      onToggle={(c: Collection) =>
-                        setSelectedCollectionIds((prev) =>
-                          prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id],
-                        )
-                      }
-                      showManage
-                    />
+                        <select
+                          value=""
+                          onChange={(e) => addType(e.target.value)}
+                          className={selectCls}
+                          aria-label="Filter Bracelets by Type"
+                        >
+                          <option value="">{selectedTypes.length > 0 ? `Type (${selectedTypes.length})` : "Type"}</option>
+                          {allTypes.map((t) => (
+                            <option key={t} value={t} disabled={selectedTypes.includes(t)}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
 
-                    <TagPicker
-                      selectedIds={selectedTagIds}
-                      onToggle={(tag: Tag) =>
-                        setSelectedTagIds((prev) =>
-                          prev.includes(tag.id) ? prev.filter((id) => id !== tag.id) : [...prev, tag.id],
-                        )
-                      }
-                      showManage
-                    />
+                        <CollectionPicker
+                          selectedIds={selectedCollectionIds}
+                          onToggle={(c: Collection) =>
+                            setSelectedCollectionIds((prev) =>
+                              prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id],
+                            )
+                          }
+                          showManage
+                        />
+
+                        <TagPicker
+                          selectedIds={selectedTagIds}
+                          onToggle={(tag: Tag) =>
+                            setSelectedTagIds((prev) =>
+                              prev.includes(tag.id) ? prev.filter((id) => id !== tag.id) : [...prev, tag.id],
+                            )
+                          }
+                          showManage
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bracelet State segmented control */}
+                    {selectedStatus !== "draft" && selectedStatus !== "in_review" && selectedStatus !== "approved" && (
+                      <div className="flex flex-col gap-2">
+                        <p className={formLabel}>Bracelet State</p>
+                        <div className="flex rounded-[2px] border border-default bg-white overflow-hidden w-fit">
+                          {BRACELET_STATE_OPTIONS.map(({ label, value }) => (
+                            <button
+                              key={value}
+                              onClick={() => setBraceletState(value)}
+                              className={cn(
+                                "px-4 py-2 text-sm font-semibold transition-all",
+                                braceletState === value
+                                  ? "bg-navy text-white"
+                                  : "text-color-base hover:bg-mint",
+                              )}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Search */}
+                    <div className="lg:ml-auto max-lg:max-w-[300px] flex flex-col gap-2 min-w-[200px] shrink-0">
+                      <p className={formLabel}>Search</p>
+                      <div className="flex w-full items-center gap-0 rounded-[2px] border border-default bg-white pr-3 focus-within:border-navy transition-colors">
+                        <input
+                          type="text"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          placeholder="Bracelet Name"
+                          aria-label="Search by Bracelet Name"
+                          className="w-48 flex-1 border-0 bg-transparent px-2 py-2.5 text-sm   outline-none ring-0 placeholder:text-color-base/70"
+                        />
+                        <Search size={15} className="shrink-0 text-color-base/70" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: active chips · sort */}
+                  <div className="flex items-center gap-2 min-h-[28px]">
+                    <div className="flex flex-1 flex-wrap items-center gap-1.5">
+                      {activeChips.map((chip) => {
+                        const style = CATEGORY_STYLES[chip.category];
+                        const useInlineColor = chip.category === "tag" && chip.color;
+                        return (
+                          <span
+                            key={`${chip.category}-${chip.label}`}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-[2px] border border-navy px-2.5 py-1 text-xs font-medium",
+                              useInlineColor ? "text-navy" : `${style.bg}`,
+                            )}
+                            style={useInlineColor ? { backgroundColor: chip.color! } : undefined}
+                          >
+                            <span className="opacity-40">{style.label}:</span>
+                            {chip.label}
+                            <Tooltip content={`Remove filter ${chip.label}`}>
+                              <button
+                                onClick={chip.onRemove}
+                                className="ml-0.5 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                                aria-label={`Remove ${chip.label} filter`}
+                              >
+                                <X size={11} />
+                              </button>
+                            </Tooltip>
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                      <p className={cn(formLabel, "py-1")}>Sort by:</p>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as DesignSortOption)}
+                        className="border-0 bg-transparent text-sm py-1 text-color-base/70 focus:ring-navy outline-none cursor-pointer hover:text-neutral-900"
+                      >
+                        {SORT_OPTIONS.map(({ label, value }) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Bracelet State segmented control */}
-                {selectedStatus !== "draft" && selectedStatus !== "in_review" && selectedStatus !== "approved" && (
-                  <div className="flex flex-col gap-2">
-                    <p className={formLabel}>Bracelet State</p>
-                    <div className="flex rounded-[2px] border border-default bg-white overflow-hidden w-fit">
-                      {BRACELET_STATE_OPTIONS.map(({ label, value }) => (
-                        <button
-                          key={value}
-                          onClick={() => setBraceletState(value)}
-                          className={cn(
-                            "px-4 py-2 text-sm font-semibold transition-all",
-                            braceletState === value
-                              ? "bg-navy text-white"
-                              : "text-color-base hover:bg-mint",
-                          )}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+              {/* ── Card grid ───────────────────────────────────────── */}
+              <div className="flex-1 lg:overflow-y-auto p-6 lg:px-10">
+                {isLoading && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="flex flex-col rounded-lg border border-default overflow-hidden">
+                        <div className="aspect-square w-full bg-light-grey/80 animate-pulse" />
+                        <div className="px-3 py-2.5 flex flex-col gap-1.5">
+                          <div className="h-3.5 w-3/4 rounded bg-light-grey/80 animate-pulse" />
+                          <div className="h-3 w-1/2 rounded bg-light-grey/80 animate-pulse" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                {/* Search */}
-                <div className="lg:ml-auto max-lg:max-w-[300px] flex flex-col gap-2 min-w-[200px] shrink-0">
-                  <p className={formLabel}>Search</p>
-                  <div className="flex w-full items-center gap-0 rounded-[2px] border border-default bg-white pr-3 focus-within:border-navy transition-colors">
-                    <input
-                      type="text"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Bracelet Name"
-                      aria-label="Search by Bracelet Name"
-                      className="w-48 flex-1 border-0 bg-transparent px-2 py-2.5 text-sm   outline-none ring-0 placeholder:text-color-base/70"
-                    />
-                    <Search size={15} className="shrink-0 text-color-base/70" />
+                {isError && (
+                  <div className="flex flex-col items-center gap-3 py-16 text-center">
+                    <AlertCircle size={24} className="text-color-base/70" />
+                    <p className="text-sm text-color-base/70">Failed to load designs.</p>
+                    <button
+                      onClick={() => refetch()}
+                      className="text-sm font-medium   underline hover:text-neutral-900"
+                    >
+                      Try again
+                    </button>
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* Row 2: active chips · sort */}
-              <div className="flex items-center gap-2 min-h-[28px]">
-                <div className="flex flex-1 flex-wrap items-center gap-1.5">
-                  {activeChips.map((chip) => {
-                    const style = CATEGORY_STYLES[chip.category];
-                    const useInlineColor = chip.category === "tag" && chip.color;
-                    return (
-                      <span
-                        key={`${chip.category}-${chip.label}`}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-[2px] border border-navy px-2.5 py-1 text-xs font-medium",
-                          useInlineColor ? "text-navy" : `${style.bg}`,
-                        )}
-                        style={useInlineColor ? { backgroundColor: chip.color! } : undefined}
-                      >
-                        <span className="opacity-40">{style.label}:</span>
-                        {chip.label}
-                        <Tooltip content={`Remove filter ${chip.label}`}>
-                          <button
-                            onClick={chip.onRemove}
-                            className="ml-0.5 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                            aria-label={`Remove ${chip.label} filter`}
-                          >
-                            <X size={11} />
-                          </button>
-                        </Tooltip>
-                      </span>
-                    );
-                  })}
-                </div>
+                {!isLoading && !isError && designs.length === 0 && (
+                  <p className="text-sm text-color-base/70 py-8 text-center">No designs found.</p>
+                )}
 
-                <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                  <p className={cn(formLabel, "py-1")}>Sort by:</p>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as DesignSortOption)}
-                    className="border-0 bg-transparent text-sm py-1 text-color-base/70 focus:ring-navy outline-none cursor-pointer hover:text-neutral-900"
-                  >
-                    {SORT_OPTIONS.map(({ label, value }) => (
-                      <option key={value} value={value}>{label}</option>
+                {!isLoading && !isError && designs.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {designs.map((design) => (
+                      <DesignCard
+                        key={design.id}
+                        design={design}
+                        onClick={() => handleCardClick(design)}
+                        onDeleteRequest={(d) => { setDeleteError(null); setDesignToDelete(d); }}
+                        onDiscontinueRequest={(d) => setDesignToDiscontinue(d)}
+                        onSubmitForReview={(d) => submitDesign(d.id)}
+                        onApprove={(d) => approveDesign(d.id)}
+                        onRejectRequest={(d) => setDesignToReject(d)}
+                      />
                     ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Card grid ─────────────────────────────────────────────── */}
-          <div className="flex-1 lg:overflow-y-auto p-6 lg:px-10">
-            {isLoading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex flex-col rounded-lg border border-default overflow-hidden">
-                    <div className="aspect-square w-full bg-light-grey/80 animate-pulse" />
-                    <div className="px-3 py-2.5 flex flex-col gap-1.5">
-                      <div className="h-3.5 w-3/4 rounded bg-light-grey/80 animate-pulse" />
-                      <div className="h-3 w-1/2 rounded bg-light-grey/80 animate-pulse" />
-                    </div>
                   </div>
-                ))}
+                )}
               </div>
-            )}
-
-            {isError && (
-              <div className="flex flex-col items-center gap-3 py-16 text-center">
-                <AlertCircle size={24} className="text-color-base/70" />
-                <p className="text-sm text-color-base/70">Failed to load designs.</p>
-                <button
-                  onClick={() => refetch()}
-                  className="text-sm font-medium   underline hover:text-neutral-900"
-                >
-                  Try again
-                </button>
-              </div>
-            )}
-
-            {!isLoading && !isError && designs.length === 0 && (
-              <p className="text-sm text-color-base/70 py-8 text-center">No designs found.</p>
-            )}
-
-            {!isLoading && !isError && designs.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {designs.map((design) => (
-                  <DesignCard
-                    key={design.id}
-                    design={design}
-                    onClick={() => handleCardClick(design)}
-                    onDeleteRequest={(d) => { setDeleteError(null); setDesignToDelete(d); }}
-                    onDiscontinueRequest={(d) => setDesignToDiscontinue(d)}
-                    onSubmitForReview={(d) => submitDesign(d.id)}
-                    onApprove={(d) => approveDesign(d.id)}
-                    onRejectRequest={(d) => setDesignToReject(d)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -578,3 +604,135 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
     </div>
   );
 }
+
+// ── Patterns grid (rendered when "Patterns" sidebar tab is active) ─────────
+
+const PATTERN_SORT_OPTIONS: { label: string; value: DesignSortOption }[] = [
+  { label: "Newest first", value: "newest"   },
+  { label: "Oldest first", value: "oldest"   },
+  { label: "Name A–Z",     value: "name_asc" },
+  { label: "Name Z–A",     value: "name_desc"},
+];
+
+function PatternsGrid({ onClose }: { onClose: () => void }) {
+  const { data: patterns = [], isLoading } = usePatterns();
+  const { loadPattern, editPattern } = useLoadPattern();
+  const { canManageComponents } = usePermissions();
+  const [search, setSearch]   = useState("");
+  const [sortBy, setSortBy]   = useState<DesignSortOption>("newest");
+
+  const formLabel =
+    "form-label text-xs text-color-base/70 uppercase font-semibold tracking-wide";
+
+  const filtered = useMemo(() => {
+    let list = [...patterns];
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((p) => p.name.toLowerCase().includes(q));
+    }
+    list.sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "name_asc":  return a.name.localeCompare(b.name);
+        case "name_desc": return b.name.localeCompare(a.name);
+        default:          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+    return list;
+  }, [patterns, search, sortBy]);
+
+  function handleLoad(pattern: Bracelet) {
+    loadPattern(pattern);
+    onClose();
+  }
+
+  function handleEdit(pattern: Bracelet) {
+    editPattern(pattern);
+    onClose();
+  }
+
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Header */}
+      <div className="designs-panel-header px-6 lg:px-10 border-b border-default">
+        <h2 className="text-xl pb-3 lg:py-6">Patterns</h2>
+        <div className="shrink-0 flex flex-col items-end gap-2 pb-3">
+          {/* Search — floated right */}
+          <div className="flex flex-col gap-2">
+            <p className={formLabel}>Search</p>
+            <div className="flex items-center gap-0 rounded-[2px] border border-default bg-white pr-3 focus-within:border-navy transition-colors">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Pattern name"
+                aria-label="Search patterns by name"
+                className="w-48 border-0 bg-transparent px-2 py-2.5 text-sm outline-none ring-0 placeholder:text-color-base/70"
+              />
+              <Search size={15} className="shrink-0 text-color-base/70" />
+            </div>
+          </div>
+
+          {/* Sort */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <p className={cn(formLabel, "py-1")}>Sort by:</p>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as DesignSortOption)}
+              className="border-0 bg-transparent text-sm py-1 text-color-base/70 focus:ring-navy outline-none cursor-pointer hover:text-neutral-900"
+            >
+              {PATTERN_SORT_OPTIONS.map(({ label, value }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 lg:overflow-y-auto p-6 lg:px-10">
+        {isLoading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col rounded-[3px] border border-default overflow-hidden">
+                <div className="aspect-square w-full bg-light-grey/80 animate-pulse" />
+                <div className="px-3 py-3 flex flex-col gap-1.5">
+                  <div className="h-3.5 w-3/4 rounded bg-light-grey/80 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isLoading && patterns.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-3 text-center text-sm text-color-base/50 py-16">
+            <LayoutTemplate size={36} className="opacity-30" />
+            <p>No patterns yet.</p>
+            {canManageComponents && (
+              <p className="text-xs">Open a design and use the three-dot menu to save it as a pattern.</p>
+            )}
+          </div>
+        )}
+
+        {!isLoading && patterns.length > 0 && filtered.length === 0 && (
+          <p className="text-sm text-color-base/70 py-8 text-center">No patterns match your search.</p>
+        )}
+
+        {!isLoading && filtered.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filtered.map((pattern) => (
+              <PatternCard
+                key={pattern.id}
+                pattern={pattern}
+                canDelete={canManageComponents}
+                onLoad={() => handleLoad(pattern)}
+                onEdit={canManageComponents ? () => handleEdit(pattern) : undefined}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

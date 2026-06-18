@@ -68,6 +68,8 @@ export interface CreateBraceletRequest {
   shopify_sku?: string | null;
   /** Defaults to "draft" on the server when omitted. */
   status?: BraceletStatus;
+  /** When true, creates a pattern template instead of a user design. */
+  is_pattern?: boolean;
 }
 
 /** Who currently holds the edit lock on a design. */
@@ -113,6 +115,8 @@ export interface Bracelet {
   tags: Tag[];
   /** 1 = discontinued (admins can reactivate). */
   is_discontinued: number;
+  /** 1 = this design is a reusable pattern template. */
+  is_pattern: number;
   /** Non-null when another user currently holds an edit lock on this design. */
   active_lock: DesignLock | null;
   /** Reason provided by the reviewer when the design was rejected. */

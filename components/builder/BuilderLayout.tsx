@@ -51,6 +51,7 @@ import { useReleaseLock } from "@/hooks/useReleaseLock";
 import { useDesignHeartbeat } from "@/hooks/useDesignHeartbeat";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { usePusherDesign } from "@/hooks/usePusherDesign";
+import { useSavePattern } from "@/hooks/useSavePattern";
 import type { DesignComment } from "@/types";
 
 export function BuilderLayout() {
@@ -80,8 +81,11 @@ export function BuilderLayout() {
     isDirty:              s.isDirty,
   }));
 
+  const activePatternId = useStore((s) => s.activePatternId);
+
   const { data: currentUser } = useCurrentUser();
-  const { canEdit } = usePermissions();
+  const { canEdit, canManageComponents } = usePermissions();
+  const { mutate: savePattern, isPending: isSavingPattern, isError: savePatternFailed } = useSavePattern();
   const { data: savedDesign, isFetching: designFetching, isError: designIsError, error: designErrorObj } = useDesign(activeDesignId);
   const { active: glbsLoading } = useProgress();
   const isCanvasLoading = glbsLoading || (activeDesignId !== null && designFetching);
@@ -389,11 +393,21 @@ export function BuilderLayout() {
             <Plus size={14} />
             New Bracelet
           </Button>
-          <BraceletExporter
+          {activePatternId !== null && canManageComponents && (
+            <Button
+              variant={savePatternFailed ? "danger" : "secondary"}
+              onClick={() => savePattern()}
+              disabled={isSavingPattern}
+            >
+              {isSavingPattern ? <Loader2 size={14} className="animate-spin" /> : null}
+              {savePatternFailed ? "Save failed — retry?" : "Save Pattern"}
+            </Button>
+          )}
+          {activePatternId === null && <BraceletExporter
             onNameRequired={() => setHighlightReason("name")}
             isKicked={kickedNotification}
             onKickedClick={() => setShowKickedModal(true)}
-          />
+          />}
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
           <Tooltip content={rightPanel === "user" ? "Close User Panel" : "Open User Panel"} placement="bottom-start">
@@ -495,10 +509,10 @@ export function BuilderLayout() {
                 </p>
               )}
               <p className="py-2 font-semibold leading-snug">
-                <span className="text-color-base/70 font-headline">Bracelet Name:</span> {braceletName}
+                <span className="text-color-base/70 font-headline">{activePatternId !== null ? "Pattern Name:" : "Bracelet Name:"}</span> {braceletName}
               </p>
 
-              {/* "view bracelet details" button*/}
+              {/* "view bracelet/pattern details" button*/}
               <button
                 onClick={handleDetailsClick}
                 className={cn(
@@ -508,7 +522,7 @@ export function BuilderLayout() {
                     : "underline hover:no-underline text-color-base/70",
                 )}
               >
-                {highlightReason === "name" ? "Set a bracelet name →" : highlightReason === "sku" ? "Add a Shopify SKU →" : "view bracelet details"}
+                {highlightReason === "name" ? "Set a bracelet name →" : highlightReason === "sku" ? "Add a Shopify SKU →" : activePatternId !== null ? "view pattern details" : "view bracelet details"}
               </button>
             </div>
 
@@ -557,6 +571,7 @@ export function BuilderLayout() {
         isKickedFromActiveDesign={kickedNotification}
         onRetryLock={handleRetryLock}
       />
+
 
       <UsersAdminScreen
         isOpen={usersAdminOpen}
