@@ -12,9 +12,10 @@ const nameSchema = z.string().min(1, "Name is required");
 interface CreatePatternDialogProps {
   initialName: string;
   onClose: () => void;
+  onSaved?: () => void;
 }
 
-export function CreatePatternDialog({ initialName, onClose }: CreatePatternDialogProps) {
+export function CreatePatternDialog({ initialName, onClose, onSaved }: CreatePatternDialogProps) {
   const [name, setName] = useState(initialName);
   const [nameError, setNameError] = useState<string | null>(null);
   const { mutateAsync: createPattern, isPending, error } = useCreatePattern();
@@ -28,7 +29,7 @@ export function CreatePatternDialog({ initialName, onClose }: CreatePatternDialo
     }
     setNameError(null);
     await createPattern({ name: result.data });
-    onClose();
+    onSaved ? onSaved() : onClose();
   }
 
   return (

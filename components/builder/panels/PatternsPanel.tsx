@@ -75,6 +75,7 @@ export function PatternsPanel({ open, onClose }: PatternsPanelProps) {
         <CreatePatternDialog
           initialName={defaultName}
           onClose={() => setCreateOpen(false)}
+          onSaved={() => setCreateOpen(false)}
         />
       )}
     </>
