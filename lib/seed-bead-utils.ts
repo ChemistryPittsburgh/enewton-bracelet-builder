@@ -7,6 +7,10 @@
  */
 
 import type { SeedSegmentConfig } from "@/types";
+import {
+  SEED_BEAD_THICKNESS_RATIO,
+  ROUND_BEAD_THICKNESS_RATIO,
+} from "@/lib/constants";
 
 // ─── Seeded PRNG (mulberry32) ──────────────────────────────────────────────
 
@@ -35,20 +39,6 @@ export interface GeneratedSeedBead {
   /** Finish preset key derived from the colorway label (e.g. "gold", "silver"). */
   finishKey: string;
 }
-
-/**
- * Thickness-to-diameter ratio of the seed bead GLB model.
- * Native dimensions: 1.6mm diameter × 1.15mm thick → 0.72.
- * Packing advances by this fraction of the diameter so adjacent
- * beads' flat faces sit flush against each other.
- */
-const SEED_BEAD_THICKNESS_RATIO = 0.72;
-
-/**
- * Thickness-to-diameter ratio for round beads.
- * Round beads are spherical, so thickness === diameter → ratio 1.0.
- */
-const ROUND_BEAD_THICKNESS_RATIO = 1.0;
 
 /**
  * Derives a FINISH_PRESETS key from a colorway entry label.

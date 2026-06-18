@@ -17,6 +17,7 @@ import { braceletArc, usedArc } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   SEED_BEAD_SIZE_RANGE,
+  SEED_BEAD_THICKNESS_RATIO,
   ROUND_SEED_SIZES_MM,
 } from "@/lib/constants";
 import { newRandomSeed, generateSeedBeads } from "@/lib/seed-bead-utils";
@@ -44,8 +45,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
   }));
-  const { canEdit } = usePermissions();
-  const { isAdmin } = usePermissions();
+  const { canEdit, isAdmin } = usePermissions();
 
   const { data: apiColors = [] } = useSeedColors();
   const { data: apiPresets = [] } = useSeedPresets();
@@ -79,8 +79,6 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
   const fillModeButtonClass = "flex w-full items-center gap-2.5 rounded-[2px] border px-3 py-2.5 text-sm text-left transition-all mb-1.5 min-h-[50px] bg-light-grey/50";
   const fillModeInputClass = "flex-1 min-w-0 rounded-[2px] max-w-[65%] border px-2 py-1 text-sm outline-none bg-white focus:ring-light-grey";
 
-  /** Seed bead thickness ratio (disc-shaped, flat faces flush). */
-  const SEED_THICKNESS_RATIO = 0.72;
   /** Max quantity of beads in quantity mode. */
   const MAX_QUANTITY = 30;
 
@@ -90,7 +88,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
       return qty * roundSizeMm;
     }
     const avgDiameter = (SEED_BEAD_SIZE_RANGE[0] + SEED_BEAD_SIZE_RANGE[1]) / 2;
-    return qty * avgDiameter * SEED_THICKNESS_RATIO;
+    return qty * avgDiameter * SEED_BEAD_THICKNESS_RATIO;
   }
 
   // Initialise colorway from API default once presets load
