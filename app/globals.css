@@ -196,6 +196,14 @@ h2 {
     }
   }
 
+  .icon-only-btn--green {
+    &:hover,
+    &:focus {
+      background-color: color-mix(in srgb, var(--color-green) 10%, transparent);
+      color: var(--color-green);
+    }
+  }
+
 .dashed-border {
   border-radius: 2px;
   position: relative;

@@ -118,9 +118,10 @@ function MaterialPill({ label, active, onClick }: {
 interface BeadSelectorPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onManageSeedColors: () => void;
 }
 
-export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
+export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadSelectorPanelProps) {
   const { data: beads = [] } = useBeads();
   const addBead = useStore((s) => s.addBead);
   const addSeedSegment = useStore((s) => s.addSeedSegment);
@@ -328,7 +329,7 @@ export function BeadSelectorPanel({ isOpen, onClose }: BeadSelectorPanelProps) {
         {isSpacerMode ? (
           <SpacerPicker onAdd={handleAddSpacer} error={error} />
         ) : isSeedMode ? (
-          <SeedBeadPicker onAdd={handleAddSeedSegment} error={error} />
+          <SeedBeadPicker onAdd={handleAddSeedSegment} error={error} onManageColors={onManageSeedColors} />
         ) : (
           /* ── Normal bead selector ── */
           <>

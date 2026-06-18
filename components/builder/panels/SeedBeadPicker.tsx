@@ -38,9 +38,10 @@ interface SeedBeadPickerProps {
     material?: string,
   ) => void;
   error: string | null;
+  onManageColors: () => void;
 }
 
-export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
+export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerProps) {
   const { placedBeads, braceletSize } = useStore((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
@@ -301,7 +302,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
               <div className="flex items-center gap-2 mb-2.5">
                 <SectionHeading className="mb-0 flex-1">Colorway presets</SectionHeading>
                 {isAdmin && (
-                  <button className="manage-btn">
+                  <button className="manage-btn" onClick={onManageColors}>
                     <Settings size={12} /> Manage
                   </button>
                 )}
@@ -575,6 +576,7 @@ export function SeedBeadPicker({ onAdd, error }: SeedBeadPickerProps) {
           </div>
         )}
       </div>
+
     </div>
   );
 }

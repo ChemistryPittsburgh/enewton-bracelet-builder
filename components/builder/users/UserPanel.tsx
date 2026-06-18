@@ -36,6 +36,7 @@ interface UserPanelProps {
   onClose: () => void;
   onEditUsers?: () => void;
   onManageBeads?: () => void;
+  onManageSeedColors?: () => void;
 }
 
 function formatEventDate(iso: string): string {
@@ -259,7 +260,7 @@ function HistoryMenu({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function UserPanel({ open, onClose, onEditUsers, onManageBeads }: UserPanelProps) {
+export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageSeedColors }: UserPanelProps) {
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
@@ -373,6 +374,14 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads }: UserPan
                   className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
                 >
                   Manage Users
+                </button>
+              )}
+              {user?.permissions.is_admin && (
+                <button
+                  onClick={() => onManageSeedColors?.()}
+                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+                >
+                  Manage Seed Bead Colors
                 </button>
               )}
               <button

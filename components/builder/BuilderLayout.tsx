@@ -27,6 +27,7 @@ import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
 import { SessionTakenOverDialog } from "./dialogs/SessionTakenOverDialog";
 import { DesignNotFoundDialog } from "./dialogs/DesignNotFoundDialog";
 import { ManageBeadsDialog } from "./dialogs/ManageBeadsDialog";
+import { ManageSeedColorsDialog } from "./dialogs/ManageSeedColorsDialog";
 
 import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
 import { CommentsPanel } from "./panels/CommentsPanel";
@@ -107,6 +108,7 @@ export function BuilderLayout() {
   const [rightPanel,          setRightPanel]          = useState<"user" | "comments" | null>(null);
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
   const [manageBeadsOpen,     setManageBeadsOpen]     = useState(false);
+  const [manageSeedColorsOpen, setManageSeedColorsOpen] = useState(false);
 
   // ── Design lock ──────────────────────────────────────────────────────────
   const queryClient = useQueryClient();
@@ -421,6 +423,7 @@ export function BuilderLayout() {
         <BeadSelectorPanel
           isOpen={braceletPanelOpen}
           onClose={() => setBraceletPanelOpen(false)}
+          onManageSeedColors={() => setManageSeedColorsOpen(true)}
         />
 
         <BeadInfoDialog isLocked={isLocked} />
@@ -430,6 +433,7 @@ export function BuilderLayout() {
           onClose={() => setRightPanel(null)}
           onEditUsers={() => { setRightPanel(null); setUsersAdminOpen(true); }}
           onManageBeads={() => { setRightPanel(null); setManageBeadsOpen(true); }}
+          onManageSeedColors={() => { setRightPanel(null); setManageSeedColorsOpen(true); }}
         />
         <CommentsPanel open={rightPanel === "comments"} onClose={() => setRightPanel(null)} />
 
@@ -582,6 +586,11 @@ export function BuilderLayout() {
       <ManageBeadsDialog
         open={manageBeadsOpen}
         onClose={() => setManageBeadsOpen(false)}
+      />
+
+      <ManageSeedColorsDialog
+        open={manageSeedColorsOpen}
+        onClose={() => setManageSeedColorsOpen(false)}
       />
 
       {dragFromPanel && (
