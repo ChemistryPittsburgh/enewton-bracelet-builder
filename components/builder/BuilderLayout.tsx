@@ -25,6 +25,7 @@ import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
 import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
 import { SessionTakenOverDialog } from "./dialogs/SessionTakenOverDialog";
+import { DesignStatusLockedDialog } from "./dialogs/DesignStatusLockedDialog";
 import { DesignNotFoundDialog } from "./dialogs/DesignNotFoundDialog";
 import { ManageBeadsDialog } from "./dialogs/ManageBeadsDialog";
 import { ManageSeedColorsDialog } from "./dialogs/ManageSeedColorsDialog";
@@ -81,6 +82,9 @@ export function BuilderLayout() {
     isDirty:              s.isDirty,
   }));
 
+  const isEditMode    = useStore((s) => s.isEditMode);
+  const toggleEditMode = useStore((s) => s.toggleEditMode);
+
   const activePatternId = useStore((s) => s.activePatternId);
 
   const { data: currentUser } = useCurrentUser();
@@ -116,10 +120,13 @@ export function BuilderLayout() {
 
   // ── Design lock ──────────────────────────────────────────────────────────
   const queryClient = useQueryClient();
-  const [lockHeld,           setLockHeld]           = useState(false);
-  const [kickedNotification, setKickedNotification] = useState(false);
-  const [showKickedModal,    setShowKickedModal]    = useState(false);
-  const prevDesignIdRef = useRef<number | null>(null);
+  const [lockHeld,              setLockHeld]              = useState(false);
+  const [kickedNotification,    setKickedNotification]    = useState(false);
+  const [showKickedModal,       setShowKickedModal]       = useState(false);
+  const [showStatusLockedModal, setShowStatusLockedModal] = useState(false);
+  const [statusLockedTo,        setStatusLockedTo]        = useState<"approved" | "published" | null>(null);
+  const prevDesignIdRef      = useRef<number | null>(null);
+  const knownDesignStatusRef = useRef<Map<number, string>>(new Map());
   const { mutate: releaseLock } = useReleaseLock();
   const { mutateAsync: acquireLock } = useLockDesign();
   const { syncDesign } = useLoadDesign();
@@ -291,6 +298,33 @@ export function BuilderLayout() {
     },
   });
 
+  // Detect when the design is approved/published while this user is viewing it.
+  // Uses a per-design status map so loading an already-locked design never
+  // falsely triggers the modal (only a live transition does).
+  useEffect(() => {
+    if (!activeDesignId || !savedDesign?.status) return;
+
+    const newStatus = savedDesign.status;
+    const knownStatus = knownDesignStatusRef.current.get(activeDesignId);
+
+    if (knownStatus === undefined) {
+      knownDesignStatusRef.current.set(activeDesignId, newStatus);
+      return;
+    }
+
+    knownDesignStatusRef.current.set(activeDesignId, newStatus);
+    if (knownStatus === newStatus) return;
+
+    if (
+      (newStatus === "approved" || newStatus === "published") &&
+      knownStatus !== "approved" && knownStatus !== "published"
+    ) {
+      setLockHeld(false);
+      setShowStatusLockedModal(true);
+      setStatusLockedTo(newStatus as "approved" | "published");
+    }
+  }, [savedDesign?.status, activeDesignId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Visibility-change re-sync ─────────────────────────────────────────────
   // Catch up on missed events immediately when the tab regains focus, without
   // waiting for Pusher's reconnect + re-auth round-trip to complete.
@@ -342,6 +376,10 @@ export function BuilderLayout() {
   useEffect(() => {
     if (!canEdit || isLocked) setBraceletPanelOpen(false);
   }, [canEdit, isLocked]);
+
+  useEffect(() => {
+    if (isLocked && isEditMode) toggleEditMode();
+  }, [isLocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   function openBraceletPanel() {
@@ -584,6 +622,13 @@ export function BuilderLayout() {
         <SessionTakenOverDialog
           takenByName={savedDesign?.active_lock?.user_name}
           onClose={() => setShowKickedModal(false)}
+        />
+      )}
+
+      {showStatusLockedModal && statusLockedTo && (
+        <DesignStatusLockedDialog
+          status={statusLockedTo}
+          onClose={() => setShowStatusLockedModal(false)}
         />
       )}
 
