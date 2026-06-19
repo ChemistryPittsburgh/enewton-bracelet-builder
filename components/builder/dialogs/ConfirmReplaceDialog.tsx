@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { useLoadPattern } from "@/hooks/useLoadPattern";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
+import { useUpdateBracelet } from "@/hooks/useUpdateBracelet";
 import { usePermissions } from "@/hooks/usePermissions";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Button } from "@/components/ui/Button";
@@ -44,6 +45,7 @@ export function ConfirmReplaceDialog() {
   const { loadDesign }   = useLoadDesign();
   const { applyPattern } = useLoadPattern();
   const { save }         = useSaveBracelet();
+  const { update }       = useUpdateBracelet();
   const { canEdit }      = usePermissions();
 
   const [status, setStatus]                       = useState<ConfirmStatus>("idle");
@@ -104,7 +106,11 @@ export function ConfirmReplaceDialog() {
   async function doSaveAndLoad() {
     setStatus("saving");
     try {
-      await save();
+      if (activeDesignId !== null) {
+        await update(); // PUT /designs/:id — update existing record
+      } else {
+        await save();   // POST /designs — create new record
+      }
       if (pendingDesign!.id !== -1) {
         // If the pending design is the one already on the canvas, we hold the
         // lock — skip the redundant POST /lock that could race and discard the save.
