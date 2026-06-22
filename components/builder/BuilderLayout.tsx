@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronsRight, Inbox, Loader2, Lock, Plus, ShieldAlert } from "lucide-react";
+import { ChevronsRight, Inbox, LayoutTemplate, Loader2, Lock, Plus, ShieldAlert } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -433,10 +433,12 @@ export function BuilderLayout() {
           </Button>
           {activePatternId !== null && canManageComponents && (
             <Button
-              variant={savePatternFailed ? "danger" : "secondary"}
+              variant={savePatternFailed ? "danger" : "gold"}
               onClick={() => savePattern()}
               disabled={isSavingPattern}
+              className="gap-2"
             >
+              <LayoutTemplate size={14} className="shrink-0" />
               {isSavingPattern ? <Loader2 size={14} className="animate-spin" /> : null}
               {savePatternFailed ? "Save failed — retry?" : "Save Pattern"}
             </Button>
@@ -521,10 +523,16 @@ export function BuilderLayout() {
             isKicked={kickedNotification}
           />
 
-          <div className="inner-canvas relative flex-1">
+          <div className={`inner-canvas relative flex-1 ${activePatternId !== null && "border-gold border-2 ring-2 ring-gold"}`}>
 
             {/* Bracelet info overlay */}
             <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
+              {activePatternId !== null && (
+                <div className="mb-1 flex w-fit items-center gap-1.5 rounded-[2px] bg-gold px-2.5 py-1 text-xs font-medium text-white">
+                  <LayoutTemplate size={11} className="shrink-0" />
+                  <span className="font-bold">Pattern mode</span>
+                </div>
+              )}
               {(kickedNotification || lockedByOther) && (
                 <div className="mb-1 flex items-center gap-1.5 rounded-[2px] bg-orange px-2.5 py-1 text-xs font-medium text-white">
                   <ShieldAlert size={11} className="shrink-0" />
@@ -554,7 +562,7 @@ export function BuilderLayout() {
               <button
                 onClick={handleDetailsClick}
                 className={cn(
-                  "text-left text-xs w-fit rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-600",
+                  "text-left text-xs w-fit rounded-[1px] transition-all duration-200 focus:outline-none focus:ring focus:ring-color-base/50 focus:ring-offset-3 focus:bg-white",
                   highlightReason !== null
                     ? "px-2.5 py-1 bg-mint text-navy font-semibold border border-navy animate-pulse"
                     : "underline hover:no-underline text-color-base/70",

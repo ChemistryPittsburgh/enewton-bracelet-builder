@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Eraser, Loader2, Pencil, Trash2, X, AlertTriangle } from "lucide-react";
+import { Check, Eraser, Loader2, Pencil, Trash2, X, AlertTriangle, LayoutTemplate } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
@@ -176,27 +176,28 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
       open={open}
       onClose={onClose}
       title={activePatternId !== null ? "Pattern Details" : "Bracelet Details"}
-      className="max-w-3xl"
+      className={`max-w-3xl ${activePatternId !== null && "pattern-details-dialog border-2 border-gold"}`}
       bodyClasses="py-0 px-0"
       headerExtra={
         canCreatePattern && activePatternId === null ? (
           <Button
-            variant="secondary"
-            size="sm"
+            variant="gold"
+            size="xs"
             onClick={() => setCreatePatternOpen(true)}
           >
+            <LayoutTemplate size={14} className="shrink-0" />
             Create Pattern
           </Button>
         ) : undefined
       }
     >
-      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto py-4 px-4 lg:py-8 md:px-6 lg:px-8">
+      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto py-4 px-4 lg:py-6 md:px-6 lg:px-8">
 
         {/* ── Preview + status + name + description ────────────────────── */}
         <div className="flex items-start gap-4  border-b border-default pb-6">
 
           {/* Thumbnail */}
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-light-grey/80 flex items-center justify-center">
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[2px] bg-light-grey/80 flex items-center justify-center">
             {(activePattern?.preview_image_url ?? savedDesign?.preview_image_url) ? (
               <img src={(activePattern?.preview_image_url ?? savedDesign?.preview_image_url)!} alt={braceletName} className="h-full w-full object-cover" />
             ) : (
@@ -253,7 +254,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
                 </div>
               </div>
             ) : (
-              <div className="group flex flex-col gap-1">
+              <div className="group flex flex-col gap-1 pt-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold ">{braceletName}</h3>
                   {(!savedDesign || (canEdit && !isLocked)) && (

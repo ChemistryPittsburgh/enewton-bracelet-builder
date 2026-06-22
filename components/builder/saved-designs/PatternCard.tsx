@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LayoutTemplate, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Bracelet } from "@/types";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { Button } from "@/components/ui/Button";
 import { useDeletePattern } from "@/hooks/useDeletePattern";
 
 interface PatternCardProps {
@@ -81,15 +82,17 @@ export function PatternCard({ pattern, canDelete, onLoad, onEdit }: PatternCardP
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between gap-2 px-3 py-3">
+      <div className="flex flex-col items-center justify-between gap-2 px-3 py-3">
         <p className="truncate text-sm font-medium">{pattern.name}</p>
-        <button
+        <Button
           onClick={(e) => { e.stopPropagation(); onLoad(); }}
-          className="shrink-0 flex items-center gap-1 rounded-[3px] border border-default px-2 py-1 text-xs font-semibold text-color-base/70 hover:border-navy hover:text-navy hover:bg-mint transition-colors"
+          size="xs"
+          variant="secondary"
+          className="w-full group-hover:bg-white"
         >
           <Plus size={10} />
-          create bracelet
-        </button>
+          create bracelet from pattern
+        </Button>
       </div>
 
       {/* Inline delete confirmation */}
