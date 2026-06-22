@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ArrowUp, ArrowDown, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2 } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
@@ -28,6 +28,8 @@ export function EditModeToolbar() {
     redoStack,
     undo,
     redo,
+    editReplaceMode,
+    setEditReplaceMode,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editSelectedIds: s.editSelectedIds,
@@ -48,6 +50,8 @@ export function EditModeToolbar() {
     redoStack: s.redoStack,
     undo: s.undo,
     redo: s.redo,
+    editReplaceMode: s.editReplaceMode,
+    setEditReplaceMode: s.setEditReplaceMode,
   }));
 
   const n = beads.length;
@@ -174,6 +178,16 @@ export function EditModeToolbar() {
       <Tooltip content="Reverse order" placement="bottom">
         <EditBtn onClick={() => reverseBracelet()} label="Reverse bracelet">
           <Repeat2 size={22} />
+        </EditBtn>
+      </Tooltip>
+      <Tooltip content={hasSelection ? "Replace selected beads" : "Select beads to replace"} placement="bottom">
+        <EditBtn
+          onClick={() => setEditReplaceMode(!editReplaceMode)}
+          disabled={!hasSelection}
+          label="Replace beads"
+          className={editReplaceMode ? "bg-navy hover:bg-navy/80" : ""}
+        >
+          <ArrowLeftRight size={22} className={editReplaceMode ? "text-white" : ""} />
         </EditBtn>
       </Tooltip>
       <Tooltip content={isSingleSelection

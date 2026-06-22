@@ -44,6 +44,17 @@ export const EDIT_MODE_BACKGROUND = "#eff6ff";
 export const HIGHLIGHT_SELECT_COLOR = "#a38d48";  //#a38d48
 export const EDIT_MODE_HIGHLIGHT_SELECT_COLOR = "#1F3A5F";
 
+/** Per-group colors for edit-replace mode. Each entry has a hex value (for the
+ *  3D ring in AllBeads) and Tailwind active/inactive classes (for EditReplaceDialog). */
+export const EDIT_REPLACE_GROUPS = [
+  { hex: "#1F3A5F", active: "bg-navy text-white",      inactive: "text-color-base hover:bg-light-grey" },
+  { hex: "#a38d48", active: "bg-gold text-white",      inactive: "text-color-base hover:bg-light-grey" },
+  { hex: "#2d7a5e", active: "bg-[#2d7a5e] text-white", inactive: "text-color-base hover:bg-light-grey" },
+] as const;
+
+/** Hex colors extracted from EDIT_REPLACE_GROUPS — used for 3D selection ring tints. */
+export const EDIT_REPLACE_GROUP_COLORS = EDIT_REPLACE_GROUPS.map((g) => g.hex);
+
 // ─── Camera ───────────────────────────────────────────────────────────────────
 
 /** Camera field of view in degrees. */

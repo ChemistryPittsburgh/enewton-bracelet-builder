@@ -23,6 +23,8 @@ interface BeadOnBraceletProps {
   swingAngle?: number;
   /** When true, renders an orange warning ring on this charm. */
   isColliding?: boolean;
+  /** Overrides the edit-mode selection ring color (e.g. replace-group color). */
+  selectionColor?: string;
 }
 
 export function BeadOnBracelet({
@@ -35,6 +37,7 @@ export function BeadOnBracelet({
   layerOffset = 0,
   swingAngle = 0,
   isColliding = false,
+  selectionColor,
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -138,7 +141,7 @@ export function BeadOnBracelet({
     handlePointerDown,
     handlePointerEnter,
     handlePointerLeave,
-  } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart, selectAllOfType: true });
+  } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart, selectAllOfType: true, selectionColor });
 
   const isFloatCharm = bead.product.bead_category === "float_charm";
   const isCharm = bead.product.bead_category === "charm" || isFloatCharm;

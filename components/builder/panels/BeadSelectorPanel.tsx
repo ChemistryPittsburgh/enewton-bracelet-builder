@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, X, Dot, Sparkle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize, unslugify } from "@/lib/utils";
@@ -127,8 +127,13 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const addSeedSegment = useStore((s) => s.addSeedSegment);
   const replaceBeadInStore = useStore((s) => s.replaceBead);
   const replaceAllBeadsInStore = useStore((s) => s.replaceAllBeads);
+  const replaceEditSelectedBeadsAction = useStore((s) => s.replaceEditSelectedBeads);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
+  const isEditMode = useStore((s) => s.isEditMode);
+  const editReplaceMode = useStore((s) => s.editReplaceMode);
+  const editReplaceNarrowedIds = useStore((s) => s.editReplaceNarrowedIds);
+  const editSelectedIds = useStore((s) => s.editSelectedIds);
   const placedBeads = useStore((s) => s.beads);
   const braceletSize = useStore((s) => s.braceletSize);
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -136,12 +141,31 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
   const isReplaceSingle = replaceTargetInstanceId !== null;
   const isReplaceAll = replaceAllTargetProductId !== null;
-  const isReplaceMode = isReplaceSingle || isReplaceAll;
+  const isEditReplace = editReplaceMode && !isReplaceSingle && !isReplaceAll;
+  const isReplaceMode = isReplaceSingle || isReplaceAll || isEditReplace;
+  const isImplicitEditReplace = isEditMode && editSelectedIds.length > 0 && !isReplaceMode;
 
   // For single replace: remove the target bead from fit calculations (its slot is freed)
   const effectivePlacedBeads = isReplaceSingle
     ? placedBeads.filter((b) => b.instanceId !== replaceTargetInstanceId)
     : placedBeads;
+
+  // For edit replace: the narrowed subset, or all selected — filtered to still-selected ids.
+  // Also used by implicit mode (beads selected in edit mode without explicit replace button).
+  const editReplaceTargetIds = useMemo(() => {
+    if (!isEditReplace && !isImplicitEditReplace) return [];
+    if (isEditReplace) {
+      const base = editReplaceNarrowedIds ?? editSelectedIds;
+      return base.filter((id) => editSelectedIds.includes(id));
+    }
+    return editSelectedIds;
+  }, [isEditReplace, isImplicitEditReplace, editReplaceNarrowedIds, editSelectedIds]);
+
+  // Beads remaining after the replace targets are removed — shared by fit functions below.
+  const withoutTargets = useMemo(
+    () => placedBeads.filter((b) => !editReplaceTargetIds.includes(b.instanceId)),
+    [placedBeads, editReplaceTargetIds],
+  );
 
   // For replace-all: swap all instances of the target product and check total arc
   function fitsForReplaceAll(candidate: BeadProduct): boolean {
@@ -152,7 +176,14 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     return usedArc(swapped) <= braceletArc(braceletRadius);
   }
 
+  // For edit replace: enabled if at least 1 candidate fits in the freed arc
+  function fitsForEditReplace(candidate: BeadProduct): boolean {
+    if (editReplaceTargetIds.length === 0) return false;
+    return beadFits(withoutTargets, { product: candidate }, braceletRadius);
+  }
+
   function candidateFits(candidate: BeadProduct): boolean {
+    if (isEditReplace || isImplicitEditReplace) return fitsForEditReplace(candidate);
     if (isReplaceAll) return fitsForReplaceAll(candidate);
     return beadFits(effectivePlacedBeads, { product: candidate }, braceletRadius);
   }
@@ -169,6 +200,26 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const [fillFull, setFillFull] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
+
+  // Clear picked bead when the replace target group changes so the user re-selects for the new target
+  useEffect(() => {
+    if (isEditReplace) setSelectedBead(null);
+  }, [editReplaceNarrowedIds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // How many of the selected candidate type fit in the freed arc (up to the number of removed beads).
+  // Computed once per render so JSX doesn't run the loop inline.
+  const editReplaceFitCount = useMemo(() => {
+    if (!selectedBead || (!isEditReplace && !isImplicitEditReplace) || editReplaceTargetIds.length === 0) return 0;
+    let count = 0;
+    let tempList = withoutTargets;
+    while (count < editReplaceTargetIds.length && beadFits(tempList, { product: selectedBead }, braceletRadius)) {
+      count++;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tempList = [...tempList, { instanceId: `__fit_${count}`, product: selectedBead } as any];
+    }
+    return count;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBead, isEditReplace, isImplicitEditReplace, withoutTargets, editReplaceTargetIds, braceletRadius]);
 
   const isSpacerMode = activeTab === SPACER_TAB;
   const isSeedMode = activeTab === SEED_TAB;
@@ -254,6 +305,15 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   function handleReplaceAll() {
     if (!selectedBead || !replaceAllTargetProductId) return;
     const err = replaceAllBeadsInStore(replaceAllTargetProductId, selectedBead);
+    if (err) {
+      setError(err);
+      setTimeout(() => setError(null), 3000);
+    }
+  }
+
+  function handleEditReplace() {
+    if (!selectedBead || editReplaceTargetIds.length === 0) return;
+    const err = replaceEditSelectedBeadsAction(editReplaceTargetIds, selectedBead);
     if (err) {
       setError(err);
       setTimeout(() => setError(null), 3000);
@@ -486,9 +546,14 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                         </span>
                       )}
                     </p>
+                    {editReplaceFitCount > 0 && editReplaceFitCount < editReplaceTargetIds.length && (
+                      <p className="text-[11px] text-color-base/50 mt-0.5">
+                        {editReplaceFitCount} of {editReplaceTargetIds.length} will fit
+                      </p>
+                    )}
                   </div>
 
-                  {selectedBead && !isReplaceMode && (
+                  {selectedBead && !isReplaceMode && !isImplicitEditReplace && (
                     <>
                     <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-color-base/70 mr-1">
                       <input
@@ -519,12 +584,14 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
                 {canEdit && (
                   <Button
-                    onClick={isReplaceAll ? handleReplaceAll : isReplaceSingle ? handleReplace : handleAddToDesign}
+                    onClick={isEditReplace || isImplicitEditReplace ? handleEditReplace : isReplaceAll ? handleReplaceAll : isReplaceSingle ? handleReplace : handleAddToDesign}
                     disabled={!selectedBead || !candidateFits(selectedBead)}
                     className="flex w-full items-center justify-center gap-2 disabled group"
                   >
                     <Sparkle size={12} className="-mt-[2.5px] fill-white group-hover:fill-navy stroke-white group-hover:fill-navy group-hover:stroke-navy transition-colors" />
-                    {isReplaceAll ? `Replace All (${replaceAllCount})` : isReplaceSingle ? "Replace Bead" : "Add to design"}
+                    {isEditReplace || isImplicitEditReplace
+                      ? `Replace ${editReplaceTargetIds.length} bead${editReplaceTargetIds.length !== 1 ? "s" : ""}`
+                      : isReplaceAll ? `Replace All (${replaceAllCount})` : isReplaceSingle ? "Replace Bead" : "Add to design"}
                   </Button>
                 )}
                 </>

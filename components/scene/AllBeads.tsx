@@ -2,7 +2,7 @@
 
 import { Suspense, useRef, useMemo } from "react";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, EDIT_REPLACE_GROUP_COLORS } from "@/lib/constants";
 import { computeCharmAdjustments } from "@/lib/charm-collision";
 import { useDesign } from "@/hooks/useDesign";
 import type { PlacedBead } from "@/types";
@@ -23,7 +23,29 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const activeDesignId          = useStore((s) => s.activeDesignId);
   const spacersHiddenForCapture = useStore((s) => s.spacersHiddenForCapture);
   const showCharmCollisions     = useStore((s) => s.showCharmCollisions);
+  const editReplaceMode         = useStore((s) => s.editReplaceMode);
+  const editSelectedIds         = useStore((s) => s.editSelectedIds);
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+
+  // Map instanceId → group hex color for edit-replace mode.
+  // Groups are ordered by first appearance in editSelectedIds, matching EditReplaceDialog.
+  const editReplaceColorMap = useMemo(() => {
+    if (!editReplaceMode || editSelectedIds.length === 0) return null;
+    const productOrder = new Map<number, number>();
+    for (const id of editSelectedIds) {
+      const pid = beads.find((b) => b.instanceId === id)?.product.id;
+      if (pid !== undefined && !productOrder.has(pid)) productOrder.set(pid, productOrder.size);
+    }
+    const map = new Map<string, string>();
+    for (const id of editSelectedIds) {
+      const pid = beads.find((b) => b.instanceId === id)?.product.id;
+      if (pid !== undefined) {
+        const idx = productOrder.get(pid) ?? 0;
+        map.set(id, EDIT_REPLACE_GROUP_COLORS[idx % EDIT_REPLACE_GROUP_COLORS.length]);
+      }
+    }
+    return map;
+  }, [editReplaceMode, editSelectedIds, beads]);
 
   // Charm adjustments — layer offset + bail-pivot swing for nearby charms
   const charmAdjustments = useMemo(
@@ -93,6 +115,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                   layerOffset={charmAdjustments.get(bead.instanceId)?.layerOffset ?? 0}
                   swingAngle={charmAdjustments.get(bead.instanceId)?.swingAngle ?? 0}
                   isColliding={showCharmCollisions && charmAdjustments.has(bead.instanceId)}
+                  selectionColor={editReplaceColorMap?.get(bead.instanceId)}
                 />
               </Suspense>
             )}
