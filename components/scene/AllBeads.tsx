@@ -25,27 +25,42 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const showCharmCollisions     = useStore((s) => s.showCharmCollisions);
   const editReplaceMode         = useStore((s) => s.editReplaceMode);
   const editSelectedIds         = useStore((s) => s.editSelectedIds);
+  const editSelectionGroups     = useStore((s) => s.editSelectionGroups);
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
 
   // Map instanceId → group hex color for edit-replace mode.
-  // Groups are ordered by first appearance in editSelectedIds, matching EditReplaceDialog.
   const editReplaceColorMap = useMemo(() => {
-    if (!editReplaceMode || editSelectedIds.length === 0) return null;
-    const productOrder = new Map<number, number>();
-    for (const id of editSelectedIds) {
-      const pid = beads.find((b) => b.instanceId === id)?.product.id;
-      if (pid !== undefined && !productOrder.has(pid)) productOrder.set(pid, productOrder.size);
-    }
+    const totalSelected = editSelectedIds.length + editSelectionGroups.reduce((n, g) => n + g.length, 0);
+    if (!editReplaceMode || totalSelected === 0) return null;
+
     const map = new Map<string, string>();
-    for (const id of editSelectedIds) {
-      const pid = beads.find((b) => b.instanceId === id)?.product.id;
-      if (pid !== undefined) {
-        const idx = productOrder.get(pid) ?? 0;
-        map.set(id, EDIT_REPLACE_GROUP_COLORS[idx % EDIT_REPLACE_GROUP_COLORS.length]);
+
+    if (editSelectionGroups.length > 0) {
+      // Explicit groups mode: frozen groups get sequential colors; active selection gets the next slot
+      editSelectionGroups.forEach((group, g) => {
+        const color = EDIT_REPLACE_GROUP_COLORS[g % EDIT_REPLACE_GROUP_COLORS.length];
+        group.forEach(id => map.set(id, color));
+      });
+      const activeColor = EDIT_REPLACE_GROUP_COLORS[editSelectionGroups.length % EDIT_REPLACE_GROUP_COLORS.length];
+      editSelectedIds.forEach(id => map.set(id, activeColor));
+    } else {
+      // Auto mode: group by product.id, ordered by first appearance in editSelectedIds
+      const productOrder = new Map<number, number>();
+      for (const id of editSelectedIds) {
+        const pid = beads.find((b) => b.instanceId === id)?.product.id;
+        if (pid !== undefined && !productOrder.has(pid)) productOrder.set(pid, productOrder.size);
+      }
+      for (const id of editSelectedIds) {
+        const pid = beads.find((b) => b.instanceId === id)?.product.id;
+        if (pid !== undefined) {
+          const idx = productOrder.get(pid) ?? 0;
+          map.set(id, EDIT_REPLACE_GROUP_COLORS[idx % EDIT_REPLACE_GROUP_COLORS.length]);
+        }
       }
     }
+
     return map;
-  }, [editReplaceMode, editSelectedIds, beads]);
+  }, [editReplaceMode, editSelectedIds, editSelectionGroups, beads]);
 
   // Charm adjustments — layer offset + bail-pivot swing for nearby charms
   const charmAdjustments = useMemo(

@@ -64,6 +64,7 @@ export function useSceneItemInteraction(
     selectBead,
     selectedBead,
     editSelectedIds,
+    editSelectionGroups,
     toggleEditBead,
     clearSelectedBead,
     clearEditSelection,
@@ -71,19 +72,21 @@ export function useSceneItemInteraction(
     selectAllActive,
   } = useStore(
     useShallow((s) => ({
-      selectBead:         s.selectBead,
-      selectedBead:       s.selectedBead,
-      editSelectedIds:    s.editSelectedIds,
-      toggleEditBead:     s.toggleEditBead,
-      clearSelectedBead:  s.clearSelectedBead,
-      clearEditSelection: s.clearEditSelection,
-      isEditMode:         s.isEditMode,
-      selectAllActive:    s.selectAllActive,
+      selectBead:           s.selectBead,
+      selectedBead:         s.selectedBead,
+      editSelectedIds:      s.editSelectedIds,
+      editSelectionGroups:  s.editSelectionGroups,
+      toggleEditBead:       s.toggleEditBead,
+      clearSelectedBead:    s.clearSelectedBead,
+      clearEditSelection:   s.clearEditSelection,
+      isEditMode:           s.isEditMode,
+      selectAllActive:      s.selectAllActive,
     })),
   );
 
   const isSelected = isEditMode
-    ? editSelectedIds.includes(bead.instanceId)
+    ? editSelectedIds.includes(bead.instanceId) ||
+      editSelectionGroups.some(g => g.includes(bead.instanceId))
     : selectedBead?.instanceId === bead.instanceId ||
       (selectAllOfType && selectAllActive && selectedBead?.product.id === bead.product.id);
 

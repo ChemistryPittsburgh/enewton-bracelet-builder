@@ -67,6 +67,8 @@ interface SceneProps {
   isLocked?: boolean;
 }
 
+const DRAG_DESELECT_THRESHOLD_SQ = 4 * 4; // squared px; avoids sqrt on every move event
+
 export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const controlsRef = useRef<CameraControls>(null);
   const { isEditMode, clearSelectedBead, clearEditSelection, viewMode } = useStore((s) => ({
@@ -75,8 +77,23 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
     clearEditSelection: s.clearEditSelection,
     viewMode: s.viewMode,
   }));
+
+  // Track pointer movement so a canvas drag (pan) doesn't fire deselect on pointer-up
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+  const didDrag = useRef(false);
+
   return (
-    <div className="relative h-full w-full">
+    <div
+      className="relative h-full w-full"
+      onPointerDown={(e) => { pointerDownPos.current = { x: e.clientX, y: e.clientY }; didDrag.current = false; }}
+      onPointerMove={(e) => {
+        if (!pointerDownPos.current) return;
+        const dx = e.clientX - pointerDownPos.current.x;
+        const dy = e.clientY - pointerDownPos.current.y;
+        if (dx * dx + dy * dy > DRAG_DESELECT_THRESHOLD_SQ) didDrag.current = true;
+      }}
+      onPointerUp={() => { pointerDownPos.current = null; }}
+    >
       <BeadErrorToast />
       <Canvas
         camera={{ fov: CAMERA_FOV, position: CAMERA_DEFAULT_POSITION, near: CAMERA_NEAR, far: CAMERA_FAR }}
@@ -90,6 +107,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
         dpr={[1, 1.5]}
         style={{ background: isEditMode ? EDIT_MODE_BACKGROUND : SCENE_BACKGROUND }}
         onPointerMissed={() => {
+          if (didDrag.current) return;
           clearSelectedBead();
           clearEditSelection();
         }}

@@ -199,6 +199,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const [selectedBead, setSelectedBead] = useState<BeadProduct | null>(null);
   const [fillFull, setFillFull] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [replaceQuantity, setReplaceQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
   // Clear picked bead when the replace target group changes so the user re-selects for the new target
@@ -220,6 +221,11 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     return count;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBead, isEditReplace, isImplicitEditReplace, withoutTargets, editReplaceTargetIds, braceletRadius]);
+
+  // Default replaceQuantity to however many fit whenever a new bead is selected or fit count changes
+  useEffect(() => {
+    if (editReplaceFitCount > 0) setReplaceQuantity(editReplaceFitCount);
+  }, [editReplaceFitCount]);
 
   const isSpacerMode = activeTab === SPACER_TAB;
   const isSeedMode = activeTab === SEED_TAB;
@@ -313,7 +319,12 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
   function handleEditReplace() {
     if (!selectedBead || editReplaceTargetIds.length === 0) return;
-    const err = replaceEditSelectedBeadsAction(editReplaceTargetIds, selectedBead);
+    const isPartialFit = editReplaceFitCount > 0 && editReplaceFitCount < editReplaceTargetIds.length;
+    const err = replaceEditSelectedBeadsAction(
+      editReplaceTargetIds,
+      selectedBead,
+      isPartialFit ? replaceQuantity : undefined,
+    );
     if (err) {
       setError(err);
       setTimeout(() => setError(null), 3000);
@@ -547,9 +558,24 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                       )}
                     </p>
                     {editReplaceFitCount > 0 && editReplaceFitCount < editReplaceTargetIds.length && (
-                      <p className="text-[11px] text-color-base/50 mt-0.5">
-                        {editReplaceFitCount} of {editReplaceTargetIds.length} will fit
-                      </p>
+                      <div className="mt-1 flex items-center gap-2.5">
+                        <p className="text-[11px] text-color-base/50">
+                          {editReplaceFitCount} of {editReplaceTargetIds.length} will fit
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setReplaceQuantity(q => Math.max(1, q - 1))}
+                            disabled={replaceQuantity <= 1}
+                            className="w-5 h-5 flex items-center justify-center rounded-[2px] border border-default text-color-base/60 hover:bg-light-grey disabled:opacity-30 disabled:cursor-not-allowed text-xs leading-none"
+                          >−</button>
+                          <span className="w-5 text-center text-[11px] font-medium tabular-nums">{replaceQuantity}</span>
+                          <button
+                            onClick={() => setReplaceQuantity(q => Math.min(editReplaceFitCount, q + 1))}
+                            disabled={replaceQuantity >= editReplaceFitCount}
+                            className="w-5 h-5 flex items-center justify-center rounded-[2px] border border-default text-color-base/60 hover:bg-light-grey disabled:opacity-30 disabled:cursor-not-allowed text-xs leading-none"
+                          >+</button>
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -590,7 +616,11 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                   >
                     <Sparkle size={12} className="-mt-[2.5px] fill-white group-hover:fill-navy stroke-white group-hover:fill-navy group-hover:stroke-navy transition-colors" />
                     {isEditReplace || isImplicitEditReplace
-                      ? `Replace ${editReplaceTargetIds.length} bead${editReplaceTargetIds.length !== 1 ? "s" : ""}`
+                      ? (() => {
+                          const isPartialFit = editReplaceFitCount > 0 && editReplaceFitCount < editReplaceTargetIds.length;
+                          const n = isPartialFit ? replaceQuantity : editReplaceTargetIds.length;
+                          return `Replace ${n} bead${n !== 1 ? "s" : ""}`;
+                        })()
                       : isReplaceAll ? `Replace All (${replaceAllCount})` : isReplaceSingle ? "Replace Bead" : "Add to design"}
                   </Button>
                 )}
