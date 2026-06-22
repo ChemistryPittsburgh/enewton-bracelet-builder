@@ -125,10 +125,41 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const { data: beads = [] } = useBeads();
   const addBead = useStore((s) => s.addBead);
   const addSeedSegment = useStore((s) => s.addSeedSegment);
+  const replaceBeadInStore = useStore((s) => s.replaceBead);
+  const replaceAllBeadsInStore = useStore((s) => s.replaceAllBeads);
+  const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
+  const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
   const placedBeads = useStore((s) => s.beads);
   const braceletSize = useStore((s) => s.braceletSize);
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
   const { canEdit } = usePermissions();
+
+  const isReplaceSingle = replaceTargetInstanceId !== null;
+  const isReplaceAll = replaceAllTargetProductId !== null;
+  const isReplaceMode = isReplaceSingle || isReplaceAll;
+
+  // For single replace: remove the target bead from fit calculations (its slot is freed)
+  const effectivePlacedBeads = isReplaceSingle
+    ? placedBeads.filter((b) => b.instanceId !== replaceTargetInstanceId)
+    : placedBeads;
+
+  // For replace-all: swap all instances of the target product and check total arc
+  function fitsForReplaceAll(candidate: BeadProduct): boolean {
+    if (!replaceAllTargetProductId) return false;
+    const swapped = placedBeads.map((b) =>
+      b.product.id === replaceAllTargetProductId ? { ...b, product: candidate } : b
+    );
+    return usedArc(swapped) <= braceletArc(braceletRadius);
+  }
+
+  function candidateFits(candidate: BeadProduct): boolean {
+    if (isReplaceAll) return fitsForReplaceAll(candidate);
+    return beadFits(effectivePlacedBeads, { product: candidate }, braceletRadius);
+  }
+
+  const replaceAllCount = replaceAllTargetProductId !== null
+    ? placedBeads.filter((b) => b.product.id === replaceAllTargetProductId).length
+    : 0;
 
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -208,6 +239,24 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
       } else {
         setQuantity(1);
       }
+    }
+  }
+
+  function handleReplace() {
+    if (!selectedBead || !replaceTargetInstanceId) return;
+    const err = replaceBeadInStore(replaceTargetInstanceId, selectedBead);
+    if (err) {
+      setError(err);
+      setTimeout(() => setError(null), 3000);
+    }
+  }
+
+  function handleReplaceAll() {
+    if (!selectedBead || !replaceAllTargetProductId) return;
+    const err = replaceAllBeadsInStore(replaceAllTargetProductId, selectedBead);
+    if (err) {
+      setError(err);
+      setTimeout(() => setError(null), 3000);
     }
   }
 
@@ -404,7 +453,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                       selected={selectedBead?.id === bead.id}
                       onClick={() => handleSelectBead(bead)}
                       canEdit={canEdit}
-                      disabled={!beadFits(placedBeads, { product: bead }, braceletRadius)}
+                      disabled={!candidateFits(bead)}
                     />
                   ))}
                 </div>
@@ -415,10 +464,12 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
               {error && <ErrorAlert message={error} />}
 
-              {filteredBeads.length === 0 || (availableMm >= 1 && filteredBeads.some(b => beadFits(placedBeads, { product: b }, braceletRadius))) ? (
+              {filteredBeads.length === 0 || (isReplaceMode ? filteredBeads.some(b => candidateFits(b)) : availableMm >= 1 && filteredBeads.some(b => candidateFits(b))) ? (
                 <>
                 <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
-                  {selectedBead?.name ? "Item Selected" : "Select a bead"}
+                  {isReplaceMode
+                    ? (selectedBead?.name ? "Item Selected" : "Select replacement bead")
+                    : (selectedBead?.name ? "Item Selected" : "Select a bead")}
                 </p>
 
                 <div className="flex items-center gap-3">
@@ -437,7 +488,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                     </p>
                   </div>
 
-                  {selectedBead && (
+                  {selectedBead && !isReplaceMode && (
                     <>
                     <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-color-base/70 mr-1">
                       <input
@@ -468,12 +519,12 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
                 {canEdit && (
                   <Button
-                    onClick={handleAddToDesign}
-                    disabled={!selectedBead || !beadFits(placedBeads, { product: selectedBead }, braceletRadius)}
+                    onClick={isReplaceAll ? handleReplaceAll : isReplaceSingle ? handleReplace : handleAddToDesign}
+                    disabled={!selectedBead || !candidateFits(selectedBead)}
                     className="flex w-full items-center justify-center gap-2 disabled group"
                   >
                     <Sparkle size={12} className="-mt-[2.5px] fill-white group-hover:fill-navy stroke-white group-hover:fill-navy group-hover:stroke-navy transition-colors" />
-                    Add to design
+                    {isReplaceAll ? `Replace All (${replaceAllCount})` : isReplaceSingle ? "Replace Bead" : "Add to design"}
                   </Button>
                 )}
                 </>

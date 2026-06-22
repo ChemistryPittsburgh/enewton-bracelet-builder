@@ -84,6 +84,9 @@ export function BuilderLayout() {
 
   const isEditMode    = useStore((s) => s.isEditMode);
   const toggleEditMode = useStore((s) => s.toggleEditMode);
+  const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
+  const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
+  const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
 
   const activePatternId = useStore((s) => s.activePatternId);
 
@@ -109,6 +112,10 @@ export function BuilderLayout() {
   }, [designIsError, designErrorObj]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
+
+  useEffect(() => {
+    if (replaceTargetInstanceId !== null || replaceAllTargetProductId !== null) setBraceletPanelOpen(true);
+  }, [replaceTargetInstanceId, replaceAllTargetProductId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const { inReviewCount, approvedCount } = useNotifications();
   const notificationCount = inReviewCount + approvedCount;
@@ -474,7 +481,7 @@ export function BuilderLayout() {
 
         <BeadSelectorPanel
           isOpen={braceletPanelOpen}
-          onClose={() => setBraceletPanelOpen(false)}
+          onClose={() => { setBraceletPanelOpen(false); cancelReplaceMode(); }}
           onManageSeedColors={() => setManageSeedColorsOpen(true)}
         />
 

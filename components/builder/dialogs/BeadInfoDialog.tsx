@@ -9,7 +9,7 @@ import { cn, capitalize, slugify, formatMm, unslugify } from "@/lib/utils";
 import { seedSizeLabel } from "@/lib/seed-bead-utils";
 
 export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
-  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode} = useStore((s) => ({
+  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode, startReplaceMode, startReplaceAllMode } = useStore((s) => ({
     beads: s.beads,
     selectedBead: s.selectedBead,
     clearSelectedBead: s.clearSelectedBead,
@@ -18,6 +18,8 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
     selectAllOfType: s.selectAllOfType,
     removeAllOfType: s.removeAllOfType,
     isEditMode: s.isEditMode,
+    startReplaceMode: s.startReplaceMode,
+    startReplaceAllMode: s.startReplaceAllMode,
   }));
   const isOpen = !isLocked && selectedBead !== null;
   // Keep last known bead so content stays rendered during close transition
@@ -149,6 +151,16 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
                   isSeed ? "Remove seed beads" :
                   `Delete ${unslugify(bead.product.bead_category ?? "bead")}`
                 }
+              </Button>
+            )}
+            {!isLocked && !isSeed && !selectAllActive && (
+              <Button onClick={() => startReplaceMode(bead.instanceId)} className="w-full mt-2" variant="ghost">
+                Replace Bead
+              </Button>
+            )}
+            {!isLocked && !isSeed && selectAllActive && (
+              <Button onClick={() => startReplaceAllMode(bead.product.id)} className="w-full mt-2" variant="ghost">
+                Replace All ({matchCount})
               </Button>
             )}
           </>

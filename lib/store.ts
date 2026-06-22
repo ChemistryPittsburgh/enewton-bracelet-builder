@@ -10,7 +10,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize, SeedSegmentConfig } from "@/types";
-import { beadFits } from "@/lib/bead-layout";
+import { beadFits, usedArc, braceletArc } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
 import type { WebGLRenderer, Scene as ThreeScene, Camera } from "three";
@@ -68,6 +68,19 @@ interface Store {
 
   /** Close the info panel without removing anything. */
   clearSelectedBead: () => void;
+
+  /** Ephemeral — instanceId of the bead currently being replaced; null when not in replace mode. */
+  replaceTargetInstanceId: string | null;
+  startReplaceMode: (instanceId: string) => void;
+  cancelReplaceMode: () => void;
+  /** Swap the target bead's product in-place. Returns an error string or null on success. */
+  replaceBead: (instanceId: string, newProduct: BeadProduct) => string | null;
+
+  /** Ephemeral — product id of the type being replaced (all instances); null when not in replace-all mode. */
+  replaceAllTargetProductId: number | null;
+  startReplaceAllMode: (productId: number) => void;
+  /** Swap all beads of the given product id in-place. Returns an error string or null on success. */
+  replaceAllBeads: (productId: number, newProduct: BeadProduct) => string | null;
 
   /** Selecting all of beads with bead info dialog */
   selectAllActive: boolean;
@@ -233,6 +246,8 @@ export const useStore = create<Store>()(
       selectAllActive: false,
       viewMode: '3D' as const,
       dragFromPanel: null,
+      replaceTargetInstanceId: null,
+      replaceAllTargetProductId: null,
       canvasEl: null,
       activeDesignId: null,
       activePatternId: null,
@@ -271,7 +286,7 @@ export const useStore = create<Store>()(
         if (undoStack.length === 0) return;
         const [snapshot, ...rest] = undoStack;
         const current: CanvasSnapshot = { beads: [...beads], braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription };
-        set({ ...snapshot, undoStack: rest, redoStack: [current, ...redoStack], isDirty: true, selectedBead: null, editSelectedIds: [] });
+        set({ ...snapshot, undoStack: rest, redoStack: [current, ...redoStack], isDirty: true, selectedBead: null, editSelectedIds: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null });
       },
 
       redo() {
@@ -279,7 +294,7 @@ export const useStore = create<Store>()(
         if (redoStack.length === 0) return;
         const [snapshot, ...rest] = redoStack;
         const current: CanvasSnapshot = { beads: [...beads], braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription };
-        set({ ...snapshot, redoStack: rest, undoStack: [current, ...undoStack], isDirty: true, selectedBead: null, editSelectedIds: [] });
+        set({ ...snapshot, redoStack: rest, undoStack: [current, ...undoStack], isDirty: true, selectedBead: null, editSelectedIds: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null });
       },
 
       spacersHiddenForCapture: false,
@@ -326,7 +341,7 @@ export const useStore = create<Store>()(
 
       clearBeads() {
         get().pushUndoSnapshot();
-        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null });
       },
 
       resetBracelet: () => set({
@@ -341,6 +356,8 @@ export const useStore = create<Store>()(
         bandMaterial: "stretchy" as BandMaterial,
         undoStack: [],
         redoStack: [],
+        replaceTargetInstanceId: null,
+        replaceAllTargetProductId: null,
       }),
 
       startNewBracelet: () => set({
@@ -353,15 +370,69 @@ export const useStore = create<Store>()(
         isDirty: false,
         undoStack: [],
         redoStack: [],
+        replaceTargetInstanceId: null,
+        replaceAllTargetProductId: null,
         // braceletSize and bandMaterial intentionally preserved
       }),
 
       selectBead(bead) {
-        set({ selectedBead: bead, selectAllActive: false });
+        set({ selectedBead: bead, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null });
       },
 
       clearSelectedBead() {
-        set({ selectedBead: null, selectAllActive: false });
+        set({ selectedBead: null, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null });
+      },
+
+      startReplaceMode(instanceId) {
+        set({ replaceTargetInstanceId: instanceId, replaceAllTargetProductId: null });
+      },
+
+      cancelReplaceMode() {
+        set({ replaceTargetInstanceId: null, replaceAllTargetProductId: null });
+      },
+
+      startReplaceAllMode(productId) {
+        set({ replaceAllTargetProductId: productId, replaceTargetInstanceId: null });
+      },
+
+      replaceAllBeads(productId, newProduct) {
+        const s = get();
+        const radius = BRACELET_SIZE_RADIUS[s.braceletSize];
+        const swapped = s.beads.map((b) =>
+          b.product.id === productId ? { ...b, product: newProduct } : b
+        );
+        if (usedArc(swapped) > braceletArc(radius)) {
+          return "Bracelet is full — no room for those beads.";
+        }
+        get().pushUndoSnapshot();
+        set({
+          beads: swapped,
+          selectedBead: null,
+          selectAllActive: false,
+          replaceAllTargetProductId: null,
+          isDirty: true,
+        });
+        return null;
+      },
+
+      replaceBead(instanceId, newProduct) {
+        const s = get();
+        const radius = BRACELET_SIZE_RADIUS[s.braceletSize];
+        const withoutTarget = s.beads.filter((b) => b.instanceId !== instanceId);
+        if (!beadFits(withoutTarget, { product: newProduct }, radius)) {
+          return "Bracelet is full — no room for that bead.";
+        }
+        get().pushUndoSnapshot();
+        set((s) => ({
+          beads: s.beads.map((b) =>
+            b.instanceId === instanceId ? { instanceId: b.instanceId, product: newProduct } : b
+          ),
+          selectedBead: null,
+          replaceTargetInstanceId: null,
+          beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
+          isDirty: true,
+        }));
+        return null;
       },
 
       selectAllOfType() {
@@ -385,7 +456,7 @@ export const useStore = create<Store>()(
       },
 
       loadBeads(beads, name) {
-        set({ beads, selectedBead: null, isDirty: false, undoStack: [], redoStack: [], ...(name ? { braceletName: name } : {}) });
+        set({ beads, selectedBead: null, isDirty: false, undoStack: [], redoStack: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, ...(name ? { braceletName: name } : {}) });
       },
 
       setBraceletName(name) {
