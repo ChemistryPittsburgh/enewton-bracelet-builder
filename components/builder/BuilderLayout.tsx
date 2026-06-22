@@ -26,6 +26,7 @@ import { CanvasInfoOverlay } from "./canvas/CanvasInfoOverlay";
 import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
 import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
+import { EditReplaceDialog } from "./dialogs/EditReplaceDialog";
 import { SessionTakenOverDialog } from "./dialogs/SessionTakenOverDialog";
 import { DesignStatusLockedDialog } from "./dialogs/DesignStatusLockedDialog";
 import { DesignNotFoundDialog } from "./dialogs/DesignNotFoundDialog";
@@ -81,6 +82,10 @@ export function BuilderLayout() {
 
   const isEditMode    = useStore((s) => s.isEditMode);
   const toggleEditMode = useStore((s) => s.toggleEditMode);
+  const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
+  const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
+  const editReplaceMode = useStore((s) => s.editReplaceMode);
+  const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
 
   const activePatternId = useStore((s) => s.activePatternId);
 
@@ -106,6 +111,10 @@ export function BuilderLayout() {
   }, [designIsError, designErrorObj]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
+
+  useEffect(() => {
+    if (replaceTargetInstanceId !== null || replaceAllTargetProductId !== null || editReplaceMode) setBraceletPanelOpen(true);
+  }, [replaceTargetInstanceId, replaceAllTargetProductId, editReplaceMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const { inReviewCount, approvedCount } = useNotifications();
   const notificationCount = inReviewCount + approvedCount;
@@ -272,11 +281,12 @@ export function BuilderLayout() {
 
         <BeadSelectorPanel
           isOpen={braceletPanelOpen}
-          onClose={() => setBraceletPanelOpen(false)}
+          onClose={() => { setBraceletPanelOpen(false); cancelReplaceMode(); }}
           onManageSeedColors={() => setManageSeedColorsOpen(true)}
         />
 
         <BeadInfoDialog isLocked={isLocked} />
+        <EditReplaceDialog />
 
         <UserPanel
           open={rightPanel === "user"}
