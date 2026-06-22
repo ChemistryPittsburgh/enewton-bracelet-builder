@@ -115,6 +115,10 @@ interface Store {
   /** Insert a copy of the bead immediately after it. No-op if bracelet is full. */
   duplicateBead: (instanceId: string) => void;
 
+  /** Duplicate all beads in the selection as a block inserted after the last selected bead.
+   *  Returns an error string if the group doesn't fit, null on success. */
+  duplicateGroup: (instanceIds: string[]) => string | null;
+
   /** Reverse the entire bead order. */
   reverseBracelet: () => void;
 
@@ -649,6 +653,47 @@ export const useStore = create<Store>()(
           ...(bead.seedConfig ? { seedConfig: bead.seedConfig } : {}),
         };
         set({ beads: [...beads.slice(0, index + 1), copy, ...beads.slice(index + 1)], isDirty: true });
+      },
+
+      duplicateGroup(instanceIds) {
+        const { beads, braceletSize } = get();
+        const radius = BRACELET_SIZE_RADIUS[braceletSize];
+
+        // Collect selected beads in bracelet order
+        const selected = instanceIds
+          .map(id => ({ id, idx: beads.findIndex(b => b.instanceId === id) }))
+          .filter(x => x.idx !== -1)
+          .sort((a, b) => a.idx - b.idx)
+          .map(x => beads[x.idx]);
+
+        if (selected.length === 0) return "Selected beads not found.";
+
+        // Check that every copy fits (simulate adding them one by one)
+        let tempList = [...beads];
+        const copies: PlacedBead[] = [];
+        for (const bead of selected) {
+          if (!beadFits(tempList, bead, radius)) {
+            return copies.length === 0
+              ? "No room to duplicate the selection."
+              : `Only ${copies.length} of ${selected.length} copies fit — bracelet is too full.`;
+          }
+          const copy: PlacedBead = {
+            instanceId: nanoid(),
+            product: bead.product,
+            ...(bead.seedConfig ? { seedConfig: bead.seedConfig } : {}),
+          };
+          copies.push(copy);
+          tempList = [...tempList, copy];
+        }
+
+        // Insert all copies as a block immediately after the last selected bead
+        const lastIdx = Math.max(...selected.map(b => beads.findIndex(x => x.instanceId === b.instanceId)));
+        get().pushUndoSnapshot();
+        set({
+          beads: [...beads.slice(0, lastIdx + 1), ...copies, ...beads.slice(lastIdx + 1)],
+          isDirty: true,
+        });
+        return null;
       },
 
       reverseBracelet() {

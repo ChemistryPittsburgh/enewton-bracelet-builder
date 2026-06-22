@@ -138,6 +138,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const editReplaceMode = useStore((s) => s.editReplaceMode);
   const editReplaceNarrowedIds = useStore((s) => s.editReplaceNarrowedIds);
   const editSelectedIds = useStore((s) => s.editSelectedIds);
+  const editSelectionGroups = useStore((s) => s.editSelectionGroups);
   const placedBeads = useStore((s) => s.beads);
   const braceletSize = useStore((s) => s.braceletSize);
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -546,7 +547,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             <div className={`shrink-0 border-t border-default/50 pt-4 pb-5 space-y-3 ${panelGapClass}`}>
               {error && <ErrorAlert message={error} />}
 
-              {filteredBeads.length === 0 || (isReplaceMode ? filteredBeads.some(b => candidateFits(b)) : availableMm >= 1 && filteredBeads.some(b => candidateFits(b))) ? (
+              {filteredBeads.length === 0 || (isEditReplace && editSelectionGroups.length > 0 && editReplaceTargetIds.length === 0) || (isReplaceMode ? filteredBeads.some(b => candidateFits(b)) : availableMm >= 1 && filteredBeads.some(b => candidateFits(b))) ? (
                 <>
                 <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
                   {isReplaceMode
