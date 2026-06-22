@@ -276,7 +276,7 @@ export function DesignCard({
       <div className="flex gap-2 justify-between px-3 py-3">
         <div className="flex flex-col gap-1 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-sm font-medium">{design.name}</p>
+            <p className="text-sm font-medium">{design.name}</p>
           </div>
           {design.updated_at && (
             <p className="truncate text-xs text-color-base/70"><span className="text-color-base/70">Last Updated: </span>{formatDate(design.updated_at)}</p>

@@ -174,7 +174,7 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "float_charm", "tube", "gem"] as const;
+export const BEAD_CATEGORIES = ["bead", "resin_cross", "charm", "float_charm", "tube", "gem"] as const;
 export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
