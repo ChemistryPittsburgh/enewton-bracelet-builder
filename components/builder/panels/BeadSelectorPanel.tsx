@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
@@ -73,7 +74,7 @@ function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
       disabled={disabled}
       className={`flex flex-col gap-1 rounded-[2px] border transition-all overflow-hidden h-full ${
         disabled
-          ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed"
+          ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed hidden"
           : canEdit
             ? "cursor-grab active:cursor-grabbing"
             : "cursor-default"
@@ -177,6 +178,9 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
       })
       .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
   }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode, isSeedMode]);
+
+  const anyBeadFits  = filteredBeads.some((b) => beadFits(placedBeads, { product: b }, braceletRadius));
+  const braceletFull = filteredBeads.length > 0 && !(availableMm >= 1 && anyBeadFits);
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -372,17 +376,21 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                   {activeMaterial && (
                     <span className="inline-flex items-center gap-1 rounded-[2px] bg-mint/50 px-2 py-0.5 text-xs font-medium text-color-base/80">
                       {capitalize(activeMaterial)}
-                      <button onClick={() => setActiveMaterial("")} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove material filter">
-                        <X size={11} />
-                      </button>
+                      <Tooltip content={`Remove filter ${unslugify(activeMaterial)}`}>
+                        <button onClick={() => setActiveMaterial("")} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove material filter">
+                          <X size={11} />
+                        </button>
+                      </Tooltip>
                     </span>
                   )}
                   {activeType && (
                     <span className="inline-flex items-center gap-1 rounded-[2px] bg-gold/30 px-2 py-0.5 text-xs font-medium text-color-base/80">
                       {activeType}
-                      <button onClick={() => setActiveType(null)} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove type filter">
-                        <X size={11} />
-                      </button>
+                      <Tooltip content={`Remove filter ${unslugify(activeType)}`}>
+                        <button onClick={() => setActiveType(null)} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove type filter">
+                          <X size={11} />
+                        </button>
+                      </Tooltip>
                     </span>
                   )}
                 </div>
@@ -396,18 +404,26 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                   No beads match your filters.
                 </p>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 min-[1700px]:grid-cols-4 gap-3">
-                  {filteredBeads.map((bead) => (
-                    <BeadCard
-                      key={bead.id}
-                      bead={bead}
-                      selected={selectedBead?.id === bead.id}
-                      onClick={() => handleSelectBead(bead)}
-                      canEdit={canEdit}
-                      disabled={!beadFits(placedBeads, { product: bead }, braceletRadius)}
-                    />
-                  ))}
-                </div>
+                <>
+                {!braceletFull ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 min-[1700px]:grid-cols-4 gap-3">
+                    {filteredBeads.map((bead) => (
+                      <BeadCard
+                        key={bead.id}
+                        bead={bead}
+                        selected={selectedBead?.id === bead.id}
+                        onClick={() => handleSelectBead(bead)}
+                        canEdit={canEdit}
+                        disabled={!beadFits(placedBeads, { product: bead }, braceletRadius)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-color-base/50 text-center py-8">
+                    No items fit the remaining space on bracelet. 
+                  </p>
+                )}
+                </>
               )}
             </div>
 
@@ -415,7 +431,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
               {error && <ErrorAlert message={error} />}
 
-              {filteredBeads.length === 0 || (availableMm >= 1 && filteredBeads.some(b => beadFits(placedBeads, { product: b }, braceletRadius))) ? (
+              {!braceletFull ? (
                 <>
                 <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
                   {selectedBead?.name ? "Item Selected" : "Select a bead"}
