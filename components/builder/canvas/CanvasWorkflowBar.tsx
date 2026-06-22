@@ -7,7 +7,7 @@ import type { BraceletStatus } from "@/types";
 
 /**
  * Compact status badge rendered on the canvas overlay.
- * Workflow action buttons live in CanvasToolbar.
+ * Workflow action buttons live in HeaderToolbar.
  * Only visible when a saved design is loaded (activeDesignId is set).
  */
 export function CanvasWorkflowBar() {

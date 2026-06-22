@@ -11,7 +11,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize, SeedSegmentConfig } from "@/types";
 import { beadFits, usedArc, braceletArc } from "@/lib/bead-layout";
-import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, DEFAULT_BRACELET_NAME } from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
 import type { WebGLRenderer, Scene as ThreeScene, Camera } from "three";
 
@@ -62,6 +62,8 @@ interface Store {
   /** Start a new bracelet preserving the current size and material — used by
    *  the "New Bracelet" button so the user's preferred size is not discarded. */
   startNewBracelet: () => void;
+
+  copyBracelet: () => void;
 
   /** Open the info panel for a specific bead. */
   selectBead: (bead: PlacedBead) => void;
@@ -175,7 +177,7 @@ interface Store {
   setThreeCamera: (c: Camera | null) => void;
 
   /**
-   * Ephemeral — not persisted.
+   * Persisted (see partialize + migrate, v3).
    * ID of the design currently on the canvas (set after a successful save or
    * when a design is loaded from the Saved Designs panel).
    * null means the canvas holds an unsaved / new bracelet.
@@ -185,7 +187,7 @@ interface Store {
   setActiveDesignId: (id: number | null) => void;
 
   /**
-   * Ephemeral — not persisted.
+   * Persisted (see partialize + migrate, v4).
    * ID of the pattern being edited on the canvas. Set when the user clicks
    * "Edit pattern", cleared when they start a new bracelet or clear beads.
    * When set, the header shows a "Save Pattern" button that writes back to
@@ -399,6 +401,17 @@ export const useStore = create<Store>()(
         editSelectionGroups: [],
         // braceletSize and bandMaterial intentionally preserved
       }),
+
+      copyBracelet: () =>
+        set((s) => ({
+          activeDesignId: null,      // detach from the saved design
+          activePatternId: null,     // and from any pattern
+          braceletName:
+            s.braceletName && s.braceletName !== DEFAULT_BRACELET_NAME
+              ? `Copy of ${s.braceletName}`
+              : DEFAULT_BRACELET_NAME,
+          isDirty: true,             // so Save creates a new bracelet
+        })),
 
       selectBead(bead) {
         set({ selectedBead: bead, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null });

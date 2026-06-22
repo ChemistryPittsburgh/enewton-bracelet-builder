@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { ScrollableRow } from "@/components/ui/ScrollableRow";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
@@ -28,6 +30,8 @@ import { SeedBeadPicker } from "./SeedBeadPicker";
 
 const SPACER_TAB = "__spacer__";
 const SEED_TAB = "__seed__";
+
+const panelGapClass = "px-4 lg:px-7";
 
 // ── Small inline helpers ───────────────────────────────────────────────────
 
@@ -73,7 +77,7 @@ function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
       disabled={disabled}
       className={`flex flex-col gap-1 rounded-[2px] border transition-all overflow-hidden h-full ${
         disabled
-          ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed"
+          ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed hidden"
           : canEdit
             ? "cursor-grab active:cursor-grabbing"
             : "cursor-default"
@@ -266,6 +270,9 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
       .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
   }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode, isSeedMode]);
 
+  const anyBeadFits  = filteredBeads.some((b) => beadFits(placedBeads, { product: b }, braceletRadius));
+  const braceletFull = filteredBeads.length > 0 && !(availableMm >= 1 && anyBeadFits);
+
   // ── Handlers ────────────────────────────────────────────────────────────
 
   function handleAddToDesign() {
@@ -384,7 +391,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
         {/* Search — hidden in spacer/seed mode */}
         {!isSpacerMode && !isSeedMode && (
-          <div className="px-5 pt-4">
+          <div className={`pt-4 ${panelGapClass}`}>
             <div className="relative">
               <input
                 type="text"
@@ -410,7 +417,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         )}
 
         {/* Category pills + Spacer + Seed tabs */}
-        <div className="flex gap-2 px-5 py-3 flex-wrap picker-scroll">
+        <ScrollableRow className="py-3" trackClassName="gap-2">
           <MaterialPill
             label="All"
             active={activeTab === null}
@@ -448,7 +455,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
               setSelectedBead(null);
             }}
           />
-        </div>
+        </ScrollableRow>
 
         {isSpacerMode ? (
           <SpacerPicker onAdd={handleAddSpacer} error={error} />
@@ -458,7 +465,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
           /* ── Normal bead selector ── */
           <>
             {/* Filter dropdowns + active chips */}
-            <div className="px-5 pb-3 border-b border-default flex flex-col gap-2">
+            <div className={`pb-3 border-b border-default flex flex-col gap-2 ${panelGapClass}`}>
               <div className="flex items-center gap-2">
                 <select
                   aria-label="Filter by material"
@@ -492,17 +499,21 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                   {activeMaterial && (
                     <span className="inline-flex items-center gap-1 rounded-[2px] bg-mint/50 px-2 py-0.5 text-xs font-medium text-color-base/80">
                       {capitalize(activeMaterial)}
-                      <button onClick={() => setActiveMaterial("")} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove material filter">
-                        <X size={11} />
-                      </button>
+                      <Tooltip content={`Remove filter ${unslugify(activeMaterial)}`}>
+                        <button onClick={() => setActiveMaterial("")} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove material filter">
+                          <X size={11} />
+                        </button>
+                      </Tooltip>
                     </span>
                   )}
                   {activeType && (
                     <span className="inline-flex items-center gap-1 rounded-[2px] bg-gold/30 px-2 py-0.5 text-xs font-medium text-color-base/80">
                       {activeType}
-                      <button onClick={() => setActiveType(null)} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove type filter">
-                        <X size={11} />
-                      </button>
+                      <Tooltip content={`Remove filter ${unslugify(activeType)}`}>
+                        <button onClick={() => setActiveType(null)} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove type filter">
+                          <X size={11} />
+                        </button>
+                      </Tooltip>
                     </span>
                   )}
                 </div>
@@ -510,7 +521,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             </div>
 
             {/* Bead grid */}
-            <div className="flex-1 px-5 py-3 overflow-y-scroll">
+            <div className={`flex-1 py-3 overflow-y-scroll ${panelGapClass}`}>
               {filteredBeads.length === 0 ? (
                 <p className="text-xs text-color-base/50 text-center py-8">
                   No beads match your filters.
@@ -532,7 +543,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             </div>
 
             {/* Bottom bar */}
-            <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
+            <div className={`shrink-0 border-t border-default/50 pt-4 pb-5 space-y-3 ${panelGapClass}`}>
               {error && <ErrorAlert message={error} />}
 
               {filteredBeads.length === 0 || (isReplaceMode ? filteredBeads.some(b => candidateFits(b)) : availableMm >= 1 && filteredBeads.some(b => candidateFits(b))) ? (
@@ -543,17 +554,22 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                     : (selectedBead?.name ? "Item Selected" : "Select a bead")}
                 </p>
 
-                <div className="flex items-center gap-3">
+                <div className="flex gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="truncate text-[15px] font-medium">
-                      {selectedBead?.bead_type ?? ""}
-                    </p>
-                    <p className="text-[12px] text-color-base/70 flex items-center">
-                      {selectedBead?.size_mm ? `${selectedBead.size_mm}mm` : "—"}
-                      {selectedBead?.color && (
+                    <span className="text-[15px] font-medium flex items-center">
+                      {selectedBead?.bead_type ?? ""} 
+                      {selectedBead?.size_mm && (
                         <span className="flex items-center gap-0.5">
-                          <Dot size={10} />
-                          {capitalize(selectedBead.color)}
+                          <Dot size={15} />
+                          {selectedBead.size_mm}mm
+                        </span>
+                      )}
+                    </span>
+                    <p className="text-[12px] text-color-base/70 flex-col gap-1">
+                      {selectedBead?.material && (<span>Material: {unslugify(selectedBead.material)} </span>)}
+                      {selectedBead?.color && (
+                        <span>
+                        <br />Color: {capitalize(selectedBead.color)}
                         </span>
                       )}
                     </p>
@@ -580,7 +596,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                   </div>
 
                   {selectedBead && !isReplaceMode && !isImplicitEditReplace && (
-                    <>
+                    <div className="flex flex-col gap-2">
                     <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-color-base/70 mr-1">
                       <input
                         type="checkbox"
@@ -604,7 +620,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                         />
                       </div>
                     )}
-                    </>
+                    </div>
                   )}
                 </div>
 

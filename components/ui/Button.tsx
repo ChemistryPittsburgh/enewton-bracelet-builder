@@ -10,6 +10,7 @@ const variants = {
   softDanger: "bg-blush border border-[#8b3040]/50 text-[#8b3040] hover:bg-blush/50",
   positive:   "bg-light-mint text-[#0d5c52] hover:bg-light-mint/80",
   dashed:     "dashed-border border border-transparent bg-white text-color-base hover:border hover:border-navy focus:border focus:border-navy focus:ring-0 hover:bg-mint focus:bg-mint",
+  gold:       "bg-white text-gold border border-gold hover:bg-gold hover:text-white flex gap-1.5 focus:bg-gold focus:text-white items-center"
 };
 
 const sizes = {

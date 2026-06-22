@@ -75,7 +75,7 @@ export function CanvasStatsBar() {
         </Tooltip>
       )}
         <div className="bg-white backdrop-blur-sm shadow-sm rounded-[5px] flex items-center p-4 m-auto gap-4">
-          <Stat label="MM Used" value={`${formatMm(remainingMm)}mm / ${formatMm(totalMm)}mm`} />
+          <Stat label="MM Used" value={`${remainingMm > 0.15 ? formatMm(remainingMm) : "0"}mm / ${formatMm(totalMm)}mm`} />
           <Stat label="Filled" value={`${percentUsed.toFixed(0)}%`} />
           <Stat label="Items" value={`${placedBeads.length}`} />
           <Stat label="Beads" value={`${String(beadCount)}`} />
