@@ -118,6 +118,12 @@ export const LINE_VIEW_EDIT_HEIGHT = 0.10;
 /** Camera position for the side/angled edit mode view — lower and further forward than the default. */
 export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.09];
 
+/** Distance from bracelet centre for the side edit view (magnitude of CAMERA_EDIT_SIDE_POSITION). */
+export const CAMERA_EDIT_SIDE_DISTANCE = Math.hypot(...CAMERA_EDIT_SIDE_POSITION);
+
+/** Distance step (metres) for each Zoom In / Zoom Out button press in edit mode. */
+export const CAMERA_EDIT_ZOOM_STEP = 0.015;
+
 // ─── Cord ─────────────────────────────────────────────────────────────────────
 
 /** Visual properties for the cord torus mesh, keyed by string material.

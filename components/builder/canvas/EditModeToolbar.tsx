@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
-import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import {
+  BRACELET_SIZE_RADIUS,
+  CAMERA_MIN_DISTANCE,
+  CAMERA_EDIT_HEIGHT,
+  CAMERA_EDIT_SIDE_POSITION,
+  CAMERA_EDIT_SIDE_DISTANCE,
+  CAMERA_EDIT_ZOOM_STEP,
+} from "@/lib/constants";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 export function EditModeToolbar() {
@@ -30,6 +37,8 @@ export function EditModeToolbar() {
     redo,
     editReplaceMode,
     setEditReplaceMode,
+    controlsEl,
+    viewMode,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editSelectedIds: s.editSelectedIds,
@@ -52,6 +61,8 @@ export function EditModeToolbar() {
     redo: s.redo,
     editReplaceMode: s.editReplaceMode,
     setEditReplaceMode: s.setEditReplaceMode,
+    controlsEl: s.controlsEl,
+    viewMode: s.viewMode,
   }));
 
   const n = beads.length;
@@ -69,6 +80,37 @@ export function EditModeToolbar() {
   const singleIdx = isSingleSelection
     ? beads.findIndex((b) => b.instanceId === editSelectedIds[0])
     : -1;
+
+  // ── Zoom (3D edit mode only; line view has free scroll) ────────────────────
+  const isLineView = viewMode === 'line';
+  const baseDistance = editViewMode === 'top' ? CAMERA_EDIT_HEIGHT : CAMERA_EDIT_SIDE_DISTANCE;
+  const [zoomDistance, setZoomDistance] = useState(baseDistance);
+
+  // Sync zoom state whenever CameraController resets the camera (view or mode change)
+  useEffect(() => {
+    setZoomDistance(baseDistance);
+  }, [editViewMode, isEditMode, baseDistance]);
+
+  function handleZoomIn() {
+    const next = Math.max(CAMERA_MIN_DISTANCE, zoomDistance - CAMERA_EDIT_ZOOM_STEP);
+    setZoomDistance(next);
+    controlsEl?.dollyTo(next, true);
+  }
+
+  function handleZoomOut() {
+    const next = Math.min(baseDistance, zoomDistance + CAMERA_EDIT_ZOOM_STEP);
+    setZoomDistance(next);
+    if (next >= baseDistance) {
+      // Fully zoomed out — reset to the initial edit camera position so any
+      // panning the user did while zoomed in is also cleared.
+      const [cx, cy, cz] = editViewMode === 'top'
+        ? [0, CAMERA_EDIT_HEIGHT, 0] as const
+        : CAMERA_EDIT_SIDE_POSITION;
+      controlsEl?.setLookAt(cx, cy, cz, 0, 0, 0, true);
+    } else {
+      controlsEl?.dollyTo(next, true);
+    }
+  }
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -227,6 +269,20 @@ export function EditModeToolbar() {
           <Trash2 size={22} />
         </EditBtn>
       </Tooltip>
+      {!isLineView && (
+        <Tooltip content="Zoom in" placement="bottom">
+          <EditBtn onClick={handleZoomIn} disabled={zoomDistance <= CAMERA_MIN_DISTANCE} label="Zoom in">
+            <ZoomIn size={22} />
+          </EditBtn>
+        </Tooltip>
+      )}
+      {!isLineView && (
+        <Tooltip content="Zoom out" placement="bottom">
+          <EditBtn onClick={handleZoomOut} disabled={zoomDistance >= baseDistance} label="Zoom out">
+            <ZoomOut size={22} />
+          </EditBtn>
+        </Tooltip>
+      )}
       <Tooltip content={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'} placement="bottom-start">
         <EditBtn
           onClick={toggleEditViewMode}

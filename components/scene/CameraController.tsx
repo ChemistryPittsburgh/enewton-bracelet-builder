@@ -22,11 +22,12 @@ function enableFreeControls(c: CameraControls) {
   c.mouseButtons.middle = 16; c.mouseButtons.wheel = 16;
   c.touches.one = 64; c.touches.two = 4096; c.touches.three = 128;
 }
-// Fully locked (edit mode)
-function lockControls(c: CameraControls) {
-  c.mouseButtons.left = 0; c.mouseButtons.right = 0;
+// Edit mode: no rotation or zoom, but right-drag / two-finger-drag pans so
+// the user can move the view when zoomed in.
+function enableEditControls(c: CameraControls) {
+  c.mouseButtons.left = 0; c.mouseButtons.right = 2;  // 2 = TRUCK
   c.mouseButtons.middle = 0; c.mouseButtons.wheel = 0;
-  c.touches.one = 0; c.touches.two = 0; c.touches.three = 0;
+  c.touches.one = 0; c.touches.two = 2048; c.touches.three = 0; // 2048 = TOUCH_TRUCK
 }
 
 interface CameraControllerProps {
@@ -147,7 +148,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
           controls!.minPolarAngle = polar;
           controls!.maxPolarAngle = polar;
         }
-        lockControls(controls!);
+        enableEditControls(controls!);
         controls!.removeEventListener('rest', lockOnRest);
       }
       controls.addEventListener('rest', lockOnRest);
