@@ -150,7 +150,7 @@ interface Store {
   setThreeCamera: (c: Camera | null) => void;
 
   /**
-   * Ephemeral — not persisted.
+   * Persisted (see partialize + migrate, v3).
    * ID of the design currently on the canvas (set after a successful save or
    * when a design is loaded from the Saved Designs panel).
    * null means the canvas holds an unsaved / new bracelet.
@@ -160,7 +160,7 @@ interface Store {
   setActiveDesignId: (id: number | null) => void;
 
   /**
-   * Ephemeral — not persisted.
+   * Persisted (see partialize + migrate, v4).
    * ID of the pattern being edited on the canvas. Set when the user clicks
    * "Edit pattern", cleared when they start a new bracelet or clear beads.
    * When set, the header shows a "Save Pattern" button that writes back to
