@@ -37,7 +37,7 @@ import { CommentsPanel } from "./panels/CommentsPanel";
 
 import { SavedDesignsScreen } from "./saved-designs/SavedDesignsScreen";
 
-import { UserPanel } from "./users/UserPanel";
+import { UserPanel } from "./panels/UserPanel";
 import { UsersAdminScreen } from "./users/UsersAdminScreen";
 
 import { getInitials } from "@/lib/utils";

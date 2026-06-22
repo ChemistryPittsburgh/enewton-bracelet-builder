@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Copy, LayoutTemplate, Plus } from "lucide-react";
+import { Copy, LayoutTemplate, Plus } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
 interface NewBraceletMenuProps {

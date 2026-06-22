@@ -31,7 +31,7 @@ import { useBeads } from "@/hooks/useBeads";
 import type { Bracelet } from "@/types";
 import type { BeadProduct } from "@/types";
 
-import { PERMISSION_FIELDS } from "./PermissionsDropdown";
+import { PERMISSION_FIELDS } from "@/components/builder/users/PermissionsDropdown";
 
 interface UserPanelProps {
   open: boolean;

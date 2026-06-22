@@ -33,19 +33,21 @@ app/
 
 components/
 ├── builder/
-│   ├── canvas/            # Canvas overlays: toolbar, stats bar, band selector,
-│   │                        edit mode toolbar, workflow bar, exporter
+│   ├── canvas/            # Canvas overlays: info overlay, stats bar, band selector,
+│   │                        edit mode toolbar + help, workflow bar, Pusher status
 │   ├── dialogs/           # Modal dialogs: bead info, bracelet details, confirm
 │   │                        replace, create pattern, delete, discontinue, manage
 │   │                        beads/tags/collections/seed colors, reject, session
 │   │                        takeover, design lock
+│   ├── header/            # Top-bar pieces: HeaderToolbar (view/edit/comments +
+│   │                        workflow actions), BraceletExporter, NewBraceletMenu
 │   ├── panels/            # Slide-out panels: bead selector, seed bead picker,
-│   │                        spacer picker, comments, patterns
+│   │                        spacer picker, comments, users
 │   ├── saved-designs/     # Saved designs screen, design + pattern cards, filter pickers
 │   ├── sections/          # Workflow + assignment sections (inside details dialog)
 │   ├── users/             # User admin: CRUD, OTP creation, permissions, avatar
-│   └── BuilderLayout.tsx  # Root component — orchestrates panels, lock state,
-│                            Pusher subscriptions, notifications
+│   └── BuilderLayout.tsx  # Root component — orchestrates panels, dialogs, and
+│                            notifications; delegates lock + realtime to useDesignLock
 ├── scene/
 │   ├── AllBeads.tsx        # Maps placed beads → BeadOnBracelet / SeedSegmentOnBracelet / SpacerOnBracelet
 │   ├── BeadOnBracelet.tsx  # GLB loader, material finish, charm hanging, selection
@@ -73,6 +75,7 @@ hooks/
 ├── useDeletePattern.ts    # DELETE /patterns/:id
 ├── useDesign.ts           # Single design query by ID
 ├── useDesignHeartbeat.ts  # 30s interval lock keepalive
+├── useDesignLock.ts       # Lock acquire/confirm, heartbeat kicks, Pusher sync, status-lock detection
 ├── useDesigns.ts          # All designs query with client-side filter/sort
 ├── useDrag.ts             # Canvas drag-to-reorder + panel-to-canvas drop
 ├── useGenerateThumbnail.ts# WebGL render target capture + content-aware crop
@@ -139,7 +142,7 @@ Hooks are grouped by domain — related query + mutation hooks live in one file 
 | `useUsers.ts` | `useUsers`, `useCreateUser`, `useCreateOtpUser`, `useUpdateUser`, `useDeleteUser` |
 | `useWorkflow.ts` | `useSubmitDesign`, `useApproveDesign`, `useRejectDesign`, `usePublishDesign`, `useUnPublishDesign`, `useSendToDraft`, `useReopenDesign`, `useDiscontinueDesign`, `useUndiscontinueDesign`, `useSetDesignSku` |
 
-Hooks that carry enough standalone logic to justify their own file remain separate (e.g. `useLoadDesign`, `useDrag`, `useGenerateThumbnail`, `usePusherDesign`). The pattern hooks (`usePatterns`, `useCreatePattern`, `useSavePattern`, `useSaveDesignAsPattern`, `useDeletePattern`, `useLoadPattern`) are likewise kept as individual files — each maps to a distinct endpoint or load path and shares no state with the others.
+Hooks that carry enough standalone logic to justify their own file remain separate (e.g. `useLoadDesign`, `useDesignLock`, `useDrag`, `useGenerateThumbnail`, `usePusherDesign`). The pattern hooks (`usePatterns`, `useCreatePattern`, `useSavePattern`, `useSaveDesignAsPattern`, `useDeletePattern`, `useLoadPattern`) are likewise kept as individual files — each maps to a distinct endpoint or load path and shares no state with the others.
 
 ## Design Workflow
 
@@ -174,10 +177,7 @@ Patterns are reusable bracelet templates — a saved arrangement of beads/seed s
 
 > **Backend contract:** because patterns are created via `POST /designs`, `GET /designs` **must** exclude `is_pattern = 1` rows server-side — the frontend `useDesigns` query does not filter them out. If patterns ever start appearing in the Saved Designs grid, that exclusion is the thing to check (or add a defensive `is_pattern` guard to `useDesigns`).
 
-**Entry points.** Patterns surface in two places, both backed by the same hooks:
-
-- **PatternsPanel** — a slide-out panel with a 2-up grid of `PatternCard`s and a "Save Current Canvas as Pattern" button (gated by `canManageComponents`).
-- **SavedDesignsScreen → PatternsGrid** — a full-screen tab alongside Designs, with search + sort.
+**Entry point.** Patterns surface in the **SavedDesignsScreen → PatternsGrid** tab — a full-screen view alongside Designs, with search + sort. It's reached from the Saved Designs panel, the **New Bracelet → From pattern** menu item, and the **Manage Patterns** admin action.
 
 Each card offers two actions: **create bracelet** (load the pattern as a fresh, unsaved bracelet) and, for managers, **edit pattern** (load it in edit-in-place mode).
 
@@ -194,11 +194,11 @@ Each card offers two actions: **create bracelet** (load the pattern as a fresh, 
 
 Concurrent editing is prevented via server-side edit locks with a 30-second heartbeat. When a user loads a design, `useLoadDesign` acquires the lock via `POST /designs/:id/lock`. The `useDesignHeartbeat` hook sends keepalive POSTs every 30 seconds. If another user (typically an admin) force-takes the lock, the original editor is kicked to read-only mode and shown a `SessionTakenOverDialog`.
 
-Pusher events (`design.lock-taken`, `design.lock-changed`) provide instant notification of lock changes, supplementing the heartbeat polling.
+Pusher events (`design.lock-taken`, `design.lock-changed`) provide instant notification of lock changes, supplementing the heartbeat polling. On the client, the `useDesignLock` hook centralises all of this — optimistic acquisition when the active design changes, server confirmation from the GET response's `active_lock`, heartbeat wiring, and the kicked / status-locked modal state that `BuilderLayout` renders.
 
 ## Real-time Updates (Pusher)
 
-Each design has a private Pusher channel (`private-design-{id}`) carrying events for design updates, lock changes, and comment CRUD. The `usePusherDesign` hook subscribes when a design is loaded and writes event payloads directly into the React Query cache via `setQueryData` to avoid redundant network round-trips. The global `private-designs` channel carries `design.status-changed` events that update notification badge counts.
+Each design has a private Pusher channel (`private-design-{id}`) carrying events for design updates, lock changes, and comment CRUD. The `usePusherDesign` hook subscribes when a design is loaded and writes event payloads directly into the React Query cache via `setQueryData` to avoid redundant network round-trips; `BuilderLayout` wires its handlers through `useDesignLock`. The global `private-designs` channel carries `design.status-changed` events that update notification badge counts.
 
 ## 3D Scene Architecture
 
