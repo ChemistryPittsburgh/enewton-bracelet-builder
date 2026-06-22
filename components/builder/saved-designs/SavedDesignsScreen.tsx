@@ -33,10 +33,15 @@ import { Tooltip } from "@/components/ui/Tooltip";
 interface SavedDesignsScreenProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Which sidebar tab to open on. Defaults to the designs list. */
+  initialView?: "designs" | "patterns";
   /** True when the current user was kicked from the active design — clicking
    *  the same design card should clear the kicked state (allow re-acquisition). */
   isKickedFromActiveDesign?: boolean;
   onRetryLock?: () => void;
+  /** Opens the Bracelet Details dialog (mounted in BuilderLayout) once a design
+   *  has been loaded — used by the card's "Open bracelet details" action. */
+  onOpenDetails?: () => void;
 }
 
 const STATUS_FILTERS: { label: string; value: BraceletStatus | undefined }[] = [
@@ -62,7 +67,7 @@ const BRACELET_STATE_OPTIONS: { label: string; value: BraceletState }[] = [
   { label: "Inactive", value: "inactive" },
 ];
 
-export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, onRetryLock }: SavedDesignsScreenProps) {
+export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", isKickedFromActiveDesign, onRetryLock, onOpenDetails }: SavedDesignsScreenProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -207,6 +212,36 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
     if (success) onClose();
   }
 
+  async function handleCopyDesign(design: Bracelet) {
+    // Load the chosen design, then fork it into a fresh unsaved draft (same
+    // beads/band, new identity) so the next Save creates a separate bracelet.
+    // Mirrors proceedWithLoad's unsaved-work guard: when work is pending the
+    // confirm dialog loads the design first, then runs this callback to fork it.
+    const forkAfterLoad = () => { useStore.getState().copyBracelet(); onClose(); };
+    const hasUnsavedWork = isDirty || (beads.length > 0 && activeDesignId === null);
+    if (hasUnsavedWork) {
+      setPendingDesign(design, forkAfterLoad);
+      return;
+    }
+    const success = await loadDesign(design);
+    if (success) forkAfterLoad();
+  }
+
+  async function handleShowDetails(design: Bracelet) {
+    // The Bracelet Details dialog is store-bound to the active design, so load
+    // the chosen design first, then open the dialog (via BuilderLayout) and close
+    // this screen. If it's already the active design, skip straight to opening.
+    const openDetails = () => { onOpenDetails?.(); onClose(); };
+    if (design.id === activeDesignId) { openDetails(); return; }
+    const hasUnsavedWork = isDirty || (beads.length > 0 && activeDesignId === null);
+    if (hasUnsavedWork) {
+      setPendingDesign(design, openDetails);
+      return;
+    }
+    const success = await loadDesign(design);
+    if (success) openDetails();
+  }
+
   async function handleCardClick(design: Bracelet) {
     // Check lock before the activeDesignId short-circuit — someone else may
     // have taken the lock on a design you currently have open.
@@ -259,7 +294,12 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
   }
 
   // ── Panel visibility ───────────────────────────────────────────────────────
-  useEffect(() => { if (isOpen) setIsVisible(true); }, [isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+      setSidebarView(initialView === "patterns" ? "patterns" : undefined);
+    }
+  }, [isOpen, initialView]);
   function handleAnimationEnd() { if (!isOpen) setIsVisible(false); }
   if (!isVisible) return null;
 
@@ -282,7 +322,7 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
         {/* ── Sidebar — status filters ───────────────────────────────────── */}
         <aside className="w-full md:w-[280px] lg:w-[350px] shrink-0 overflow-y-auto bg-light-grey/80 py-6 lg:py-10 px-6">
           <div className="flex items-center justify-between pb-8">
-            <Tooltip content="Close Saved Designs Panel" placement="bottom-end">
+            <Tooltip content="Close Saved Designs" placement="bottom-end">
               <button
                 onClick={onClose}
                 className="flex items-center rounded-[2px] px-4.5 py-3.5 text-sm font-semibold border border-default bg-white hover:bg-mint hover:border-black transition-colors"
@@ -535,6 +575,8 @@ export function SavedDesignsScreen({ isOpen, onClose, isKickedFromActiveDesign, 
                         onSubmitForReview={(d) => submitDesign(d.id)}
                         onApprove={(d) => approveDesign(d.id)}
                         onRejectRequest={(d) => setDesignToReject(d)}
+                        onCopyRequest={(d) => handleCopyDesign(d)}
+                        onDetailsRequest={(d) => handleShowDetails(d)}
                       />
                     ))}
                   </div>

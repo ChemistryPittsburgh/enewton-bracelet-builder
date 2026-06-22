@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronsRight, Inbox, LayoutTemplate, Loader2, Lock, Plus, ShieldAlert } from "lucide-react";
+import { ChevronDown, ChevronsRight, Copy, Inbox, LayoutTemplate, Loader2, Lock, Plus, ShieldAlert } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -68,6 +68,7 @@ export function BuilderLayout() {
     setPendingDesign,
     activeDesignId,
     isDirty,
+    copyBracelet,
   } = useStore((s) => ({
     placedBeads:          s.beads,
     braceletName:         s.braceletName,
@@ -80,6 +81,7 @@ export function BuilderLayout() {
     setPendingDesign:     s.setPendingDesign,
     activeDesignId:       s.activeDesignId,
     isDirty:              s.isDirty,
+    copyBracelet:         s.copyBracelet,
   }));
 
   const isEditMode    = useStore((s) => s.isEditMode);
@@ -117,6 +119,11 @@ export function BuilderLayout() {
   const [usersAdminOpen,      setUsersAdminOpen]      = useState(false);
   const [manageBeadsOpen,     setManageBeadsOpen]     = useState(false);
   const [manageSeedColorsOpen, setManageSeedColorsOpen] = useState(false);
+
+  // ── "New Bracelet" dropdown ────────────────────────────────────────────────
+  const [newMenuOpen, setNewMenuOpen] = useState(false);
+  const newMenuRef = useRef<HTMLDivElement>(null);
+  const [savedDesignsInitialView, setSavedDesignsInitialView] = useState<"designs" | "patterns">("designs");
 
   // ── Design lock ──────────────────────────────────────────────────────────
   const queryClient = useQueryClient();
@@ -381,6 +388,18 @@ export function BuilderLayout() {
     if (isLocked && isEditMode) toggleEditMode();
   }, [isLocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Close the "New Bracelet" dropdown on any outside click.
+  useEffect(() => {
+    if (!newMenuOpen) return;
+    function onDown(e: MouseEvent) {
+      if (newMenuRef.current && !newMenuRef.current.contains(e.target as Node)) {
+        setNewMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [newMenuOpen]);
+
 
   function openBraceletPanel() {
     setBraceletPanelOpen((o) => !o);
@@ -392,6 +411,13 @@ export function BuilderLayout() {
     } else {
       startNewBracelet();
     }
+  }
+
+  function handleCopyBracelet() {
+    // Fork the bracelet currently on the canvas into a new, unsaved draft: keeps
+    // the beads/band but detaches from the saved design/pattern so the next Save
+    // creates a brand-new bracelet rather than overwriting the original.
+    copyBracelet();
   }
 
   function handleRetryLock() {
@@ -412,7 +438,7 @@ export function BuilderLayout() {
         <div className="flex flex-1 items-center gap-4">
         <Tooltip content="Open Saved Designs Panel" placement="bottom-end">
             <button
-              onClick={() => setSavedDesignsOpen(true)}
+              onClick={() => { setSavedDesignsInitialView("designs"); setSavedDesignsOpen(true); }}
               className="flex items-center rounded-[2px] border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
               aria-label="Saved Designs"
             >
@@ -427,10 +453,47 @@ export function BuilderLayout() {
         </div>
 
         <span className="flex flex-1 items-center justify-end gap-2 font-semibold tracking-wide">
-          <Button onClick={handleNewBracelet}>
-            <Plus size={14} />
-            New Bracelet
-          </Button>
+          <div className="relative" ref={newMenuRef}>
+            <Button onClick={() => setNewMenuOpen((o) => !o)} className="gap-1.5">
+              <Plus size={14} />
+              New Bracelet
+            </Button>
+
+            {newMenuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1.5 w-60 overflow-hidden rounded-[2px] border border-default bg-white font-normal tracking-normal shadow-lg">
+                <button
+                  onClick={() => { setNewMenuOpen(false); handleNewBracelet(); }}
+                  className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-mint"
+                >
+                  <Plus size={15} className="mt-0.5 shrink-0 text-navy" />
+                  <span className="flex flex-col">
+                    <span className="text-sm font-semibold">From scratch</span>
+                    <span className="text-xs text-color-base/60">Start with an empty bracelet</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => { setNewMenuOpen(false); handleCopyBracelet(); }}
+                  className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-mint"
+                >
+                  <Copy size={15} className="mt-0.5 shrink-0 text-navy" />
+                  <span className="flex flex-col">
+                    <span className="text-sm font-semibold">Copy bracelet</span>
+                    <span className="text-xs text-color-base/60">Duplicate the current bracelet</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => { setNewMenuOpen(false); setSavedDesignsInitialView("patterns"); setSavedDesignsOpen(true); }}
+                  className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-mint"
+                >
+                  <LayoutTemplate size={15} className="mt-0.5 shrink-0 text-navy" />
+                  <span className="flex flex-col">
+                    <span className="text-sm font-semibold">From pattern</span>
+                    <span className="text-xs text-color-base/60">Start from a saved pattern</span>
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
           {activePatternId !== null && canManageComponents && (
             <Button
               variant={savePatternFailed ? "danger" : "gold"}
@@ -488,6 +551,7 @@ export function BuilderLayout() {
           onEditUsers={() => { setRightPanel(null); setUsersAdminOpen(true); }}
           onManageBeads={() => { setRightPanel(null); setManageBeadsOpen(true); }}
           onManageSeedColors={() => { setRightPanel(null); setManageSeedColorsOpen(true); }}
+          onManagePatterns={() => { setRightPanel(null); setSavedDesignsInitialView("patterns"); setSavedDesignsOpen(true); }}
         />
         <CommentsPanel open={rightPanel === "comments"} onClose={() => setRightPanel(null)} />
 
@@ -614,8 +678,10 @@ export function BuilderLayout() {
       <SavedDesignsScreen
         isOpen={savedDesignsOpen}
         onClose={() => setSavedDesignsOpen(false)}
+        initialView={savedDesignsInitialView}
         isKickedFromActiveDesign={kickedNotification}
         onRetryLock={handleRetryLock}
+        onOpenDetails={() => setBraceletDetailsOpen(true)}
       />
 
 

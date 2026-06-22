@@ -36,6 +36,7 @@ interface UserPanelProps {
   onEditUsers?: () => void;
   onManageBeads?: () => void;
   onManageSeedColors?: () => void;
+  onManagePatterns?: () => void;
 }
 
 function formatEventDate(iso: string): string {
@@ -259,7 +260,7 @@ function HistoryMenu({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageSeedColors }: UserPanelProps) {
+export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageSeedColors, onManagePatterns }: UserPanelProps) {
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
@@ -388,6 +389,12 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageS
                 className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
               >
                 Manage Inventory
+              </button>
+              <button
+                onClick={() => onManagePatterns?.()}
+                className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+              >
+                Manage Patterns
               </button>
             </div>
           )}

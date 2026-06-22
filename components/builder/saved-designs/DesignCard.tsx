@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Archive, CheckCircle, Eye, LayoutTemplate, Loader2, Lock, MoreHorizontal, Send, Trash2, X, XCircle, Radio, Ban } from "lucide-react";
+import { Archive, CheckCircle, Copy, Eye, Info, LayoutTemplate, Loader2, Lock, MoreHorizontal, Send, Trash2, X, XCircle, Radio, Ban } from "lucide-react";
 import { z } from "zod";
 import type { Bracelet } from "@/types";
 
@@ -50,7 +50,7 @@ function SaveAsPatternDialog({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
       onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget && !isPending) onClose(); }}
     >
-      <div className="w-[420px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-4">
+      <div className="w-[420px] rounded-[2px] bg-white p-6 shadow-2xl flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="text-[18px] font-semibold">Save as Pattern</h3>
           <button
@@ -118,6 +118,8 @@ interface DesignCardProps {
   onSubmitForReview?: (design: Bracelet) => void;
   onApprove?: (design: Bracelet) => void;
   onRejectRequest?: (design: Bracelet) => void;
+  onCopyRequest?: (design: Bracelet) => void;
+  onDetailsRequest?: (design: Bracelet) => void;
 }
 
 export function DesignCard({
@@ -128,6 +130,8 @@ export function DesignCard({
   onSubmitForReview,
   onApprove,
   onRejectRequest,
+  onCopyRequest,
+  onDetailsRequest,
 }: DesignCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [saveAsPatternOpen, setSaveAsPatternOpen] = useState(false);
@@ -272,7 +276,7 @@ export function DesignCard({
               </Tooltip>
 
               {menuOpen && (
-                <div className="absolute right-0 top-8 z-10 min-w-[180px] rounded-[3px] overflow-hidden border border-default bg-white shadow-lg">
+                <div className="absolute right-0 top-8 z-10 min-w-[200px] rounded-[3px] overflow-hidden border border-default bg-white shadow-lg">
                   {/* ── Open Design ── */}
                   <button
                     onClick={() => {
@@ -285,6 +289,34 @@ export function DesignCard({
                     Open design
                   </button>
 
+                  {/* ── Open bracelet details ── */}
+                  {onDetailsRequest && (
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDetailsRequest(design);
+                      }}
+                      className={cn(menuItemClasses, "text-navy hover:bg-mint")}
+                    >
+                      <Info size={14} />
+                      Open bracelet details
+                    </button>
+                  )}
+
+                  {/* ── Copy bracelet ── */}
+                  {onCopyRequest && (
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onCopyRequest(design);
+                      }}
+                      className={cn(menuItemClasses, "text-navy hover:bg-mint")}
+                    >
+                      <Copy size={14} />
+                      Copy bracelet
+                    </button>
+                  )}
+
                   {/* ── Workflow actions ── */}
                   {hasWorkflowActions && (
                     <div className="border-t border-default" />
@@ -295,7 +327,7 @@ export function DesignCard({
                         setMenuOpen(false);
                         onSubmitForReview?.(design);
                       }}
-                      className={cn(menuItemClasses, "text-navy hover:bg-mint")}
+                      className={cn(menuItemClasses, "text-green hover:bg-green/10")}
                     >
                       <Send size={14} />
                       Submit for review
@@ -335,7 +367,7 @@ export function DesignCard({
                           setMenuOpen(false);
                           setSaveAsPatternOpen(true);
                         }}
-                        className={cn(menuItemClasses, "text-navy hover:bg-mint")}
+                        className={cn(menuItemClasses, "text-gold hover:bg-gold/10 hover:text-gold")}
                       >
                         <LayoutTemplate size={14} />
                         Save as pattern
