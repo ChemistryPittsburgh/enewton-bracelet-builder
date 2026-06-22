@@ -440,8 +440,26 @@ export const useStore = create<Store>()(
       saveCurrentSelectionAsGroup() {
         const s = get();
         if (s.editSelectedIds.length === 0) return;
+
+        let toFreeze: string[][];
+        if (s.editSelectionGroups.length === 0) {
+          // First freeze: split the active selection by product type so each
+          // auto-group becomes its own explicit group (matching the dialog display).
+          const byProduct = new Map<number, string[]>();
+          for (const id of s.editSelectedIds) {
+            const pid = s.beads.find(b => b.instanceId === id)?.product.id;
+            if (pid === undefined) continue;
+            if (!byProduct.has(pid)) byProduct.set(pid, []);
+            byProduct.get(pid)!.push(id);
+          }
+          toFreeze = [...byProduct.values()];
+        } else {
+          // Already in explicit mode: add the active selection as one new group.
+          toFreeze = [s.editSelectedIds];
+        }
+
         set({
-          editSelectionGroups: [...s.editSelectionGroups, s.editSelectedIds],
+          editSelectionGroups: [...s.editSelectionGroups, ...toFreeze],
           editSelectedIds: [],
         });
       },
