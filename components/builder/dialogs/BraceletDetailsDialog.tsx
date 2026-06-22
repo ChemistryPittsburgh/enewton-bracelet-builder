@@ -18,6 +18,7 @@ import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useDesign } from "@/hooks/useDesign";
+import { usePatterns } from "@/hooks/usePatterns";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -26,6 +27,7 @@ import { useApplyCollection, useRemoveCollection } from "@/hooks/useCollections"
 
 import { WorkflowSection } from "@/components/builder/sections/WorkflowSection";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
+import { CreatePatternDialog } from "@/components/builder/dialogs/CreatePatternDialog";
 import { STATUS_META } from "@/lib/category-colors";
 import { AssignmentSection } from "@/components/builder/sections/AssignmentSection";
 
@@ -47,6 +49,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     braceletSize,
     placedBeads,
     activeDesignId,
+    activePatternId,
     setBraceletName,
     setBraceletDescription,
     clearBeads,
@@ -59,6 +62,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     braceletSize:            s.braceletSize,
     placedBeads:             s.beads,
     activeDesignId:          s.activeDesignId,
+    activePatternId:         s.activePatternId,
     setBraceletName:         s.setBraceletName,
     setBraceletDescription:  s.setBraceletDescription,
     clearBeads:              s.clearBeads,
@@ -67,7 +71,9 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
-  const { canEdit, canDeleteBracelet, isAdmin } = usePermissions();
+  const { data: patterns = [] } = usePatterns();
+  const activePattern = activePatternId !== null ? patterns.find((p) => p.id === activePatternId) ?? null : null;
+  const { canEdit, canDeleteBracelet, isAdmin, canManageComponents, canCreatePattern } = usePermissions();
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published" || isKicked;
 
   const isPublished = savedDesign?.status === "published";
@@ -78,6 +84,9 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   const [localDescription, setLocalDescription] = useState(braceletDescription ?? "");
 
   const { mutate: updateDesign, isPending: saving } = useUpdateDesign();
+
+  // ── Create pattern state ────────────────────────────────────────────────────
+  const [createPatternOpen, setCreatePatternOpen] = useState(false);
 
   // ── Delete state ────────────────────────────────────────────────────────────
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -160,8 +169,27 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
       ? STATUS_META[savedDesign.status]
       : null;
 
+  const defaultPatternName = braceletName === "New Bracelet" ? "" : braceletName;
+
   return (
-    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl" bodyClasses="py-0 px-0">
+    <FullScreenDialog
+      open={open}
+      onClose={onClose}
+      title={activePatternId !== null ? "Pattern Details" : "Bracelet Details"}
+      className="max-w-3xl"
+      bodyClasses="py-0 px-0"
+      headerExtra={
+        canCreatePattern && activePatternId === null ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setCreatePatternOpen(true)}
+          >
+            Create Pattern
+          </Button>
+        ) : undefined
+      }
+    >
       <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto py-4 px-4 lg:py-8 md:px-6 lg:px-8">
 
         {/* ── Preview + status + name + description ────────────────────── */}
@@ -169,8 +197,8 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
 
           {/* Thumbnail */}
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-light-grey/80 flex items-center justify-center">
-            {savedDesign?.preview_image_url ? (
-              <img src={savedDesign.preview_image_url} alt={braceletName} className="h-full w-full object-cover" />
+            {(activePattern?.preview_image_url ?? savedDesign?.preview_image_url) ? (
+              <img src={(activePattern?.preview_image_url ?? savedDesign?.preview_image_url)!} alt={braceletName} className="h-full w-full object-cover" />
             ) : (
               <div className="h-10 w-10 rounded-full border-2 border-dashed" />
             )}
@@ -488,6 +516,15 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
         )}
 
       </div>
+
+      {/* ── Create pattern dialog ───────────────────────────────────── */}
+      {createPatternOpen && (
+        <CreatePatternDialog
+          initialName={defaultPatternName}
+          onClose={() => setCreatePatternOpen(false)}
+          onSaved={() => setCreatePatternOpen(false)}
+        />
+      )}
 
       {/* ── Delete confirmation (rendered outside scroll area) ──────── */}
       {showDeleteConfirm && savedDesign && (

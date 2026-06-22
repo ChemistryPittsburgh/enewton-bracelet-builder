@@ -25,6 +25,7 @@ import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
 import { BraceletDetailsDialog } from "./dialogs/BraceletDetailsDialog";
 import { BeadInfoDialog } from "./dialogs/BeadInfoDialog";
 import { SessionTakenOverDialog } from "./dialogs/SessionTakenOverDialog";
+import { DesignStatusLockedDialog } from "./dialogs/DesignStatusLockedDialog";
 import { DesignNotFoundDialog } from "./dialogs/DesignNotFoundDialog";
 import { ManageBeadsDialog } from "./dialogs/ManageBeadsDialog";
 import { ManageSeedColorsDialog } from "./dialogs/ManageSeedColorsDialog";
@@ -51,6 +52,7 @@ import { useReleaseLock } from "@/hooks/useReleaseLock";
 import { useDesignHeartbeat } from "@/hooks/useDesignHeartbeat";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
 import { usePusherDesign } from "@/hooks/usePusherDesign";
+import { useSavePattern } from "@/hooks/useSavePattern";
 import type { DesignComment } from "@/types";
 
 export function BuilderLayout() {
@@ -80,8 +82,14 @@ export function BuilderLayout() {
     isDirty:              s.isDirty,
   }));
 
+  const isEditMode    = useStore((s) => s.isEditMode);
+  const toggleEditMode = useStore((s) => s.toggleEditMode);
+
+  const activePatternId = useStore((s) => s.activePatternId);
+
   const { data: currentUser } = useCurrentUser();
-  const { canEdit } = usePermissions();
+  const { canEdit, canManageComponents } = usePermissions();
+  const { mutate: savePattern, isPending: isSavingPattern, isError: savePatternFailed } = useSavePattern();
   const { data: savedDesign, isFetching: designFetching, isError: designIsError, error: designErrorObj } = useDesign(activeDesignId);
   const { active: glbsLoading } = useProgress();
   const isCanvasLoading = glbsLoading || (activeDesignId !== null && designFetching);
@@ -112,10 +120,13 @@ export function BuilderLayout() {
 
   // ── Design lock ──────────────────────────────────────────────────────────
   const queryClient = useQueryClient();
-  const [lockHeld,           setLockHeld]           = useState(false);
-  const [kickedNotification, setKickedNotification] = useState(false);
-  const [showKickedModal,    setShowKickedModal]    = useState(false);
-  const prevDesignIdRef = useRef<number | null>(null);
+  const [lockHeld,              setLockHeld]              = useState(false);
+  const [kickedNotification,    setKickedNotification]    = useState(false);
+  const [showKickedModal,       setShowKickedModal]       = useState(false);
+  const [showStatusLockedModal, setShowStatusLockedModal] = useState(false);
+  const [statusLockedTo,        setStatusLockedTo]        = useState<"approved" | "published" | null>(null);
+  const prevDesignIdRef      = useRef<number | null>(null);
+  const knownDesignStatusRef = useRef<Map<number, string>>(new Map());
   const { mutate: releaseLock } = useReleaseLock();
   const { mutateAsync: acquireLock } = useLockDesign();
   const { syncDesign } = useLoadDesign();
@@ -287,6 +298,33 @@ export function BuilderLayout() {
     },
   });
 
+  // Detect when the design is approved/published while this user is viewing it.
+  // Uses a per-design status map so loading an already-locked design never
+  // falsely triggers the modal (only a live transition does).
+  useEffect(() => {
+    if (!activeDesignId || !savedDesign?.status) return;
+
+    const newStatus = savedDesign.status;
+    const knownStatus = knownDesignStatusRef.current.get(activeDesignId);
+
+    if (knownStatus === undefined) {
+      knownDesignStatusRef.current.set(activeDesignId, newStatus);
+      return;
+    }
+
+    knownDesignStatusRef.current.set(activeDesignId, newStatus);
+    if (knownStatus === newStatus) return;
+
+    if (
+      (newStatus === "approved" || newStatus === "published") &&
+      knownStatus !== "approved" && knownStatus !== "published"
+    ) {
+      setLockHeld(false);
+      setShowStatusLockedModal(true);
+      setStatusLockedTo(newStatus as "approved" | "published");
+    }
+  }, [savedDesign?.status, activeDesignId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Visibility-change re-sync ─────────────────────────────────────────────
   // Catch up on missed events immediately when the tab regains focus, without
   // waiting for Pusher's reconnect + re-auth round-trip to complete.
@@ -339,6 +377,10 @@ export function BuilderLayout() {
     if (!canEdit || isLocked) setBraceletPanelOpen(false);
   }, [canEdit, isLocked]);
 
+  useEffect(() => {
+    if (isLocked && isEditMode) toggleEditMode();
+  }, [isLocked]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   function openBraceletPanel() {
     setBraceletPanelOpen((o) => !o);
@@ -389,11 +431,21 @@ export function BuilderLayout() {
             <Plus size={14} />
             New Bracelet
           </Button>
-          <BraceletExporter
+          {activePatternId !== null && canManageComponents && (
+            <Button
+              variant={savePatternFailed ? "danger" : "secondary"}
+              onClick={() => savePattern()}
+              disabled={isSavingPattern}
+            >
+              {isSavingPattern ? <Loader2 size={14} className="animate-spin" /> : null}
+              {savePatternFailed ? "Save failed — retry?" : "Save Pattern"}
+            </Button>
+          )}
+          {activePatternId === null && <BraceletExporter
             onNameRequired={() => setHighlightReason("name")}
             isKicked={kickedNotification}
             onKickedClick={() => setShowKickedModal(true)}
-          />
+          />}
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
           <Tooltip content={rightPanel === "user" ? "Close User Panel" : "Open User Panel"} placement="bottom-start">
@@ -495,10 +547,10 @@ export function BuilderLayout() {
                 </p>
               )}
               <p className="py-2 font-semibold leading-snug">
-                <span className="text-color-base/70 font-headline">Bracelet Name:</span> {braceletName}
+                <span className="text-color-base/70 font-headline">{activePatternId !== null ? "Pattern Name:" : "Bracelet Name:"}</span> {braceletName}
               </p>
 
-              {/* "view bracelet details" button*/}
+              {/* "view bracelet/pattern details" button*/}
               <button
                 onClick={handleDetailsClick}
                 className={cn(
@@ -508,7 +560,7 @@ export function BuilderLayout() {
                     : "underline hover:no-underline text-color-base/70",
                 )}
               >
-                {highlightReason === "name" ? "Set a bracelet name →" : highlightReason === "sku" ? "Add a Shopify SKU →" : "view bracelet details"}
+                {highlightReason === "name" ? "Set a bracelet name →" : highlightReason === "sku" ? "Add a Shopify SKU →" : activePatternId !== null ? "view pattern details" : "view bracelet details"}
               </button>
             </div>
 
@@ -558,6 +610,7 @@ export function BuilderLayout() {
         onRetryLock={handleRetryLock}
       />
 
+
       <UsersAdminScreen
         isOpen={usersAdminOpen}
         onClose={() => setUsersAdminOpen(false)}
@@ -569,6 +622,13 @@ export function BuilderLayout() {
         <SessionTakenOverDialog
           takenByName={savedDesign?.active_lock?.user_name}
           onClose={() => setShowKickedModal(false)}
+        />
+      )}
+
+      {showStatusLockedModal && statusLockedTo && (
+        <DesignStatusLockedDialog
+          status={statusLockedTo}
+          onClose={() => setShowStatusLockedModal(false)}
         />
       )}
 

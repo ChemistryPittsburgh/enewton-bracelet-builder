@@ -80,7 +80,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
       <BeadErrorToast />
       <Canvas
         camera={{ fov: CAMERA_FOV, position: CAMERA_DEFAULT_POSITION, near: CAMERA_NEAR, far: CAMERA_FAR }}
-        gl={{ antialias: true }}
+        gl={{ antialias: true, preserveDrawingBuffer: true }}
         onCreated={({ gl, scene }) => {
           gl.toneMappingExposure = 1.5;
           // Tame the warm apartment reflections so gold reads as champagne, not saturated yellow

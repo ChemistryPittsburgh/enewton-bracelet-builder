@@ -5,7 +5,9 @@ import { Loader2, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { useLoadDesign } from "@/hooks/useLoadDesign";
+import { useLoadPattern } from "@/hooks/useLoadPattern";
 import { useSaveBracelet } from "@/hooks/useSaveBracelet";
+import { useUpdateBracelet } from "@/hooks/useUpdateBracelet";
 import { usePermissions } from "@/hooks/usePermissions";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Button } from "@/components/ui/Button";
@@ -32,12 +34,18 @@ export function ConfirmReplaceDialog() {
   const pendingDesign    = useStore((s) => s.pendingDesign);
   const pendingOnLoad    = useStore((s) => s.pendingDesignOnLoad);
   const clearPending     = useStore((s) => s.clearPendingDesign);
+  const pendingPattern        = useStore((s) => s.pendingPattern);
+  const pendingPatternEditMode = useStore((s) => s.pendingPatternEditMode);
+  const clearPendingPattern   = useStore((s) => s.clearPendingPattern);
+  const isDirty               = useStore((s) => s.isDirty);
   const braceletName     = useStore((s) => s.braceletName);
   const activeDesignId   = useStore((s) => s.activeDesignId);
   const setBraceletName  = useStore((s) => s.setBraceletName);
 
   const { loadDesign }   = useLoadDesign();
+  const { applyPattern } = useLoadPattern();
   const { save }         = useSaveBracelet();
+  const { update }       = useUpdateBracelet();
   const { canEdit }      = usePermissions();
 
   const [status, setStatus]                       = useState<ConfirmStatus>("idle");
@@ -74,6 +82,23 @@ export function ConfirmReplaceDialog() {
     return () => document.removeEventListener("keydown", onKey);
   }, [pendingDesign, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pattern branch — simpler dialog, no lock or activeDesignId needed.
+  if (pendingPattern && !pendingDesign) {
+    return (
+      <PatternConfirmDialog
+        patternName={pendingPattern.name}
+        braceletName={braceletName}
+        editMode={pendingPatternEditMode}
+        isDirty={isDirty}
+        onConfirm={() => {
+          applyPattern(pendingPattern, pendingPatternEditMode ? pendingPattern.id : null);
+          clearPendingPattern();
+        }}
+        onCancel={() => clearPendingPattern()}
+      />
+    );
+  }
+
   if (!pendingDesign) return null;
 
   const canSave = !needsName || (nameInput.trim() !== "" && nameInput.trim() !== DEFAULT_BRACELET_NAME);
@@ -81,7 +106,11 @@ export function ConfirmReplaceDialog() {
   async function doSaveAndLoad() {
     setStatus("saving");
     try {
-      await save();
+      if (activeDesignId !== null) {
+        await update(); // PUT /designs/:id — update existing record
+      } else {
+        await save();   // POST /designs — create new record
+      }
       if (pendingDesign!.id !== -1) {
         // If the pending design is the one already on the canvas, we hold the
         // lock — skip the redundant POST /lock that could race and discard the save.
@@ -222,6 +251,72 @@ export function ConfirmReplaceDialog() {
             variant="danger"
             size="sm"
           >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PatternConfirmDialog({
+  patternName,
+  braceletName,
+  editMode,
+  isDirty,
+  onConfirm,
+  onCancel,
+}: {
+  patternName: string;
+  braceletName: string;
+  editMode: boolean;
+  isDirty: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onCancel();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div className="w-[420px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-[20px] font-semibold">{editMode ? "Edit pattern?" : "Load pattern?"}</h3>
+            <p className="mt-2 text-sm text-color-base/80 leading-relaxed">
+              {isDirty ? (
+                <>
+                  You have unsaved beads on{" "}
+                  <span className="font-medium">"{braceletName}"</span> that will be discarded.{" "}
+                </>
+              ) : (
+                <>The current bracelet will be replaced. </>
+              )}
+              {editMode ? "Edit" : "Load"} the pattern{" "}
+              <span className="font-medium">"{patternName}"</span>?
+            </p>
+          </div>
+          <button
+            onClick={onCancel}
+            className="mt-0.5 shrink-0 rounded-full p-1 text-color-base/70 hover:bg-default/50 hover:text-color-base transition-colors"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={onConfirm} variant="primary" size="sm" className="w-full">
+            {editMode ? "Discard & Edit Pattern" : "Discard & Load Pattern"}
+          </Button>
+          <Button onClick={onCancel} variant="danger" size="sm">
             Cancel
           </Button>
         </div>
