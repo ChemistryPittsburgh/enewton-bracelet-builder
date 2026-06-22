@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * CanvasToolbar.tsx
+ * HeaderToolbar.tsx
  *
  * Left:   Workflow action buttons (Submit / Approve / Reject / Publish / Reactivate)
  * Centre: 3D / Line view toggle  (absolutely centred)
@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { PusherStatusBadge } from "@/components/builder/canvas/PusherStatusBadge";
 import { Tooltip } from "@/components/ui/Tooltip";
 
-interface CanvasToolbarProps {
+interface HeaderToolbarProps {
   commentsOpen?: boolean;
   onCommentsClick?: () => void;
   /** Called when the user tries to publish without a Shopify SKU set. */
@@ -33,7 +33,7 @@ interface CanvasToolbarProps {
   isKicked?: boolean;
 }
 
-export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked, isReadOnly = false, isKicked = false }: CanvasToolbarProps) {
+export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked, isReadOnly = false, isKicked = false }: HeaderToolbarProps) {
   const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId } = useStore((s) => ({
     isEditMode:      s.isEditMode,
     toggleEditMode:  s.toggleEditMode,

@@ -19,6 +19,7 @@ import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDesigns } from "@/hooks/useDesigns";
@@ -30,12 +31,15 @@ import { useBeads } from "@/hooks/useBeads";
 import type { Bracelet } from "@/types";
 import type { BeadProduct } from "@/types";
 
+import { PERMISSION_FIELDS } from "@/components/builder/users/PermissionsDropdown";
+
 interface UserPanelProps {
   open: boolean;
   onClose: () => void;
   onEditUsers?: () => void;
   onManageBeads?: () => void;
   onManageSeedColors?: () => void;
+  onManagePatterns?: () => void;
 }
 
 function formatEventDate(iso: string): string {
@@ -259,7 +263,7 @@ function HistoryMenu({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageSeedColors }: UserPanelProps) {
+export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageSeedColors, onManagePatterns }: UserPanelProps) {
   const router = useRouter();
 
   const { data: user }             = useCurrentUser();
@@ -316,129 +320,153 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageS
       <div className="flex flex-col flex-1 overflow-hidden">
 
         {/* ── Scrollable content ───────────────────────── */}
-        <div className="flex flex-col flex-1 overflow-hidden px-6 pt-6 pb-4 gap-6">
+        <div className="flex flex-col flex-1 overflow-y-scroll pt-6 pb-4 gap-6">
 
           {/* Identity row */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {user && <Avatar name={user.name} size="lg" />}
-              <span className="text-sm font-semibold text-neutral-900">
-                {user ? getPrimaryRole(user.permissions) : ""}
-              </span>
-            </div>
-            <button
-              onClick={onClose}
-              className="rounded-md p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
-              aria-label="Close panel"
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          {/* Notifications */}
-          {(showReview || showPublish) && (
-            <div className="flex flex-col gap-1">
-              <SectionHeading>Notifications</SectionHeading>
-
-              {showReview && (
-                <NotificationGroup
-                  label="bracelets ready for review"
-                  designs={inReview}
-                  onSelect={requestLoad}
-                />
-              )}
-
-              {showPublish && (
-                <NotificationGroup
-                  label="ready to publish"
-                  designs={approved}
-                  onSelect={requestLoad}
-                />
-              )}
-
-              {(!showReview || inReview.length === 0) &&
-               (!showPublish || approved.length === 0) && (
-                <p className="text-sm text-neutral-400">No new notifications.</p>
-              )}
-            </div>
-          )}
-
-          {/* Administration actions */}
-          {(user?.permissions.is_admin || user?.permissions.is_component_admin) && (
-            <div className="flex flex-col gap-1">
-              <SectionHeading>Administration actions</SectionHeading>
-              {user?.permissions.is_admin && (
-                <button
-                  onClick={() => onEditUsers?.()}
-                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
-                >
-                  Manage Users
-                </button>
-              )}
-              {user?.permissions.is_admin && (
-                <button
-                  onClick={() => onManageSeedColors?.()}
-                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
-                >
-                  Manage Seed Bead Colors
-                </button>
-              )}
-              <button
-                onClick={() => onManageBeads?.()}
-                className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
-              >
-                Manage Inventory
-              </button>
-            </div>
-          )}
-
-          {/* History */}
-          <div className="flex flex-col flex-1 min-h-0 gap-1">
-            <SectionHeading>History</SectionHeading>
-
-            {historyEvents.length === 0 ? (
-              <p className="text-sm text-color-base/70">No history yet.</p>
-            ) : (
-              <div className="flex-1 overflow-y-auto min-h-0 flex flex-col border border-default rounded-[2px] py-2 px-4">
-                {historyEvents.map((ev, i, arr) => (
-                  <div key={ev.key} className="flex gap-3">
-                    {/* Timeline indicator */}
-                    <div className="flex flex-col items-center">
-                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-navy" />
-                      {i < arr.length - 1 && <div className="my-1 w-px flex-1 bg-black/50" />}
-                    </div>
-                    {/* Content */}
-                    <div className="pb-3 flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">
-                        {ev.braceletName}
-                        <span className="font-normal text-color-base/70"> — {ev.label}</span>
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-color-base/70">
-                        <span>{formatEventDate(ev.date)}</span>
-                        <span>{formatEventTime(ev.date)}</span>
-                        {ev.byName && <span>By {ev.byName}</span>}
-                        {ev.braceletId !== -1 && (
-                          <div className="ml-auto">
-                            <HistoryMenu
-                              eventKey={ev.key}
-                              openKey={openMenuKey}
-                              setOpenKey={setOpenMenuKey}
-                              onOpen={() => handleHistoryOpen(ev.braceletId)}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          <div className="border-b border-default">
+            {user && (
+              <div className="flex items-center justify-between gap-3 px-6 pb-3">
+                <div className="flex items-center gap-3">
+                  {user && <Avatar name={user.name} size="lg" />}
+                  <h3 className="text-sm font-semibold">
+                    {user && <span>{user.name}</span> }
+                  </h3>
+                  {/* Role badge — color driven by PERMISSION_FIELDS in category-colors */}
+                  {(() => {
+                    const role  = getPrimaryRole(user.permissions);
+                    const entry = PERMISSION_FIELDS.find((f) => f.label === role);
+                    return (
+                      <span className={`shrink-0 text-center rounded-[2px] border border-navy px-3 py-0.5 text-xs font-medium ${entry?.color ?? "bg-gold/30"}`}>
+                        {role}
+                      </span>
+                    );
+                    })()}
+                </div>
+                <Tooltip content="Close User Panel">
+                  <button
+                    onClick={onClose}
+                    className="rounded-md p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+                    aria-label="Close panel"
+                  >
+                    <X size={16} />
+                  </button>
+                </Tooltip>
               </div>
             )}
           </div>
 
+          <div className="px-6 flex flex-col flex-1 gap-6">
+
+            {/* Notifications */}
+            {(showReview || showPublish) && (
+              <div className="flex flex-col gap-1">
+                <SectionHeading>Notifications</SectionHeading>
+
+                {showReview && (
+                  <NotificationGroup
+                    label="bracelets ready for review"
+                    designs={inReview}
+                    onSelect={requestLoad}
+                  />
+                )}
+
+                {showPublish && (
+                  <NotificationGroup
+                    label="ready to publish"
+                    designs={approved}
+                    onSelect={requestLoad}
+                  />
+                )}
+
+                {(!showReview || inReview.length === 0) &&
+                 (!showPublish || approved.length === 0) && (
+                  <p className="text-sm text-neutral-400">No new notifications.</p>
+                )}
+              </div>
+            )}
+
+            {/* Administration actions */}
+            {(user?.permissions.is_admin || user?.permissions.is_component_admin) && (
+              <div className="flex flex-col gap-1">
+                <SectionHeading>Administration actions</SectionHeading>
+                {user?.permissions.is_admin && (
+                  <button
+                    onClick={() => onEditUsers?.()}
+                    className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+                  >
+                    Manage Users
+                  </button>
+                )}
+                {user?.permissions.is_admin && (
+                  <button
+                    onClick={() => onManageSeedColors?.()}
+                    className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+                  >
+                    Manage Seed Bead Colors
+                  </button>
+                )}
+                <button
+                  onClick={() => onManageBeads?.()}
+                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+                >
+                  Manage Inventory
+                </button>
+                <button
+                  onClick={() => onManagePatterns?.()}
+                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
+                >
+                  Manage Patterns
+                </button>
+              </div>
+            )}
+
+            {/* History */}
+            <div className="flex flex-col flex-1 max-h-[45vh] gap-1">
+              <SectionHeading>History</SectionHeading>
+
+              {historyEvents.length === 0 ? (
+                <p className="text-sm text-color-base/70">No history yet.</p>
+              ) : (
+                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col border border-default rounded-[2px] py-2 px-4">
+                  {historyEvents.map((ev, i, arr) => (
+                    <div key={ev.key} className="flex gap-3">
+                      {/* Timeline indicator */}
+                      <div className="flex flex-col items-center">
+                        <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-navy" />
+                        {i < arr.length - 1 && <div className="my-1 w-px flex-1 bg-black/50" />}
+                      </div>
+                      {/* Content */}
+                      <div className="pb-3 flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">
+                          {ev.braceletName}
+                          <span className="font-normal text-color-base/70"> — {ev.label}</span>
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-color-base/70">
+                          <span>{formatEventDate(ev.date)}</span>
+                          <span>{formatEventTime(ev.date)}</span>
+                          {ev.byName && <span>By {ev.byName}</span>}
+                          {ev.braceletId !== -1 && (
+                            <div className="ml-auto">
+                              <HistoryMenu
+                                eventKey={ev.key}
+                                openKey={openMenuKey}
+                                setOpenKey={setOpenMenuKey}
+                                onOpen={() => handleHistoryOpen(ev.braceletId)}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* ── Sign out ─────────────────────────────────── */}
-        <div className="shrink-0 border-t border-neutral-100 px-2 py-2">
+        <div className="shrink-0 border-t border-default px-4 lg:px-6 py-3">
           <Button
             variant="ghost"
             className="w-full flex items-center justify-center gap-2"

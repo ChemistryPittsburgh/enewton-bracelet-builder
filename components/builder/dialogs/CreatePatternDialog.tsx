@@ -34,10 +34,10 @@ export function CreatePatternDialog({ initialName, onClose, onSaved }: CreatePat
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20"
       onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget && !isPending) onClose(); }}
     >
-      <div className="w-[420px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-4">
+      <div className="w-[420px] rounded-[2px] bg-white p-6 shadow-2xl flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="text-[18px] font-semibold">Save as Pattern</h3>
           <button
@@ -66,7 +66,7 @@ export function CreatePatternDialog({ initialName, onClose, onSaved }: CreatePat
               placeholder="Enter pattern name"
               autoFocus
               disabled={isPending}
-              className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy placeholder:text-color-base/40 disabled:opacity-50"
+              className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy placeholder:text-color-base/40 disabled:opacity-50"
             />
             {nameError && <p className="text-xs text-error">{nameError}</p>}
           </div>

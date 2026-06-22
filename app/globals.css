@@ -248,6 +248,19 @@ h2 {
   }
 }
 
+.pattern-details-dialog {
+  .full-screen-dialog-header {
+    background-color: color-mix(in srgb, var(--color-gold) 90%, transparent);
+    h2 {
+      color: white;
+    }
+    .close-btn {
+      background-color: white;
+      color: var(--color-color-base);
+    }
+  }
+}
+
 
 /* ─── Bead Picker Swiper ────────────── */
 /*.bead-picker-slider.swiper {

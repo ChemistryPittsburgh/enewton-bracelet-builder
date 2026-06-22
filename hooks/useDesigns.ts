@@ -58,6 +58,12 @@ export function useDesigns(params?: UseDesignsParams) {
       const list = Array.isArray(all) ? all : [];
 
       let result = list.filter((d) => {
+        // ── Exclude patterns ──────────────────────────────────────────────
+        // Patterns are created via POST /designs with is_pattern:true, so they
+        // share the designs table. GET /designs is expected to omit them, but
+        // we guard here too so a pattern can never leak into the designs grid.
+        if (d.is_pattern === 1) return false;
+
         // ── Bracelet state (active / inactive / all) ──────────────────────
         // Discontinued designs have is_discontinued = 1; their status column
         // remains "published". Showing/hiding them is now controlled explicitly
