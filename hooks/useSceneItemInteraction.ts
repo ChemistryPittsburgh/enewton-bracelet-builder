@@ -40,6 +40,8 @@ interface SceneItemInteractionOptions {
    * and seed segments use unique ids where this never matches.
    */
   selectAllOfType?: boolean;
+  /** Overrides the default edit-mode highlight color (e.g. group color in replace mode). */
+  selectionColor?: string;
 }
 
 export interface SceneItemInteraction {
@@ -54,7 +56,7 @@ export interface SceneItemInteraction {
 export function useSceneItemInteraction(
   bead: PlacedBead,
   slotIndex: number,
-  { isLocked = false, onDragStart, selectAllOfType = false }: SceneItemInteractionOptions = {},
+  { isLocked = false, onDragStart, selectAllOfType = false, selectionColor }: SceneItemInteractionOptions = {},
 ): SceneItemInteraction {
   const { gl } = useThree();
 
@@ -62,6 +64,7 @@ export function useSceneItemInteraction(
     selectBead,
     selectedBead,
     editSelectedIds,
+    editSelectionGroups,
     toggleEditBead,
     clearSelectedBead,
     clearEditSelection,
@@ -69,24 +72,26 @@ export function useSceneItemInteraction(
     selectAllActive,
   } = useStore(
     useShallow((s) => ({
-      selectBead:         s.selectBead,
-      selectedBead:       s.selectedBead,
-      editSelectedIds:    s.editSelectedIds,
-      toggleEditBead:     s.toggleEditBead,
-      clearSelectedBead:  s.clearSelectedBead,
-      clearEditSelection: s.clearEditSelection,
-      isEditMode:         s.isEditMode,
-      selectAllActive:    s.selectAllActive,
+      selectBead:           s.selectBead,
+      selectedBead:         s.selectedBead,
+      editSelectedIds:      s.editSelectedIds,
+      editSelectionGroups:  s.editSelectionGroups,
+      toggleEditBead:       s.toggleEditBead,
+      clearSelectedBead:    s.clearSelectedBead,
+      clearEditSelection:   s.clearEditSelection,
+      isEditMode:           s.isEditMode,
+      selectAllActive:      s.selectAllActive,
     })),
   );
 
   const isSelected = isEditMode
-    ? editSelectedIds.includes(bead.instanceId)
+    ? editSelectedIds.includes(bead.instanceId) ||
+      editSelectionGroups.some(g => g.includes(bead.instanceId))
     : selectedBead?.instanceId === bead.instanceId ||
       (selectAllOfType && selectAllActive && selectedBead?.product.id === bead.product.id);
 
   const highlightColor = isEditMode
-    ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR
+    ? (selectionColor ?? EDIT_MODE_HIGHLIGHT_SELECT_COLOR)
     : HIGHLIGHT_SELECT_COLOR;
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
