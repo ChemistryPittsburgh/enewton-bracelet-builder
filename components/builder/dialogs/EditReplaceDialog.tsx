@@ -15,6 +15,7 @@ export function EditReplaceDialog() {
     editReplaceNarrowedIds,
     beads,
     setEditReplaceNarrowedIds,
+    setEditSelectedIds,
     cancelReplaceMode,
     saveCurrentSelectionAsGroup,
   } = useStore((s) => ({
@@ -25,9 +26,23 @@ export function EditReplaceDialog() {
     editReplaceNarrowedIds: s.editReplaceNarrowedIds,
     beads: s.beads,
     setEditReplaceNarrowedIds: s.setEditReplaceNarrowedIds,
+    setEditSelectedIds: s.setEditSelectedIds,
     cancelReplaceMode: s.cancelReplaceMode,
     saveCurrentSelectionAsGroup: s.saveCurrentSelectionAsGroup,
   }));
+
+  // Default state: all unique bead types on the bracelet (excludes spacers/seed segments)
+  const typeRows = useMemo(() => {
+    const map = new Map<number, { product: BeadProduct; instanceIds: string[] }>();
+    for (const bead of beads) {
+      const cat = bead.product.bead_category;
+      if (cat === "spacer" || cat === "seed_segment") continue;
+      const pid = bead.product.id;
+      if (!map.has(pid)) map.set(pid, { product: bead.product, instanceIds: [] });
+      map.get(pid)!.instanceIds.push(bead.instanceId);
+    }
+    return [...map.values()];
+  }, [beads]);
 
   // Auto product-type groups (used when no explicit groups have been saved)
   const autoGroups = useMemo(() => {
@@ -86,16 +101,39 @@ export function EditReplaceDialog() {
       )}
     >
     <div className="bg-white rounded-[3px] border border-default shadow-md p-4">
-      <p className="text-sm font-medium text-color-base mb-2">
-        Replacing selected bead(s):
-      </p>
 
-      {/* ── Auto product-type groups (default) ── */}
-      {!isExplicitMode && (
+      {/* ── Default state: pick a bead type to replace ── */}
+      {editSelectedIds.length === 0 && !isExplicitMode ? (
         <>
-          {autoGroups.length === 0 ? (
-            <p className="text-xs text-color-base/50 mb-3">Select beads to replace</p>
+          <p className="text-sm font-medium text-color-base mb-2">
+            Select a bead type to replace:
+          </p>
+          {typeRows.length === 0 ? (
+            <p className="text-xs text-color-base/50 mb-3">No beads on bracelet</p>
           ) : (
+            <ul className="mb-3 space-y-1 max-h-[260px] overflow-y-auto">
+              {typeRows.map(({ product, instanceIds }) => (
+                <li key={product.id}>
+                  <button
+                    onClick={() => setEditSelectedIds(instanceIds)}
+                    className="w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2 hover:bg-light-grey"
+                  >
+                    <span className="truncate">{product.name}</span>
+                    <span className="shrink-0 text-xs text-color-base/50 tabular-nums">{instanceIds.length}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-medium text-color-base mb-2">
+            Replacing selected bead(s):
+          </p>
+
+          {/* ── Auto product-type groups ── */}
+          {!isExplicitMode && (
             <ul className="mb-3 space-y-1">
               {autoGroups.map(({ product, instanceIds }, i) => {
                 const active = isGroupActive(instanceIds);
@@ -168,13 +206,15 @@ export function EditReplaceDialog() {
         >
           close bead replacement mode
         </button>
-        <button
-          onClick={saveCurrentSelectionAsGroup}
-          disabled={editSelectedIds.length === 0}
-          className="text-xs font-semibold text-navy hover:text-navy/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          + New group
-        </button>
+        {(editSelectedIds.length > 0 || isExplicitMode) && (
+          <button
+            onClick={saveCurrentSelectionAsGroup}
+            disabled={editSelectedIds.length === 0}
+            className="text-xs font-semibold text-navy hover:text-navy/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            + New group
+          </button>
+        )}
       </div>
     </div>
     </div>

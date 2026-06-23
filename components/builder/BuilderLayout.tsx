@@ -86,6 +86,8 @@ export function BuilderLayout() {
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
   const editReplaceMode = useStore((s) => s.editReplaceMode);
+  const editSelectedIds = useStore((s) => s.editSelectedIds);
+  const editSelectionGroups = useStore((s) => s.editSelectionGroups);
   const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
 
   const activePatternId = useStore((s) => s.activePatternId);
@@ -114,8 +116,9 @@ export function BuilderLayout() {
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
 
   useEffect(() => {
-    if (replaceTargetInstanceId !== null || replaceAllTargetProductId !== null || editReplaceMode) setBraceletPanelOpen(true);
-  }, [replaceTargetInstanceId, replaceAllTargetProductId, editReplaceMode]); // eslint-disable-line react-hooks/exhaustive-deps
+    const hasReplaceContent = editSelectedIds.length > 0 || editSelectionGroups.length > 0;
+    if (replaceTargetInstanceId !== null || replaceAllTargetProductId !== null || (editReplaceMode && hasReplaceContent)) setBraceletPanelOpen(true);
+  }, [replaceTargetInstanceId, replaceAllTargetProductId, editReplaceMode, editSelectedIds, editSelectionGroups]); // eslint-disable-line react-hooks/exhaustive-deps
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const { inReviewCount, approvedCount } = useNotifications();
   const notificationCount = inReviewCount + approvedCount;
