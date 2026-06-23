@@ -425,7 +425,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         )}
 
         {/* Category pills + Spacer + Seed tabs */}
-        <ScrollableRow className="py-3" trackClassName="gap-2">
+        <ScrollableRow className="py-3 min-h-14" trackClassName="gap-2">
           <MaterialPill
             label="All"
             active={activeTab === null}

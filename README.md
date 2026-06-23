@@ -29,20 +29,20 @@ app/
 │   └── upload-bead/route.ts # GLB upload to S3 with magic-byte validation
 ├── login/page.tsx         # Email OTP login flow
 ├── globals.css            # Design tokens, base styles, Tailwind @theme
-└── layout.tsx             # Root layout (fonts, QueryProvider)
+└── layout.tsx             # Root layout (fonts, QueryProvider, DesktopOnly gate)
 
 components/
 ├── builder/
 │   ├── canvas/            # Canvas overlays: info overlay, stats bar, band selector,
 │   │                        edit mode toolbar + help, workflow bar, Pusher status
 │   ├── dialogs/           # Modal dialogs: bead info, bracelet details, confirm
-│   │                        replace, create pattern, delete, discontinue, manage
-│   │                        beads/tags/collections/seed colors, reject, session
-│   │                        takeover, design lock
-│   ├── header/            # Top-bar pieces: HeaderToolbar (view/edit/comments +
-│   │                        workflow actions), BraceletExporter, NewBraceletMenu
-│   ├── panels/            # Slide-out panels: bead selector, seed bead picker,
-│   │                        spacer picker, comments, users
+│   │                        replace, edit-replace groups, create pattern, delete,
+│   │                        discontinue, reject, session takeover, design lock
+│   │   └── manage/        # Admin manage dialogs: beads, tags, collections, seed colors
+│   ├── header/            # Top-bar pieces: HeaderToolbar (undo/redo, view, edit,
+│   │                        comments + workflow actions), BraceletExporter, NewBraceletMenu
+│   ├── panels/            # Slide-out panels: bead selector (+ seed/spacer pickers),
+│   │                        comments, user panel
 │   ├── saved-designs/     # Saved designs screen, design + pattern cards, filter pickers
 │   ├── sections/          # Workflow + assignment sections (inside details dialog)
 │   ├── users/             # User admin: CRUD, OTP creation, permissions, avatar
@@ -60,7 +60,8 @@ components/
 │   ├── BeadErrorBoundary.tsx # Fallback wireframe sphere for broken GLBs
 │   └── BeadErrorToast.tsx  # Toast notifications for failed model loads
 └── ui/                    # Design system primitives: Button, Panel, Tooltip,
-                             Avatar, ErrorAlert, StandardConfirmDialog, etc.
+                             Avatar, ErrorAlert, StandardConfirmDialog, ScrollableRow,
+                             DesktopOnly (mobile gate), etc.
 
 hooks/
 ├── useAuth.ts             # Login flow: request OTP code + verify code
