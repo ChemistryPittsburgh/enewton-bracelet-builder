@@ -106,7 +106,11 @@ export function SeedSegmentOnBracelet({
     if (extractedMat) {
       finishedMat = extractedMat.clone();
       const finishKey = bead.product.material ?? DEFAULT_FINISH ?? "gold";
-      // if (finishKey === "silver") finishedMat.color.set("#E5E5E5");
+      // The round GLB is gold-toned. For any non-gold finish, tint the cloned
+      // material to the selected colorway colour (e.g. silver #C0C0C0) so it
+      // doesn't render as gold. Gold keeps the GLB's native appearance.
+      const tintHex = bead.seedConfig?.colorway?.[0]?.hex;
+      if (finishKey !== "gold" && tintHex) finishedMat.color.set(tintHex);
       const preset = FINISH_PRESETS[finishKey];
       if (preset) {
         if (preset.metalness !== undefined) finishedMat.metalness = preset.metalness;
@@ -121,7 +125,7 @@ export function SeedSegmentOnBracelet({
       nativeDiameter: diam || SEED_BEAD_NATIVE_DIAMETER,
       roundMaterial: finishedMat,
     };
-  }, [activeGlbScene, bead.product.material]);
+  }, [activeGlbScene, bead.product.material, bead.seedConfig?.colorway?.[0]?.hex]);
 
   // Generate the individual tiny beads from the segment config
   const config = bead.seedConfig;
