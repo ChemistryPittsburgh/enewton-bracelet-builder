@@ -245,10 +245,9 @@ export function EditModeToolbar() {
           <Repeat2 size={22} />
         </EditBtn>
       </Tooltip>
-      <Tooltip content={hasSelection ? "Replace selected beads" : "Select beads to replace"} placement="bottom">
+      <Tooltip content="Replace beads" placement="bottom">
         <EditBtn
           onClick={() => setEditReplaceMode(!editReplaceMode)}
-          disabled={!hasSelection}
           label="Replace beads"
           className={editReplaceMode ? "bg-navy hover:bg-navy/80" : ""}
         >

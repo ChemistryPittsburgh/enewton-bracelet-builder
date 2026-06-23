@@ -141,6 +141,8 @@ interface Store {
   toggleEditBead: (instanceId: string) => void;
   /** Clear the entire edit selection. */
   clearEditSelection: () => void;
+  /** Replace the entire edit selection with the given instance IDs. */
+  setEditSelectedIds: (ids: string[]) => void;
 
   /** Ephemeral — not persisted. True when the canvas is in drag-to-reorder edit mode. */
   isEditMode: boolean;
@@ -436,14 +438,15 @@ export const useStore = create<Store>()(
       },
 
       cancelReplaceMode() {
-        set({ replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
       },
 
       setEditReplaceMode(active) {
         if (active) {
-          set({ editReplaceMode: true, replaceTargetInstanceId: null, replaceAllTargetProductId: null });
+          const hasPreSelection = get().editSelectedIds.length > 0;
+          set({ editReplaceMode: true, replaceTargetInstanceId: null, replaceAllTargetProductId: null, ...(hasPreSelection ? {} : { editSelectedIds: [] }) });
         } else {
-          set({ editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+          set({ editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
         }
       },
 
@@ -451,25 +454,8 @@ export const useStore = create<Store>()(
         const s = get();
         if (s.editSelectedIds.length === 0) return;
 
-        let toFreeze: string[][];
-        if (s.editSelectionGroups.length === 0) {
-          // First freeze: split the active selection by product type so each
-          // auto-group becomes its own explicit group (matching the dialog display).
-          const byProduct = new Map<number, string[]>();
-          for (const id of s.editSelectedIds) {
-            const pid = s.beads.find(b => b.instanceId === id)?.product.id;
-            if (pid === undefined) continue;
-            if (!byProduct.has(pid)) byProduct.set(pid, []);
-            byProduct.get(pid)!.push(id);
-          }
-          toFreeze = [...byProduct.values()];
-        } else {
-          // Already in explicit mode: add the active selection as one new group.
-          toFreeze = [s.editSelectedIds];
-        }
-
         set({
-          editSelectionGroups: [...s.editSelectionGroups, ...toFreeze],
+          editSelectionGroups: [...s.editSelectionGroups, s.editSelectedIds],
           editSelectedIds: [],
           editReplaceNarrowedIds: null,
         });
@@ -729,6 +715,10 @@ export const useStore = create<Store>()(
 
       clearEditSelection() {
         set({ editSelectedIds: [], editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+      },
+
+      setEditSelectedIds(ids) {
+        set({ editSelectedIds: ids });
       },
 
       toggleEditMode() {
