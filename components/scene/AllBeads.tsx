@@ -131,6 +131,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                   swingAngle={charmAdjustments.get(bead.instanceId)?.swingAngle ?? 0}
                   isColliding={showCharmCollisions && charmAdjustments.has(bead.instanceId)}
                   selectionColor={editReplaceColorMap?.get(bead.instanceId)}
+                  isCapturing={spacersHiddenForCapture}
                 />
               </Suspense>
             )}

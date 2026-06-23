@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, ZoomIn, ZoomOut } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
 import {
@@ -22,6 +22,7 @@ export function EditModeToolbar() {
     braceletSize,
     reorderBeads,
     duplicateBead,
+    duplicateGroup,
     reverseBracelet,
     removeBead,
     editViewMode,
@@ -34,6 +35,7 @@ export function EditModeToolbar() {
     undo,
     redo,
     editReplaceMode,
+    editReplaceNarrowedIds,
     setEditReplaceMode,
     controlsEl,
     viewMode,
@@ -44,6 +46,7 @@ export function EditModeToolbar() {
     braceletSize: s.braceletSize,
     reorderBeads: s.reorderBeads,
     duplicateBead: s.duplicateBead,
+    duplicateGroup: s.duplicateGroup,
     reverseBracelet: s.reverseBracelet,
     removeBead: s.removeBead,
     editViewMode: s.editViewMode,
@@ -56,6 +59,7 @@ export function EditModeToolbar() {
     undo: s.undo,
     redo: s.redo,
     editReplaceMode: s.editReplaceMode,
+    editReplaceNarrowedIds: s.editReplaceNarrowedIds,
     setEditReplaceMode: s.setEditReplaceMode,
     controlsEl: s.controlsEl,
     viewMode: s.viewMode,
@@ -65,12 +69,35 @@ export function EditModeToolbar() {
   const hasSelection = editSelectedIds.length > 0;
   const isSingleSelection = editSelectedIds.length === 1;
 
-  // Check if any selected bead can actually fit a duplicate on the bracelet
+  // In replace mode, prefer the narrowed sub-group for duplicate operations;
+  // fall back to the full edit selection otherwise.
+  const duplicateTargetIds = (editReplaceMode && editReplaceNarrowedIds)
+    ? editReplaceNarrowedIds
+    : editSelectedIds;
+
+  // Check whether all target beads fit as duplicates
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
-  const canDuplicate = hasSelection && editSelectedIds.some((id) => {
-    const bead = beads.find((b) => b.instanceId === id);
-    return bead ? beadFits(beads, bead, radius) : false;
-  });
+  const canDuplicate = duplicateTargetIds.length > 0 && (() => {
+    let tempList = [...beads];
+    for (const id of duplicateTargetIds) {
+      const bead = beads.find(b => b.instanceId === id);
+      if (!bead || !beadFits(tempList, bead, radius)) return false;
+      tempList = [...tempList, bead];
+    }
+    return true;
+  })();
+
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const duplicateErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDuplicate = useCallback(() => {
+    const err = duplicateGroup(duplicateTargetIds);
+    if (err) {
+      if (duplicateErrorTimer.current) clearTimeout(duplicateErrorTimer.current);
+      setDuplicateError(err);
+      duplicateErrorTimer.current = setTimeout(() => setDuplicateError(null), 3000);
+    }
+  }, [duplicateGroup, duplicateTargetIds]);
 
   // Index of the single selected bead — used for arrow-key reordering
   const singleIdx = isSingleSelection
@@ -154,7 +181,7 @@ export function EditModeToolbar() {
           if (!canDuplicate) return;
           if (e.metaKey || e.ctrlKey) {
             e.preventDefault();
-            editSelectedIds.forEach((id) => duplicateBead(id));
+            handleDuplicate();
           }
           break;
 
@@ -170,7 +197,7 @@ export function EditModeToolbar() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canDuplicate, reorderBeads, removeBead, duplicateBead, clearEditSelection, undo, redo]);
+  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canDuplicate, reorderBeads, removeBead, handleDuplicate, clearEditSelection, undo, redo]);
 
   if (!isEditMode) return null;
 
@@ -194,13 +221,23 @@ export function EditModeToolbar() {
           <ArrowDown size={22} />
         </EditBtn>
       </Tooltip>
-      <Tooltip content={hasSelection && !canDuplicate ? ( "Bracelet is full" ) : !hasSelection ? ("Select item(s) to duplicate") : ("Duplicate item")} placement="bottom">
+      <Tooltip
+        content={
+          duplicateError ? duplicateError
+          : duplicateTargetIds.length > 0 && !canDuplicate ? "Bracelet is too full to duplicate"
+          : duplicateTargetIds.length === 0 ? "Select item(s) to duplicate"
+          : duplicateTargetIds.length > 1 ? "Duplicate group"
+          : "Duplicate item"
+        }
+        placement="bottom"
+      >
         <EditBtn
-          onClick={() => editSelectedIds.forEach((id) => duplicateBead(id))}
+          onClick={handleDuplicate}
           disabled={!canDuplicate}
-          label={hasSelection && !canDuplicate ? "Bracelet is full" : "Duplicate bead"}
+          label={duplicateTargetIds.length > 1 ? "Duplicate group" : "Duplicate bead"}
+          className={duplicateError ? "bg-red-50" : ""}
         >
-          <CopyPlus size={22} />
+          <CopyPlus size={22} className={duplicateError ? "text-red-500" : ""} />
         </EditBtn>
       </Tooltip>
       <Tooltip content="Reverse order" placement="bottom">

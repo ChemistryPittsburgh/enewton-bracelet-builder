@@ -58,17 +58,13 @@ export function ScrollableRow({ children, className, trackClassName = "gap-2" }:
     el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
   }
 
-  const arrowClass = cn(
-    "shrink-0 place-items-center h-9 w-3.5 xl:w-6.5 rounded-[2px] bg-white text-color-base transition-all hover:bg-mint hover:border-navy disabled:opacity-0 disabled:pointer-events-none"
-  );
+  const arrowClass =
+    "shrink-0 grid place-items-center h-9 w-5 xl:w-6.5 rounded-[2px] bg-white text-color-base transition-all hover:bg-mint disabled:opacity-0 disabled:pointer-events-none";
 
   return (
     <div className={cn("flex items-center gap-1 overflow-hidden", className)}>
       {overflowing && (
-        <button type="button" onClick={() => page(-1)} disabled={!canLeft} aria-label="Scroll left" 
-          className={cn(
-            arrowClass
-          )} >
+        <button type="button" onClick={() => page(-1)} disabled={!canLeft} aria-label="Scroll left" className={arrowClass}>
           <ChevronLeft size={16} />
         </button>
       )}
@@ -78,10 +74,7 @@ export function ScrollableRow({ children, className, trackClassName = "gap-2" }:
         </div>
       </div>
       {overflowing && (
-        <button type="button" onClick={() => page(1)} disabled={!canRight} aria-label="Scroll right"
-          className={cn(
-            arrowClass
-          )}>
+        <button type="button" onClick={() => page(1)} disabled={!canRight} aria-label="Scroll right" className={arrowClass}>
           <ChevronRight size={16} />
         </button>
       )}

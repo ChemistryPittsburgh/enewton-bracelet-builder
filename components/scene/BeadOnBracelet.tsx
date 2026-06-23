@@ -25,6 +25,8 @@ interface BeadOnBraceletProps {
   isColliding?: boolean;
   /** Overrides the edit-mode selection ring color (e.g. replace-group color). */
   selectionColor?: string;
+  /** True during thumbnail capture — suppresses all selection rings. */
+  isCapturing?: boolean;
 }
 
 export function BeadOnBracelet({
@@ -38,6 +40,7 @@ export function BeadOnBracelet({
   swingAngle = 0,
   isColliding = false,
   selectionColor,
+  isCapturing = false,
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -225,7 +228,7 @@ export function BeadOnBracelet({
         </mesh>
 
         {/* Selection highlight ring — sits at cord level for charms (bail attachment point) */}
-        {isSelected && vizRadius > 0 && (
+        {isSelected && vizRadius > 0 && !isCapturing && (
           <mesh rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]} scale={isFloatCharm ? [1, 0.4, 1] : [1, 1, 1]}>
             <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
@@ -233,7 +236,7 @@ export function BeadOnBracelet({
         )}
 
         {/* Drag target indicator ring — edit mode only */}
-        {isDragTarget && vizRadius > 0 && (
+        {isDragTarget && vizRadius > 0 && !isCapturing && (
           <mesh rotation={[Math.PI / 2, 0, 0]} scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}>
             <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#93c5fd" />
@@ -241,7 +244,7 @@ export function BeadOnBracelet({
         )}
 
         {/* Charm collision highlight ring — shown when user clicks the overlap warning */}
-        {isColliding && vizRadius > 0 && (
+        {isColliding && vizRadius > 0 && !isCapturing && (
           <mesh
             position={isCharm ? [0, charmBodyCenterY, 0] : [0, 0, 0]}
             rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}

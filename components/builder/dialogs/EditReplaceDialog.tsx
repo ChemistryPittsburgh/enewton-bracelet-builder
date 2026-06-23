@@ -2,9 +2,18 @@
 
 import { useMemo } from "react";
 import { useStore } from "@/lib/store";
-import { EDIT_REPLACE_GROUPS } from "@/lib/constants";
+import { EDIT_REPLACE_GROUPS, EDIT_REPLACE_GROUP_COLORS } from "@/lib/constants";
 import type { BeadProduct } from "@/types";
 import { cn } from "@/lib/utils";
+
+type ReplaceGroup = {
+  key: string;
+  label: string;
+  instanceIds: string[];
+  colorIndex: number;
+  /** Show a colored swatch dot (vs a plain bullet for a single auto group). */
+  showDot: boolean;
+};
 
 export function EditReplaceDialog() {
   const {
@@ -45,23 +54,36 @@ export function EditReplaceDialog() {
   const isExplicitMode = editSelectionGroups.length > 0;
   const isOpen = isEditMode && editReplaceMode;
 
-  // In explicit mode, build a flat list of all groups (frozen + active pending)
-  const explicitGroups: Array<{ label: string; instanceIds: string[]; colorIndex: number }> = isExplicitMode
+  // Normalize both modes into one list so the render is shared.
+  // Explicit mode: frozen saved groups + the active pending selection as a trailing group.
+  // Auto mode: one group per distinct product among the current selection.
+  const plural = (n: number) => `${n} bead${n !== 1 ? "s" : ""}`;
+  const groups: ReplaceGroup[] = isExplicitMode
     ? [
         ...editSelectionGroups.map((ids, i) => ({
-          label: `Group ${i + 1}`,
+          key: `group-${i}`,
+          label: `${plural(ids.length)} – Group ${i + 1}`,
           instanceIds: ids,
           colorIndex: i,
+          showDot: true,
         })),
         ...(editSelectedIds.length > 0
           ? [{
-              label: `Group ${editSelectionGroups.length + 1}`,
+              key: "group-pending",
+              label: `${plural(editSelectedIds.length)} – Group ${editSelectionGroups.length + 1}`,
               instanceIds: editSelectedIds,
               colorIndex: editSelectionGroups.length,
+              showDot: true,
             }]
           : []),
       ]
-    : [];
+    : autoGroups.map(({ product, instanceIds }, i) => ({
+        key: String(product.id),
+        label: `${instanceIds.length} – ${product.name}`,
+        instanceIds,
+        colorIndex: i,
+        showDot: autoGroups.length > 1,
+      }));
 
   function isGroupActive(instanceIds: string[]) {
     return (
@@ -90,77 +112,22 @@ export function EditReplaceDialog() {
         Replacing selected bead(s):
       </p>
 
-      {/* ── Auto product-type groups (default) ── */}
-      {!isExplicitMode && (
-        <>
-          {autoGroups.length === 0 ? (
-            <p className="text-xs text-color-base/50 mb-3">Select beads to replace</p>
-          ) : (
-            <ul className="mb-3 space-y-1">
-              {autoGroups.map(({ product, instanceIds }, i) => {
-                const active = isGroupActive(instanceIds);
-                const palette = EDIT_REPLACE_GROUPS[i % EDIT_REPLACE_GROUPS.length];
-                const hasMultiple = autoGroups.length > 1;
-                return (
-                  <li key={product.id}>
-                    <button
-                      onClick={() => handleGroupClick(instanceIds)}
-                      className={cn(
-                        "w-full text-left text-sm px-2 py-1 rounded-[2px] transition-colors flex items-center gap-2",
-                        active ? `${palette.active} font-medium` : palette.inactive
-                      )}
-                    >
-                      {hasMultiple && (
-                        <span className={cn(
-                          "shrink-0 inline-block w-2 h-2 rounded-full",
-                          active ? "bg-white/70" : palette.active.split(" ")[0]
-                        )} />
-                      )}
-                      {!hasMultiple && <span className="shrink-0 text-xs opacity-70">•</span>}
-                      {instanceIds.length} – {product.name}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </>
+      {groups.length === 0 ? (
+        <p className="text-xs text-color-base/50 mb-3">Select beads to replace</p>
+      ) : (
+        <ul className="mb-3 space-y-1">
+          {groups.map((g) => (
+            <GroupButton
+              key={g.key}
+              group={g}
+              active={isGroupActive(g.instanceIds)}
+              onClick={() => handleGroupClick(g.instanceIds)}
+            />
+          ))}
+        </ul>
       )}
 
-      {/* ── Explicit manual groups ── */}
-      {isExplicitMode && (
-        <>
-          {explicitGroups.length === 0 ? (
-            <p className="text-xs text-color-base/50 mb-3">Select beads to replace</p>
-          ) : (
-            <ul className="mb-3 space-y-1">
-              {explicitGroups.map(({ label, instanceIds, colorIndex }) => {
-                const active = isGroupActive(instanceIds);
-                const palette = EDIT_REPLACE_GROUPS[colorIndex % EDIT_REPLACE_GROUPS.length];
-                return (
-                  <li key={label}>
-                    <button
-                      onClick={() => handleGroupClick(instanceIds)}
-                      className={cn(
-                        "w-full text-left text-sm px-2 py-1 rounded-[2px] transition-colors flex items-center gap-2",
-                        active ? `${palette.active} font-medium` : palette.inactive
-                      )}
-                    >
-                      <span className={cn(
-                        "shrink-0 inline-block w-2 h-2 rounded-full",
-                        active ? "bg-white/70" : palette.active.split(" ")[0]
-                      )} />
-                      {instanceIds.length} bead{instanceIds.length !== 1 ? "s" : ""} – {label}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </>
-      )}
-
-      {/* ── New Group button ── */}
+      {/* ── Footer actions ── */}
       <div className="flex items-center justify-between">
         <button
           onClick={cancelReplaceMode}
@@ -178,5 +145,31 @@ export function EditReplaceDialog() {
       </div>
     </div>
     </div>
+  );
+}
+
+function GroupButton({ group, active, onClick }: { group: ReplaceGroup; active: boolean; onClick: () => void }) {
+  const palette = EDIT_REPLACE_GROUPS[group.colorIndex % EDIT_REPLACE_GROUPS.length];
+  const dotColor = EDIT_REPLACE_GROUP_COLORS[group.colorIndex % EDIT_REPLACE_GROUP_COLORS.length];
+  return (
+    <li>
+      <button
+        onClick={onClick}
+        className={cn(
+          "w-full text-left text-sm px-2 py-1 rounded-[2px] transition-colors flex items-center gap-2",
+          active ? `${palette.active} font-medium` : palette.inactive
+        )}
+      >
+        {group.showDot ? (
+          <span
+            className={cn("shrink-0 inline-block w-2 h-2 rounded-full", active && "bg-white/70")}
+            style={active ? undefined : { backgroundColor: dotColor }}
+          />
+        ) : (
+          <span className="shrink-0 text-xs opacity-70">•</span>
+        )}
+        {group.label}
+      </button>
+    </li>
   );
 }
