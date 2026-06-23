@@ -22,7 +22,7 @@ export function useSaveBracelet() {
   const { capture } = useGenerateThumbnail();
 
   async function save(): Promise<void> {
-    const dataUrl = await capture();  // ← await added
+    const dataUrl = await capture();
     const filename = `bracelet-${slugify(braceletName)}-${Date.now()}.png`;
     let preview_image_url: string | null = null;
     if (dataUrl) {

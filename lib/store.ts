@@ -351,15 +351,21 @@ export const useStore = create<Store>()(
 
       removeBead(instanceId) {
         get().pushUndoSnapshot();
-        set((s) => ({
-          beads: s.beads.filter((b) => b.instanceId !== instanceId),
-          selectedBead:
-            s.selectedBead?.instanceId === instanceId ? null : s.selectedBead,
-          editSelectedIds:
-            s.editSelectedIds.filter((id) => id !== instanceId),
-          beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
-          isDirty: true,
-        }));
+        set((s) => {
+          const cleanedGroups = s.editSelectionGroups
+            .map((g) => g.filter((id) => id !== instanceId))
+            .filter((g) => g.length > 0);
+          const rawNarrowed = s.editReplaceNarrowedIds?.filter((id) => id !== instanceId) ?? null;
+          return {
+            beads: s.beads.filter((b) => b.instanceId !== instanceId),
+            selectedBead: s.selectedBead?.instanceId === instanceId ? null : s.selectedBead,
+            editSelectedIds: s.editSelectedIds.filter((id) => id !== instanceId),
+            beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
+            editSelectionGroups: cleanedGroups,
+            editReplaceNarrowedIds: rawNarrowed?.length ? rawNarrowed : null,
+            isDirty: true,
+          };
+        });
       },
 
       clearBeads() {
@@ -465,6 +471,7 @@ export const useStore = create<Store>()(
         set({
           editSelectionGroups: [...s.editSelectionGroups, ...toFreeze],
           editSelectedIds: [],
+          editReplaceNarrowedIds: null,
         });
       },
 

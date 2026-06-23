@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
@@ -94,14 +94,14 @@ export function EditModeToolbar() {
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const duplicateErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function handleDuplicate() {
+  const handleDuplicate = useCallback(() => {
     const err = duplicateGroup(duplicateTargetIds);
     if (err) {
       if (duplicateErrorTimer.current) clearTimeout(duplicateErrorTimer.current);
       setDuplicateError(err);
       duplicateErrorTimer.current = setTimeout(() => setDuplicateError(null), 3000);
     }
-  }
+  }, [duplicateGroup, duplicateTargetIds]);
 
   // Index of the single selected bead — used for arrow-key reordering
   const singleIdx = isSingleSelection
@@ -185,7 +185,7 @@ export function EditModeToolbar() {
           if (!canDuplicate) return;
           if (e.metaKey || e.ctrlKey) {
             e.preventDefault();
-            editSelectedIds.forEach((id) => duplicateBead(id));
+            handleDuplicate();
           }
           break;
 
@@ -201,7 +201,7 @@ export function EditModeToolbar() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canDuplicate, reorderBeads, removeBead, duplicateBead, clearEditSelection, undo, redo]);
+  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canDuplicate, reorderBeads, removeBead, handleDuplicate, clearEditSelection, undo, redo]);
 
   if (!isEditMode) return null;
 
