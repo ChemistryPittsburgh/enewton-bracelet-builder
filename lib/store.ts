@@ -438,15 +438,15 @@ export const useStore = create<Store>()(
       },
 
       cancelReplaceMode() {
-        set({ replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
       },
 
       setEditReplaceMode(active) {
         if (active) {
           const hasPreSelection = get().editSelectedIds.length > 0;
-          set({ editReplaceMode: true, replaceTargetInstanceId: null, replaceAllTargetProductId: null, ...(!hasPreSelection && { editSelectedIds: [] }) });
+          set({ editReplaceMode: true, replaceTargetInstanceId: null, replaceAllTargetProductId: null, ...(hasPreSelection ? {} : { editSelectedIds: [] }) });
         } else {
-          set({ editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+          set({ editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
         }
       },
 
