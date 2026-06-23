@@ -160,7 +160,7 @@ export function EditReplaceDialog() {
         </>
       )}
 
-      {/* ── New Group button ── */}
+      {/* ── Footer actions ── */}
       <div className="flex items-center justify-between">
         <button
           onClick={cancelReplaceMode}
