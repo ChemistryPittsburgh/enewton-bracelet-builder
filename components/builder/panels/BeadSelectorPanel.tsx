@@ -31,7 +31,7 @@ import { SeedBeadPicker } from "./SeedBeadPicker";
 const SPACER_TAB = "__spacer__";
 const SEED_TAB = "__seed__";
 
-const panelGapClass = "px-4 lg:px-7";
+const panelGapClass = "px-4 xl:px-7";
 
 // ── Small inline helpers ───────────────────────────────────────────────────
 

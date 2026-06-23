@@ -6,13 +6,13 @@ import { useStore } from "@/lib/store";
 import { usedArc, braceletArc } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { getCollidingCharmIds } from "@/lib/charm-collision";
-import { formatMm } from "@/lib/utils";
+import { cn, formatMm } from "@/lib/utils";
 
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useDesign } from "@/hooks/useDesign";
 
-export function CanvasStatsBar() {
+export function CanvasStatsBar({ hidden = false }: { hidden?: boolean }) {
   const { placedBeads, braceletSize, showCharmCollisions, setShowCharmCollisions, activeDesignId } = useStore((s) => ({
     placedBeads: s.beads,
     braceletSize: s.braceletSize,
@@ -53,7 +53,10 @@ export function CanvasStatsBar() {
   }
 
   return (
-    <div className="absolute left-4 bottom-4 right-4 z-40 flex flex-col">
+    <div className={cn(
+      "absolute left-4 bottom-4 right-4 z-40 flex flex-col transition-opacity duration-300",
+      hidden && "opacity-0 pointer-events-none",
+    )}>
       <div className="canvas-stats-wrapper relative w-fit mx-auto">
         {hasCollisions && !isPublished && (
         <Tooltip content="Ensure charms look correct before publishing" className="w-fit ml-auto !block" placement="bottom">
@@ -74,8 +77,8 @@ export function CanvasStatsBar() {
           </button>
         </Tooltip>
       )}
-        <div className="bg-white backdrop-blur-sm shadow-sm rounded-[5px] flex items-center p-4 m-auto gap-4">
-          <Stat label="MM Used" value={`${remainingMm > 0.15 ? formatMm(remainingMm) : "0"}mm / ${formatMm(totalMm)}mm`} />
+        <div className="bg-white backdrop-blur-sm shadow-sm rounded-[5px] flex items-center p-4 m-auto gap-2 xl:gap-4">
+          <Stat label="MM Used" value={`${remainingMm > 0.2 ? formatMm(remainingMm) : "0"}mm / ${formatMm(totalMm)}mm`} />
           <Stat label="Filled" value={`${percentUsed.toFixed(0)}%`} />
           <Stat label="Items" value={`${placedBeads.length}`} />
           <Stat label="Beads" value={`${String(beadCount)}`} />
@@ -88,8 +91,8 @@ export function CanvasStatsBar() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <span className="rounded-[2px] bg-grey/70 px-4 py-1 text-xs">
-      <span className="text-[11px] tracking-wide uppercase text-black/80">{label}</span> <span className="text-sm font-semibold ml-2">{value}</span>
+    <span className="rounded-[2px] bg-grey/70 px-4 py-0.5 xl:py-1 text-xs">
+      <span className="text-[10px] xl:text-[11px] tracking-wide uppercase text-black/80">{label}</span> <span className="xl:text-sm font-semibold ml-1 xl:ml-2">{value}</span>
     </span>
   );
 }

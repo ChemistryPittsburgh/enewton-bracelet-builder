@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 import { useTags } from "@/hooks/useTags";
 import { useCollections } from "@/hooks/useCollections";
 import { usePermissions } from "@/hooks/usePermissions";
-import { ManageTagsDialog } from "@/components/builder/dialogs/ManageTagsDialog";
-import { ManageCollectionsDialog } from "@/components/builder/dialogs/ManageCollectionsDialog";
+import { ManageTagsDialog } from "@/components/builder/dialogs/manage/ManageTagsDialog";
+import { ManageCollectionsDialog } from "@/components/builder/dialogs/manage/ManageCollectionsDialog";
 import type { Collection, Tag } from "@/types";
 
 // ── Shared internals ──────────────────────────────────────────────────────────

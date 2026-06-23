@@ -59,11 +59,11 @@ export function ScrollableRow({ children, className, trackClassName = "gap-2" }:
   }
 
   const arrowClass = cn(
-    "shrink-0 place-items-center h-9 w-4 lg:w-6.5 rounded-[2px] bg-white text-color-base transition-all hover:bg-mint hover:border-navy disabled:opacity-0 disabled:pointer-events-none"
+    "shrink-0 place-items-center h-9 w-3.5 xl:w-6.5 rounded-[2px] bg-white text-color-base transition-all hover:bg-mint hover:border-navy disabled:opacity-0 disabled:pointer-events-none"
   );
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex items-center gap-1 overflow-hidden", className)}>
       {overflowing && (
         <button type="button" onClick={() => page(-1)} disabled={!canLeft} aria-label="Scroll left" 
           className={cn(

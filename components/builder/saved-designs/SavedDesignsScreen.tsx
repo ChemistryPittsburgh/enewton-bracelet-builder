@@ -320,7 +320,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
       <div className="flex max-md:flex-col flex-1 overflow-hidden">
 
         {/* ── Sidebar — status filters ───────────────────────────────────── */}
-        <aside className="w-full md:w-[280px] lg:w-[350px] shrink-0 overflow-y-auto bg-light-grey/80 py-6 lg:py-10 px-6">
+        <aside className="w-full md:w-[280px] lg:w-[350px] shrink-0 overflow-y-auto bg-light-grey/80 py-6 xl:py-10 px-6">
           <div className="flex items-center justify-between pb-8">
             <Tooltip content="Close Saved Designs" placement="bottom-end">
               <button
@@ -380,8 +380,8 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
           ) : (
             /* ── Designs view ───────────────────────────────────────── */
             <>
-              <div className="designs-panel-header px-6 lg:px-10 border-b border-default">
-                <h2 className="text-xl pb-3 lg:py-6">Saved designs</h2>
+              <div className="designs-panel-header px-6 xl:px-10 border-b border-default">
+                <h2 className="text-xl pb-3 xl:py-6">Saved designs</h2>
 
                 {/* Filter bar */}
                 <div className="shrink-0 flex flex-col gap-1 lg:gap-4 pb-3">
@@ -531,7 +531,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
               </div>
 
               {/* ── Card grid ───────────────────────────────────────── */}
-              <div className="flex-1 lg:overflow-y-auto p-6 lg:px-10">
+              <div className="flex-1 lg:overflow-y-auto p-6 xl:px-10">
                 {isLoading && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {Array.from({ length: 6 }).map((_, i) => (
