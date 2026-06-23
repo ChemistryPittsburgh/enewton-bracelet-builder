@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
 import {
@@ -31,8 +31,6 @@ export function EditModeToolbar() {
     selectedBead,
     clearSelectedBead,
     toggleEditMode,
-    undoStack,
-    redoStack,
     undo,
     redo,
     editReplaceMode,
@@ -55,8 +53,6 @@ export function EditModeToolbar() {
     selectedBead: s.selectedBead,
     clearSelectedBead: s.clearSelectedBead,
     toggleEditMode: s.toggleEditMode,
-    undoStack: s.undoStack,
-    redoStack: s.redoStack,
     undo: s.undo,
     redo: s.redo,
     editReplaceMode: s.editReplaceMode,
@@ -180,16 +176,6 @@ export function EditModeToolbar() {
 
   return (
     <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[3px] divide-x divide-default">
-      <Tooltip content="Undo (⌘Z)" placement="bottom">
-        <EditBtn onClick={undo} disabled={undoStack.length === 0} label="Undo">
-          <Undo2 size={22} />
-        </EditBtn>
-      </Tooltip>
-      <Tooltip content="Redo (⌘⇧Z)" placement="bottom">
-        <EditBtn onClick={redo} disabled={redoStack.length === 0} label="Redo">
-          <Redo2 size={22} />
-        </EditBtn>
-      </Tooltip>
       <Tooltip content={singleIdx !== -1 ? ( "Move item back" ) : ("Select one item to move")} placement="bottom">
         <EditBtn
           onClick={() => reorderBeads(singleIdx, (singleIdx - 1 + n) % n)}
@@ -243,7 +229,7 @@ export function EditModeToolbar() {
             if (!isSingleSelection) return;
             const bead = beads.find((b) => b.instanceId === editSelectedIds[0]);
             if (!bead) return;
-            
+
             // If this bead's info is already open, close it — otherwise open it
             if (selectedBead?.instanceId === bead.instanceId) {
               clearSelectedBead();

@@ -423,7 +423,7 @@ export function DesignCard({
             <p className="text-sm font-medium">{design.name}</p>
           </div>
           {design.updated_at && (
-            <p className="truncate text-xs text-color-base/70"><span className="text-color-base/70">Last Updated: </span>{formatDate(design.updated_at)}</p>
+            <p className="text-xs text-color-base/70"><span className="text-color-base/70 max-xl:hidden">Last Updated: </span>{formatDate(design.updated_at)}</p>
           )}
         </div>
         <div className="flex shrink-0 items-center">

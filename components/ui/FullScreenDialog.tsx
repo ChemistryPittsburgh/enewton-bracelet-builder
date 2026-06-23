@@ -56,7 +56,7 @@ export function FullScreenDialog({
         )}
       >
         {/* Header */}
-        <div className="full-screen-dialog-header flex items-center justify-between px-5 py-4 border-b border-default">
+        <div className="full-screen-dialog-header flex items-center justify-between px-4 xl:px-6 py-4 border-b border-default">
           {title && (
             <h2>{title}</h2>
           )}

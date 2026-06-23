@@ -77,14 +77,15 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
       title={bandSelectorTitle}
       onOpenChange={setDialogOpen}
       buttonTitle="Band Settings"
+      bodyClasses="lg:px-3 px-3 py-3 lg:py-3"
       className={cn(
         "absolute bottom-4 left-4 z-40 transition-all duration-300 ease-out w-auto max-w-[300px]",
-        !panelOpen && "min-w-[16.25rem]"
+        !panelOpen && "min-w-[11rem] xl:min-w-[16.25rem]"
       )}
     >
-      <div className="space-y-4">
+      <div className="space-y-2 xl:space-y-4">
         {/* Material */}
-        <div className="flex items-center justify-between">
+        <div className="flex max-xl:flex-col max-xl:gap-1 xl:items-center justify-between">
           <span className="text-xs text-color-base/70">Material</span>
           <div className="flex gap-1.5">
             {BRACELET_MATERIALS.map(({ value, label }) => (
@@ -101,7 +102,7 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
 
         {/* Bracelet size — hidden when hairtie is selected */}
         {!isHairtie && (
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex max-xl:flex-col max-xl:gap-1 xl:items-center justify-between gap-2">
             <span className="text-xs text-color-base/70">Bracelet size</span>
             <div className="flex gap-2">
               {BRACELET_SIZES.map(({ value, label }) => {

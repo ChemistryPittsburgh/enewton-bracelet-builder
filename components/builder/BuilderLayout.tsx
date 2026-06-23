@@ -30,15 +30,16 @@ import { EditReplaceDialog } from "./dialogs/EditReplaceDialog";
 import { SessionTakenOverDialog } from "./dialogs/SessionTakenOverDialog";
 import { DesignStatusLockedDialog } from "./dialogs/DesignStatusLockedDialog";
 import { DesignNotFoundDialog } from "./dialogs/DesignNotFoundDialog";
-import { ManageBeadsDialog } from "./dialogs/ManageBeadsDialog";
-import { ManageSeedColorsDialog } from "./dialogs/ManageSeedColorsDialog";
+
+import { ManageBeadsDialog } from "./dialogs/manage/ManageBeadsDialog";
+import { ManageSeedColorsDialog } from "./dialogs/manage/ManageSeedColorsDialog";
 
 import { BeadSelectorPanel } from "./panels/BeadSelectorPanel";
 import { CommentsPanel } from "./panels/CommentsPanel";
+import { UserPanel } from "./panels/UserPanel";
 
 import { SavedDesignsScreen } from "./saved-designs/SavedDesignsScreen";
 
-import { UserPanel } from "./panels/UserPanel";
 import { UsersAdminScreen } from "./users/UsersAdminScreen";
 
 import { getInitials } from "@/lib/utils";
@@ -124,6 +125,9 @@ export function BuilderLayout() {
   const [manageBeadsOpen,     setManageBeadsOpen]     = useState(false);
   const [manageSeedColorsOpen, setManageSeedColorsOpen] = useState(false);
 
+  // True on smaller desktops (1024–1199px); used to keep only one side panel open.
+  const [isNarrow, setIsNarrow] = useState(false);
+
   const [savedDesignsInitialView, setSavedDesignsInitialView] = useState<"designs" | "patterns">("designs");
 
   // ── Design lock + realtime sync ────────────────────────────────────────────
@@ -164,6 +168,8 @@ export function BuilderLayout() {
   const rightPanelOpen = rightPanel !== null;
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
 
+  const anyPanelOpen = braceletPanelOpen || rightPanelOpen;
+
   useEffect(() => {
     if (!dragFromPanel) return;
     document.body.style.cursor = "grabbing";
@@ -183,9 +189,32 @@ export function BuilderLayout() {
     if (isLocked && isEditMode) toggleEditMode();
   }, [isLocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Track the smaller-desktop breakpoint (below 1200px) reactively.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1199px)");
+    const apply = () => setIsNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  // Safety net: if a resize down to a narrow desktop leaves both panels open,
+  // collapse to one. (The open handlers prevent both opening at once otherwise.)
+  useEffect(() => {
+    if (isNarrow && braceletPanelOpen && rightPanelOpen) setRightPanel(null);
+  }, [isNarrow, braceletPanelOpen, rightPanelOpen]);
+
 
   function openBraceletPanel() {
-    setBraceletPanelOpen((o) => !o);
+    const next = !braceletPanelOpen;
+    setBraceletPanelOpen(next);
+    if (next && isNarrow) setRightPanel(null); // one panel at a time on small desktops
+  }
+
+  function toggleRightPanel(panel: "user" | "comments") {
+    const opening = rightPanel !== panel;
+    setRightPanel(opening ? panel : null);
+    if (opening && isNarrow) setBraceletPanelOpen(false); // one panel at a time on small desktops
   }
 
   function handleNewBracelet() {
@@ -257,7 +286,7 @@ export function BuilderLayout() {
           <div className="relative ml-2 shrink-0">
           <Tooltip content={rightPanel === "user" ? "Close User Panel" : "Open User Panel"} placement="bottom-start">
             <button
-              onClick={() => setRightPanel((p) => p === "user" ? null : "user")}
+              onClick={() => toggleRightPanel("user")}
               className={cn(
                 "flex h-9 w-9 bg-mint items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors",
                 rightPanel === "user" && "outline outline-navy focus:ring-default focus:ring focus:ring-offset-2"
@@ -324,7 +353,7 @@ export function BuilderLayout() {
 
           <HeaderToolbar
             commentsOpen={rightPanel === "comments"}
-            onCommentsClick={() => setRightPanel((p) => p === "comments" ? null : "comments")}
+            onCommentsClick={() => toggleRightPanel("comments")}
             onPublishBlocked={() => setHighlightReason("sku")}
             isReadOnly={isLocked}
             isKicked={kickedNotification}
@@ -344,7 +373,7 @@ export function BuilderLayout() {
               onDetailsClick={handleDetailsClick}
             />
 
-            <CanvasStatsBar />
+            <CanvasStatsBar hidden={anyPanelOpen} />
 
             {/* Edit mode action toolbar */}
             <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-[2px]">
