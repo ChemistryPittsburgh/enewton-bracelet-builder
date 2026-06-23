@@ -46,6 +46,8 @@ import {
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
+const inputClasses = "rounded-[2px] border border-default px-2.5 py-1.5 text-sm outline-none focus:border-grey focus:ring-navy";
+
 /** Normalises user hex input: prepends "#", lowercases. Returns null if invalid. */
 function normaliseHex(input: string): string | null {
   let h = input.trim().toLowerCase();
@@ -112,7 +114,7 @@ function ColorRow({
 }) {
   return (
     <div
-      className={`group flex items-center gap-3 rounded-lg border border-neutral-100 px-4 py-2.5 ${
+      className={`group flex items-center gap-3 rounded-[2px] border border-neutral-100 px-4 py-2.5 ${
         inactive ? "bg-light-grey/40" : "bg-white"
       }`}
     >
@@ -201,7 +203,7 @@ function ColorEditRow({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-default bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-[3px] border border-default bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
         {/* Native swatch picker */}
         <label className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-full border border-color-base/20">
@@ -221,7 +223,7 @@ function ColorEditRow({
           onChange={(e) => setHex(e.target.value)}
           placeholder="#D4AF37"
           spellCheck={false}
-          className="w-28 rounded border border-default px-2.5 py-1.5 font-mono text-sm uppercase outline-none focus:border-grey"
+          className={`w-28 font-mono uppercase text-color-base/80 ${inputClasses}`}
         />
 
         {/* Label */}
@@ -235,7 +237,7 @@ function ColorEditRow({
             if (e.key === "Escape") onCancel();
           }}
           placeholder="Color name"
-          className="flex-1 rounded border border-default px-3 py-1.5 text-sm outline-none focus:border-grey"
+          className={`flex-1 ${inputClasses}`}
         />
       </div>
 
@@ -243,22 +245,26 @@ function ColorEditRow({
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium text-color-base/70">Finish</span>
         <div className="flex gap-1">
-          <button
+          <Button
             onClick={() => setIsMetallic(true)}
-            className={`flex items-center gap-1 rounded-[2px] border px-2.5 py-1 text-xs transition-all ${
-              isMetallic ? "border-navy bg-mint font-medium" : "border-default bg-white hover:bg-shell"
+            variant="ghost"
+            size="xs"
+            className={`${
+              isMetallic && "bg-shell border-navy"
             }`}
           >
             <Sparkle size={11} /> Metallic
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setIsMetallic(false)}
-            className={`flex items-center gap-1 rounded-[2px] border px-2.5 py-1 text-xs transition-all ${
-              !isMetallic ? "border-navy bg-mint font-medium" : "border-default bg-white hover:bg-shell"
+            variant="ghost"
+            size="xs"
+            className={` ${
+             !isMetallic && "bg-shell border-navy"
             }`}
           >
             <Circle size={11} /> Matte
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -299,7 +305,7 @@ function ColorDeleteRow({
 }) {
   const blocked = usedBy.length > 0;
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-error bg-light-grey/50 p-4">
+    <div className="flex flex-col gap-3 rounded-[3px] border border-error bg-light-grey/50 p-4">
       <div className="flex items-start gap-2">
         <AlertTriangle size={15} className="mt-0.5 shrink-0 text-error/80" />
         <div>
@@ -364,7 +370,7 @@ function PresetRow({
   const total = preset.colors.reduce((s, c) => s + c.percent, 0) || 1;
   return (
     <div
-      className={`group flex items-center gap-3 rounded-lg border border-neutral-100 px-4 py-2.5 ${
+      className={`group flex items-center gap-3 rounded-[2px] border border-neutral-100 px-4 py-2.5 ${
         inactive ? "bg-light-grey/40" : "bg-white"
       }`}
     >
@@ -485,7 +491,7 @@ function PresetEditor({
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-default bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-4 rounded-[3px] border border-default bg-white p-4 shadow-sm">
       {/* Name */}
       <input
         autoFocus
@@ -493,7 +499,7 @@ function PresetEditor({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Preset name (e.g. Berry)"
-        className="w-full rounded border border-default px-3 py-1.5 text-sm outline-none focus:border-grey"
+        className={`${inputClasses} w-full`}
       />
 
       {/* Selected colors */}
@@ -512,7 +518,7 @@ function PresetEditor({
                 max={100}
                 value={c.percent}
                 onChange={(e) => setPercent(c.color_id, parseInt(e.target.value))}
-                className="w-16 rounded border border-default px-2 py-1 text-right text-sm outline-none focus:border-grey"
+                className={`w-16 ${inputClasses}`}
               />
               <span className="w-3 text-xs text-color-base/50">%</span>
               <Tooltip content={`Remove ${c.label}`} placement="left">
@@ -532,12 +538,16 @@ function PresetEditor({
             <span className={`text-xs font-medium ${total === 100 ? "text-[#0d5c52]" : "text-error"}`}>
               Total: {total}%{total !== 100 && " — must equal 100%"}
             </span>
-            <button
-              onClick={balance}
-              className="ml-auto rounded-[2px] border border-default px-2 py-1 text-xs hover:bg-shell"
-            >
-              Distribute evenly
-            </button>
+            {colors.length > 1 && (
+              <Button
+                onClick={balance}
+                variant="ghost"
+                size="xs"
+                className="ml-auto capitalize text-[11px]"
+              >
+                Distribute evenly
+              </Button>
+            )}
           </div>
         </div>
       ) : (
@@ -588,7 +598,7 @@ function PresetDeleteRow({
   onCancel: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-error bg-light-grey/50 p-4">
+    <div className="flex flex-col gap-3 rounded-[3px] border border-error bg-light-grey/50 p-4">
       <div className="flex items-start gap-2">
         <AlertTriangle size={15} className="mt-0.5 shrink-0 text-error/80" />
         <div>
@@ -864,7 +874,7 @@ export function ManageSeedColorsDialog({
     >
       {tab === "colors" ? (
         <div className="flex flex-col">
-          <div className="flex flex-col gap-4 overflow-y-scroll max-h-[70vh] py-6 px-4">
+          <div className="flex flex-col gap-4 overflow-y-scroll max-h-[70vh] py-6 px-4 xl:px-6">
             <p className="text-sm text-color-base/70">
               Manage the seed bead color palette. These colors are the building blocks for colorway
               presets and custom colorways in the seed bead picker.
@@ -892,7 +902,7 @@ export function ManageSeedColorsDialog({
               <div className="flex flex-col gap-2">{visibleColors.map((color) => renderColor(color))}</div>
             )}
           </div>
-          <div className="border-t border-default py-3 px-4">
+          <div className="border-t border-default py-3 px-4 xl:px-6">
             {/* New color — hidden while viewing inactive-only (a new color is active) */}
             {statusFilter !== "inactive" &&
               (colorEdit === "new" ? (
@@ -940,7 +950,7 @@ export function ManageSeedColorsDialog({
               <div className="flex flex-col gap-2">{visiblePresets.map((preset) => renderPreset(preset))}</div>
             )}
           </div>
-          <div className="border-t border-default py-3 px-4">
+          <div className="border-t border-default py-3 px-4 xl:px-6">
             {/* New preset — hidden while viewing inactive-only */}
             {statusFilter !== "inactive" &&
               (presetEdit === "new" ? (

@@ -221,14 +221,14 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
         {/* ── Centre — 3D / Line toggle ────────────────────────────────── */}
         <div className="absolute left-1/2 -translate-x-1/2">
-          <div className="flex rounded-[2px] border border-default bg-white min-w-[140px]">
+          <div className="flex rounded-[2px] border border-default bg-white min-w-[100px] xl:min-w-[140px]">
             {(["3D", "Line"] as const).map((mode) => (
               <div key={mode} className="flex-1">
                 <Tooltip content={`${mode} View`} placement="bottom" className="w-full text-center">
                   <button
                     onClick={() => setViewMode(mode === "3D" ? "3D" : "line")}
                     title={`${mode} View`}
-                    className={`w-full px-5 py-2 text-sm font-semibold transition-all ${
+                    className={`w-full px-3 xl:px-5 py-2 text-sm font-semibold transition-all ${
                       (mode === "3D" ? "3D" : "line") === viewMode
                         ? "bg-navy text-white"
                         : "hover:bg-mint"
