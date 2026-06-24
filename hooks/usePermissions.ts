@@ -28,6 +28,7 @@ export function usePermissions() {
   const canPublish          = isAdmin || (p?.is_publisher         ?? false);
   const canManageComponents = isAdmin || (p?.is_component_admin   ?? false);
   const canDeleteBracelet   = isAdmin;
+  const canCreatePattern    = canEdit || canPublish || canManageComponents;
 
   // Workflow action permissions — consumed by mutation hooks so rule changes
   // only need to be made here.
@@ -47,6 +48,7 @@ export function usePermissions() {
     canPublish,
     canManageComponents,
     canDeleteBracelet,
+    canCreatePattern,
     canSubmit,
     canApprove,
     canReject,

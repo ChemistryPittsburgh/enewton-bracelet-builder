@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * CanvasToolbar.tsx
+ * HeaderToolbar.tsx
  *
- * Left:   Workflow action buttons (Submit / Approve / Reject / Publish / Reactivate)
+ * Left:   Undo / Redo (always available) + workflow actions (Submit / Approve / Reject / Publish / Reactivate)
  * Centre: 3D / Line view toggle  (absolutely centred)
  * Right:  Edit + Comments buttons
  */
 
 import { useState } from "react";
-import { AlertTriangle, Loader2, List, Pencil, X } from "lucide-react";
+import { AlertTriangle, Loader2, List, Pencil, Undo2, Redo2, X } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 
@@ -17,13 +17,12 @@ import { useDesign } from "@/hooks/useDesign";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubmitDesign, useApproveDesign, useRejectDesign, usePublishDesign, useUndiscontinueDesign } from "@/hooks/useWorkflow";
 
-import type { BraceletStatus } from "@/types";
 
 import { Button } from "@/components/ui/Button";
 import { PusherStatusBadge } from "@/components/builder/canvas/PusherStatusBadge";
 import { Tooltip } from "@/components/ui/Tooltip";
 
-interface CanvasToolbarProps {
+interface HeaderToolbarProps {
   commentsOpen?: boolean;
   onCommentsClick?: () => void;
   /** Called when the user tries to publish without a Shopify SKU set. */
@@ -34,13 +33,17 @@ interface CanvasToolbarProps {
   isKicked?: boolean;
 }
 
-export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked, isReadOnly = false, isKicked = false }: CanvasToolbarProps) {
-  const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId } = useStore((s) => ({
+export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked, isReadOnly = false, isKicked = false }: HeaderToolbarProps) {
+  const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId, undo, redo, undoStack, redoStack } = useStore((s) => ({
     isEditMode:      s.isEditMode,
     toggleEditMode:  s.toggleEditMode,
     viewMode:        s.viewMode,
     setViewMode:     s.setViewMode,
     activeDesignId:  s.activeDesignId,
+    undo:            s.undo,
+    redo:            s.redo,
+    undoStack:       s.undoStack,
+    redoStack:       s.redoStack,
   }));
 
   const { canEdit } = usePermissions();
@@ -92,14 +95,31 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
     });
   }
 
-  return (
-    <div className="flex flex-col gap-2 pointer-events-none relative z-20">
-      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm px-3 lg:px-6 py-3.5">
+  const iconBtnClass =
+    "flex items-center justify-center p-3 xl:p-4 h-full text-color-base/70 transition-colors hover:bg-mint hover:text-color-base disabled:opacity-30 disabled:pointer-events-none";
 
-        {/* ── Left — workflow actions ──────────────────────────────────── */}
-        <div className="flex flex-1 items-center gap-1.5">
+  return (
+    <div className="flex flex-col gap-2 pointer-events-none relative z-30">
+      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm pr-2 lg:pr-6">
+
+        {/* ── Left — Undo/Redo + workflow actions ──────────────────────── */}
+        <div className="flex flex-1 gap-3 divide-x-1 divide-default">
+          {/* Undo / Redo — always available, independent of edit mode */}
+          <div className="flex divide-x-1 divide-default">
+            <Tooltip content={undoStack.length !== 0 && "Undo (⌘Z)"} placement="bottom-end">
+              <button onClick={undo} disabled={undoStack.length === 0} aria-label="Undo" className={iconBtnClass}>
+                <Undo2 size={20} />
+              </button>
+            </Tooltip>
+            <Tooltip content={redoStack.length !== 0 && "Redo (⌘⇧Z)"} placement="bottom-end">
+              <button onClick={redo} disabled={redoStack.length === 0} aria-label="Redo" className={iconBtnClass}>
+                <Redo2 size={20} />
+              </button>
+            </Tooltip>
+          </div>
+
           {savedDesign && (
-            <>
+            <div className="py-2.5">
               {showSubmit && (
                 <WorkflowButton
                   label="Submit for Review"
@@ -118,7 +138,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
               )}
               {showReject && (
                 confirmingReject ? (
-                  <div className="flex flex-col gap-1.5 rounded-lg border border-blush bg-blush/20 px-3 py-2">
+                  <div className="flex flex-col gap-1.5 rounded-[2px] border border-blush bg-blush/20 px-3 py-2">
                     <textarea
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
@@ -216,20 +236,20 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
                   />
                 )
               )}
-            </>
+            </div>
           )}
         </div>
 
         {/* ── Centre — 3D / Line toggle ────────────────────────────────── */}
         <div className="absolute left-1/2 -translate-x-1/2">
-          <div className="flex rounded-[2px] border border-default bg-white min-w-[140px]">
+          <div className="flex rounded-[2px] border border-default bg-white min-w-[100px] xl:min-w-[140px]">
             {(["3D", "Line"] as const).map((mode) => (
               <div key={mode} className="flex-1">
                 <Tooltip content={`${mode} View`} placement="bottom" className="w-full text-center">
                   <button
                     onClick={() => setViewMode(mode === "3D" ? "3D" : "line")}
                     title={`${mode} View`}
-                    className={`w-full px-5 py-2 text-sm font-semibold transition-all ${
+                    className={`w-full px-3 xl:px-5 py-[6.5px] text-[12.5px] font-semibold transition-all ${
                       (mode === "3D" ? "3D" : "line") === viewMode
                         ? "bg-navy text-white"
                         : "hover:bg-mint"
@@ -250,7 +270,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
             <Tooltip content={isEditMode ? "Exit edit mode" : "Enter Edit Mode"} placement="bottom">
               <button
                 onClick={toggleEditMode}
-                className={`flex items-center gap-1.5 rounded-[2px] border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 rounded-[2px] border px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
                   isEditMode
                     ? "bg-stone text-white"
                     : "border-default bg-white hover:bg-mint"
@@ -269,7 +289,7 @@ export function CanvasToolbar({ commentsOpen = false, onCommentsClick, onPublish
           <Tooltip content={!commentsOpen ? "Open Comments" : "Close Comments"} placement="bottom-start">
             <button
               onClick={onCommentsClick}
-              className={`flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
                 commentsOpen
                   ? "bg-stone text-white"
                   : "bg-grey text-black hover:bg-stone hover:text-white"
@@ -307,6 +327,7 @@ function WorkflowButton({
       onClick={onClick}
       disabled={isPending}
       variant={variant}
+      className="h-8 xl:h-9 px-3 xl:px-5 text-[10px] xl:text-[11px]"
     >
       {isPending && <Loader2 size={13} className="animate-spin" />}
       {label}

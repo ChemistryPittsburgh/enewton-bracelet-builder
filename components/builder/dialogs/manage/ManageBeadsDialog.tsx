@@ -28,7 +28,7 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import { Tooltip } from "@/components/ui/Tooltip";
 
-import { cn, capitalize, slugify, unslugify } from "@/lib/utils";
+import { cn, slugify, unslugify } from "@/lib/utils";
 import { STATUS_META, getBeadCategoryMeta } from "@/lib/category-colors";
 
 import {
@@ -146,7 +146,7 @@ function GlbModel({ url, isCharm, finish, onMeasured }: { url: string; isCharm: 
       });
     } else {
       // Non-metal material — force dielectric so painted/colored items
-      // (crosses, gems, crystals) render with vibrant base colours.
+      // (crosses, gems, crystals) render with vibrant base colors.
       clone.traverse((child) => {
         if (!(child instanceof Mesh)) return;
         const srcMat = child.material;
@@ -525,7 +525,7 @@ function BeadForm({
   const [thumbUpdated, setThumbUpdated]   = useState(false);
   const [thumbError, setThumbError]       = useState<string | null>(null);
 
-  const isCharm = form.bead_category === "charm";
+  const isCharm = form.bead_category === "charm" || form.bead_category === "float_charm";
   const nameValid     = form.name.trim().length > 0;
   const typeValid     = form.bead_type.trim().length > 0;
   // For charms, bail_width_mm is required (used as diameter); for beads, diameter_mm is required
@@ -837,7 +837,7 @@ function BeadForm({
             <p className="text-xs text-color-base/60 italic">Color can be left blank (if item is metal/gold/silver/etc)</p>
           </div>
 
-          {/* Charm-specific fields — only visible when category is "charm" */}
+          {/* Charm-specific fields — visible when category is "charm" or "float_charm" */}
           {isCharm && (
             <div className="grid grid-cols-2 gap-3 pt-1 border-t border-default/50">
               <div className="flex flex-col gap-1">
@@ -1223,7 +1223,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
       }
 
       const diameterMm = parseFloat(data.diameter_mm);
-      const isCharmCategory = data.bead_category === "charm";
+      const isCharmCategory = data.bead_category === "charm" || data.bead_category === "float_charm";
 
       // For charms, diameter = bail width (the cord-hole), not the overall size.
       // If bail_width_mm is filled in, use that as the diameter instead.
@@ -1283,7 +1283,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     <FullScreenDialog
       open={open}
       onClose={handleClose}
-      title="Upload / Edit Inventory"
+      title="Manage Inventory"
       className="max-w-3xl"
       bodyClasses="px-5 py-4 max-h-[75vh] overflow-y-auto"
       headerExtra={headerBackButton}

@@ -37,7 +37,7 @@ function TagRow({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-white px-4 py-3 group">
-      {/* Colour dot */}
+      {/* color dot */}
       {tag.color && (
         <span
           className="h-2.5 w-2.5 shrink-0 rounded-full"

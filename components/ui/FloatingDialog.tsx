@@ -16,6 +16,7 @@ interface FloatingDialogProps {
   onClose?: () => void;
   includeTitleBar?: boolean;
   buttonTitle?: string;
+  bodyClasses?: string;
 }
 
 export function FloatingDialog({
@@ -28,6 +29,7 @@ export function FloatingDialog({
   onClose,
   includeTitleBar = true,
   buttonTitle = "Dialog",
+  bodyClasses,
 }: FloatingDialogProps) {
   const isControlled = controlledOpen !== undefined;
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
@@ -96,6 +98,7 @@ export function FloatingDialog({
         <div
           className={cn(
             "px-4 pb-4 pt-3 lg:px-6",
+            bodyClasses,
             includeTitleBar && "border-t border-neutral-100"
           )}
         >

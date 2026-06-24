@@ -10,12 +10,13 @@ const variants = {
   softDanger: "bg-blush border border-[#8b3040]/50 text-[#8b3040] hover:bg-blush/50",
   positive:   "bg-light-mint text-[#0d5c52] hover:bg-light-mint/80",
   dashed:     "dashed-border border border-transparent bg-white text-color-base hover:border hover:border-navy focus:border focus:border-navy focus:ring-0 hover:bg-mint focus:bg-mint",
+  gold:       "bg-white text-gold border border-gold hover:bg-gold hover:text-white flex gap-1.5 focus:bg-gold focus:text-white items-center"
 };
 
 const sizes = {
-  xs:   "h-8 px-3 text-[11px]",
-  sm:   "h-9 px-4 text-[12px]",
-  md:   "h-11 px-6 text-[12.5px]",
+  xs:   "h-6 xl:h-8 px-3 text-[9.5px] xl:text-[11px]",
+  sm:   "h-8 xl:h-9 px-4 text-[11px] xl:text-[12px]",
+  md:   "h-10 xl:h-11 px-6 text-[12px] xl:text-[12.5px]",
   lg:   "h-11 px-6 text-base",
   icon: "h-9 w-9",
 };

@@ -1,8 +1,8 @@
-import * as THREE from "three";
+import type * as THREE from "three";
 import { useStore } from "@/lib/store";
 import { THUMBNAIL_SIZE, SCENE_BACKGROUND, CAMERA_DEFAULT_POSITION } from "@/lib/constants";
 
-// ─── Background colour channels (from SCENE_BACKGROUND = "#f5f0eb") ──────────
+// ─── Background color channels (from SCENE_BACKGROUND = "#f5f0eb") ──────────
 const BG_R = 0xf5;
 const BG_G = 0xf0;
 const BG_B = 0xeb;
@@ -78,44 +78,6 @@ function captureFixed(src: HTMLCanvasElement): string {
   return out.toDataURL("image/png");
 }
 
-/**
- * Renders the scene to a WebGLRenderTarget and returns a data URL.
- * Does not require preserveDrawingBuffer on the main canvas.
- * WebGL uses bottom-left origin; rows are flipped to match 2D canvas convention.
- */
-function captureViaRenderTarget(
-  gl: THREE.WebGLRenderer,
-  scene: THREE.Scene,
-  camera: THREE.Camera,
-): string {
-  const w = gl.domElement.width;
-  const h = gl.domElement.height;
-
-  const target = new THREE.WebGLRenderTarget(w, h);
-  target.texture.colorSpace = gl.outputColorSpace; // match screen output (sRGB gamma + tone mapping)
-  gl.setRenderTarget(target);
-  gl.render(scene, camera);
-  gl.setRenderTarget(null);
-
-  const raw = new Uint8Array(w * h * 4);
-  gl.readRenderTargetPixels(target, 0, 0, w, h, raw);
-  target.dispose();
-
-  // Flip rows: WebGL origin is bottom-left, Canvas 2D is top-left
-  const flipped = new Uint8Array(w * h * 4);
-  for (let y = 0; y < h; y++) {
-    const src = (h - 1 - y) * w * 4;
-    flipped.set(raw.subarray(src, src + w * 4), y * w * 4);
-  }
-
-  const tmp = document.createElement("canvas");
-  tmp.width = w;
-  tmp.height = h;
-  const ctx = tmp.getContext("2d")!;
-  ctx.putImageData(new ImageData(new Uint8ClampedArray(flipped.buffer), w, h), 0, 0);
-  return captureFixed(tmp);
-}
-
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useGenerateThumbnail() {
@@ -137,15 +99,23 @@ export function useGenerateThumbnail() {
       // Wait two frames so React flushes the spacersHiddenForCapture state change
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
-      // Render through a cloned camera at the default view without moving the
-      // actual scene camera — avoids any visible jump in the canvas.
       const [cx, cy, cz] = CAMERA_DEFAULT_POSITION;
       const snapCam = (threeCamera as THREE.PerspectiveCamera).clone();
       snapCam.position.set(cx, cy, cz);
       snapCam.lookAt(0, 0, 0);
       snapCam.updateMatrixWorld();
 
-      return captureViaRenderTarget(glRenderer, threeScene, snapCam);
+      // Render snap view directly to the main canvas — same pipeline as R3F
+      // (tone mapping, sRGB output, env map) so the thumbnail matches what the
+      // user sees. preserveDrawingBuffer:true keeps the framebuffer valid for capture.
+      glRenderer.render(threeScene, snapCam);
+      const dataUrl = captureFixed(glRenderer.domElement);
+
+      // Immediately restore the real view in the same synchronous block so the
+      // browser composites only once — the snap frame is never visible to the user.
+      glRenderer.render(threeScene, threeCamera);
+
+      return dataUrl;
     } finally {
       setSpacersHiddenForCapture(false);
     }

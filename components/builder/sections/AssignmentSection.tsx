@@ -14,7 +14,7 @@ interface AssignmentSectionProps<T extends { id: number; name: string }> {
   design: Bracelet;
   /** Items currently on the design (e.g. design.tags, design.collections). */
   serverItems: T[];
-  /** Key into CATEGORY_STYLES for chip colour. */
+  /** Key into CATEGORY_STYLES for chip color. */
   categoryKey: CategoryKey;
   /** Section heading text. */
   title: string;

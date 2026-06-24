@@ -18,6 +18,8 @@
  *   - Bead diameter: pulled dynamically from the bead catalog (metres)
  */
 
+import { FLOAT_CHARM_THIN_SCALE } from "@/lib/constants";
+
 // ─── Bracelet constants ───────────────────────────────────────────────────────
 
 type BeadLike = {
@@ -25,6 +27,7 @@ type BeadLike = {
     diameter: number;
     bead_category?: string | null;
     body_width_mm?: number | null;
+    material?: string | null;
   };
 };
 
@@ -41,7 +44,7 @@ export const CORD_RADIUS = 0.0008;
  * -0.001 = beads slightly overlapping (good for tight stacking)
  * Positive values add space between beads
  */
-export const BEAD_SPACING = -0.000025;
+export const BEAD_SPACING = -0.000012;
 
 /**
  * Per-category spacing overrides (metres).
@@ -52,18 +55,36 @@ export const BEAD_SPACING = -0.000025;
  * Add new categories here as they appear in the catalog.
  */
 const CATEGORY_SPACING: Record<string, number> = {
-  bead:    BEAD_SPACING,     // −0.35 mm — tight stacking
-  charm:   BEAD_SPACING,     // −0.35 mm — same as beads
-  gem:     0.00002,                //  0 mm    — just touching, no overlap
-  tube:    BEAD_SPACING,     // −0.35 mm — same as beads
-  spacer:  0,                //  0 mm    — flush against neighbors
-  cross: 0.0001              // slight spacing
+  bead:          BEAD_SPACING,     
+  charm:         0.00004,     
+  float_charm:   0.00002,                 
+  tube:          BEAD_SPACING,    
+  spacer:        0,               
+  seed_segment:  -0.00002,
+  crystal:       0.0008,
+  resin:         0.00002
 };
+
+/**
+ * Returns the gap (metres) to place between two adjacent beads.
+ * 
+ * Spacing-lookup key for a bead. Crystals are catalogued under the "charm"
+ * category but get their own spacing, so material takes precedence here.
+ */
+function spacingKey(bead: BeadLike): string {
+  if (bead.product.bead_category === "charm" && bead.product.material === "crystal") {
+    console.log("here?");
+    return "crystal";
+  } else if (bead.product.bead_category === "bead" && bead.product.material === "resin") {
+    return "resin";
+  }
+  return bead.product.bead_category ?? "bead";
+}
 
 /** Returns the gap (metres) to place between two adjacent beads. */
 function getSpacing(a: BeadLike, b: BeadLike): number {
-  const sA = CATEGORY_SPACING[a.product.bead_category ?? "bead"] ?? BEAD_SPACING;
-  const sB = CATEGORY_SPACING[b.product.bead_category ?? "bead"] ?? BEAD_SPACING;
+  const sA = CATEGORY_SPACING[spacingKey(a)] ?? BEAD_SPACING;
+  const sB = CATEGORY_SPACING[spacingKey(b)] ?? BEAD_SPACING;
   return Math.max(sA, sB);
 }
 
@@ -76,15 +97,30 @@ export function braceletArc(radius: number): number {
 
 // Returns the half-arc a bead contributes toward a given neighbor.
 // Charm–charm pairs use body_width_mm (disc body width); all others use diameter.
+// Float charms sit sideways on the cord, so their arc contribution is scaled
+// down to match their thin edge profile (FLOAT_CHARM_THIN_SCALE, shared with
+// the hit box and collision math).
 function arcHalf(bead: BeadLike, neighbor: BeadLike): number {
+  const bc = bead.product.bead_category;
+  const nc = neighbor.product.bead_category;
   if (
-    bead.product.bead_category === "charm" &&
-    neighbor.product.bead_category === "charm" &&
+    (bc === "charm" || bc === "float_charm") &&
+    (nc === "charm" || nc === "float_charm") &&
     bead.product.body_width_mm != null
   ) {
-    return bead.product.body_width_mm / 2 / 1000;
+    const half = bead.product.body_width_mm / 2 / 1000;
+    return bc === "float_charm" ? half * FLOAT_CHARM_THIN_SCALE : half;
   }
   return bead.product.diameter / 2;
+}
+
+/**
+ * Centre-to-centre advance between two adjacent beads along the cord (metres):
+ * each bead's half-arc toward the other plus the inter-bead spacing. This is the
+ * single per-pair step shared by usedArc, getBeadAngle, and getBeadTransformLine.
+ */
+function pairAdvance(a: BeadLike, b: BeadLike): number {
+  return arcHalf(a, b) + getSpacing(a, b) + arcHalf(b, a);
 }
 
 /** Total cord length consumed by beads - how much room left */
@@ -92,7 +128,7 @@ export function usedArc(beads: BeadLike[]): number {
   if (beads.length === 0) return 0;
   let total = beads[0].product.diameter / 2;
   for (let i = 0; i < beads.length - 1; i++) {
-    total += arcHalf(beads[i], beads[i + 1]) + getSpacing(beads[i], beads[i + 1]) + arcHalf(beads[i + 1], beads[i]);
+    total += pairAdvance(beads[i], beads[i + 1]);
   }
   total += beads[beads.length - 1].product.diameter / 2;
   return total;
@@ -134,7 +170,7 @@ export function getBeadTransformLine(
   const totalW = usedArc(beads);
   let x = -totalW / 2 + beads[0].product.diameter / 2;
   for (let i = 0; i < slotIndex; i++) {
-    x += arcHalf(beads[i], beads[i + 1]) + getSpacing(beads[i], beads[i + 1]) + arcHalf(beads[i + 1], beads[i]);
+    x += pairAdvance(beads[i], beads[i + 1]);
   }
   return {
     position:       [x, 0, 0],
@@ -157,7 +193,7 @@ export function getBeadAngle(
   let angle = START_ANGLE_OFFSET + beads[0].product.diameter / 2 / radius;
 
   for (let i = 0; i < slotIndex; i++) {
-    angle += (arcHalf(beads[i], beads[i + 1]) + getSpacing(beads[i], beads[i + 1]) + arcHalf(beads[i + 1], beads[i])) / radius;
+    angle += pairAdvance(beads[i], beads[i + 1]) / radius;
   }
 
   return angle;

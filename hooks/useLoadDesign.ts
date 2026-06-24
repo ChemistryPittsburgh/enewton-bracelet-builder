@@ -2,7 +2,8 @@ import { useBeads } from "@/hooks/useBeads";
 import { useStore } from "@/lib/store";
 import { useLockDesign } from "@/hooks/useLockDesign";
 import { useReleaseLock } from "@/hooks/useReleaseLock";
-import type { Bracelet, PlacedBead } from "@/types";
+import type { Bracelet, PlacedBead, BeadProduct } from "@/types";
+import { createSeedSegmentProduct } from "@/lib/constants";
 
 /**
  * Returns a `loadDesign()` function that maps a saved `Bracelet` record onto
@@ -23,7 +24,8 @@ export function useLoadDesign() {
   const setBraceletSize = useStore((s) => s.setBraceletSize);
   const setbandMaterial = useStore((s) => s.setbandMaterial);
   const setHairtieColor = useStore((s) => s.setHairtieColor);
-  const setActiveDesignId = useStore((s) => s.setActiveDesignId);
+  const setActiveDesignId  = useStore((s) => s.setActiveDesignId);
+  const setActivePatternId = useStore((s) => s.setActivePatternId);
   const markClean = useStore((s) => s.markClean);
   const setBraceletDescription = useStore((s) => s.setBraceletDescription);
   const startNewBracelet = useStore((s) => s.startNewBracelet);
@@ -49,6 +51,22 @@ export function useLoadDesign() {
       .slice()
       .sort((a, b) => a.position - b.position)
       .flatMap((configBead) => {
+        // Seed segments: reconstruct from seed_config rather than catalog lookup
+        if (configBead.seed_config) {
+          const seedMaterial = configBead.seed_config.colorway[0]?.label?.toLowerCase().includes('silver') ? 'silver' : 'gold';
+          const product = createSeedSegmentProduct(
+            configBead.seed_config.arc_length_mm,
+            configBead.seed_config.random_seed,
+            configBead.seed_config.seed_shape,
+            configBead.seed_config.round_size_mm,
+            seedMaterial,
+          );
+          return [{
+            instanceId: configBead.instance_id,
+            product: product as unknown as BeadProduct,
+            seedConfig: configBead.seed_config,
+          }];
+        }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return []; // product removed from catalog — skip gracefully
         return [{ instanceId: configBead.instance_id, product }];
@@ -68,6 +86,7 @@ export function useLoadDesign() {
 
     // Mark this design as the active one — subsequent saves become updates.
     setActiveDesignId(design.id);
+    setActivePatternId(null);
 
     // All fields restored — clear the dirty flag so loading another design
     // without making changes won't trigger the confirm dialog.
@@ -102,6 +121,21 @@ export function useLoadDesign() {
       .slice()
       .sort((a, b) => a.position - b.position)
       .flatMap((configBead) => {
+        if (configBead.seed_config) {
+          const seedMaterial = configBead.seed_config.colorway[0]?.label?.toLowerCase().includes('silver') ? 'silver' : 'gold';
+          const product = createSeedSegmentProduct(
+            configBead.seed_config.arc_length_mm,
+            configBead.seed_config.random_seed,
+            configBead.seed_config.seed_shape,
+            configBead.seed_config.round_size_mm,
+            seedMaterial,
+          );
+          return [{
+            instanceId: configBead.instance_id,
+            product: product as unknown as BeadProduct,
+            seedConfig: configBead.seed_config,
+          }];
+        }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return [];
         return [{ instanceId: configBead.instance_id, product }];
@@ -111,6 +145,7 @@ export function useLoadDesign() {
     setbandMaterial(configuration.band_material);
     loadBeads(placedBeads, name);
     setBraceletDescription(description ?? "");
+    setActivePatternId(null);
     markClean();
   }
 

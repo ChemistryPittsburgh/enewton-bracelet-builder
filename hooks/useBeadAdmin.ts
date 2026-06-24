@@ -15,7 +15,6 @@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
 import { type ApiBeadProduct, normaliseBeadProduct } from "@/lib/bead-helpers";
-import { slugify } from "@/lib/utils";
 import { TOKEN_KEY } from "@/lib/auth";
 import type { BeadProduct } from "@/types";
 
@@ -28,7 +27,7 @@ export interface CreateBeadRequest {
   slug: string;
   glb_path: string;
   bead_type: string;
-  bead_category: string;      // "bead" | "charm"
+  bead_category: string;      // "bead" | "charm" | "float_charm" | "tube" | "gem" | …
   diameter: number;            // in metres (e.g. 0.006)
   size_mm: number | null;
   sku: string | null;

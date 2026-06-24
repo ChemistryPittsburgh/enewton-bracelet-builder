@@ -18,6 +18,7 @@ const SHORTCUTS = [
   { keys: "Delete",             desc: "Remove selected / Close Window" },
   { keys: "Esc",                desc: "Deselect all" },
   { keys: "Drag",               desc: "Reorder by dragging" },
+  { keys: `${MOD} + Esc`,         desc: "Exit Edit Mode" },
 ];
 
 export function EditModeHelp() {

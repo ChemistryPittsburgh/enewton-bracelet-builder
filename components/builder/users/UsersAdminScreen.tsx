@@ -5,7 +5,6 @@ import { ArrowLeft, Check, ChevronDown, Loader2, Plus, Search, Trash2, X, Radio 
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useUsers, useUpdateUser, useDeleteUser, type CreateUserResponse } from "@/hooks/useUsers";
@@ -212,7 +211,7 @@ function UserRow({
           <span className="text-xs text-color-base/70 truncate">{user.email}</span>
         </div>
 
-        {/* Role badge — colour driven by PERMISSION_FIELDS in category-colors */}
+        {/* Role badge — color driven by PERMISSION_FIELDS in category-colors */}
         {(() => {
           const role  = getPrimaryRole(user.permissions);
           const entry = PERMISSION_FIELDS.find((f) => f.label === role);

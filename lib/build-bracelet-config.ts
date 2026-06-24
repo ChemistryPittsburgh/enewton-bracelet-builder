@@ -29,6 +29,7 @@ export function buildBraceletConfig(
     position: i + 1,
     product_id: b.product.id,
     instance_id: b.instanceId,
+    ...(b.seedConfig ? { seed_config: b.seedConfig } : {}),
   }));
 
   return {

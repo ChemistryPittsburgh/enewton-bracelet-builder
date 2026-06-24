@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getToken, setToken } from "@/lib/auth";
 import { useRequestCode, useVerifyCode } from "@/hooks/useAuth";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { Button } from "@/components/ui/Button";
 import { ApiError } from "@/lib/api";
 import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 
@@ -99,11 +100,11 @@ export default function LoginNewPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-sm rounded-[2px] border border-neutral-200 bg-white p-8 shadow-sm">
         <img
           src={LOGO_SRC}
           alt={LOGO_ALT}
-          className="mx-auto mb-6 max-w-[160px]"
+          className="mx-auto mb-2 w-[200px]"
         />
         <h1 className="mb-1 text-center text-lg font-semibold text-neutral-800">
           Bracelet Builder
@@ -116,7 +117,7 @@ export default function LoginNewPage() {
             </p>
             <form onSubmit={handleRequestCode} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
-                <label htmlFor="email" className="text-sm font-medium text-neutral-700">
+                <label htmlFor="email" className="text-sm font-medium text-color-base">
                   Email address
                 </label>
                 <input
@@ -128,10 +129,10 @@ export default function LoginNewPage() {
                   autoComplete="email"
                   autoFocus
                   disabled={requesting}
-                  className={`rounded border px-3 py-2 text-sm outline-none transition disabled:opacity-50 ${
+                  className={`rounded-[2px] border px-3 py-2 text-sm outline-none transition disabled:opacity-50 ${
                     emailError
                       ? "border-red-400 focus:border-red-500"
-                      : "border-neutral-300 focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
+                      : "border-default focus:border-navy focus:ring-navy"
                   }`}
                 />
                 {emailError && (
@@ -143,13 +144,12 @@ export default function LoginNewPage() {
                 <ErrorAlert message={requestErrorMessage} />
               )}
 
-              <button
+              <Button
                 type="submit"
                 disabled={requesting || !email.trim()}
-                className="rounded bg-neutral-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700 disabled:opacity-50"
               >
                 {requesting ? "Sending…" : "Send code"}
-              </button>
+              </Button>
             </form>
           </>
         ) : (
@@ -176,10 +176,10 @@ export default function LoginNewPage() {
                   onChange={(e) => handleCodeChange(e.target.value)}
                   disabled={verifying}
                   placeholder="123456"
-                  className={`rounded border px-3 py-2 text-center text-xl font-mono tracking-[0.5em] outline-none transition disabled:opacity-50 ${
+                  className={`rounded-[2px] border px-3 py-2 text-center text-xl font-mono tracking-[0.5em] outline-none transition disabled:opacity-50 ${
                     codeError
                       ? "border-red-400 focus:border-red-500"
-                      : "border-neutral-300 focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
+                      : "border-default focus:border-navy focus:ring-navy"
                   }`}
                 />
                 {codeError && (
@@ -192,7 +192,7 @@ export default function LoginNewPage() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300 accent-neutral-800"
+                  className="form-checkbox h-4 w-4 rounded-[2px] border-default bg-grey border-none text-navy focus:ring-navy focus:ring-1"
                 />
                 <span className="text-sm text-neutral-600">Remember me for 7 days</span>
               </label>
@@ -201,14 +201,13 @@ export default function LoginNewPage() {
                 <ErrorAlert message={verifyErrorMessage} />
               )}
 
-              <button
+              <Button
                 type="button"
                 disabled={verifying || code.length !== 6}
                 onClick={() => handleVerify()}
-                className="rounded bg-neutral-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700 disabled:opacity-50"
               >
                 {verifying ? "Signing in…" : "Sign in"}
-              </button>
+              </Button>
 
               <div className="flex items-center justify-between text-xs text-neutral-400">
                 <button

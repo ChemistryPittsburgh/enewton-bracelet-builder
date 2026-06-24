@@ -2,13 +2,12 @@
 
 import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
-import { ThreeEvent } from "@react-three/fiber";
-import { Box3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial, Vector3 } from "three";
+import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FINISH_PRESETS, DEFAULT_FINISH, EDIT_MODE_HIGHLIGHT_SELECT_COLOR, HIGHLIGHT_SELECT_COLOR } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FLOAT_CHARM_ROTATION, FLOAT_CHARM_DEPTH_OFFSET, CRYSTAL_CHARM_DEPTH_OFFSET, FINISH_PRESETS, DEFAULT_FINISH } from "@/lib/constants";
+import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 import { cloneShared } from "@/lib/measure-bead";
 
 interface BeadOnBraceletProps {
@@ -18,6 +17,16 @@ interface BeadOnBraceletProps {
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
   isLocked?: boolean;
+  /** Radial depth offset (metres) to layer nearby charms. 0 = no offset. */
+  layerOffset?: number;
+  /** Bail-pivot swing angle (radians) to fan nearby charm bodies apart. 0 = no swing. */
+  swingAngle?: number;
+  /** When true, renders an orange warning ring on this charm. */
+  isColliding?: boolean;
+  /** Overrides the edit-mode selection ring color (e.g. replace-group color). */
+  selectionColor?: string;
+  /** True during thumbnail capture — suppresses all selection rings. */
+  isCapturing?: boolean;
 }
 
 export function BeadOnBracelet({
@@ -27,6 +36,11 @@ export function BeadOnBracelet({
   isDragTarget = false,
   onDragStart,
   isLocked = false,
+  layerOffset = 0,
+  swingAngle = 0,
+  isColliding = false,
+  selectionColor,
+  isCapturing = false,
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -57,21 +71,13 @@ export function BeadOnBracelet({
         const srcMat = child.material;
         if (srcMat.metalness < 0.5) return;
 
-        // If the preset needs clearcoat, upgrade to MeshPhysicalMaterial
-        // (clearcoat is not available on MeshStandardMaterial).
-        const needsPhysical = preset.clearcoat != null && !(srcMat instanceof MeshPhysicalMaterial);
-        const mat = needsPhysical
-          ? new MeshPhysicalMaterial().copy(srcMat as MeshStandardMaterial)
-          : srcMat.clone();
+        const mat = srcMat.clone();
 
         if (preset.color           !== undefined) mat.color.set(preset.color);
         if (preset.metalness       !== undefined) mat.metalness       = preset.metalness;
         if (preset.roughness       !== undefined) mat.roughness       = preset.roughness;
         mat.roughness = Math.max(mat.roughness, 0.22);
         if (preset.envMapIntensity !== undefined) mat.envMapIntensity = preset.envMapIntensity;
-        if (preset.clearcoat       !== undefined && mat instanceof MeshPhysicalMaterial) {
-          mat.clearcoat = preset.clearcoat;
-        }
 
         child.material = mat;
       });
@@ -79,7 +85,7 @@ export function BeadOnBracelet({
       // No matching finish preset — this is a colored/painted item (cross,
       // gem, crystal, etc.). The GLB may have been modelled with metallic
       // material, which makes colors look dull and washed out. Force
-      // dielectric rendering so the base colour comes through vibrantly.
+      // dielectric rendering so the base color comes through vibrantly.
       clone.traverse((child) => {
         if (!(child instanceof Mesh)) return;
         const srcMat = child.material;
@@ -100,10 +106,14 @@ export function BeadOnBracelet({
     // body rather than at bail/cord level.
     let charmBodyCenterY = 0;
 
-    if (bead.product.bead_category === "charm") {
+    if (bead.product.bead_category === "charm" || bead.product.bead_category === "float_charm") {
+      const rotation = bead.product.bead_category === "float_charm"
+        ? FLOAT_CHARM_ROTATION
+        : CHARM_ROTATION;
+
       const wrapper = new Group();
       wrapper.add(clone);
-      wrapper.rotation.set(...CHARM_ROTATION);
+      wrapper.rotation.set(...rotation);
       wrapper.updateMatrixWorld(true);
 
       const rotBox = new Box3().setFromObject(wrapper);
@@ -126,111 +136,67 @@ export function BeadOnBracelet({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, bead.product.bead_category, CHARM_ROTATION[0], CHARM_ROTATION[1], CHARM_ROTATION[2]]);
 
-  const { gl } = useThree();
-  const { selectBead, selectedBead, editSelectedIds, toggleEditBead, clearSelectedBead, clearEditSelection, beads, braceletSize, isEditMode, viewMode, selectAllActive } = useStore((s) => ({
-    selectBead: s.selectBead,
-    selectedBead: s.selectedBead,
-    editSelectedIds: s.editSelectedIds,
-    toggleEditBead: s.toggleEditBead,
-    clearSelectedBead: s.clearSelectedBead,
-    clearEditSelection: s.clearEditSelection,
-    beads: s.beads,
-    braceletSize: s.braceletSize,
-    isEditMode: s.isEditMode,
-    selectAllActive: s.selectAllActive,
-    viewMode: s.viewMode,
-  }));
+  const beads        = useStore((s) => s.beads);
+  const braceletSize = useStore((s) => s.braceletSize);
+  const viewMode     = useStore((s) => s.viewMode);
 
-  const isCharm = bead.product.bead_category === "charm";
+  const {
+    isSelected,
+    highlightColor,
+    handleClick,
+    handlePointerDown,
+    handlePointerEnter,
+    handlePointerLeave,
+  } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart, selectAllOfType: true, selectionColor });
+
+  const isFloatCharm = bead.product.bead_category === "float_charm";
+  const isCharm = bead.product.bead_category === "charm" || isFloatCharm;
+  const isCharmOnly = bead.product.bead_category === "charm";
+  const isCrystalCharm = isCharmOnly && bead.product.material === "crystal";
+  const activeCharmRotation = isFloatCharm ? FLOAT_CHARM_ROTATION : CHARM_ROTATION;
 
   const vizRadius = isCharm
-    ? (bead.product.body_width_mm ?? bead.product.diameter * 1000) / 2 / 1000
+    ? (bead.product.body_width_mm ?? bead.product.diameter * 1000) / 2.7 / 1000
     : bead.product.diameter / 2;
 
   const hangOffset = isCharm ? autoHangOffset : 0;
-  const depthOffset = isCharm ? (bead.product.depth_offset ?? -0.0005) : 0;
-
-  const isSelected = isEditMode
-    ? editSelectedIds.includes(bead.instanceId)
-    : selectedBead?.instanceId === bead.instanceId
-    || (selectAllActive && selectedBead?.product.id === bead.product.id);
-
-const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT_SELECT_COLOR;
+  // Per-charm depth setback (incl. a small default). Applied radially below —
+  // NOT as a world-Z shift — so it points "into the band" at every position
+  // around the bracelet instead of only at the front.
+  const charmDepthOffset = (isCharm && !isFloatCharm) ? (bead.product.depth_offset ?? -0.0005) : 0;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === 'line'
     ? getBeadTransformLine(slotIndex, beads)
     : getBeadTransform(slotIndex, beads, radius);
 
+  // Radial offset: collision layer stacking + float charm forward push +
+  // crystal-charm setback + per-charm depth setback. All shift along the radial
+  // direction so the charm stays centred on the cord at every position around
+  // the bracelet (a world-Z shift would drift it off-band as it rotates around).
+  const totalRadialOffset =
+    layerOffset +
+    (isFloatCharm ? FLOAT_CHARM_DEPTH_OFFSET : 0) +
+    (isCrystalCharm ? CRYSTAL_CHARM_DEPTH_OFFSET : 0) +
+    charmDepthOffset;
+
+  const layeredPosition: [number, number, number] = totalRadialOffset !== 0
+    ? (() => {
+        const mag = Math.sqrt(position[0] ** 2 + position[2] ** 2);
+        if (mag === 0) return position;
+        return [
+          position[0] + (position[0] / mag) * totalRadialOffset,
+          position[1],
+          position[2] + (position[2] / mag) * totalRadialOffset,
+        ] as [number, number, number];
+      })()
+    : position;
+
   const liftedPosition: [number, number, number] = [
-    position[0],
-    position[1] + hangOffset + (isDragged ? 0.003 : 0),
-    position[2] + depthOffset,
+    layeredPosition[0],
+    layeredPosition[1] + hangOffset + (isDragged ? 0.003 : 0),
+    layeredPosition[2],
   ];
-
-  function handleClick(e: ThreeEvent<MouseEvent>) {
-    e.stopPropagation();
-    if (isLocked) return;
-    if (isEditMode) {
-      const ne = e.nativeEvent;
-      if (ne && (ne.metaKey || ne.ctrlKey)) {
-        // Cmd/Ctrl+click opens the info panel for this bead
-        selectBead(bead);
-        toggleEditBead(bead.instanceId);
-      } else {
-        // Plain click toggles edit selection; close info panel if open
-        clearSelectedBead();
-        toggleEditBead(bead.instanceId);
-      }
-    } else {
-      selectBead(bead);
-    }
-  }
-
-  /** Pixels of pointer movement before a drag initiates (prevents jump on click). */
-  const DRAG_THRESHOLD = 4;
-
-  function handlePointerDown(e: ThreeEvent<PointerEvent>) {
-    if (!isEditMode) return;
-    e.stopPropagation();
-
-    const startX = e.nativeEvent.clientX;
-    const startY = e.nativeEvent.clientY;
-
-    function onMove(moveEvent: PointerEvent) {
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-      if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
-        clearEditSelection();
-        clearSelectedBead();
-        gl.domElement.style.cursor = "grabbing";
-        onDragStart?.(slotIndex);
-        cleanup();
-      }
-    }
-
-    function onUp() {
-      cleanup();
-    }
-
-    function cleanup() {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    }
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }
-
-  function handlePointerEnter() {
-    if (!isEditMode) return;
-    gl.domElement.style.cursor = "grab";
-  }
-
-  function handlePointerLeave() {
-    if (!isEditMode) return;
-    gl.domElement.style.cursor = "";
-  }
 
   return (
     <group
@@ -243,32 +209,61 @@ const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT
     >
       <group rotation={innerRotation} dispose={null}>
         {isCharm ? (
-          <group rotation={CHARM_ROTATION}>
-            <primitive object={cloned} />
-          </group>
+          swingAngle !== 0 ? (
+            /* Bail-pivot swing: translate so bail sits at the group origin,
+               apply the swing rotation, then translate back. The bail stays
+               on the cord while the hanging body fans to one side. */
+            <group position={[0, -hangOffset, 0]}>
+              <group rotation={[0, 0, swingAngle]}>
+                <group position={[0, hangOffset, 0]}>
+                  <group rotation={activeCharmRotation}>
+                    <primitive object={cloned} />
+                  </group>
+                </group>
+              </group>
+            </group>
+          ) : (
+            <group rotation={activeCharmRotation}>
+              <primitive object={cloned} />
+            </group>
+          )
         ) : (
           <primitive object={cloned} />
         )}
 
-        {/* Hit area — invisible but catches pointer events */}
-        <mesh visible={false} position={[0, 0, 0]}>
-          <sphereGeometry args={isCharm ? [vizRadius * 1.3, 8, 8] : [vizRadius * 1.1, 8, 8]} />
+        {/* Hit area — invisible but catches pointer events.
+             Float charms are thin/flat, so the sphere is squashed along Z
+             to form a disc-shaped hit zone that fits the model better. */}
+        <mesh visible={false} position={[0, 0, 0]} scale={isFloatCharm ? [1, 1, 0.35] : [1, 1, 1]}>
+          <sphereGeometry args={isCharm ? [vizRadius * 1.3, 8, 8] : [vizRadius * 1.2, 8, 8]} />
           <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>
 
         {/* Selection highlight ring — sits at cord level for charms (bail attachment point) */}
-        {isSelected && vizRadius > 0 && (
-          <mesh rotation={isCharm ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
-            <torusGeometry args={[vizRadius * 1.15, 0.0003, 8, 32]} />
-            <meshBasicMaterial color={highlightColor} transparent opacity={0.7} />
+        {isSelected && vizRadius > 0 && !isCapturing && (
+          <mesh rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]} scale={isFloatCharm ? [1, 0.4, 1] : [1, 1, 1]}>
+            <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
+            <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
           </mesh>
         )}
 
         {/* Drag target indicator ring — edit mode only */}
-        {isDragTarget && vizRadius > 0 && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[vizRadius * 1.3, 0.0002, 8, 32]} />
+        {isDragTarget && vizRadius > 0 && !isCapturing && (
+          <mesh rotation={[Math.PI / 2, 0, 0]} scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}>
+            <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#93c5fd" />
+          </mesh>
+        )}
+
+        {/* Charm collision highlight ring — shown when user clicks the overlap warning */}
+        {isColliding && vizRadius > 0 && !isCapturing && (
+          <mesh
+            position={isCharm ? [0, charmBodyCenterY, 0] : [0, 0, 0]}
+            rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}
+            scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}
+          >
+            <torusGeometry args={[vizRadius * 1.4, 0.00025, 8, 32]} />
+            <meshBasicMaterial color="#be123c" transparent opacity={0.4} />
           </mesh>
         )}
       </group>

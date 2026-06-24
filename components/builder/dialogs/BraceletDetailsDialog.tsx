@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Eraser, Loader2, Pencil, Trash2, X } from "lucide-react";
+import { Check, Eraser, Loader2, Pencil, Trash2, X, AlertTriangle, LayoutTemplate } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
+import { getCollidingCharmIds } from "@/lib/charm-collision";
+import { seedSizeLabel } from "@/lib/seed-bead-utils";
 import { formatDateTime, formatMm } from "@/lib/utils";
 
 import { FullScreenDialog } from "@/components/ui/FullScreenDialog";
@@ -16,6 +18,7 @@ import { TagPicker, CollectionPicker } from "@/components/builder/saved-designs/
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { useDesign } from "@/hooks/useDesign";
+import { usePatterns } from "@/hooks/usePatterns";
 import { useUpdateDesign } from "@/hooks/useUpdateDesign";
 import { useDeleteDesign } from "@/hooks/useDeleteDesign";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -24,6 +27,7 @@ import { useApplyCollection, useRemoveCollection } from "@/hooks/useCollections"
 
 import { WorkflowSection } from "@/components/builder/sections/WorkflowSection";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";
+import { CreatePatternDialog } from "@/components/builder/dialogs/CreatePatternDialog";
 import { STATUS_META } from "@/lib/category-colors";
 import { AssignmentSection } from "@/components/builder/sections/AssignmentSection";
 
@@ -45,9 +49,12 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     braceletSize,
     placedBeads,
     activeDesignId,
+    activePatternId,
     setBraceletName,
     setBraceletDescription,
     clearBeads,
+    showCharmCollisions,
+    setShowCharmCollisions,
   } = useStore((s) => ({
     braceletName:            s.braceletName,
     braceletDescription:     s.braceletDescription,
@@ -55,14 +62,21 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     braceletSize:            s.braceletSize,
     placedBeads:             s.beads,
     activeDesignId:          s.activeDesignId,
+    activePatternId:         s.activePatternId,
     setBraceletName:         s.setBraceletName,
     setBraceletDescription:  s.setBraceletDescription,
     clearBeads:              s.clearBeads,
+    showCharmCollisions:     s.showCharmCollisions,
+    setShowCharmCollisions:  s.setShowCharmCollisions,
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
-  const { canEdit, canDeleteBracelet, isAdmin } = usePermissions();
+  const { data: patterns = [] } = usePatterns();
+  const activePattern = activePatternId !== null ? patterns.find((p) => p.id === activePatternId) ?? null : null;
+  const { canEdit, canDeleteBracelet, isAdmin, canManageComponents, canCreatePattern } = usePermissions();
   const isLocked = savedDesign?.status === "approved" || savedDesign?.status === "published" || isKicked;
+
+  const isPublished = savedDesign?.status === "published";
 
   // ── Name / description edit state ───────────────────────────────────────────
   const [isEditing,        setIsEditing]        = useState(false);
@@ -70,6 +84,9 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   const [localDescription, setLocalDescription] = useState(braceletDescription ?? "");
 
   const { mutate: updateDesign, isPending: saving } = useUpdateDesign();
+
+  // ── Create pattern state ────────────────────────────────────────────────────
+  const [createPatternOpen, setCreatePatternOpen] = useState(false);
 
   // ── Delete state ────────────────────────────────────────────────────────────
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -138,7 +155,13 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     [placedBeads],
   );
 
-  const dialogSectionClass = "border-b border-default pb-3";
+  const collidingIds = useMemo(
+    () => getCollidingCharmIds(placedBeads, BRACELET_SIZE_RADIUS[braceletSize]),
+    [placedBeads, braceletSize],
+  );
+  const hasCharmCollisions = collidingIds.length > 0;
+
+  const dialogSectionClass = "border-b border-default pb-4 pt-2";
 
   const statusMeta = isDiscontinued
     ? STATUS_META.discontinued
@@ -146,17 +169,37 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
       ? STATUS_META[savedDesign.status]
       : null;
 
+  const defaultPatternName = braceletName === "New Bracelet" ? "" : braceletName;
+
   return (
-    <FullScreenDialog open={open} onClose={onClose} title="Bracelet Details" className="max-w-3xl" bodyClasses="py-0 px-0">
-      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto py-4 px-4 lg:py-8 md:px-6 lg:px-8">
+    <FullScreenDialog
+      open={open}
+      onClose={onClose}
+      title={activePatternId !== null ? "Pattern Details" : "Bracelet Details"}
+      className={`max-w-3xl ${activePatternId !== null && "pattern-details-dialog border-2 border-gold"}`}
+      bodyClasses="py-0 px-0"
+      headerExtra={
+        canCreatePattern && activePatternId === null ? (
+          <Button
+            variant="gold"
+            size="xs"
+            onClick={() => setCreatePatternOpen(true)}
+          >
+            <LayoutTemplate size={14} className="shrink-0" />
+            Create Pattern
+          </Button>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto py-4 px-4 lg:py-6 md:px-6 lg:px-8">
 
         {/* ── Preview + status + name + description ────────────────────── */}
         <div className="flex items-start gap-4  border-b border-default pb-6">
 
           {/* Thumbnail */}
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-light-grey/80 flex items-center justify-center">
-            {savedDesign?.preview_image_url ? (
-              <img src={savedDesign.preview_image_url} alt={braceletName} className="h-full w-full object-cover" />
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[2px] bg-light-grey/80 flex items-center justify-center">
+            {(activePattern?.preview_image_url ?? savedDesign?.preview_image_url) ? (
+              <img src={(activePattern?.preview_image_url ?? savedDesign?.preview_image_url)!} alt={braceletName} className="h-full w-full object-cover" />
             ) : (
               <div className="h-10 w-10 rounded-full border-2 border-dashed" />
             )}
@@ -211,7 +254,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
                 </div>
               </div>
             ) : (
-              <div className="group flex flex-col gap-1">
+              <div className="group flex flex-col gap-1 pt-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold ">{braceletName}</h3>
                   {(!savedDesign || (canEdit && !isLocked)) && (
@@ -259,13 +302,41 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
               <InfoRow label="Types" value={beadTypes.join(", ")} />
             )}
           </div>
+
+          {/* ── Charm collision warning ──────────────────────────────────── */}
+          {hasCharmCollisions && !isPublished && (
+            <div className="flex flex-col gap-5 my-2 bg-error/5 border border-error rounded-[3px] p-4">
+              <div className="flex items-start gap-3">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-error text-white`}>
+                      <AlertTriangle size={16} />
+                  </div>
+                  <div className="max-w-[80%]">
+                    <p className="text-sm font-semibold text-error leading-relaxed mb-1">Charms may be overlapping</p>
+                    <p className="text-xs">Before publishing a bracelet, ensure all charms look correct. <br />If two charms are overlapping, add more beads or space between them.</p>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className={`w-fit mt-3 ${showCharmCollisions && 'bg-error text-white hover:bg-error/70 hover:text-white hover:border-error focus:border-error focus:ring-error'}`}
+                      onClick={() => {
+                        setShowCharmCollisions(!showCharmCollisions);
+                        onClose();
+                      }}
+                    >
+                      {showCharmCollisions && <X className="text-white" size={15} /> }
+                      {!showCharmCollisions ? "Show possible collisions" : "Hide collisions" }
+                      
+                    </Button>
+                  </div>
+                </div>
+            </div>
+          )}
         </div>
 
         {/* ── Bead list ───────────────────────────────────────────────── */}
         {placedBeads.length > 0 && (
           <div className={dialogSectionClass} >
             <SectionHeading>Beads ({placedBeads.length})</SectionHeading>
-            <div className="overflow-hidden rounded-lg border border-black/50 mb-4">
+            <div className="overflow-hidden rounded-[2px] border border-black/50 mb-4">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-mint/80 text-left text-xs text-color-base/80">
@@ -277,19 +348,52 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-default">
-                  {placedBeads.map((b, i) => (
-                    <tr key={b.instanceId} className="transition-colors">
-                      <td className="px-3 py-2 text-color-base/70">{i + 1}</td>
-                      <td className="px-3 py-2 font-medium">{b.product.name}</td>
-                      <td className="px-3 py-2 capitalize text-color-base/70">{b.product.material ?? "—"}</td>
-                      <td className="px-3 py-2 text-color-base/70">{b.product.bead_type ?? "—"}</td>
-                      <td className="px-3 py-2 text-right text-color-base/70">
-                        {b.product.size_mm != null
-                          ? `${b.product.size_mm} mm`
-                          : `${Math.round(b.product.diameter * 1000)} mm`}
-                      </td>
-                    </tr>
-                  ))}
+                  {placedBeads.map((b, i) => {
+                    const seedConfig = b.seedConfig;
+                    return (
+                      <tr key={b.instanceId} className="transition-colors">
+                        <td className="px-3 py-2 text-color-base/70">{i + 1}</td>
+                        <td className="px-3 py-2 font-medium">
+                          {seedConfig ? (
+                            <>
+                              {seedSizeLabel(seedConfig, false)} Seed Beeds
+                            </>
+                          ) : (
+                            <>
+                              {b.product.name}
+                            </>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 capitalize text-color-base/70">
+                          {seedConfig ? (
+                            <span className="flex items-center gap-1">
+                              {seedConfig.colorway.map((c, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-color-base/30"
+                                  style={{ backgroundColor: c.hex }}
+                                  title={`${c.label ?? ""} ${c.percent}%`.trim()}
+                                />
+                              ))}
+                              {seedConfig.colorway.length === 1 && seedConfig.colorway[0].label && (
+                                <span className="ml-1">{seedConfig.colorway[0].label}</span>
+                              )}
+                            </span>
+                          ) : (
+                            b.product.material ?? "—"
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-color-base/70">{b.product.bead_type ?? "—"}</td>
+                        <td className="px-3 py-2 text-right text-color-base/70">
+                          {seedConfig
+                            ? `${formatMm(seedConfig.arc_length_mm)} mm`
+                            : b.product.size_mm != null
+                              ? `${b.product.size_mm} mm`
+                              : `${Math.round(b.product.diameter * 1000)} mm`}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -413,6 +517,15 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
         )}
 
       </div>
+
+      {/* ── Create pattern dialog ───────────────────────────────────── */}
+      {createPatternOpen && (
+        <CreatePatternDialog
+          initialName={defaultPatternName}
+          onClose={() => setCreatePatternOpen(false)}
+          onSaved={() => setCreatePatternOpen(false)}
+        />
+      )}
 
       {/* ── Delete confirmation (rendered outside scroll area) ──────── */}
       {showDeleteConfirm && savedDesign && (

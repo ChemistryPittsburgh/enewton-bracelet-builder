@@ -56,7 +56,7 @@ export function FullScreenDialog({
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-default">
+        <div className="full-screen-dialog-header flex items-center justify-between px-4 xl:px-6 py-4 border-b border-default">
           {title && (
             <h2>{title}</h2>
           )}
@@ -64,7 +64,7 @@ export function FullScreenDialog({
             {headerExtra}
             <button
               onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-default text-color-base/70 hover:bg-neutral-50 hover:ring-2 transition-all"
+              className="close-btn flex h-7 w-7 items-center justify-center rounded-full border border-default text-color-base/70 hover:bg-neutral-50 hover:ring-2 transition-all"
             >
               <X size={16} />
             </button>

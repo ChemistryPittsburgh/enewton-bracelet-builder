@@ -23,6 +23,8 @@ export interface BraceletConfigBead {
   position: number;
   product_id: number;
   instance_id: string;
+  /** Present only for seed_segment items — serialises the colorway + arc config. */
+  seed_config?: SeedSegmentConfig;
 }
 
 /**
@@ -66,6 +68,8 @@ export interface CreateBraceletRequest {
   shopify_sku?: string | null;
   /** Defaults to "draft" on the server when omitted. */
   status?: BraceletStatus;
+  /** When true, creates a pattern template instead of a user design. */
+  is_pattern?: boolean;
 }
 
 /** Who currently holds the edit lock on a design. */
@@ -111,6 +115,8 @@ export interface Bracelet {
   tags: Tag[];
   /** 1 = discontinued (admins can reactivate). */
   is_discontinued: number;
+  /** 1 = this design is a reusable pattern template. */
+  is_pattern: number;
   /** Non-null when another user currently holds an edit lock on this design. */
   active_lock: DesignLock | null;
   /** Reason provided by the reviewer when the design was rejected. */
@@ -196,6 +202,49 @@ export interface BeadProduct {
   body_width_mm?: number;
 }
 
+// ─── Seed bead segments ───────────────────────────────────────────────────────
+
+/** One color entry in a seed bead colorway. */
+export interface SeedColorEntry {
+  hex: string;
+  percent: number;
+  label?: string;
+  is_metallic?: boolean;
+}
+
+/**
+ * Configuration for a seed bead segment — a run of tiny procedurally-generated
+ * beads that fills a specific arc length on the bracelet.
+ */
+export interface SeedSegmentConfig {
+  /** colors and their proportions (must sum to 100). */
+  colorway: SeedColorEntry[];
+  /** Total arc length this segment occupies, in millimetres. */
+  arc_length_mm: number;
+  /** Min/max individual bead diameter range in mm — randomised per bead. */
+  bead_size_range: [number, number];
+  /** Deterministic seed for the PRNG — ensures consistent rendering. */
+  random_seed: number;
+  /**
+   * Shape of the individual beads in this segment.
+   * - "seed" (default): flat disc-shaped seed beads with randomised size/color
+   * - "round": uniform spherical beads (like Classic Bead) — no size or color variation
+   */
+  seed_shape?: "seed" | "round";
+  /**
+   * Fixed bead diameter in mm when seed_shape === "round".
+   * Currently 1 or 2 (mm). Ignored for seed_shape === "seed".
+   */
+  round_size_mm?: number;
+  /**
+   * Nominal individual bead size in mm when seed_shape === "seed" — 1 (Small)
+   * or 2 (Large). Each bead still varies slightly around this value. When set,
+   * it drives bead_size_range; absent on legacy configs (which use the stored
+   * bead_size_range directly).
+   */
+  seed_size_mm?: number;
+}
+
 /**
  * A single bead that has been placed on the bracelet.
  */
@@ -203,6 +252,8 @@ export interface PlacedBead {
   /** Unique instance ID — same product can appear multiple times */
   instanceId: string;
   product: BeadProduct;
+  /** Present only when bead_category === "seed_segment". */
+  seedConfig?: SeedSegmentConfig;
 }
 
 // ─── Collections ──────────────────────────────────────────────────────────────
