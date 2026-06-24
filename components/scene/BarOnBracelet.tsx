@@ -1,24 +1,17 @@
 "use client";
 
 import { useMemo } from "react";
-import { CatmullRomCurve3, Vector3, TubeGeometry } from "three";
-import { useThree } from "@react-three/fiber";
-import { ThreeEvent } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
+import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import {
   BRACELET_SIZE_RADIUS,
-  HIGHLIGHT_SELECT_COLOR,
-  EDIT_MODE_HIGHLIGHT_SELECT_COLOR,
+  FINISH_PRESETS,
+  DEFAULT_FINISH,
 } from "@/lib/constants";
-
-const BAR_COLORS: Record<string, string> = {
-  gold:        "#D4A843",
-  gold_filled: "#C8A227",
-  sterling:    "#B0B8BC",
-};
-const BAR_DEFAULT_COLOR = "#D4A843";
+import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 
 interface BarOnBraceletProps {
   bead: PlacedBead;
@@ -37,132 +30,110 @@ export function BarOnBracelet({
   onDragStart,
   isLocked = false,
 }: BarOnBraceletProps) {
-  const { gl } = useThree();
-  const {
-    selectBead,
-    selectedBead,
-    editSelectedIds,
-    toggleEditBead,
-    clearSelectedBead,
-    clearEditSelection,
-    beads,
-    braceletSize,
-    isEditMode,
-    viewMode,
-    selectAllActive,
-  } = useStore((s) => ({
-    selectBead:         s.selectBead,
-    selectedBead:       s.selectedBead,
-    editSelectedIds:    s.editSelectedIds,
-    toggleEditBead:     s.toggleEditBead,
-    clearSelectedBead:  s.clearSelectedBead,
-    clearEditSelection: s.clearEditSelection,
-    beads:              s.beads,
-    braceletSize:       s.braceletSize,
-    isEditMode:         s.isEditMode,
-    viewMode:           s.viewMode,
-    selectAllActive:    s.selectAllActive,
-  }));
+  const { scene } = useGLTF(bead.product.glb_path);
+
+  // Clone GLB material so finish/PBR settings from the modeler carry through.
+  const mat = useMemo(() => {
+    const meshes: Mesh[] = [];
+    scene.traverse((c) => { if (c instanceof Mesh) meshes.push(c as Mesh); });
+    const firstMesh = meshes[0] as Mesh | undefined;
+
+    const rawMat = firstMesh
+      ? (firstMesh.material as MeshStandardMaterial).clone()
+      : new MeshStandardMaterial({ color: "#D4A843", metalness: 1, roughness: 0.18 });
+
+    const finishKey: string | null =
+      (bead.product as any).finish ?? bead.product.material ?? DEFAULT_FINISH;
+    const preset = finishKey ? FINISH_PRESETS[finishKey] : undefined;
+    if (preset) {
+      if (preset.metalness       !== undefined) rawMat.metalness       = preset.metalness;
+      if (preset.roughness       !== undefined) rawMat.roughness       = preset.roughness;
+      if (preset.envMapIntensity !== undefined) rawMat.envMapIntensity = preset.envMapIntensity;
+    }
+    return rawMat;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene, bead.product.material]);
+
+  const beads        = useStore((s) => s.beads);
+  const braceletSize = useStore((s) => s.braceletSize);
+  const viewMode     = useStore((s) => s.viewMode);
+
+  const { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave } =
+    useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(slotIndex, beads)
     : getBeadTransform(slotIndex, beads, braceletRadius);
 
-  // Arc span in metres (size_mm drives the visible length)
-  const arcLength  = (bead.product.size_mm ?? 10) / 1000;
-  // Half-angle the bar subtends on the bracelet ring
-  const halfAngle  = arcLength / (2 * braceletRadius);
-  // Tube cross-section radius
-  const tubeRadius = bead.product.diameter / 2;
+  // vizRadius drives the hit capsule (sized to arc length for easy clicking)
+  const vizRadius  = (bead.product.size_mm ?? 10) / 2 / 1000;
+  // ringRadius drives the visual selection ring (sized to cross-section, same as beads)
+  const ringRadius = bead.product.diameter / 2;
 
-  // Build tube geometry that follows the bracelet arc in the bar's local XZ plane.
-  // After outerRotation: local X = radial, local Z = tangential.
-  // Arc path: (R*(cos φ − 1), 0, R*sin φ) for φ ∈ [−halfAngle, +halfAngle].
-  const { tubeGeom, endA, endB } = useMemo(() => {
-    const nPts = 64;
-    const pts: Vector3[] = [];
-    for (let i = 0; i <= nPts; i++) {
-      const phi = -halfAngle + (i / nPts) * 2 * halfAngle;
-      pts.push(new Vector3(
-        braceletRadius * (Math.cos(phi) - 1),
-        0,
-        braceletRadius * Math.sin(phi),
-      ));
+  // Sweep a circular cross-section along the bracelet arc with enough longitudinal
+  // rings for perfectly smooth bending (1 ring per 3°, minimum 64).
+  //
+  // Geometry is built in Z-length / X-radial / Y-up space — the same axis
+  // convention as the original vertex-bending formula — so the Jacobian of the
+  // transform is positive and triangle winding (CCW from outside) is preserved.
+  //
+  //   phi   = posZ / halfLen * halfAngle
+  //   x_out = (R + posX) * cos(phi) - R   [radial direction]
+  //   y_out = posY                          [world Y unchanged]
+  //   z_out = (R + posX) * sin(phi)        [tangential]
+  const bentGeometry = useMemo(() => {
+    const arcLen    = (bead.product.size_mm ?? 10) / 1000;
+    const halfAngle = arcLen / (2 * braceletRadius);
+    const tubeR     = bead.product.diameter / 2;
+    const halfLen   = arcLen / 2;
+    const R         = braceletRadius;
+
+    const M = 32; // radial segments (cross-section)
+    const N = Math.max(64, Math.ceil((halfAngle * 2 * 180) / (Math.PI * 3)));
+
+    const positions = new Float32Array(N * M * 3);
+    const indexArr: number[] = [];
+
+    for (let s = 0; s < N; s++) {
+      const posZ = N === 1 ? 0 : -halfLen + (s / (N - 1)) * 2 * halfLen;
+      const phi  = (posZ / halfLen) * halfAngle;
+
+      for (let r = 0; r < M; r++) {
+        const theta = (r / M) * 2 * Math.PI;
+        const posX  = tubeR * Math.cos(theta); // X = radial
+        const posY  = tubeR * Math.sin(theta); // Y = up
+
+        const base = (s * M + r) * 3;
+        positions[base]     = (R + posX) * Math.cos(phi) - R;
+        positions[base + 1] = posY;
+        positions[base + 2] = (R + posX) * Math.sin(phi);
+      }
     }
-    const curve = new CatmullRomCurve3(pts, false, "catmullrom", 0);
-    const geom  = new TubeGeometry(curve, 64, tubeRadius, 12, false);
-    return { tubeGeom: geom, endA: pts[0].clone(), endB: pts[nPts].clone() };
-  }, [halfAngle, braceletRadius, tubeRadius]);
 
-  // Half the arc length as the visual radius for hit detection and selection ring
-  const vizRadius = arcLength / 2;
+    // CCW winding for Z-axis convention (outward normals)
+    for (let s = 0; s < N - 1; s++) {
+      for (let r = 0; r < M; r++) {
+        const r1 = (r + 1) % M;
+        const a  = s * M + r,    b = s * M + r1;
+        const c  = (s + 1)*M + r, d = (s + 1)*M + r1;
+        indexArr.push(a, d, c);
+        indexArr.push(a, b, d);
+      }
+    }
 
-  const isSelected = isEditMode
-    ? editSelectedIds.includes(bead.instanceId)
-    : selectedBead?.instanceId === bead.instanceId
-    || (selectAllActive && selectedBead?.product.id === bead.product.id);
-
-  const highlightColor = isEditMode ? EDIT_MODE_HIGHLIGHT_SELECT_COLOR : HIGHLIGHT_SELECT_COLOR;
-  const matColor = BAR_COLORS[bead.product.material ?? ""] ?? BAR_DEFAULT_COLOR;
+    const geo = new BufferGeometry();
+    geo.setAttribute("position", new BufferAttribute(positions, 3));
+    geo.setIndex(indexArr);
+    geo.computeVertexNormals();
+    return geo;
+  }, [bead.product.size_mm, bead.product.diameter, braceletRadius]);
 
   const liftedPosition: [number, number, number] = [
     position[0],
     position[1] + (isDragged ? 0.003 : 0),
     position[2],
   ];
-
-  function handleClick(e: ThreeEvent<MouseEvent>) {
-    e.stopPropagation();
-    if (isLocked) return;
-    if (isEditMode) {
-      const ne = e.nativeEvent;
-      if (ne && (ne.metaKey || ne.ctrlKey)) {
-        selectBead(bead);
-        toggleEditBead(bead.instanceId);
-      } else {
-        clearSelectedBead();
-        toggleEditBead(bead.instanceId);
-      }
-    } else {
-      selectBead(bead);
-    }
-  }
-
-  const DRAG_THRESHOLD = 4;
-
-  function handlePointerDown(e: ThreeEvent<PointerEvent>) {
-    if (!isEditMode) return;
-    e.stopPropagation();
-    const startX = e.nativeEvent.clientX;
-    const startY = e.nativeEvent.clientY;
-    function onMove(ev: PointerEvent) {
-      if (Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) > DRAG_THRESHOLD) {
-        clearEditSelection();
-        clearSelectedBead();
-        gl.domElement.style.cursor = "grabbing";
-        onDragStart?.(slotIndex);
-        cleanup();
-      }
-    }
-    function onUp() { cleanup(); }
-    function cleanup() {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    }
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }
-
-  function handlePointerEnter() {
-    if (!isEditMode) return;
-    gl.domElement.style.cursor = "grab";
-  }
-
-  function handlePointerLeave() {
-    if (!isEditMode) return;
-    gl.domElement.style.cursor = "";
-  }
 
   return (
     <group
@@ -173,45 +144,29 @@ export function BarOnBracelet({
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
     >
-      <group rotation={innerRotation}>
-        {/* Curved tube following the bracelet arc */}
-        <mesh geometry={tubeGeom}>
-          <meshStandardMaterial
-            color={matColor}
-            metalness={1}
-            roughness={0.2}
-            envMapIntensity={0.3}
-          />
-        </mesh>
-
-        {/* Spherical end caps */}
-        <mesh position={endA}>
-          <sphereGeometry args={[tubeRadius, 12, 12]} />
-          <meshStandardMaterial color={matColor} metalness={1} roughness={0.2} />
-        </mesh>
-        <mesh position={endB}>
-          <sphereGeometry args={[tubeRadius, 12, 12]} />
-          <meshStandardMaterial color={matColor} metalness={1} roughness={0.2} />
-        </mesh>
+      <group rotation={innerRotation} dispose={null}>
+        {/* Single continuously bent mesh — no segment joints */}
+        {bentGeometry && <mesh geometry={bentGeometry} material={mat} />}
 
         {/* Invisible hit area */}
         <mesh visible={false}>
-          <sphereGeometry args={[vizRadius * 1.2, 8, 8]} />
+          <capsuleGeometry args={[vizRadius * 0.15, vizRadius * 1.8, 4, 8]} />
           <meshBasicMaterial />
         </mesh>
 
-        {/* Selection ring lying flat in the bracelet plane */}
-        {isSelected && vizRadius > 0 && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[vizRadius * 1.15, 0.0003, 8, 32]} />
-            <meshBasicMaterial color={highlightColor} transparent opacity={0.7} />
+        {/* Selection ring — vertical (XY plane, perpendicular to bar's tangent),
+            radius matches bead convention: cross-section diameter / 2 */}
+        {isSelected && ringRadius > 0 && (
+          <mesh>
+            <torusGeometry args={[ringRadius * 1.4, 0.0002, 8, 32]} />
+            <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
           </mesh>
         )}
 
         {/* Drag-target ring */}
-        {isDragTarget && vizRadius > 0 && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[vizRadius * 1.3, 0.0002, 8, 32]} />
+        {isDragTarget && ringRadius > 0 && (
+          <mesh>
+            <torusGeometry args={[ringRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#93c5fd" />
           </mesh>
         )}
