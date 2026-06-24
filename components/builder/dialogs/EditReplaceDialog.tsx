@@ -104,11 +104,12 @@ export function EditReplaceDialog() {
   }
 
   function handleTypeToggle(allInstanceIds: string[]) {
-    const anySelected = allInstanceIds.some(id => editSelectedIds.includes(id));
-    if (anySelected) {
+    const allSelected = allInstanceIds.every(id => editSelectedIds.includes(id));
+    if (allSelected) {
       setEditSelectedIds(editSelectedIds.filter(id => !allInstanceIds.includes(id)));
     } else {
-      setEditSelectedIds([...editSelectedIds, ...allInstanceIds]);
+      const missing = allInstanceIds.filter(id => !editSelectedIds.includes(id));
+      setEditSelectedIds([...editSelectedIds, ...missing]);
     }
   }
 
