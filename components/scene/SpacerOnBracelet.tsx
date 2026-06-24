@@ -3,7 +3,7 @@
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS,  } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, EDIT_MODE_RING_HOVER } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 
 /** Fixed cross-section radius for all spacers (metres). ~3mm radius = 6mm visual height. */

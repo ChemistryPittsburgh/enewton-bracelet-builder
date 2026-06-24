@@ -48,6 +48,8 @@ interface SceneItemInteractionOptions {
 export interface SceneItemInteraction {
   isSelected: boolean;
   highlightColor: string;
+  showHoverRing: boolean;
+  isEditMode: boolean;
   handleClick: (e: ThreeEvent<MouseEvent>) => void;
   handlePointerDown: (e: ThreeEvent<PointerEvent>) => void;
   handlePointerEnter: () => void;
