@@ -17,6 +17,7 @@
  * of these specific fields changes — not on every unrelated store update.
  */
 
+import { useState } from "react";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { useShallow } from "zustand/react/shallow";
 import { useStore } from "@/lib/store";
@@ -59,6 +60,8 @@ export function useSceneItemInteraction(
   { isLocked = false, onDragStart, selectAllOfType = false, selectionColor }: SceneItemInteractionOptions = {},
 ): SceneItemInteraction {
   const { gl } = useThree();
+  const [isHovered, setIsHovered] = useState(false);
+
 
   const {
     selectBead,
@@ -150,15 +153,20 @@ export function useSceneItemInteraction(
     window.addEventListener("pointerup", onUp);
   }
 
-  function handlePointerEnter() {
+    function handlePointerEnter() {
+    setIsHovered(true);
     if (!isEditMode) return;
     gl.domElement.style.cursor = "grab";
   }
 
   function handlePointerLeave() {
+    setIsHovered(false);
     if (!isEditMode) return;
     gl.domElement.style.cursor = "";
   }
 
-  return { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave };
+  // Edit-mode rollover ring — suppressed once the item is already selected.
+  const showHoverRing = isEditMode && isHovered && !isSelected;
+
+  return { isSelected, isEditMode, highlightColor, showHoverRing, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave };
 }

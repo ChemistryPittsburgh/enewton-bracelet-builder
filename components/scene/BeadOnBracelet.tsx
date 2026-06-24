@@ -6,7 +6,16 @@ import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FLOAT_CHARM_ROTATION, FLOAT_CHARM_DEPTH_OFFSET, CRYSTAL_CHARM_DEPTH_OFFSET, FINISH_PRESETS, DEFAULT_FINISH } from "@/lib/constants";
+import { 
+  BRACELET_SIZE_RADIUS, 
+  CHARM_ROTATION, 
+  FLOAT_CHARM_ROTATION, 
+  FLOAT_CHARM_DEPTH_OFFSET, 
+  CRYSTAL_CHARM_DEPTH_OFFSET, 
+  FINISH_PRESETS, 
+  DEFAULT_FINISH, 
+  EDIT_MODE_RING_HOVER
+} from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 import { cloneShared } from "@/lib/measure-bead";
 
@@ -140,10 +149,12 @@ export function BeadOnBracelet({
   const {
     isSelected,
     highlightColor,
+    showHoverRing,
     handleClick,
     handlePointerDown,
     handlePointerEnter,
     handlePointerLeave,
+    isEditMode,
   } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart, selectAllOfType: true, selectionColor });
 
   const isFloatCharm = bead.product.bead_category === "float_charm";
@@ -236,11 +247,22 @@ export function BeadOnBracelet({
           <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>
 
-        {/* Selection highlight ring — sits at cord level for charms (bail attachment point) */}
+        {/* Selection Ring */}
         {isSelected && vizRadius > 0 && !isCapturing && (
-          <mesh rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]} scale={isFloatCharm ? [1, 0.4, 1] : [1, 1, 1]}>
+          <mesh
+            rotation={isEditMode || isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}
+            scale={!isEditMode && isFloatCharm ? [1, 0.4, 1] : [1, 1, 1]}
+          >
             <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
+          </mesh>
+        )}
+
+        {/* Hover ring — flat, edit-mode rollover hint */}
+        {showHoverRing && vizRadius > 0 && !isCapturing && (
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[vizRadius * 1.5, 0.00016, 8, 40]} />
+            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.7} />
           </mesh>
         )}
 

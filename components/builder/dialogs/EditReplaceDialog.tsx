@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useStore } from "@/lib/store";
-import { EDIT_REPLACE_GROUPS, EDIT_REPLACE_GROUP_COLORS } from "@/lib/constants";
+import { EDIT_REPLACE_GROUPS, EDIT_REPLACE_GROUP_COLORS, EDIT_GROUPING_ENABLED } from "@/lib/constants";
 import type { BeadProduct } from "@/types";
 import { beadMatchKey, seedKindLabel } from "@/lib/seed-bead-utils";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,7 @@ export function EditReplaceDialog() {
     return order;
   }, [editSelectedIds, beads]);
 
-  const isExplicitMode = editSelectionGroups.length > 0;
+  const isExplicitMode = EDIT_GROUPING_ENABLED && editSelectionGroups.length > 0;
   const isOpen = isEditMode && editReplaceMode;
 
   const plural = (n: number) => `${n} bead${n !== 1 ? "s" : ""}`;
@@ -227,7 +227,7 @@ export function EditReplaceDialog() {
         >
           exit bead replacement mode
         </button>
-        {(editSelectedIds.length > 0 || isExplicitMode) && (
+        {EDIT_GROUPING_ENABLED && (editSelectedIds.length > 0 || isExplicitMode) && (
           <button
             onClick={saveCurrentSelectionAsGroup}
             disabled={editSelectedIds.length === 0}

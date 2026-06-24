@@ -3,7 +3,7 @@
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS,  } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 
 /** Fixed cross-section radius for all spacers (metres). ~3mm radius = 6mm visual height. */
@@ -46,6 +46,8 @@ export function SpacerOnBracelet({
     handlePointerDown,
     handlePointerEnter,
     handlePointerLeave,
+    showHoverRing,
+    isEditMode,
   } = useSceneItemInteraction(bead, slotIndex, { onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -109,9 +111,17 @@ export function SpacerOnBracelet({
 
         {/* Selection ring */}
         {visible && isSelected && cylRadius > 0 && (
-          <mesh rotation={[Math.PI, 0, 0]}>
+          <mesh rotation={isEditMode ? [Math.PI / 2, 0, 0] : [Math.PI, 0, 0]}>
             <torusGeometry args={[cylRadius * 1.15, 0.0003, 8, 32]} />
             <meshBasicMaterial color={highlightColor} />
+          </mesh>
+        )}
+
+        {/* Hover ring — flat, edit-mode rollover hint */}
+        {visible && showHoverRing && cylRadius > 0 && (
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[cylRadius * 1.3, 0.00018, 8, 40]} />
+            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.55} />
           </mesh>
         )}
 
