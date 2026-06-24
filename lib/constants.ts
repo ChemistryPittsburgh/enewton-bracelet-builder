@@ -52,7 +52,7 @@ export const EDIT_MODE_RING_HOVER = "#a38d48";
  * When false, the "+ New group" button is hidden and the replace tool stays in
  * plain select-and-replace mode. Set to false to turn grouping off.
  */
-export const EDIT_GROUPING_ENABLED = true;
+export const EDIT_GROUPING_ENABLED = false;
 
 /** Per-group colors for edit-replace mode. Each entry has a hex value (for the
  *  3D ring in AllBeads) and Tailwind active/inactive classes (for EditReplaceDialog). */
