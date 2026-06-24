@@ -29,6 +29,7 @@ export function EditReplaceDialog() {
     cancelReplaceMode,
     saveCurrentSelectionAsGroup,
     startReplaceSeedMode,
+    replaceSeedTargetIds,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editReplaceMode: s.editReplaceMode,
@@ -41,6 +42,7 @@ export function EditReplaceDialog() {
     cancelReplaceMode: s.cancelReplaceMode,
     saveCurrentSelectionAsGroup: s.saveCurrentSelectionAsGroup,
     startReplaceSeedMode: s.startReplaceSeedMode,
+    replaceSeedTargetIds: s.replaceSeedTargetIds,
   }));
 
   // Default state: all unique bead types on the bracelet (excludes spacers/seed segments)
@@ -182,17 +184,28 @@ export function EditReplaceDialog() {
               })}
               {/* Seed kinds — direct action: replace a whole seed kind via the seed
                   picker (a different flow than the type-toggle group replace above). */}
-              {seedRows.map((row) => (
-                <li key={row.key}>
-                  <button
-                    onClick={() => startReplaceSeedMode(row.key)}
-                    className="w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2 hover:bg-light-grey"
-                  >
-                    <span className="truncate">{row.label}</span>
-                    <span className="shrink-0 text-xs text-color-base/50 tabular-nums">{row.instanceIds.length}</span>
-                  </button>
-                </li>
-              ))}
+              {seedRows.map((row) => {
+                const isActive =
+                  replaceSeedTargetIds !== null &&
+                  replaceSeedTargetIds.length === row.instanceIds.length &&
+                  row.instanceIds.every((id) => replaceSeedTargetIds.includes(id));
+                return (
+                  <li key={row.key}>
+                    <button
+                      onClick={() => startReplaceSeedMode(row.key)}
+                      className={cn(
+                        "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2",
+                        isActive ? "bg-navy text-white font-medium" : "hover:bg-light-grey"
+                      )}
+                    >
+                      <span className="truncate">{row.label}</span>
+                      <span className={cn("shrink-0 text-xs tabular-nums", isActive ? "text-white/70" : "text-color-base/50")}>
+                        {row.instanceIds.length}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </>

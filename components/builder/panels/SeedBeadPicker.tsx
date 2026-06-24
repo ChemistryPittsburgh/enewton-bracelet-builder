@@ -222,7 +222,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, replaceMode = fal
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={`flex flex-col h-full ${replaceMode && "pt-4"}`}>
       <div className="flex-1 px-5 pb-4 flex flex-col gap-4">
 
         {!replaceMode && <AvailableSpaceBox className="!mb-0" />}

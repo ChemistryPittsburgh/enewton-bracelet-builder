@@ -547,7 +547,6 @@ export const useStore = create<Store>()(
           beadLoadErrors: s.beadLoadErrors.filter((e) => !replacedSet.has(e.instanceId)),
           editSelectionGroups: newGroups,
           editSelectedIds: newSelectedIds,
-          editReplaceMode: stillHasGroups,
           editReplaceNarrowedIds: null,
           isDirty: true,
         });
@@ -559,18 +558,25 @@ export const useStore = create<Store>()(
       },
 
       startReplaceSeedMode(seedKey) {
-        const { beads } = get();
+        const { beads, replaceSeedTargetIds } = get();
         const ids = beads
           .filter((b) => b.seedConfig && beadMatchKey(b) === seedKey)
           .map((b) => b.instanceId);
         if (ids.length === 0) return;
+        // Toggle: clicking the already-active seed kind clears the selection.
+        const sameAsCurrent =
+          replaceSeedTargetIds !== null &&
+          replaceSeedTargetIds.length === ids.length &&
+          ids.every((id) => replaceSeedTargetIds.includes(id));
+        if (sameAsCurrent) {
+          set({ replaceSeedTargetIds: null, selectedBead: null, selectAllActive: false });
+          return;
+        }
         set({
           replaceSeedTargetIds: ids,
-          // Clear the other replace modes + transient selection so the selector
-          // shows the seed picker in replace mode and nothing else lights up.
           replaceTargetInstanceId: null,
           replaceAllTargetProductId: null,
-          editReplaceMode: false,
+          // editReplaceMode left as-is so the box stays open when seeds are picked from it.
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
           editSelectedIds: [],
@@ -600,7 +606,6 @@ export const useStore = create<Store>()(
           // Also exit edit-replace, in case this was triggered from an all-seed
           // edit-mode selection (harmless no-op for the dedicated paths).
           editSelectedIds: [],
-          editReplaceMode: false,
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
           isDirty: true,
@@ -772,7 +777,10 @@ export const useStore = create<Store>()(
       },
 
       clearEditSelection() {
-        set({ editSelectedIds: [], editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        // Clear the selection but stay in replace mode — the box only closes via
+        // the explicit "exit bead replacement mode" link, the toolbar toggle, or
+        // leaving edit mode. Stray canvas clicks / drags / Escape no longer close it.
+        set({ editSelectedIds: [], editReplaceNarrowedIds: null, editSelectionGroups: [] });
       },
 
       setEditSelectedIds(ids) {

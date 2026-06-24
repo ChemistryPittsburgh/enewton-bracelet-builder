@@ -488,45 +488,47 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         )}
 
         {/* Category pills + Spacer + Seed tabs */}
-        <ScrollableRow className="py-3 min-h-14" trackClassName="gap-2">
-          <MaterialPill
-            label="All"
-            active={activeTab === null}
-            onClick={() => { setActiveTab(null); setActiveMaterial(""); setActiveType(null); }}
-          />
-          {beadCategories.map((cat) => (
+        {!isReplaceSeed && (
+          <ScrollableRow className="py-3 min-h-14" trackClassName="gap-2">
             <MaterialPill
-              key={cat}
-              label={unslugify(cat, "_")}
-              active={activeTab === cat}
+              label="All"
+              active={activeTab === null}
+              onClick={() => { setActiveTab(null); setActiveMaterial(""); setActiveType(null); }}
+            />
+            {beadCategories.map((cat) => (
+              <MaterialPill
+                key={cat}
+                label={unslugify(cat, "_")}
+                active={activeTab === cat}
+                onClick={() => {
+                  setActiveTab((prev) => (prev === cat ? null : cat));
+                  setActiveMaterial("");
+                  setActiveType(null);
+                }}
+              />
+            ))}
+            <MaterialPill
+              label="Spacer"
+              active={isSpacerMode}
               onClick={() => {
-                setActiveTab((prev) => (prev === cat ? null : cat));
+                setActiveTab((prev) => (prev === SPACER_TAB ? null : SPACER_TAB));
                 setActiveMaterial("");
                 setActiveType(null);
+                setSelectedBead(null);
               }}
             />
-          ))}
-          <MaterialPill
-            label="Spacer"
-            active={isSpacerMode}
-            onClick={() => {
-              setActiveTab((prev) => (prev === SPACER_TAB ? null : SPACER_TAB));
-              setActiveMaterial("");
-              setActiveType(null);
-              setSelectedBead(null);
-            }}
-          />
-          <MaterialPill
-            label="Seed"
-            active={isSeedMode}
-            onClick={() => {
-              setActiveTab((prev) => (prev === SEED_TAB ? null : SEED_TAB));
-              setActiveMaterial("");
-              setActiveType(null);
-              setSelectedBead(null);
-            }}
-          />
-        </ScrollableRow>
+            <MaterialPill
+              label="Seed"
+              active={isSeedMode}
+              onClick={() => {
+                setActiveTab((prev) => (prev === SEED_TAB ? null : SEED_TAB));
+                setActiveMaterial("");
+                setActiveType(null);
+                setSelectedBead(null);
+              }}
+            />
+          </ScrollableRow>
+        )}
 
         {isSpacerMode ? (
           <SpacerPicker onAdd={handleAddSpacer} error={error} />
