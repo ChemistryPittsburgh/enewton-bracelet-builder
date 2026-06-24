@@ -43,7 +43,7 @@ export const CORD_RADIUS = 0.0008;
  * -0.001 = beads slightly overlapping (good for tight stacking)
  * Positive values add space between beads
  */
-export const BEAD_SPACING = -0.000025;
+export const BEAD_SPACING = -0.000012;
 
 /**
  * Per-category spacing overrides (metres).
@@ -56,11 +56,9 @@ export const BEAD_SPACING = -0.000025;
 const CATEGORY_SPACING: Record<string, number> = {
   bead:          BEAD_SPACING,     
   charm:         0.00004,     
-  float_charm:   0.00002,     
-  gem:           0.00001,             
+  float_charm:   0.00002,                 
   tube:          BEAD_SPACING,    
   spacer:        0,               
-  cross:         0.0001,
   seed_segment:  -0.00002,
 };
 

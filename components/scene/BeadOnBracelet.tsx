@@ -6,7 +6,7 @@ import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FLOAT_CHARM_ROTATION, FLOAT_CHARM_DEPTH_OFFSET, FINISH_PRESETS, DEFAULT_FINISH } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FLOAT_CHARM_ROTATION, FLOAT_CHARM_DEPTH_OFFSET, CRYSTAL_CHARM_DEPTH_OFFSET, FINISH_PRESETS, DEFAULT_FINISH } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 import { cloneShared } from "@/lib/measure-bead";
 
@@ -25,8 +25,6 @@ interface BeadOnBraceletProps {
   isColliding?: boolean;
   /** Overrides the edit-mode selection ring color (e.g. replace-group color). */
   selectionColor?: string;
-  /** True during thumbnail capture — suppresses all selection rings. */
-  isCapturing?: boolean;
 }
 
 export function BeadOnBracelet({
@@ -40,7 +38,6 @@ export function BeadOnBracelet({
   swingAngle = 0,
   isColliding = false,
   selectionColor,
-  isCapturing = false,
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -149,6 +146,7 @@ export function BeadOnBracelet({
   const isFloatCharm = bead.product.bead_category === "float_charm";
   const isCharm = bead.product.bead_category === "charm" || isFloatCharm;
   const isCharmOnly = bead.product.bead_category === "charm";
+  const isCrystalCharm = isCharmOnly && bead.product.material === "crystal";
   const activeCharmRotation = isFloatCharm ? FLOAT_CHARM_ROTATION : CHARM_ROTATION;
 
   const vizRadius = isCharm
@@ -163,10 +161,13 @@ export function BeadOnBracelet({
     ? getBeadTransformLine(slotIndex, beads)
     : getBeadTransform(slotIndex, beads, radius);
 
-  // Radial offset: collision layer stacking + float charm forward push.
-  // Both shift along the radial direction so the charm stays centred on the
-  // cord at every position around the bracelet.
-  const totalRadialOffset = layerOffset + (isFloatCharm ? FLOAT_CHARM_DEPTH_OFFSET : 0);
+  // Radial offset: collision layer stacking + float charm forward push +
+  // crystal-charm setback. All shift along the radial direction so the charm
+  // stays centred on the cord at every position around the bracelet.
+  const totalRadialOffset =
+    layerOffset +
+    (isFloatCharm ? FLOAT_CHARM_DEPTH_OFFSET : 0) +
+    (isCrystalCharm ? CRYSTAL_CHARM_DEPTH_OFFSET : 0);
 
   const layeredPosition: [number, number, number] = totalRadialOffset !== 0
     ? (() => {
@@ -228,7 +229,7 @@ export function BeadOnBracelet({
         </mesh>
 
         {/* Selection highlight ring — sits at cord level for charms (bail attachment point) */}
-        {isSelected && vizRadius > 0 && !isCapturing && (
+        {isSelected && vizRadius > 0 && (
           <mesh rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]} scale={isFloatCharm ? [1, 0.4, 1] : [1, 1, 1]}>
             <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
@@ -236,7 +237,7 @@ export function BeadOnBracelet({
         )}
 
         {/* Drag target indicator ring — edit mode only */}
-        {isDragTarget && vizRadius > 0 && !isCapturing && (
+        {isDragTarget && vizRadius > 0 && (
           <mesh rotation={[Math.PI / 2, 0, 0]} scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}>
             <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
             <meshBasicMaterial color="#93c5fd" />
@@ -244,7 +245,7 @@ export function BeadOnBracelet({
         )}
 
         {/* Charm collision highlight ring — shown when user clicks the overlap warning */}
-        {isColliding && vizRadius > 0 && !isCapturing && (
+        {isColliding && vizRadius > 0 && (
           <mesh
             position={isCharm ? [0, charmBodyCenterY, 0] : [0, 0, 0]}
             rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}
