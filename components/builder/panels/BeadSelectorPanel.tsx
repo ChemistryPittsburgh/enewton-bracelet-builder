@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Search, X, Dot, Sparkle } from "lucide-react";
+import { Search, X, Dot, Sparkle, ArrowLeftRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize, unslugify } from "@/lib/utils";
 import type { BeadProduct, SeedColorEntry } from "@/types";
@@ -136,6 +136,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
   const replaceSeedTargetIds = useStore((s) => s.replaceSeedTargetIds);
   const replaceSeedSegmentsInStore = useStore((s) => s.replaceSeedSegments);
+  const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
   const isEditMode = useStore((s) => s.isEditMode);
   const editReplaceMode = useStore((s) => s.editReplaceMode);
   const editReplaceNarrowedIds = useStore((s) => s.editReplaceNarrowedIds);
@@ -457,8 +458,24 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <Panel open={isOpen} onClose={onClose} title="Bead Selector" direction="left" overflowYScroll={false} className="bottom-0 h-auto">
+    <Panel open={isOpen} onClose={onClose} title={isReplaceMode ? "Replace Bead" : "Bead Selector"} direction="left" overflowYScroll={false} className="bottom-0 h-auto">
       <div className="flex flex-col h-full overflow-y-scroll border-b border-default">
+
+        {/* Replace-mode banner — distinguishes replace from the normal "add" flow */}
+        {isReplaceMode && (
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-navy px-4 py-2.5 text-white">
+            <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide">
+              <ArrowLeftRight size={14} />
+              Replace mode
+            </span>
+            <button
+              onClick={cancelReplaceMode}
+              className="text-xs font-medium underline underline-offset-2 hover:no-underline"
+            >
+              Exit
+            </button>
+          </div>
+        )}
 
         {/* Search — hidden in spacer/seed mode */}
         {!isSpacerMode && !isSeedMode && (
@@ -488,47 +505,45 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         )}
 
         {/* Category pills + Spacer + Seed tabs */}
-        {!isReplaceSeed && (
-          <ScrollableRow className="py-3 min-h-14" trackClassName="gap-2">
+        <ScrollableRow className="py-3 min-h-14" trackClassName="gap-2">
+          <MaterialPill
+            label="All"
+            active={activeTab === null}
+            onClick={() => { setActiveTab(null); setActiveMaterial(""); setActiveType(null); }}
+          />
+          {beadCategories.map((cat) => (
             <MaterialPill
-              label="All"
-              active={activeTab === null}
-              onClick={() => { setActiveTab(null); setActiveMaterial(""); setActiveType(null); }}
-            />
-            {beadCategories.map((cat) => (
-              <MaterialPill
-                key={cat}
-                label={unslugify(cat, "_")}
-                active={activeTab === cat}
-                onClick={() => {
-                  setActiveTab((prev) => (prev === cat ? null : cat));
-                  setActiveMaterial("");
-                  setActiveType(null);
-                }}
-              />
-            ))}
-            <MaterialPill
-              label="Spacer"
-              active={isSpacerMode}
+              key={cat}
+              label={unslugify(cat, "_")}
+              active={activeTab === cat}
               onClick={() => {
-                setActiveTab((prev) => (prev === SPACER_TAB ? null : SPACER_TAB));
+                setActiveTab((prev) => (prev === cat ? null : cat));
                 setActiveMaterial("");
                 setActiveType(null);
-                setSelectedBead(null);
               }}
             />
-            <MaterialPill
-              label="Seed"
-              active={isSeedMode}
-              onClick={() => {
-                setActiveTab((prev) => (prev === SEED_TAB ? null : SEED_TAB));
-                setActiveMaterial("");
-                setActiveType(null);
-                setSelectedBead(null);
-              }}
-            />
-          </ScrollableRow>
-        )}
+          ))}
+          <MaterialPill
+            label="Spacer"
+            active={isSpacerMode}
+            onClick={() => {
+              setActiveTab((prev) => (prev === SPACER_TAB ? null : SPACER_TAB));
+              setActiveMaterial("");
+              setActiveType(null);
+              setSelectedBead(null);
+            }}
+          />
+          <MaterialPill
+            label="Seed"
+            active={isSeedMode}
+            onClick={() => {
+              setActiveTab((prev) => (prev === SEED_TAB ? null : SEED_TAB));
+              setActiveMaterial("");
+              setActiveType(null);
+              setSelectedBead(null);
+            }}
+          />
+        </ScrollableRow>
 
         {isSpacerMode ? (
           <SpacerPicker onAdd={handleAddSpacer} error={error} />
@@ -599,6 +614,21 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                 <p className="text-xs text-color-base/50 text-center py-8">
                   No beads match your filters.
                 </p>
+              ) : isEditReplace && editReplaceTargetIds.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center gap-3 py-12 px-4">
+                  <div className="w-11 h-11 rounded-full bg-navy/10 flex items-center justify-center">
+                    <ArrowLeftRight size={20} className="text-navy" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-color-base">Select an item to replace</p>
+                    <p className="text-xs text-color-base/60 mt-1 max-w-[240px] mx-auto">
+                      Pick an item by type from the list on the right, or tap an item on the bracelet, then choose a replacement here.
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={cancelReplaceMode}>
+                    Exit replace mode
+                  </Button>
+                </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 min-[1700px]:grid-cols-4 gap-3">
                   {filteredBeads.map((bead) => (

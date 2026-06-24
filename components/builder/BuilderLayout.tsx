@@ -315,7 +315,8 @@ export function BuilderLayout() {
           onManageSeedColors={() => setManageSeedColorsOpen(true)}
         />
 
-        <BeadInfoDialog isLocked={isLocked} />
+        <BeadInfoDialog isLocked={isLocked} beadSelectorOpen={braceletPanelOpen} />
+
         <EditReplaceDialog />
 
         <UserPanel

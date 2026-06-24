@@ -8,7 +8,7 @@ import { InfoRow } from "@/components/ui/InfoRow";
 import { cn, capitalize, slugify, formatMm, unslugify } from "@/lib/utils";
 import { seedSizeLabel, seedKindLabel, beadMatchKey } from "@/lib/seed-bead-utils";
 
-export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
+export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: boolean; beadSelectorOpen?: boolean }) {
   const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode, startReplaceMode, startReplaceAllMode, startReplaceSeedMode } = useStore((s) => ({
     beads: s.beads,
     selectedBead: s.selectedBead,
@@ -149,28 +149,28 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
                 )}
               </>
             )}
+            {!isLocked && isSeed && seedConfig && !beadSelectorOpen && (
+              <Button onClick={() => startReplaceSeedMode(beadMatchKey(bead))} className="w-full" variant="secondary">
+                Select All {seedKindLabel(seedConfig)} Seed Beads ({seedMatchCount})
+              </Button>
+            )}
+            {!isLocked && !isSeed && !selectAllActive && !beadSelectorOpen && (
+              <Button onClick={() => startReplaceMode(bead.instanceId)} className="w-full" variant="secondary">
+                Replace Bead
+              </Button>
+            )}
+            {!isLocked && !isSeed && selectAllActive && !beadSelectorOpen && (
+              <Button onClick={() => startReplaceAllMode(bead.product.id)} className="w-full" variant="secondary">
+                Replace All ({matchCount})
+              </Button>
+            )}
             {!isLocked && (
-              <Button onClick={handleRemove} className="w-full" variant="danger">
+              <Button onClick={handleRemove} className="w-full mt-2" variant="danger">
                 <Trash2 size={15} />
                 {selectAllActive ? `Remove All (${matchCount})` :
                   isSeed ? "Remove seed beads" :
                   `Delete ${unslugify(bead.product.bead_category ?? "bead")}`
                 }
-              </Button>
-            )}
-            {!isLocked && isSeed && seedConfig && (
-              <Button onClick={() => startReplaceSeedMode(beadMatchKey(bead))} className="w-full mt-2" variant="ghost">
-                Select All {seedKindLabel(seedConfig)} Seed Beads ({seedMatchCount})
-              </Button>
-            )}
-            {!isLocked && !isSeed && !selectAllActive && (
-              <Button onClick={() => startReplaceMode(bead.instanceId)} className="w-full mt-2" variant="ghost">
-                Replace Bead
-              </Button>
-            )}
-            {!isLocked && !isSeed && selectAllActive && (
-              <Button onClick={() => startReplaceAllMode(bead.product.id)} className="w-full mt-2" variant="ghost">
-                Replace All ({matchCount})
               </Button>
             )}
           </>
