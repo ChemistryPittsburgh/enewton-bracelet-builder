@@ -104,6 +104,13 @@ export const FLOAT_CHARM_ROTATION: [number, number, number] = [Math.PI / 2, -0.2
  *  forward so they clear the cord visually. Tune as needed. */
 export const FLOAT_CHARM_DEPTH_OFFSET = 0.0008;
 
+/** Radial setback for crystal charms (metres). Negative = pushed back / inward,
+ *  toward the bracelet centre, so the bail seats onto the cord instead of
+ *  floating in front of the band. Applied radially (like FLOAT_CHARM_DEPTH_OFFSET)
+ *  so it holds at every position around the bracelet. Tune to taste; flip the
+ *  sign if it moves the wrong way. */
+export const CRYSTAL_CHARM_DEPTH_OFFSET = -0.0005;
+
 /** Float charms sit sideways on the cord, presenting only their thin edge.
  *  Their layout arc contribution, collision body width, and hit-box depth are
  *  all scaled by this single factor so the thin profile is treated consistently. */
@@ -184,6 +191,8 @@ export const FINISH_PRESETS: Record<string, FinishPreset> = {
   silver:    { metalness: 1,   roughness: 0.12, envMapIntensity: 0.35 },
   rose_gold: { metalness: 0.95, roughness: 0.2, envMapIntensity: 0.9 },
   gem:       { metalness: 0.5 },
+  crystal:       { metalness: 0.5 },
+  resin:        { metalness: 0.5}
 };
 
 /** Fallback when product.finish is undefined. Set to null to disable. */
@@ -191,8 +200,8 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "resin_cross", "charm", "float_charm", "tube", "gem"] as const;
-export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "float_charm", "tube"] as const;
+export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "crystal", "resin"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.

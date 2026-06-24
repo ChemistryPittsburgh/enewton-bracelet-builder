@@ -6,7 +6,7 @@ import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FLOAT_CHARM_ROTATION, FLOAT_CHARM_DEPTH_OFFSET, FINISH_PRESETS, DEFAULT_FINISH } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, CHARM_ROTATION, FLOAT_CHARM_ROTATION, FLOAT_CHARM_DEPTH_OFFSET, CRYSTAL_CHARM_DEPTH_OFFSET, FINISH_PRESETS, DEFAULT_FINISH } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 import { cloneShared } from "@/lib/measure-bead";
 
@@ -149,6 +149,7 @@ export function BeadOnBracelet({
   const isFloatCharm = bead.product.bead_category === "float_charm";
   const isCharm = bead.product.bead_category === "charm" || isFloatCharm;
   const isCharmOnly = bead.product.bead_category === "charm";
+  const isCrystalCharm = isCharmOnly && bead.product.material === "crystal";
   const activeCharmRotation = isFloatCharm ? FLOAT_CHARM_ROTATION : CHARM_ROTATION;
 
   const vizRadius = isCharm
@@ -156,17 +157,25 @@ export function BeadOnBracelet({
     : bead.product.diameter / 2;
 
   const hangOffset = isCharm ? autoHangOffset : 0;
-  const depthOffset = (isCharm && !isFloatCharm) ? (bead.product.depth_offset ?? -0.0005) : 0;
+  // Per-charm depth setback (incl. a small default). Applied radially below —
+  // NOT as a world-Z shift — so it points "into the band" at every position
+  // around the bracelet instead of only at the front.
+  const charmDepthOffset = (isCharm && !isFloatCharm) ? (bead.product.depth_offset ?? -0.0005) : 0;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === 'line'
     ? getBeadTransformLine(slotIndex, beads)
     : getBeadTransform(slotIndex, beads, radius);
 
-  // Radial offset: collision layer stacking + float charm forward push.
-  // Both shift along the radial direction so the charm stays centred on the
-  // cord at every position around the bracelet.
-  const totalRadialOffset = layerOffset + (isFloatCharm ? FLOAT_CHARM_DEPTH_OFFSET : 0);
+  // Radial offset: collision layer stacking + float charm forward push +
+  // crystal-charm setback + per-charm depth setback. All shift along the radial
+  // direction so the charm stays centred on the cord at every position around
+  // the bracelet (a world-Z shift would drift it off-band as it rotates around).
+  const totalRadialOffset =
+    layerOffset +
+    (isFloatCharm ? FLOAT_CHARM_DEPTH_OFFSET : 0) +
+    (isCrystalCharm ? CRYSTAL_CHARM_DEPTH_OFFSET : 0) +
+    charmDepthOffset;
 
   const layeredPosition: [number, number, number] = totalRadialOffset !== 0
     ? (() => {
@@ -183,7 +192,7 @@ export function BeadOnBracelet({
   const liftedPosition: [number, number, number] = [
     layeredPosition[0],
     layeredPosition[1] + hangOffset + (isDragged ? 0.003 : 0),
-    layeredPosition[2] + depthOffset,
+    layeredPosition[2],
   ];
 
   return (
