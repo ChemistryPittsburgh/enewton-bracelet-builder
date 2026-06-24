@@ -43,6 +43,7 @@ import { SavedDesignsScreen } from "./saved-designs/SavedDesignsScreen";
 import { UsersAdminScreen } from "./users/UsersAdminScreen";
 
 import { getInitials } from "@/lib/utils";
+import { beadMatchKey } from "@/lib/seed-bead-utils";
 
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -88,6 +89,8 @@ export function BuilderLayout() {
   const replaceSeedTargetIds = useStore((s) => s.replaceSeedTargetIds);
   const editReplaceMode = useStore((s) => s.editReplaceMode);
   const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
+  const startReplaceMode = useStore((s) => s.startReplaceMode);
+  const startReplaceSeedMode = useStore((s) => s.startReplaceSeedMode);
 
   const activePatternId = useStore((s) => s.activePatternId);
 
@@ -117,6 +120,27 @@ export function BuilderLayout() {
   useEffect(() => {
     if (replaceTargetInstanceId !== null || replaceAllTargetProductId !== null || (replaceSeedTargetIds?.length ?? 0) > 0 || editReplaceMode) setBraceletPanelOpen(true);
   }, [replaceTargetInstanceId, replaceAllTargetProductId, replaceSeedTargetIds, editReplaceMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Opening the bead selector with a bead selected means "replace this bead":
+  // drop straight into replace mode for it (seed-replace for seed segments).
+  // Keyed on the selected instanceId + panel-open state so it fires on a fresh
+  // selection or when the panel opens — but not after the user manually exits
+  // replace mode (neither dep changes then), so the exit sticks.
+  useEffect(() => {
+    if (isLocked || !canEdit || isEditMode) return;
+    if (!braceletPanelOpen || !selectedBead) return;
+    const alreadyReplacing =
+      replaceTargetInstanceId !== null ||
+      replaceAllTargetProductId !== null ||
+      (replaceSeedTargetIds?.length ?? 0) > 0 ||
+      editReplaceMode;
+    if (alreadyReplacing) return;
+    if (selectedBead.seedConfig) {
+      startReplaceSeedMode(beadMatchKey(selectedBead));
+    } else {
+      startReplaceMode(selectedBead.instanceId);
+    }
+  }, [selectedBead?.instanceId, braceletPanelOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const { inReviewCount, approvedCount } = useNotifications();
   const notificationCount = inReviewCount + approvedCount;
@@ -316,7 +340,6 @@ export function BuilderLayout() {
         />
 
         <BeadInfoDialog isLocked={isLocked} beadSelectorOpen={braceletPanelOpen} />
-
         <EditReplaceDialog />
 
         <UserPanel
