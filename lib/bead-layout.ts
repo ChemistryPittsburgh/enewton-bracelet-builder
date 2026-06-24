@@ -27,6 +27,7 @@ type BeadLike = {
     diameter: number;
     bead_category?: string | null;
     body_width_mm?: number | null;
+    material?: string | null;
   };
 };
 
@@ -60,12 +61,30 @@ const CATEGORY_SPACING: Record<string, number> = {
   tube:          BEAD_SPACING,    
   spacer:        0,               
   seed_segment:  -0.00002,
+  crystal:       0.0008,
+  resin:         0.00002
 };
+
+/**
+ * Returns the gap (metres) to place between two adjacent beads.
+ * 
+ * Spacing-lookup key for a bead. Crystals are catalogued under the "charm"
+ * category but get their own spacing, so material takes precedence here.
+ */
+function spacingKey(bead: BeadLike): string {
+  if (bead.product.bead_category === "charm" && bead.product.material === "crystal") {
+    console.log("here?");
+    return "crystal";
+  } else if (bead.product.bead_category === "bead" && bead.product.material === "resin") {
+    return "resin";
+  }
+  return bead.product.bead_category ?? "bead";
+}
 
 /** Returns the gap (metres) to place between two adjacent beads. */
 function getSpacing(a: BeadLike, b: BeadLike): number {
-  const sA = CATEGORY_SPACING[a.product.bead_category ?? "bead"] ?? BEAD_SPACING;
-  const sB = CATEGORY_SPACING[b.product.bead_category ?? "bead"] ?? BEAD_SPACING;
+  const sA = CATEGORY_SPACING[spacingKey(a)] ?? BEAD_SPACING;
+  const sB = CATEGORY_SPACING[spacingKey(b)] ?? BEAD_SPACING;
   return Math.max(sA, sB);
 }
 
@@ -81,7 +100,6 @@ export function braceletArc(radius: number): number {
 // Float charms sit sideways on the cord, so their arc contribution is scaled
 // down to match their thin edge profile (FLOAT_CHARM_THIN_SCALE, shared with
 // the hit box and collision math).
-
 function arcHalf(bead: BeadLike, neighbor: BeadLike): number {
   const bc = bead.product.bead_category;
   const nc = neighbor.product.bead_category;

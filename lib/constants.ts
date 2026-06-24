@@ -109,7 +109,7 @@ export const FLOAT_CHARM_DEPTH_OFFSET = 0.0008;
  *  floating in front of the band. Applied radially (like FLOAT_CHARM_DEPTH_OFFSET)
  *  so it holds at every position around the bracelet. Tune to taste; flip the
  *  sign if it moves the wrong way. */
-export const CRYSTAL_CHARM_DEPTH_OFFSET = -0.0015;
+export const CRYSTAL_CHARM_DEPTH_OFFSET = -0.0005;
 
 /** Float charms sit sideways on the cord, presenting only their thin edge.
  *  Their layout arc contribution, collision body width, and hit-box depth are
