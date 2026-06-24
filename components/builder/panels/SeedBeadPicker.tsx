@@ -43,9 +43,11 @@ interface SeedBeadPickerProps {
   ) => void;
   error: string | null;
   onManageColors: () => void;
+  /** Replace mode: hide Fill Amount (each replaced segment keeps its own length). */
+  replaceMode?: boolean;
 }
 
-export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerProps) {
+export function SeedBeadPicker({ onAdd, error, onManageColors, replaceMode = false }: SeedBeadPickerProps) {
   const { placedBeads, braceletSize } = useStore((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
@@ -204,7 +206,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
   }
 
   function handleAdd() {
-    if (!validArc) return;
+    if (!replaceMode && !validArc) return;
     if (isRound) {
       const opt = ROUND_COLOR_OPTIONS.find((o) => o.value === roundColor) ?? ROUND_COLOR_OPTIONS[0];
       const roundColorway: SeedColorEntry[] = [
@@ -223,7 +225,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
     <div className="flex flex-col h-full">
       <div className="flex-1 px-5 pb-4 flex flex-col gap-4">
 
-        <AvailableSpaceBox className="!mb-0" />
+        {!replaceMode && <AvailableSpaceBox className="!mb-0" />}
 
         <div className={seedPickerSectionClass}>
           {/* Shape picker — always visible at the top */}
@@ -478,7 +480,8 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
           </>
         )}
 
-        {/* Fill amount — flat radio group, no nesting */}
+        {/* Fill amount — hidden in replace mode (each segment keeps its own length) */}
+        {!replaceMode && (
         <div>
           <SectionHeading>Fill amount</SectionHeading>
 
@@ -589,13 +592,14 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
             </p>
           )}
         </div>
+        )}
       </div>
 
       {/* Bottom bar */}
       <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
         {error && <ErrorAlert message={error} />}
 
-        {availableMm >= 2 ? (
+        {(replaceMode || availableMm >= 2) ? (
           <>
             {!tooMany && (
               <SectionHeading>
@@ -613,7 +617,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
             {canEdit && (
               <Button
                 onClick={handleAdd}
-                disabled={!validArc || (!isRound && colorway.length === 0)}
+                disabled={(!replaceMode && !validArc) || (!isRound && colorway.length === 0)}
                 className="flex w-full items-center justify-center gap-2 group"
               >
                 {isRound ? (
@@ -621,7 +625,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
                 ) : (
                   <Square size={16} className="-mt-[2.5px] stroke-white group-hover:stroke-navy transition-colors" />
                 )}
-                {isRound ? "Add round beads" : "Add seed beads"}
+                {isRound ? (replaceMode ? "Replace round beads" : "Add round beads") : (replaceMode ? "Replace seed beads" : "Add seed beads")}
               </Button>
             )}
           </>

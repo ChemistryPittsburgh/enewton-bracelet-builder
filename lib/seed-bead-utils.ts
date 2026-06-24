@@ -6,7 +6,7 @@
  * produces the same visual arrangement.
  */
 
-import type { SeedSegmentConfig } from "@/types";
+import type { SeedSegmentConfig, PlacedBead } from "@/types";
 import {
   SEED_BEAD_THICKNESS_RATIO,
   ROUND_BEAD_THICKNESS_RATIO,
@@ -181,4 +181,39 @@ export function seedSizeLabel(cfg: SeedSegmentConfig, includeMM: boolean): strin
   const label = SEED_BEAD_SIZE_LABELS[size];
   if (label) return includeMM ? `${label} (${size}mm)` : label;
   return includeMM ? `${size}mm` : `${size}`;
+}
+/** Nominal size value (1 = Small, 2 = Large) for a seed segment, shape-aware. */
+function seedSizeValue(cfg: SeedSegmentConfig): number {
+  return cfg.seed_shape === "round"
+    ? cfg.round_size_mm ?? 2
+    : cfg.seed_size_mm ??
+        Math.round((cfg.bead_size_range[0] + cfg.bead_size_range[1]) / 2);
+}
+
+/**
+ * Identity key for "select all of this kind" / replace grouping.
+ *
+ * Regular beads group by product id. Seed segments each carry their own
+ * generated product id, so they instead group by (shape, nominal size) —
+ * matching is by size + shape only, NOT colorway. Every Small Round matches
+ * every other Small Round regardless of color.
+ */
+export function seedMatchKey(cfg: SeedSegmentConfig): string {
+  const shape = cfg.seed_shape ?? "seed";
+  return `seed:${shape}:${seedSizeValue(cfg)}`;
+}
+
+export function beadMatchKey(bead: PlacedBead): string {
+  return bead.seedConfig ? seedMatchKey(bead.seedConfig) : `product:${bead.product.id}`;
+}
+
+/**
+ * Human label for a seed kind — "Small", "Large", "Small Round", "Large Round".
+ * Used by the "Select All ___ Seed Beads" button and the replace list.
+ */
+export function seedKindLabel(cfg: SeedSegmentConfig): string {
+  const shape = cfg.seed_shape ?? "seed";
+  const sizeVal = seedSizeValue(cfg);
+  const sizeWord = SEED_BEAD_SIZE_LABELS[sizeVal] ?? `${sizeVal}mm`;
+  return shape === "round" ? `${sizeWord} Round` : sizeWord;
 }

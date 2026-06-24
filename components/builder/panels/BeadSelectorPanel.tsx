@@ -134,6 +134,8 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const replaceEditSelectedBeadsAction = useStore((s) => s.replaceEditSelectedBeads);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
+  const replaceSeedTargetIds = useStore((s) => s.replaceSeedTargetIds);
+  const replaceSeedSegmentsInStore = useStore((s) => s.replaceSeedSegments);
   const isEditMode = useStore((s) => s.isEditMode);
   const editReplaceMode = useStore((s) => s.editReplaceMode);
   const editReplaceNarrowedIds = useStore((s) => s.editReplaceNarrowedIds);
@@ -146,8 +148,9 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
   const isReplaceSingle = replaceTargetInstanceId !== null;
   const isReplaceAll = replaceAllTargetProductId !== null;
+  const isReplaceSeed = replaceSeedTargetIds !== null && replaceSeedTargetIds.length > 0;
   const isEditReplace = editReplaceMode && !isReplaceSingle && !isReplaceAll;
-  const isReplaceMode = isReplaceSingle || isReplaceAll || isEditReplace;
+  const isReplaceMode = isReplaceSingle || isReplaceAll || isEditReplace || isReplaceSeed;
   const isImplicitEditReplace = isEditMode && editSelectedIds.length > 0 && !isReplaceMode;
 
   // For single replace: remove the target bead from fit calculations (its slot is freed)
@@ -177,6 +180,25 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     () => placedBeads.filter((b) => !editReplaceTargetIds.includes(b.instanceId)),
     [placedBeads, editReplaceTargetIds],
   );
+
+  // Edit-mode replace where every targeted bead is a seed segment → treat it as
+  // a seed→seed replace (seed picker, no Fill Amount) rather than a normal swap.
+  const editReplaceSeedTargetIds = useMemo(
+    () =>
+      (isEditReplace || isImplicitEditReplace) &&
+      editReplaceTargetIds.length > 0 &&
+      editReplaceTargetIds.every(
+        (id) => placedBeads.find((b) => b.instanceId === id)?.seedConfig,
+      )
+        ? editReplaceTargetIds
+        : [],
+    [isEditReplace, isImplicitEditReplace, editReplaceTargetIds, placedBeads],
+  );
+
+  // Seed-replace UI is active from the dedicated path (Bead Info / replace list)
+  // OR from an all-seed edit-mode selection. Either way the seed picker takes over.
+  const isSeedReplaceUI = isReplaceSeed || editReplaceSeedTargetIds.length > 0;
+  const seedReplaceTargetIds = isReplaceSeed ? replaceSeedTargetIds! : editReplaceSeedTargetIds;
 
   // For replace-all: swap all instances of the target product and check total arc
   function fitsForReplaceAll(candidate: BeadProduct): boolean {
@@ -240,7 +262,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   }, [editReplaceFitCount]);
 
   const isSpacerMode = activeTab === SPACER_TAB;
-  const isSeedMode = activeTab === SEED_TAB;
+  const isSeedMode = activeTab === SEED_TAB || isSeedReplaceUI;
 
   const radius       = BRACELET_SIZE_RADIUS[braceletSize];
   const totalArc     = braceletArc(radius);
@@ -355,7 +377,8 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     }
   }
 
-  function handleAddSeedSegment(
+  /** Build a seed segment {product, seedConfig} from picker values + a length. */
+  function buildSeedSegment(
     arcMm: number,
     colorway: SeedColorEntry[],
     randomSeed: number,
@@ -375,7 +398,47 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         ? { seed_shape: "round" as const, round_size_mm: roundSizeMm ?? 2 }
         : { seed_size_mm: seedSizeMm ?? 1 }),
     };
+    return { product, seedConfig };
+  }
+
+  function handleAddSeedSegment(
+    arcMm: number,
+    colorway: SeedColorEntry[],
+    randomSeed: number,
+    seedShape?: "seed" | "round",
+    roundSizeMm?: number,
+    material?: string,
+    seedSizeMm?: number,
+  ) {
+    const { product, seedConfig } = buildSeedSegment(arcMm, colorway, randomSeed, seedShape, roundSizeMm, material, seedSizeMm);
     const err = addSeedSegment(product as any, seedConfig);
+    if (err) {
+      setError(err);
+      setTimeout(() => setError(null), 3000);
+    }
+  }
+
+  /** Replace every queued seed segment with the picked config, each at its own length. */
+  function handleReplaceSeeds(
+    _arcMm: number,
+    colorway: SeedColorEntry[],
+    randomSeed: number,
+    seedShape?: "seed" | "round",
+    roundSizeMm?: number,
+    material?: string,
+    seedSizeMm?: number,
+  ) {
+    const targets = placedBeads.filter(
+      (b) => seedReplaceTargetIds.includes(b.instanceId) && b.seedConfig,
+    );
+    if (targets.length === 0) return;
+    const replacements = targets.map((t) => {
+      const { product, seedConfig } = buildSeedSegment(
+        t.seedConfig!.arc_length_mm, colorway, randomSeed, seedShape, roundSizeMm, material, seedSizeMm,
+      );
+      return { instanceId: t.instanceId, product: product as any, seedConfig };
+    });
+    const err = replaceSeedSegmentsInStore(replacements);
     if (err) {
       setError(err);
       setTimeout(() => setError(null), 3000);
@@ -468,7 +531,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         {isSpacerMode ? (
           <SpacerPicker onAdd={handleAddSpacer} error={error} />
         ) : isSeedMode ? (
-          <SeedBeadPicker onAdd={handleAddSeedSegment} error={error} onManageColors={onManageSeedColors} />
+          <SeedBeadPicker onAdd={isSeedReplaceUI ? handleReplaceSeeds : handleAddSeedSegment} error={error} onManageColors={onManageSeedColors} replaceMode={isSeedReplaceUI} />
         ) : (
           /* ── Normal bead selector ── */
           <>

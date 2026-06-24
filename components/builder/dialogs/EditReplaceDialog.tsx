@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { EDIT_REPLACE_GROUPS, EDIT_REPLACE_GROUP_COLORS } from "@/lib/constants";
 import type { BeadProduct } from "@/types";
+import { beadMatchKey, seedKindLabel } from "@/lib/seed-bead-utils";
 import { cn } from "@/lib/utils";
 
 type ReplaceGroup = {
@@ -27,6 +28,7 @@ export function EditReplaceDialog() {
     setEditSelectedIds,
     cancelReplaceMode,
     saveCurrentSelectionAsGroup,
+    startReplaceSeedMode,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editReplaceMode: s.editReplaceMode,
@@ -38,6 +40,7 @@ export function EditReplaceDialog() {
     setEditSelectedIds: s.setEditSelectedIds,
     cancelReplaceMode: s.cancelReplaceMode,
     saveCurrentSelectionAsGroup: s.saveCurrentSelectionAsGroup,
+    startReplaceSeedMode: s.startReplaceSeedMode,
   }));
 
   // Default state: all unique bead types on the bracelet (excludes spacers/seed segments)
@@ -49,6 +52,21 @@ export function EditReplaceDialog() {
       const pid = bead.product.id;
       if (!map.has(pid)) map.set(pid, { product: bead.product, instanceIds: [] });
       map.get(pid)!.instanceIds.push(bead.instanceId);
+    }
+    return [...map.values()];
+  }, [beads]);
+
+  // Seed segments grouped by (size, shape) — added to the replace list so users
+  // can replace a whole seed kind. Keyed by beadMatchKey; colors are ignored.
+  const seedRows = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; instanceIds: string[] }>();
+    for (const bead of beads) {
+      if (!bead.seedConfig) continue;
+      const key = beadMatchKey(bead);
+      if (!map.has(key)) {
+        map.set(key, { key, label: `${seedKindLabel(bead.seedConfig)} Seed`, instanceIds: [] });
+      }
+      map.get(key)!.instanceIds.push(bead.instanceId);
     }
     return [...map.values()];
   }, [beads]);
@@ -130,7 +148,7 @@ export function EditReplaceDialog() {
           <p className="text-sm font-medium text-color-base mb-2">
             Select a bead type to replace:
           </p>
-          {typeRows.length === 0 ? (
+          {typeRows.length === 0 && seedRows.length === 0 ? (
             <p className="text-xs text-color-base/50 mb-3">No beads on bracelet</p>
           ) : (
             <ul className="mb-3 space-y-1 max-h-[260px] overflow-y-auto">
@@ -142,6 +160,17 @@ export function EditReplaceDialog() {
                   >
                     <span className="truncate">{product.name}</span>
                     <span className="shrink-0 text-xs text-color-base/50 tabular-nums">{instanceIds.length}</span>
+                  </button>
+                </li>
+              ))}
+              {seedRows.map((row) => (
+                <li key={row.key}>
+                  <button
+                    onClick={() => startReplaceSeedMode(row.key)}
+                    className="w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2 hover:bg-light-grey"
+                  >
+                    <span className="truncate">{row.label}</span>
+                    <span className="shrink-0 text-xs text-color-base/50 tabular-nums">{row.instanceIds.length}</span>
                   </button>
                 </li>
               ))}

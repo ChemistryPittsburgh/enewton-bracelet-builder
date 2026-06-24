@@ -70,6 +70,7 @@ export function useSceneItemInteraction(
     clearEditSelection,
     isEditMode,
     selectAllActive,
+    replaceSeedTargetIds,
   } = useStore(
     useShallow((s) => ({
       selectBead:           s.selectBead,
@@ -81,14 +82,18 @@ export function useSceneItemInteraction(
       clearEditSelection:   s.clearEditSelection,
       isEditMode:           s.isEditMode,
       selectAllActive:      s.selectAllActive,
+      replaceSeedTargetIds: s.replaceSeedTargetIds,
     })),
   );
 
-  const isSelected = isEditMode
+  // Seed segments queued for replacement light up regardless of edit mode.
+  const isSeedReplaceTarget = replaceSeedTargetIds?.includes(bead.instanceId) ?? false;
+
+  const isSelected = isSeedReplaceTarget || (isEditMode
     ? editSelectedIds.includes(bead.instanceId) ||
       editSelectionGroups.some(g => g.includes(bead.instanceId))
     : selectedBead?.instanceId === bead.instanceId ||
-      (selectAllOfType && selectAllActive && selectedBead?.product.id === bead.product.id);
+      (selectAllOfType && selectAllActive && selectedBead?.product.id === bead.product.id));
 
   const highlightColor = isEditMode
     ? (selectionColor ?? EDIT_MODE_HIGHLIGHT_SELECT_COLOR)

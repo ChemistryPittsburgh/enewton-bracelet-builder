@@ -85,6 +85,7 @@ export function BuilderLayout() {
   const toggleEditMode = useStore((s) => s.toggleEditMode);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
+  const replaceSeedTargetIds = useStore((s) => s.replaceSeedTargetIds);
   const editReplaceMode = useStore((s) => s.editReplaceMode);
   const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
 
@@ -114,8 +115,8 @@ export function BuilderLayout() {
   const [braceletPanelOpen, setBraceletPanelOpen] = useState(false);
 
   useEffect(() => {
-    if (replaceTargetInstanceId !== null || replaceAllTargetProductId !== null || editReplaceMode) setBraceletPanelOpen(true);
-  }, [replaceTargetInstanceId, replaceAllTargetProductId, editReplaceMode]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (replaceTargetInstanceId !== null || replaceAllTargetProductId !== null || (replaceSeedTargetIds?.length ?? 0) > 0 || editReplaceMode) setBraceletPanelOpen(true);
+  }, [replaceTargetInstanceId, replaceAllTargetProductId, replaceSeedTargetIds, editReplaceMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [savedDesignsOpen, setSavedDesignsOpen] = useState(false);
   const { inReviewCount, approvedCount } = useNotifications();
   const notificationCount = inReviewCount + approvedCount;
