@@ -71,27 +71,23 @@ export function EditReplaceDialog() {
     return [...map.values()];
   }, [beads]);
 
-  // Auto product-type groups (used when no explicit groups have been saved)
-  const autoGroups = useMemo(() => {
-    const map = new Map<number, { product: BeadProduct; instanceIds: string[] }>();
+  // Mirror the color assignment in AllBeads: product types are ordered by first appearance in editSelectedIds.
+  const productColorIndex = useMemo(() => {
+    const order = new Map<number, number>();
     for (const id of editSelectedIds) {
-      const bead = beads.find((b) => b.instanceId === id);
-      if (!bead) continue;
-      const pid = bead.product.id;
-      if (!map.has(pid)) map.set(pid, { product: bead.product, instanceIds: [] });
-      map.get(pid)!.instanceIds.push(id);
+      const pid = beads.find((b) => b.instanceId === id)?.product.id;
+      if (pid !== undefined && !order.has(pid)) order.set(pid, order.size);
     }
-    return [...map.values()];
+    return order;
   }, [editSelectedIds, beads]);
 
   const isExplicitMode = editSelectionGroups.length > 0;
   const isOpen = isEditMode && editReplaceMode;
 
-  // Normalize both modes into one list so the render is shared.
-  // Explicit mode: frozen saved groups + the active pending selection as a trailing group.
-  // Auto mode: one group per distinct product among the current selection.
   const plural = (n: number) => `${n} bead${n !== 1 ? "s" : ""}`;
-  const groups: ReplaceGroup[] = isExplicitMode
+
+  // Explicit mode: frozen saved groups + the active pending selection as a trailing group.
+  const explicitGroups: ReplaceGroup[] = isExplicitMode
     ? [
         ...editSelectionGroups.map((ids, i) => ({
           key: `group-${i}`,
@@ -110,13 +106,7 @@ export function EditReplaceDialog() {
             }]
           : []),
       ]
-    : autoGroups.map(({ product, instanceIds }, i) => ({
-        key: String(product.id),
-        label: `${instanceIds.length} – ${product.name}`,
-        instanceIds,
-        colorIndex: i,
-        showDot: autoGroups.length > 1,
-      }));
+    : [];
 
   function isGroupActive(instanceIds: string[]) {
     return (
@@ -131,6 +121,16 @@ export function EditReplaceDialog() {
     setEditReplaceNarrowedIds(active ? null : instanceIds);
   }
 
+  function handleTypeToggle(allInstanceIds: string[]) {
+    const allSelected = allInstanceIds.every(id => editSelectedIds.includes(id));
+    if (allSelected) {
+      setEditSelectedIds(editSelectedIds.filter(id => !allInstanceIds.includes(id)));
+    } else {
+      const missing = allInstanceIds.filter(id => !editSelectedIds.includes(id));
+      setEditSelectedIds([...editSelectedIds, ...missing]);
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -142,8 +142,8 @@ export function EditReplaceDialog() {
     >
     <div className="bg-white rounded-[3px] border border-default shadow-md p-4">
 
-      {editSelectedIds.length === 0 && !isExplicitMode ? (
-        /* ── Default state: pick a bead type to replace ── */
+      {!isExplicitMode ? (
+        /* ── Default mode: always show type list with selection state ── */
         <>
           <p className="text-sm font-medium text-color-base mb-2">
             Select a bead type to replace:
@@ -152,17 +152,36 @@ export function EditReplaceDialog() {
             <p className="text-xs text-color-base/50 mb-3">No beads on bracelet</p>
           ) : (
             <ul className="mb-3 space-y-1 max-h-[260px] overflow-y-auto">
-              {typeRows.map(({ product, instanceIds }) => (
-                <li key={product.id}>
-                  <button
-                    onClick={() => setEditSelectedIds(instanceIds)}
-                    className="w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2 hover:bg-light-grey"
-                  >
-                    <span className="truncate">{product.name}</span>
-                    <span className="shrink-0 text-xs text-color-base/50 tabular-nums">{instanceIds.length}</span>
-                  </button>
-                </li>
-              ))}
+              {typeRows.map(({ product, instanceIds }) => {
+                const selectedCount = instanceIds.filter(id => editSelectedIds.includes(id)).length;
+                const isSelected = selectedCount > 0;
+                const isPartial = isSelected && selectedCount < instanceIds.length;
+                const countDisplay = isPartial
+                  ? `${selectedCount} of ${instanceIds.length}`
+                  : String(instanceIds.length);
+                const colorIdx = productColorIndex.get(product.id);
+                const palette = colorIdx !== undefined
+                  ? EDIT_REPLACE_GROUPS[colorIdx % EDIT_REPLACE_GROUPS.length]
+                  : null;
+                return (
+                  <li key={product.id}>
+                    <button
+                      onClick={() => handleTypeToggle(instanceIds)}
+                      className={cn(
+                        "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2",
+                        isSelected && palette ? `${palette.active} font-medium` : "hover:bg-light-grey"
+                      )}
+                    >
+                      <span className="truncate">{product.name}</span>
+                      <span className={cn("shrink-0 text-xs tabular-nums", isSelected ? "text-white/70" : "text-color-base/50")}>
+                        {countDisplay}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+              {/* Seed kinds — direct action: replace a whole seed kind via the seed
+                  picker (a different flow than the type-toggle group replace above). */}
               {seedRows.map((row) => (
                 <li key={row.key}>
                   <button
@@ -178,16 +197,16 @@ export function EditReplaceDialog() {
           )}
         </>
       ) : (
-        /* ── Auto or explicit mode: show group list ── */
+        /* ── Explicit mode: frozen groups + pending ── */
         <>
           <p className="text-sm font-medium text-color-base mb-2">
             Replacing selected bead(s):
           </p>
-          {groups.length === 0 ? (
+          {explicitGroups.length === 0 ? (
             <p className="text-xs text-color-base/50 mb-3">Select beads to replace</p>
           ) : (
             <ul className="mb-3 space-y-1">
-              {groups.map((g) => (
+              {explicitGroups.map((g) => (
                 <GroupButton
                   key={g.key}
                   group={g}
@@ -206,7 +225,7 @@ export function EditReplaceDialog() {
           onClick={cancelReplaceMode}
           className="text-xs font-semibold underline text-color-base/70 hover:text-color-base transition-colors"
         >
-          close bead replacement mode
+          exit bead replacement mode
         </button>
         {(editSelectedIds.length > 0 || isExplicitMode) && (
           <button
