@@ -166,6 +166,9 @@ interface Store {
   /** Ephemeral — not persisted. True when the canvas is in drag-to-reorder edit mode. */
   isEditMode: boolean;
   toggleEditMode: () => void;
+  /** Enter edit mode with the Replace-bead box already open — used after creating
+   *  a bracelet from a pattern so the user can immediately swap beads to customise. */
+  enterEditReplaceMode: () => void;
 
   /** Ephemeral — when true, colliding charms are highlighted with an orange ring. */
   showCharmCollisions: boolean;
@@ -959,6 +962,19 @@ export const useStore = create<Store>()(
           editReplaceMode: false,
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
+        }));
+      },
+
+      enterEditReplaceMode() {
+        set((s) => ({
+          isEditMode: true,
+          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          selectedBead: null,
+          editReplaceMode: true,
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          editSelectedIds: [],
+          ...CLEAR_REPLACE_TARGETS,
         }));
       },
 

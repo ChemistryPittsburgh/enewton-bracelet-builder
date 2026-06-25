@@ -28,6 +28,7 @@ export function useLoadPattern() {
   const setActivePatternId = useStore((s) => s.setActivePatternId);
   const beads              = useStore((s) => s.beads);
   const setPendingPattern  = useStore((s) => s.setPendingPattern);
+  const enterEditReplaceMode = useStore((s) => s.enterEditReplaceMode);
 
   function applyPattern(pattern: Bracelet, patternId: number | null = null) {
     setActiveDesignId(null);
@@ -64,6 +65,14 @@ export function useLoadPattern() {
     // When editing a pattern keep its name; when creating a new bracelet reset to default.
     loadBeads(placedBeads, patternId !== null ? pattern.name : DEFAULT_BRACELET_NAME);
     markClean();
+
+    // Creating a fresh bracelet from a pattern (not "Edit pattern") drops the user
+    // straight into edit mode with the replace box open, so they can swap beads to
+    // make it their own. Skipped for Edit-pattern and when nothing resolved onto
+    // the canvas (e.g. catalog not ready).
+    if (patternId === null && placedBeads.length > 0) {
+      enterEditReplaceMode();
+    }
   }
 
   function loadPattern(pattern: Bracelet) {
