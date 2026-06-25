@@ -317,6 +317,46 @@ Typography uses three font families: Inter (body), Italiana (headlines), and Squ
 - **Camera UX** — Minimal camera movement with natural transitions; avoid disorienting scripted repositioning.
 - **GLB convention** — Bead hole axis is local Y. Charms need pivot at bail top, Y-up, face +Z (standardisation in progress with 3D modeler).
 
+## Keyboard Shortcuts
+
+### Global (always active, never captured from inputs)
+
+| Key | Action | Condition |
+|-----|--------|-----------|
+| `E` | Enter Edit Mode | `canEdit` and design not locked |
+
+### Edit Mode (active only while Edit Mode is on)
+
+| Key | Action |
+|-----|--------|
+| `↑` / `←` | Move selected bead back one slot |
+| `↓` / `→` | Move selected bead forward one slot |
+| `Delete` / `Backspace` | Remove selected bead(s) |
+| `⌘/Ctrl + D` | Duplicate selected bead(s) |
+| `⌘/Ctrl + Z` | Undo |
+| `⌘/Ctrl + Y` / `⌘/Ctrl + Shift + Z` | Redo |
+| `Escape` | Deselect all |
+| `⌘/Ctrl + Escape` | Exit Edit Mode |
+
+### Canvas pointer (Edit Mode)
+
+| Gesture | Action |
+|---------|--------|
+| Click bead | Toggle bead into / out of edit selection |
+| `⌘/Ctrl` + Click bead | Open bead info panel and add to edit selection |
+| Drag bead | Reorder by dragging |
+
+### Dialogs & Panels (local scope)
+
+| Context | Key | Action |
+|---------|-----|--------|
+| Any dialog / full-screen overlay | `Escape` | Close / cancel |
+| Any confirmation input field | `Enter` | Confirm / save |
+| Comments composer or edit field | `⌘/Ctrl + Enter` | Submit comment |
+| Comments edit field | `Escape` | Cancel edit |
+| User row (admin screen) | `Enter` / `Space` | Expand / collapse row |
+| Permissions dropdown | `Escape` | Close dropdown |
+
 ## Development
 
 ```bash

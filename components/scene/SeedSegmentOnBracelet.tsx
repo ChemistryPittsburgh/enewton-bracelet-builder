@@ -8,6 +8,7 @@ import {
   getBeadAngle,
   getBeadPosition,
   getBeadTransformLine,
+  getEvenSpacingBonus,
 } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import {
@@ -54,9 +55,10 @@ export function SeedSegmentOnBracelet({
   onDragStart,
   isLocked = false,
 }: SeedSegmentOnBraceletProps) {
-  const beads        = useStore((s) => s.beads);
-  const braceletSize = useStore((s) => s.braceletSize);
-  const viewMode     = useStore((s) => s.viewMode);
+  const beads          = useStore((s) => s.beads);
+  const braceletSize   = useStore((s) => s.braceletSize);
+  const viewMode       = useStore((s) => s.viewMode);
+  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
 
   const {
     isSelected,
@@ -70,6 +72,9 @@ export function SeedSegmentOnBracelet({
   } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
+    ? getEvenSpacingBonus(beads, radius)
+    : 0;
 
   // Load both GLB models — hooks must be called unconditionally
   const { scene: seedGlbScene } = useGLTF(SEED_BEAD_MODEL);
@@ -165,7 +170,7 @@ export function SeedSegmentOnBracelet({
     }
 
     // 3D circular view: place each tiny bead at its own angle on the arc
-    const centerAngle = getBeadAngle(slotIndex, beads, radius);
+    const centerAngle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
     const segArcM = bead.product.diameter; // total arc in metres
     const halfArcRad = segArcM / 2 / radius;
     const startAngle = centerAngle - halfArcRad;
@@ -183,7 +188,7 @@ export function SeedSegmentOnBracelet({
         finishKey: sb.finishKey,
       };
     });
-  }, [config, generatedBeads, slotIndex, beads, radius, viewMode, bead.product.diameter]);
+  }, [config, generatedBeads, slotIndex, beads, radius, viewMode, bead.product.diameter, extraSpacingPerGap]);
 
   // Total arc consumed by this segment (metres). Declared here (before any
   // early return) because the hitChunks memo below depends on it.
@@ -206,7 +211,7 @@ export function SeedSegmentOnBracelet({
       }];
     }
 
-    const centerAngle = getBeadAngle(slotIndex, beads, radius);
+    const centerAngle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
     const halfArcRad = segArcM / 2 / radius;
     const startAngle = centerAngle - halfArcRad;
     const endAngle = centerAngle + halfArcRad;
@@ -232,7 +237,7 @@ export function SeedSegmentOnBracelet({
       });
     }
     return chunks;
-  }, [viewMode, slotIndex, beads, radius, segArcM]);
+  }, [viewMode, slotIndex, beads, radius, segArcM, extraSpacingPerGap]);
 
   if (!config || seedBead3DData.length === 0 || !seedGeometry) return null;
 
@@ -248,7 +253,7 @@ export function SeedSegmentOnBracelet({
     viewMode === "line"
       ? getBeadTransformLine(slotIndex, beads)
       : (() => {
-          const a = getBeadAngle(slotIndex, beads, radius);
+          const a = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
           return {
             position: getBeadPosition(a, radius),
             outerRotation: [0, -a, 0] as [number, number, number],

@@ -267,7 +267,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
         <div className="flex flex-1 items-center gap-2 justify-end pl-3 lg:pl-6 ml-3">
           <PusherStatusBadge />
           {canEdit && !isReadOnly && (
-            <Tooltip content={isEditMode ? "Exit edit mode" : "Enter Edit Mode"} placement="bottom">
+            <Tooltip content={isEditMode ? "Exit edit mode" : "Enter Edit Mode  (E)"} placement="bottom">
               <button
                 onClick={toggleEditMode}
                 className={`flex items-center gap-1.5 rounded-[2px] border px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${

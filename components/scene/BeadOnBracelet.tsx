@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine, CORD_RADIUS } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import { 
   BRACELET_SIZE_RADIUS, 
@@ -145,9 +145,10 @@ export function BeadOnBracelet({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, bead.product.bead_category, CHARM_ROTATION[0], CHARM_ROTATION[1], CHARM_ROTATION[2]]);
 
-  const beads        = useStore((s) => s.beads);
-  const braceletSize = useStore((s) => s.braceletSize);
-  const viewMode     = useStore((s) => s.viewMode);
+  const beads          = useStore((s) => s.beads);
+  const braceletSize   = useStore((s) => s.braceletSize);
+  const viewMode       = useStore((s) => s.viewMode);
+  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
 
   const {
     isSelected,
@@ -177,9 +178,12 @@ export function BeadOnBracelet({
   const charmDepthOffset = (isCharm && !isFloatCharm) ? (bead.product.depth_offset ?? -0.0005) : 0;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
+    ? getEvenSpacingBonus(beads, radius)
+    : 0;
   const { position, outerRotation, innerRotation } = viewMode === 'line'
     ? getBeadTransformLine(slotIndex, beads)
-    : getBeadTransform(slotIndex, beads, radius);
+    : getBeadTransform(slotIndex, beads, radius, extraSpacingPerGap);
 
   // Radial offset: collision layer stacking + float charm forward push +
   // crystal-charm setback + per-charm depth setback. All shift along the radial

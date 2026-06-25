@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
-import { getBeadAngle, getBeadPosition, getBeadTransformLine, braceletArc } from "@/lib/bead-layout";
+import { getBeadAngle, getBeadPosition, getBeadTransformLine, braceletArc, getEvenSpacingBonus } from "@/lib/bead-layout";
 import {
   CAMERA_DEFAULT_POSITION,
   CAMERA_EDIT_HEIGHT,
@@ -35,7 +35,7 @@ interface CameraControllerProps {
 }
 
 export function CameraController({ controlsRef }: CameraControllerProps) {
-  const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, selectAllActive } = useStore((s) => ({
+  const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, selectAllActive, isEvenlySpaced } = useStore((s) => ({
     selectedBead:    s.selectedBead,
     beads:           s.beads,
     isEditMode:      s.isEditMode,
@@ -43,13 +43,15 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     viewMode:        s.viewMode,
     braceletSize:    s.braceletSize,
     selectAllActive: s.selectAllActive,
+    isEvenlySpaced:  s.isEvenlySpaced,
   }));
 
-  const prevViewModeRef     = useRef(viewMode);
-  const prevEditViewModeRef = useRef(editViewMode);
-  const prevIsEditModeRef   = useRef(isEditMode);
-  const prevSelectedBeadRef = useRef(selectedBead);
-  const prevSelectAllRef    = useRef(selectAllActive);
+  const prevViewModeRef        = useRef(viewMode);
+  const prevEditViewModeRef    = useRef(editViewMode);
+  const prevIsEditModeRef      = useRef(isEditMode);
+  const prevSelectedBeadRef    = useRef(selectedBead);
+  const prevSelectAllRef       = useRef(selectAllActive);
+  const prevIsEvenlySpacedRef  = useRef(isEvenlySpaced);
 
   // Refs for values needed inside the effect but that should NOT trigger re-runs.
   // beads is only read to find a selected bead's position; selectedBead changing
@@ -72,11 +74,13 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       selectedBead:    prevSelectedBeadRef.current,
       selectAllActive: prevSelectAllRef.current,
     };
-    prevViewModeRef.current     = viewMode;
-    prevEditViewModeRef.current = editViewMode;
-    prevIsEditModeRef.current   = isEditMode;
-    prevSelectedBeadRef.current = selectedBead;
-    prevSelectAllRef.current    = selectAllActive;
+    prevViewModeRef.current        = viewMode;
+    prevEditViewModeRef.current    = editViewMode;
+    prevIsEditModeRef.current      = isEditMode;
+    prevSelectedBeadRef.current    = selectedBead;
+    prevSelectAllRef.current       = selectAllActive;
+    const isEvenlySpacedChanged    = isEvenlySpaced !== prevIsEvenlySpacedRef.current;
+    prevIsEvenlySpacedRef.current  = isEvenlySpaced;
 
     const radius = BRACELET_SIZE_RADIUS[braceletSizeRef.current];
 
@@ -172,7 +176,8 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       // Zoom toward the bead, preserving current camera angle
       const i = beadsRef.current.findIndex((b) => b.instanceId === selectedBead!.instanceId);
       if (i !== -1) {
-        const angle = getBeadAngle(i, beadsRef.current, radius);
+        const extraSpacing = isEvenlySpaced ? getEvenSpacingBonus(beadsRef.current, radius) : 0;
+        const angle = getBeadAngle(i, beadsRef.current, radius, extraSpacing);
         const [bx, by, bz] = getBeadPosition(angle, radius);
         const radialLen = Math.sqrt(bx * bx + bz * bz);
         const nx = radialLen > 0 ? bx / radialLen : 0;
@@ -185,11 +190,12 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
           true,
         );
       }
-    } else if (!selectedBead && !prev.selectedBead) {
-      // Init / reset
+    } else if (!selectedBead && !prev.selectedBead && !isEvenlySpacedChanged) {
+      // Init / reset (skip when only isEvenlySpaced changed — spacing doesn't
+      // affect camera position, and the reset discards the user's orbit angle)
       controls.setLookAt(...CAMERA_DEFAULT_POSITION, 0, 0, 0, true);
     }
-  }, [viewMode, isEditMode, editViewMode, selectedBead, controlsRef, selectAllActive]);
+  }, [viewMode, isEditMode, editViewMode, selectedBead, controlsRef, selectAllActive, isEvenlySpaced]);
 
   return null;
 }

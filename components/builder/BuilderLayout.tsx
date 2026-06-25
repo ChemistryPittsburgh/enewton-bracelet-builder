@@ -51,6 +51,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useDesignLock } from "@/hooks/useDesignLock";
 import { useSavePattern } from "@/hooks/useSavePattern";
+import { useIsDirty } from "@/hooks/useIsDirty";
 
 export function BuilderLayout() {
   const {
@@ -64,7 +65,6 @@ export function BuilderLayout() {
     startNewBracelet,
     setPendingDesign,
     activeDesignId,
-    isDirty,
     copyBracelet,
     newBraceletFromPattern,
   } = useStore((s) => ({
@@ -78,11 +78,11 @@ export function BuilderLayout() {
     startNewBracelet:     s.startNewBracelet,
     setPendingDesign:     s.setPendingDesign,
     activeDesignId:       s.activeDesignId,
-    isDirty:              s.isDirty,
     copyBracelet:         s.copyBracelet,
     newBraceletFromPattern: s.newBraceletFromPattern,
   }));
 
+  const isDirty = useIsDirty();
   const isEditMode    = useStore((s) => s.isEditMode);
   const toggleEditMode = useStore((s) => s.toggleEditMode);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
@@ -229,6 +229,20 @@ export function BuilderLayout() {
   useEffect(() => {
     if (isNarrow && braceletPanelOpen && rightPanelOpen) setRightPanel(null);
   }, [isNarrow, braceletPanelOpen, rightPanelOpen]);
+
+  // Global shortcut: E → enter edit mode (mirrors Cmd+Esc which exits it)
+  useEffect(() => {
+    if (isEditMode) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((e.key === "e" || e.key === "E") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (canEdit && !isLocked) toggleEditMode();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isEditMode, canEdit, isLocked, toggleEditMode]);
 
 
   function openBraceletPanel() {

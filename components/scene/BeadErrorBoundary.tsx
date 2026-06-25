@@ -5,7 +5,7 @@ import { ErrorBoundary, type FallbackProps as EBFallbackProps } from "react-erro
 import type { PlacedBead } from "@/types";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
-import { getBeadAngle, getBeadPosition } from "@/lib/bead-layout";
+import { getBeadAngle, getBeadPosition, getEvenSpacingBonus } from "@/lib/bead-layout";
 import type { ThreeEvent } from "@react-three/fiber";
 
 interface FallbackProps {
@@ -14,11 +14,13 @@ interface FallbackProps {
 }
 
 function BeadFallback({ bead, slotIndex }: FallbackProps) {
-  const { removeBead, addBeadLoadError, beads, braceletSize } = useStore((s) => ({
+  const { removeBead, addBeadLoadError, beads, braceletSize, viewMode, isEvenlySpaced } = useStore((s) => ({
     removeBead: s.removeBead,
     addBeadLoadError: s.addBeadLoadError,
     beads: s.beads,
     braceletSize: s.braceletSize,
+    viewMode: s.viewMode,
+    isEvenlySpaced: s.isEvenlySpaced,
   }));
 
   const filename = bead.product.glb_path?.split("/").pop() ?? bead.product.glb_path ?? bead.product.name;
@@ -28,7 +30,10 @@ function BeadFallback({ bead, slotIndex }: FallbackProps) {
   }, [bead.instanceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
-  const angle = getBeadAngle(slotIndex, beads, radius);
+  const extraSpacingPerGap = isEvenlySpaced && viewMode === '3D'
+    ? getEvenSpacingBonus(beads, radius)
+    : 0;
+  const angle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
   const position = getBeadPosition(angle, radius);
 
   function handleClick(e: ThreeEvent<MouseEvent>) {

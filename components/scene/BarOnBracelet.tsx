@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { BufferAttribute, BufferGeometry, ClampToEdgeWrapping, FrontSide, Mesh, MeshStandardMaterial, Texture } from "three";
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import {
   BRACELET_SIZE_RADIUS,
@@ -131,17 +131,21 @@ export function BarOnBracelet({
     return { vMin, vMax, nativeArcM: nativeArcM > 0 ? nativeArcM : null };
   }, [scene]);
 
-  const beads        = useStore((s) => s.beads);
-  const braceletSize = useStore((s) => s.braceletSize);
-  const viewMode     = useStore((s) => s.viewMode);
+  const beads          = useStore((s) => s.beads);
+  const braceletSize   = useStore((s) => s.braceletSize);
+  const viewMode       = useStore((s) => s.viewMode);
+  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
 
   const { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave, showHoverRing } =
     useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
+  const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
+    ? getEvenSpacingBonus(beads, braceletRadius)
+    : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(slotIndex, beads)
-    : getBeadTransform(slotIndex, beads, braceletRadius);
+    : getBeadTransform(slotIndex, beads, braceletRadius, extraSpacingPerGap);
 
   // vizRadius drives the hit capsule (sized to arc length for easy clicking)
   const vizRadius  = (bead.product.size_mm ?? 10) / 2 / 1000;
