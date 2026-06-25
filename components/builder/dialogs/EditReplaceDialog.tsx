@@ -2,9 +2,12 @@
 
 import { useMemo } from "react";
 import { useStore } from "@/lib/store";
-import { EDIT_REPLACE_GROUPS, EDIT_REPLACE_GROUP_COLORS } from "@/lib/constants";
+import { EDIT_REPLACE_GROUPS, EDIT_REPLACE_GROUP_COLORS, EDIT_GROUPING_ENABLED } from "@/lib/constants";
 import type { BeadProduct } from "@/types";
+import { beadMatchKey, seedKindLabel } from "@/lib/seed-bead-utils";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 type ReplaceGroup = {
   key: string;
@@ -27,6 +30,8 @@ export function EditReplaceDialog() {
     setEditSelectedIds,
     cancelReplaceMode,
     saveCurrentSelectionAsGroup,
+    startReplaceSeedMode,
+    replaceSeedTargetIds,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editReplaceMode: s.editReplaceMode,
@@ -38,6 +43,8 @@ export function EditReplaceDialog() {
     setEditSelectedIds: s.setEditSelectedIds,
     cancelReplaceMode: s.cancelReplaceMode,
     saveCurrentSelectionAsGroup: s.saveCurrentSelectionAsGroup,
+    startReplaceSeedMode: s.startReplaceSeedMode,
+    replaceSeedTargetIds: s.replaceSeedTargetIds,
   }));
 
   // Default state: all unique bead types on the bracelet (excludes spacers/seed segments)
@@ -53,6 +60,21 @@ export function EditReplaceDialog() {
     return [...map.values()];
   }, [beads]);
 
+  // Seed segments grouped by (size, shape) — added to the replace list so users
+  // can replace a whole seed kind. Keyed by beadMatchKey; colors are ignored.
+  const seedRows = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; instanceIds: string[] }>();
+    for (const bead of beads) {
+      if (!bead.seedConfig) continue;
+      const key = beadMatchKey(bead);
+      if (!map.has(key)) {
+        map.set(key, { key, label: `${seedKindLabel(bead.seedConfig)} Seed`, instanceIds: [] });
+      }
+      map.get(key)!.instanceIds.push(bead.instanceId);
+    }
+    return [...map.values()];
+  }, [beads]);
+
   // Mirror the color assignment in AllBeads: product types are ordered by first appearance in editSelectedIds.
   const productColorIndex = useMemo(() => {
     const order = new Map<number, number>();
@@ -63,7 +85,7 @@ export function EditReplaceDialog() {
     return order;
   }, [editSelectedIds, beads]);
 
-  const isExplicitMode = editSelectionGroups.length > 0;
+  const isExplicitMode = EDIT_GROUPING_ENABLED && editSelectionGroups.length > 0;
   const isOpen = isEditMode && editReplaceMode;
 
   const plural = (n: number) => `${n} bead${n !== 1 ? "s" : ""}`;
@@ -113,6 +135,12 @@ export function EditReplaceDialog() {
     }
   }
 
+  const title = isExplicitMode
+    ? "Replacing selected bead(s)"
+    : "Select item by type to replace";
+  // Section labels only earn their keep when both kinds are present.
+  const showSectionLabels = typeRows.length > 0 && seedRows.length > 0;
+
   return (
     <div
       className={cn(
@@ -122,59 +150,124 @@ export function EditReplaceDialog() {
           : "opacity-0 translate-y-3 pointer-events-none"
       )}
     >
-    <div className="bg-white rounded-[3px] border border-default shadow-md p-4">
+    <div className="bg-white rounded-[3px] border border-default shadow-md">
 
-      {!isExplicitMode ? (
-        /* ── Default mode: always show type list with selection state ── */
-        <>
-          <p className="text-sm font-medium text-color-base mb-2">
-            Select a bead type to replace:
-          </p>
-          {typeRows.length === 0 ? (
-            <p className="text-xs text-color-base/50 mb-3">No beads on bracelet</p>
+      {/* ── Header (title + close) ── */}
+      <div className="flex items-start justify-between gap-3 border-b border-default px-4 py-3">
+        <p className="text-sm font-medium text-color-base mt-1">{title}</p>
+        <Tooltip content="Exit Replace Mode">
+          <button
+            type="button"
+            onClick={cancelReplaceMode}
+            aria-label="Exit bead replacement mode"
+            className="icon-only-btn"
+          >
+            <X size={18} />
+          </button>
+        </Tooltip>
+      </div>
+
+      <div className="max-h-[320px] py-4 px-2 overflow-y-scroll">
+        {!isExplicitMode ? (
+          /* ── Default mode: bead types and seed beads in separate sections ── */
+          typeRows.length === 0 && seedRows.length === 0 ? (
+            <p className="text-xs text-color-base/50">No beads on bracelet</p>
           ) : (
-            <ul className="mb-3 space-y-1 max-h-[260px] overflow-y-auto">
-              {typeRows.map(({ product, instanceIds }) => {
-                const selectedCount = instanceIds.filter(id => editSelectedIds.includes(id)).length;
-                const isSelected = selectedCount > 0;
-                const isPartial = isSelected && selectedCount < instanceIds.length;
-                const countDisplay = isPartial
-                  ? `${selectedCount} of ${instanceIds.length}`
-                  : String(instanceIds.length);
-                const colorIdx = productColorIndex.get(product.id);
-                const palette = colorIdx !== undefined
-                  ? EDIT_REPLACE_GROUPS[colorIdx % EDIT_REPLACE_GROUPS.length]
-                  : null;
-                return (
-                  <li key={product.id}>
-                    <button
-                      onClick={() => handleTypeToggle(instanceIds)}
-                      className={cn(
-                        "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2",
-                        isSelected && palette ? `${palette.active} font-medium` : "hover:bg-light-grey"
-                      )}
-                    >
-                      <span className="truncate">{product.name}</span>
-                      <span className={cn("shrink-0 text-xs tabular-nums", isSelected ? "text-white/70" : "text-color-base/50")}>
-                        {countDisplay}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </>
-      ) : (
-        /* ── Explicit mode: frozen groups + pending ── */
-        <>
-          <p className="text-sm font-medium text-color-base mb-2">
-            Replacing selected bead(s):
-          </p>
-          {explicitGroups.length === 0 ? (
-            <p className="text-xs text-color-base/50 mb-3">Select beads to replace</p>
+            <div className="space-y-3 pr-0.5">
+              {typeRows.length > 0 && (
+                <div>
+                  {showSectionLabels && (
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-color-base/40 px-2 mb-1.5">
+                      Beads
+                    </p>
+                  )}
+                  <ul className="space-y-1">
+                    {typeRows.map(({ product, instanceIds }) => {
+                      const selectedCount = instanceIds.filter(id => editSelectedIds.includes(id)).length;
+                      const isSelected = selectedCount > 0;
+                      const isPartial = isSelected && selectedCount < instanceIds.length;
+                      const countDisplay = isPartial
+                        ? `${selectedCount} of ${instanceIds.length}`
+                        : String(instanceIds.length);
+                      const colorIdx = productColorIndex.get(product.id);
+                      const palette = colorIdx !== undefined
+                        ? EDIT_REPLACE_GROUPS[colorIdx % EDIT_REPLACE_GROUPS.length]
+                        : null;
+                      return (
+                        <li key={product.id}>
+                        <Tooltip content={`${isSelected ? "Remove selected item" : ""}`} placement="top-end" className="!block">
+                            <button
+                              onClick={() => handleTypeToggle(instanceIds)}
+                              className={cn(
+                                "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center gap-2",
+                                isSelected && palette ? `${palette.active} font-medium` : "hover:bg-light-grey"
+                              )}
+                            >
+                              <span className="truncate flex-1">{product.name}</span>
+                              <span className={cn("shrink-0 text-xs tabular-nums", isSelected ? "text-white/70" : "text-color-base/50")}>
+                                {countDisplay}
+                              </span>
+                              <X size={12} className={`opacity-0 ${isSelected && "opacity-100"}`} />
+                            </button>
+                          </Tooltip>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {seedRows.length > 0 && (
+                <div className={cn(typeRows.length > 0 && "border-t border-default pt-3")}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-color-base/40 px-2 mb-1.5">
+                    Seed Beads
+                  </p>
+                  <ul className="space-y-1">
+                    {seedRows.map((row) => {
+                      // Reflect both selection paths: the dedicated seed-replace target
+                      // (row click / Bead Info button) sets replaceSeedTargetIds, while
+                      // selecting seed segments directly on the bracelet populates
+                      // editSelectedIds. Either should light the row up.
+                      const seedTargeted =
+                        replaceSeedTargetIds !== null &&
+                        replaceSeedTargetIds.length === row.instanceIds.length &&
+                        row.instanceIds.every((id) => replaceSeedTargetIds.includes(id));
+                      const selectedCount = seedTargeted
+                        ? row.instanceIds.length
+                        : row.instanceIds.filter((id) => editSelectedIds.includes(id)).length;
+                      const isSelected = selectedCount > 0;
+                      const isPartial = isSelected && selectedCount < row.instanceIds.length;
+                      const countDisplay = isPartial
+                        ? `${selectedCount} of ${row.instanceIds.length}`
+                        : String(row.instanceIds.length);
+                      return (
+                        <li key={row.key}>
+                          <button
+                            onClick={() => startReplaceSeedMode(row.key)}
+                            className={cn(
+                              "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2",
+                              isSelected ? "bg-navy text-white font-medium" : "hover:bg-light-grey"
+                            )}
+                          >
+                            <span className="truncate">{row.label}</span>
+                            <span className={cn("shrink-0 text-xs tabular-nums", isSelected ? "text-white/70" : "text-color-base/50")}>
+                              {countDisplay}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )
+        ) : (
+          /* ── Explicit mode: frozen groups + pending ── */
+          explicitGroups.length === 0 ? (
+            <p className="text-xs text-color-base/50">Select beads to replace</p>
           ) : (
-            <ul className="mb-3 space-y-1">
+            <ul className="space-y-1">
               {explicitGroups.map((g) => (
                 <GroupButton
                   key={g.key}
@@ -184,19 +277,13 @@ export function EditReplaceDialog() {
                 />
               ))}
             </ul>
-          )}
-        </>
-      )}
+          )
+        )}
+      </div>
 
-      {/* ── Footer actions ── */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={cancelReplaceMode}
-          className="text-xs font-semibold underline text-color-base/70 hover:text-color-base transition-colors"
-        >
-          exit bead replacement mode
-        </button>
-        {(editSelectedIds.length > 0 || isExplicitMode) && (
+      {/* ── Footer: grouping action only — exit lives in the header ✕ ── */}
+      {EDIT_GROUPING_ENABLED && (editSelectedIds.length > 0 || isExplicitMode) && (
+        <div className="flex items-center justify-end mt-3 pt-3 border-t border-default">
           <button
             onClick={saveCurrentSelectionAsGroup}
             disabled={editSelectedIds.length === 0}
@@ -204,8 +291,8 @@ export function EditReplaceDialog() {
           >
             + New group
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
     </div>
   );
