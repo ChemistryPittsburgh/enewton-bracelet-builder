@@ -226,8 +226,8 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className={`flex flex-col`}>
-      <div className="flex-1 max-h-[60vh] overflow-y-scroll px-5 pb-4 flex flex-col gap-4 pt-4">
+    <div className={`flex flex-col h-full min-h-0`}>
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 flex flex-col gap-4 pt-4">
 
         {!replaceMode && <AvailableSpaceBox className="!mb-0" />}
 

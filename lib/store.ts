@@ -586,16 +586,16 @@ export const useStore = create<Store>()(
         }
         set({
           replaceSeedTargetIds: ids,
-          // Clear the other replace modes + transient selection so the selector
-          // shows the seed picker. editReplaceMode is left as-is so the replace
-          // box stays open when seeds are picked from it.
+          // Clear the other replace modes so the selector shows the seed picker.
+          // selectedBead + selectAllActive are left as-is so the Bead Info window
+          // stays open through the replace, matching the bead "Replace All" flow.
+          // editReplaceMode is left as-is so the replace box stays open when seeds
+          // are picked from it.
           replaceTargetInstanceId: null,
           replaceAllTargetProductId: null,
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
           editSelectedIds: [],
-          selectedBead: null,
-          selectAllActive: false,
         });
       },
 

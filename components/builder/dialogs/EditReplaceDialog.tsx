@@ -132,14 +132,17 @@ export function EditReplaceDialog() {
   }
 
   function handleTypeToggle(allInstanceIds: string[]) {
-    // Single-select: only one type may be selected at a time. Clicking a type
-    // makes it the sole selection (and drops any seed target); clicking the
-    // already-selected type clears it.
-    const isSole =
-      allInstanceIds.length === editSelectedIds.length &&
-      allInstanceIds.every((id) => editSelectedIds.includes(id));
-    setEditSelectedIds(isSole ? [] : allInstanceIds);
-    if (!isSole) clearReplaceSeed();
+    // Multi-select: toggle this whole type in/out of the running selection so
+    // several types can be queued for replacement at once. Clicking a type that
+    // is already fully selected removes just its instances; otherwise they are
+    // merged into the selection (and any seed target is dropped).
+    const allSelected = allInstanceIds.every((id) => editSelectedIds.includes(id));
+    if (allSelected) {
+      setEditSelectedIds(editSelectedIds.filter((id) => !allInstanceIds.includes(id)));
+    } else {
+      setEditSelectedIds([...new Set([...editSelectedIds, ...allInstanceIds])]);
+      clearReplaceSeed();
+    }
   }
 
   const title = isExplicitMode

@@ -21,7 +21,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 import type { Bracelet, BraceletStatus, Collection, Tag, DesignLock } from "@/types";
 
-import { DesignCard } from "./DesignCard";
+import { DesignCard } from "./../cards/DesignCard";
 import { PatternsGrid } from "./PatternsGrid";
 import { TagPicker, CollectionPicker } from "./Pickers";
 import { DeleteBraceletDialog } from "@/components/builder/dialogs/DeleteBraceletDialog";

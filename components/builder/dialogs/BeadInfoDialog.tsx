@@ -45,7 +45,7 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
 
   function handleRemove() {
     if (!bead) return;
-    if (selectAllActive) {
+    if (selectAllActive && !isSeed) {
       removeAllOfType();
     } else {
       removeBead(bead.instanceId);
@@ -152,17 +152,30 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
                 )}
               </>
             )}
-            {/* Select-all-of-kind (seed): every segment of the same size+shape,
-                straight into seed replace mode (matches by seed key, not id). */}
+            {/* Select-all-of-kind (seed): selection only — keeps the info window
+                open and does NOT open the picker, mirroring the bead Select All.
+                Matches by seed key (size + shape), not product id. */}
             {!isLocked && isSeed && seedConfig && seedMatchCount > 1 && (
-              <Button onClick={() => startReplaceSeedMode(beadMatchKey(bead))} variant="ghost" className="w-full !h-auto py-2.5 !text-[11.5px]">
-                Select All {seedKindLabel(seedConfig)} Seed Beads ({seedMatchCount})
-              </Button>
+              <>
+                {selectAllActive ? (
+                  <p className="text-sm font-semibold mb-3 px-2">All {seedKindLabel(seedConfig)} Seed Beads selected</p>
+                ) : (
+                  <Button onClick={() => selectAllOfType()} variant="ghost" className="w-full mb-2 !h-auto py-2.5 !text-[11.5px]">
+                    Select All {seedKindLabel(seedConfig)} Seed Beads ({seedMatchCount})
+                  </Button>
+                )}
+              </>
             )}
-            {/* Replace — single segment for seeds, single bead otherwise */}
+            {/* Replace — single segment when nothing is select-all-ed; whole kind
+                (opens the seed picker) once Select All is active. */}
             {!isLocked && isSeed && !selectAllActive && !beadSelectorOpen && (
               <Button onClick={() => startReplaceSeedSegment(bead.instanceId)} className="w-full" variant="secondary">
                 Replace Seed Beads
+              </Button>
+            )}
+            {!isLocked && isSeed && seedConfig && selectAllActive && !beadSelectorOpen && (
+              <Button onClick={() => startReplaceSeedMode(beadMatchKey(bead))} className="w-full" variant="secondary">
+                Replace All {seedKindLabel(seedConfig)} Seed Beads ({seedMatchCount})
               </Button>
             )}
             {!isLocked && !isSeed && !selectAllActive && !beadSelectorOpen && (
@@ -178,7 +191,7 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
             {!isLocked && (
               <Button onClick={handleRemove} className="w-full mt-2" variant="danger">
                 <Trash2 size={15} />
-                {selectAllActive ? `Remove All (${matchCount})` :
+                {selectAllActive && !isSeed ? `Remove All (${matchCount})` :
                   isSeed ? "Remove seed beads" :
                   `Delete ${unslugify(bead.product.bead_category ?? "bead")}`
                 }
