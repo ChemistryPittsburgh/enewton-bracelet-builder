@@ -11,6 +11,7 @@ const IS_MAC =
 const MOD = IS_MAC ? "⌘" : "Ctrl";
 
 const SHORTCUTS = [
+  { keys: "E",                  desc: "Enter Edit Mode" },
   { keys: "Click",              desc: "Select / deselect an item" },
   { keys: `${MOD} + Click`,     desc: "View item info" },
   { keys: "← →  or  ↑ ↓",      desc: "Move selected bead" },
