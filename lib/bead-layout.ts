@@ -48,6 +48,15 @@ export const CORD_RADIUS = 0.0008;
 export const BEAD_SPACING = -0.000012;
 
 /**
+ * Minimum cord length (mm) a charm occupies via its ring/bail, regardless of how
+ * small its bail_width_mm is. Floors a charm's footprint when it sits next to a
+ * non-charm (bead / spacer / seed) and at the ends of the bracelet, so tiny bails
+ * can't let charms collapse or overlap. Set to 0 to disable. Charm↔charm spacing
+ * uses body_width_mm instead and is unaffected by this.
+ */
+export const MIN_CHARM_ARC_MM = 1.8;
+
+/**
  * Per-category spacing overrides (metres).
  * When two adjacent items have different categories the larger
  * (least-negative / most-positive) spacing wins, so items that
@@ -107,7 +116,14 @@ function selfHalf(bead: BeadLike): number {
     }
     return bead.product.size_mm / 2 / 1000;
   }
-  return bead.product.diameter / 2;
+  const half = bead.product.diameter / 2;
+  // Charms thread on the cord by their ring (diameter = bail_width). Floor that
+  // footprint so a tiny bail still reserves MIN_CHARM_ARC_MM of cord. Does not
+  // touch the charm↔charm body_width path (handled in arcHalf).
+  if (bead.product.bead_category === "charm" || bead.product.bead_category === "float_charm") {
+    return Math.max(half, MIN_CHARM_ARC_MM / 2 / 1000);
+  }
+  return half;
 }
 
 // Returns the half-arc a bead contributes toward a given neighbor.
@@ -176,6 +192,27 @@ export function maxFit(
     list = [...list, { product }];
   }
   return count;
+}
+
+// Length-independent stand-in for a seed segment — used only for spacing lookups
+// (the gap a segment introduces doesn't depend on its arc length).
+const SEED_SPACING_PROBE: BeadLike = { product: { diameter: 0, bead_category: "seed_segment" } };
+
+/**
+ * Largest seed-segment arc length (mm) that still fits when a segment is appended
+ * to `beads`. Beyond the bare (braceletArc − usedArc) figure, this also subtracts
+ * the inter-item spacing gap that usedArc/beadFits insert between the new segment
+ * and the current last item. A plain "remaining" figure omits that gap, so a
+ * full-length "fill remaining" segment overflows by it — positive after charms
+ * (gap > 0), which is why it surfaced there. Returns 0 when nothing fits. The
+ * caller should still floor (not round) to its display precision.
+ */
+export function maxSeedArcMm(beads: BeadLike[], radius = BRACELET_RADIUS): number {
+  const free = braceletArc(radius) - usedArc(beads);
+  const gap = beads.length > 0
+    ? getSpacing(beads[beads.length - 1], SEED_SPACING_PROBE)
+    : 0;
+  return Math.max(0, (free - gap) * 1000);
 }
 
 // ─── Line view geometry ───────────────────────────────────────────────────────

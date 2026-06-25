@@ -180,7 +180,7 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
             )}
             {!isLocked && !isSeed && !selectAllActive && !beadSelectorOpen && (
               <Button onClick={() => startReplaceMode(bead.instanceId)} className="w-full" variant="secondary">
-                {bead.product.bead_category === "bar" ? "Replace Bar" : "Replace Bead"}
+                {bead.product.bead_category === "bar" ? "Replace Bar" : `Replace ${unslugify(bead.product.bead_category ?? "bead")}`}
               </Button>
             )}
             {!isLocked && !isSeed && selectAllActive && !beadSelectorOpen && (
