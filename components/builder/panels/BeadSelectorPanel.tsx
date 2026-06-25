@@ -154,7 +154,7 @@ function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMode, erro
   const canAdd = productToAdd !== null && beadFits(effectiveBeads, { product: productToAdd }, radius);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full pt-4">
       <div className="flex-1 px-5 pb-4 overflow-y-auto">
         <div className="rounded-lg border border-default bg-light-grey/50 px-4 py-3 mb-5">
           <p className="text-xs font-semibold text-color-base/70 uppercase tracking-wide mb-1">
@@ -713,7 +713,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
   return (
     <Panel open={isOpen} onClose={onClose} title={isReplaceMode ? "Replace Bead" : "Bead Selector"} direction="left" overflowYScroll={false} className="bottom-0 h-auto">
-      <div className="flex flex-col h-full overflow-y-scroll border-b border-default">
+      <div className="flex flex-col h-full border-b border-default">
 
         {/* Replace-mode banner — distinguishes replace from the normal "add" flow */}
         {isReplaceMode && (
@@ -759,7 +759,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         )}
 
         {/* Category pills + Spacer + Seed tabs */}
-        <ScrollableRow className="py-3 min-h-14" trackClassName="gap-2">
+        <ScrollableRow className={`py-3 min-h-14 ${(isBarMode || isSeedMode || isSpacerMode) && "border-b border-default"}`} trackClassName="gap-2">
           <MaterialPill
             label="All"
             active={activeTab === null}
@@ -895,7 +895,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             </div>
 
             {/* Bead grid */}
-            <div className={`flex-1 py-3 overflow-y-scroll ${panelGapClass}`}>
+            <div className={`flex-1 py-3 max-h-[45vh] overflow-y-scroll ${panelGapClass}`}>
               {filteredBeads.length === 0 ? (
                 <p className="text-xs text-color-base/50 text-center py-8">
                   No beads match your filters.

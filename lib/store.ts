@@ -110,6 +110,10 @@ interface Store {
   replaceSeedTargetIds: string[] | null;
   /** Enter seed-replace mode for every seed segment matching the given seedMatchKey (size + shape). */
   startReplaceSeedMode: (seedKey: string) => void;
+  /** Clear the seed-replace target without leaving replace mode (used when a bead/charm type is picked instead). */
+  clearReplaceSeed: () => void;
+  /** Enter seed-replace mode for a SINGLE seed segment (clicking one seed) — not the whole size/shape kind. */
+  startReplaceSeedSegment: (instanceId: string) => void;
   /** Swap each queued seed segment in place with a freshly-built segment (preserving its own length). */
   replaceSeedSegments: (replacements: { instanceId: string; product: BeadProduct; seedConfig: SeedSegmentConfig }[]) => string | null;
 
@@ -546,7 +550,6 @@ export const useStore = create<Store>()(
           .map(g => g.filter(id => !replacedSet.has(id)))
           .filter(g => g.length > 0);
         const newSelectedIds = s.editSelectedIds.filter(id => !replacedSet.has(id));
-        const stillHasGroups = newGroups.length > 0 || newSelectedIds.length > 0;
 
         s.pushUndoSnapshot();
         set({
@@ -554,6 +557,8 @@ export const useStore = create<Store>()(
           beadLoadErrors: s.beadLoadErrors.filter((e) => !replacedSet.has(e.instanceId)),
           editSelectionGroups: newGroups,
           editSelectedIds: newSelectedIds,
+          // Stay in replace mode after a replace — the user exits explicitly.
+          editReplaceMode: true,
           editReplaceNarrowedIds: null,
           isDirty: true,
         });
@@ -581,14 +586,35 @@ export const useStore = create<Store>()(
         }
         set({
           replaceSeedTargetIds: ids,
+          // Clear the other replace modes + transient selection so the selector
+          // shows the seed picker. editReplaceMode is left as-is so the replace
+          // box stays open when seeds are picked from it.
           replaceTargetInstanceId: null,
           replaceAllTargetProductId: null,
-          // editReplaceMode left as-is so the box stays open when seeds are picked from it.
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
           editSelectedIds: [],
           selectedBead: null,
           selectAllActive: false,
+        });
+      },
+
+      clearReplaceSeed() {
+        set({ replaceSeedTargetIds: null });
+      },
+
+      startReplaceSeedSegment(instanceId) {
+        const bead = get().beads.find((b) => b.instanceId === instanceId);
+        if (!bead?.seedConfig) return;
+        set({
+          replaceSeedTargetIds: [instanceId],
+          replaceTargetInstanceId: null,
+          replaceAllTargetProductId: null,
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          editSelectedIds: [],
+          selectAllActive: false,
+          // selectedBead left as-is so the info window behaves like the regular-bead replace path.
         });
       },
 
@@ -613,6 +639,8 @@ export const useStore = create<Store>()(
           // Also exit edit-replace, in case this was triggered from an all-seed
           // edit-mode selection (harmless no-op for the dedicated paths).
           editSelectedIds: [],
+          // editReplaceMode left as-is: stays open if replacing from the box,
+          // stays closed if triggered from the Bead Info button.
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
           isDirty: true,
@@ -899,10 +927,7 @@ export const useStore = create<Store>()(
       },
 
       clearEditSelection() {
-        // Clear the selection but stay in replace mode — the box only closes via
-        // the explicit "exit bead replacement mode" link, the toolbar toggle, or
-        // leaving edit mode. Stray canvas clicks / drags / Escape no longer close it.
-        set({ editSelectedIds: [], editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ editSelectedIds: [], editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
       },
 
       setEditSelectedIds(ids) {

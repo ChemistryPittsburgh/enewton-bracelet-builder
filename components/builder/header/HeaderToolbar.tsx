@@ -105,7 +105,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
         {/* ── Left — Undo/Redo + workflow actions ──────────────────────── */}
         <div className="flex flex-1 gap-3 divide-x-1 divide-default">
           {/* Undo / Redo — always available, independent of edit mode */}
-          <div className="flex divide-x-1 divide-default">
+          <div className="flex divide-x-1 divide-default border-r border-default">
             <Tooltip content={undoStack.length !== 0 && "Undo (⌘Z)"} placement="bottom-end">
               <button onClick={undo} disabled={undoStack.length === 0} aria-label="Undo" className={iconBtnClass}>
                 <Undo2 size={20} />
@@ -264,7 +264,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
         </div>
 
         {/* ── Right — Edit + Comments ──────────────────────────────────── */}
-        <div className="flex flex-1 items-center gap-2 justify-end border-l border-default pl-3 lg:pl-6 ml-3">
+        <div className="flex flex-1 items-center gap-2 justify-end pl-3 lg:pl-6 ml-3">
           <PusherStatusBadge />
           {canEdit && !isReadOnly && (
             <Tooltip content={isEditMode ? "Exit edit mode" : "Enter Edit Mode"} placement="bottom">
