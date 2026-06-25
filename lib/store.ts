@@ -11,6 +11,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import type { Bracelet, BeadProduct, PlacedBead, BandMaterial, BraceletSize, SeedSegmentConfig } from "@/types";
 import { beadFits, usedArc, braceletArc } from "@/lib/bead-layout";
+import { beadMatchKey } from "@/lib/seed-bead-utils";
 import { BRACELET_SIZE_RADIUS, DEFAULT_BRACELET_NAME } from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
 import type { WebGLRenderer, Scene as ThreeScene, Camera } from "three";
@@ -104,6 +105,13 @@ interface Store {
 
   /** Remove bar(s) and insert a single seed segment (with seedConfig) at the first removed slot. */
   replaceBarWithSeedSegment: (instanceIds: string[], product: BeadProduct, seedConfig: SeedSegmentConfig) => string | null;
+
+  /** Ephemeral — instanceIds of seed segments queued for seed→seed replacement; null when not in seed-replace mode. */
+  replaceSeedTargetIds: string[] | null;
+  /** Enter seed-replace mode for every seed segment matching the given seedMatchKey (size + shape). */
+  startReplaceSeedMode: (seedKey: string) => void;
+  /** Swap each queued seed segment in place with a freshly-built segment (preserving its own length). */
+  replaceSeedSegments: (replacements: { instanceId: string; product: BeadProduct; seedConfig: SeedSegmentConfig }[]) => string | null;
 
   /** Selecting all of beads with bead info dialog */
   selectAllActive: boolean;
@@ -276,7 +284,7 @@ export const useStore = create<Store>()(
       viewMode: '3D' as const,
       dragFromPanel: null,
       replaceTargetInstanceId: null,
-      replaceAllTargetProductId: null,
+      replaceAllTargetProductId: null, replaceSeedTargetIds: null,
       editReplaceMode: false,
       editReplaceNarrowedIds: null,
       editSelectionGroups: [],
@@ -318,7 +326,7 @@ export const useStore = create<Store>()(
         if (undoStack.length === 0) return;
         const [snapshot, ...rest] = undoStack;
         const current: CanvasSnapshot = { beads: [...beads], braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription };
-        set({ ...snapshot, undoStack: rest, redoStack: [current, ...redoStack], isDirty: true, selectedBead: null, editSelectedIds: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ ...snapshot, undoStack: rest, redoStack: [current, ...redoStack], isDirty: true, selectedBead: null, editSelectedIds: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
       },
 
       redo() {
@@ -326,7 +334,7 @@ export const useStore = create<Store>()(
         if (redoStack.length === 0) return;
         const [snapshot, ...rest] = redoStack;
         const current: CanvasSnapshot = { beads: [...beads], braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription };
-        set({ ...snapshot, redoStack: rest, undoStack: [current, ...undoStack], isDirty: true, selectedBead: null, editSelectedIds: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ ...snapshot, redoStack: rest, undoStack: [current, ...undoStack], isDirty: true, selectedBead: null, editSelectedIds: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
       },
 
       spacersHiddenForCapture: false,
@@ -379,7 +387,7 @@ export const useStore = create<Store>()(
 
       clearBeads() {
         get().pushUndoSnapshot();
-        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
       },
 
       resetBracelet: () => set({
@@ -396,7 +404,7 @@ export const useStore = create<Store>()(
         undoStack: [],
         redoStack: [],
         replaceTargetInstanceId: null,
-        replaceAllTargetProductId: null,
+        replaceAllTargetProductId: null, replaceSeedTargetIds: null,
         editReplaceMode: false,
         editReplaceNarrowedIds: null,
         editSelectionGroups: [],
@@ -414,7 +422,7 @@ export const useStore = create<Store>()(
         undoStack: [],
         redoStack: [],
         replaceTargetInstanceId: null,
-        replaceAllTargetProductId: null,
+        replaceAllTargetProductId: null, replaceSeedTargetIds: null,
         editReplaceMode: false,
         editReplaceNarrowedIds: null,
         editSelectionGroups: [],
@@ -433,25 +441,25 @@ export const useStore = create<Store>()(
         })),
 
       selectBead(bead) {
-        set({ selectedBead: bead, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null });
+        set({ selectedBead: bead, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null });
       },
 
       clearSelectedBead() {
-        set({ selectedBead: null, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null });
+        set({ selectedBead: null, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null });
       },
 
       startReplaceMode(instanceId) {
-        set({ replaceTargetInstanceId: instanceId, replaceAllTargetProductId: null });
+        set({ replaceTargetInstanceId: instanceId, replaceAllTargetProductId: null, replaceSeedTargetIds: null });
       },
 
       cancelReplaceMode() {
-        set({ replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
+        set({ replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
       },
 
       setEditReplaceMode(active) {
         if (active) {
           const hasPreSelection = get().editSelectedIds.length > 0;
-          set({ editReplaceMode: true, replaceTargetInstanceId: null, replaceAllTargetProductId: null, ...(hasPreSelection ? {} : { editSelectedIds: [] }) });
+          set({ editReplaceMode: true, replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, ...(hasPreSelection ? {} : { editSelectedIds: [] }) });
         } else {
           set({ editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
         }
@@ -546,7 +554,6 @@ export const useStore = create<Store>()(
           beadLoadErrors: s.beadLoadErrors.filter((e) => !replacedSet.has(e.instanceId)),
           editSelectionGroups: newGroups,
           editSelectedIds: newSelectedIds,
-          editReplaceMode: stillHasGroups,
           editReplaceNarrowedIds: null,
           isDirty: true,
         });
@@ -554,7 +561,63 @@ export const useStore = create<Store>()(
       },
 
       startReplaceAllMode(productId) {
-        set({ replaceAllTargetProductId: productId, replaceTargetInstanceId: null });
+        set({ replaceAllTargetProductId: productId, replaceTargetInstanceId: null, replaceSeedTargetIds: null });
+      },
+
+      startReplaceSeedMode(seedKey) {
+        const { beads, replaceSeedTargetIds } = get();
+        const ids = beads
+          .filter((b) => b.seedConfig && beadMatchKey(b) === seedKey)
+          .map((b) => b.instanceId);
+        if (ids.length === 0) return;
+        // Toggle: clicking the already-active seed kind clears the selection.
+        const sameAsCurrent =
+          replaceSeedTargetIds !== null &&
+          replaceSeedTargetIds.length === ids.length &&
+          ids.every((id) => replaceSeedTargetIds.includes(id));
+        if (sameAsCurrent) {
+          set({ replaceSeedTargetIds: null, selectedBead: null, selectAllActive: false });
+          return;
+        }
+        set({
+          replaceSeedTargetIds: ids,
+          replaceTargetInstanceId: null,
+          replaceAllTargetProductId: null,
+          // editReplaceMode left as-is so the box stays open when seeds are picked from it.
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          editSelectedIds: [],
+          selectedBead: null,
+          selectAllActive: false,
+        });
+      },
+
+      replaceSeedSegments(replacements) {
+        const s = get();
+        if (replacements.length === 0) {
+          set({ replaceSeedTargetIds: null });
+          return null;
+        }
+        const byId = new Map(replacements.map((r) => [r.instanceId, r]));
+        // Same-length swaps, so the bracelet arc is unchanged — no fit check needed.
+        const beads = s.beads.map((b) => {
+          const r = byId.get(b.instanceId);
+          return r ? { ...b, product: r.product, seedConfig: r.seedConfig } : b;
+        });
+        s.pushUndoSnapshot();
+        set({
+          beads,
+          replaceSeedTargetIds: null,
+          selectedBead: null,
+          selectAllActive: false,
+          // Also exit edit-replace, in case this was triggered from an all-seed
+          // edit-mode selection (harmless no-op for the dedicated paths).
+          editSelectedIds: [],
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          isDirty: true,
+        });
+        return null;
       },
 
       replaceAllBeads(productId, newProduct) {
@@ -571,7 +634,7 @@ export const useStore = create<Store>()(
           beads: swapped,
           selectedBead: null,
           selectAllActive: false,
-          replaceAllTargetProductId: null,
+          replaceAllTargetProductId: null, replaceSeedTargetIds: null,
           isDirty: true,
         });
         return null;
@@ -733,7 +796,7 @@ export const useStore = create<Store>()(
       },
 
       loadBeads(beads, name) {
-        set({ beads, selectedBead: null, editSelectedIds: [], isDirty: false, undoStack: [], redoStack: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], ...(name ? { braceletName: name } : {}) });
+        set({ beads, selectedBead: null, editSelectedIds: [], isDirty: false, undoStack: [], redoStack: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], ...(name ? { braceletName: name } : {}) });
       },
 
       setBraceletName(name) {
@@ -836,7 +899,10 @@ export const useStore = create<Store>()(
       },
 
       clearEditSelection() {
-        set({ editSelectedIds: [], editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        // Clear the selection but stay in replace mode — the box only closes via
+        // the explicit "exit bead replacement mode" link, the toolbar toggle, or
+        // leaving edit mode. Stray canvas clicks / drags / Escape no longer close it.
+        set({ editSelectedIds: [], editReplaceNarrowedIds: null, editSelectionGroups: [] });
       },
 
       setEditSelectedIds(ids) {

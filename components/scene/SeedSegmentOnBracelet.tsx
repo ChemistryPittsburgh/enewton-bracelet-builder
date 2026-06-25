@@ -16,6 +16,7 @@ import {
   SEED_BEAD_NATIVE_DIAMETER,
   FINISH_PRESETS,
   DEFAULT_FINISH,
+  EDIT_MODE_RING_HOVER,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 import {
@@ -64,6 +65,8 @@ export function SeedSegmentOnBracelet({
     handlePointerDown,
     handlePointerEnter,
     handlePointerLeave,
+    showHoverRing,
+    isEditMode,
   } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -343,13 +346,23 @@ export function SeedSegmentOnBracelet({
           ]}
           rotation={centerTransform.outerRotation}
         >
-          <mesh>
+          <mesh rotation={isEditMode ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
             <torusGeometry args={[crossSection * 1.15, 0.0002, 8, 32]} />
             <meshBasicMaterial
               color={highlightColor}
               transparent
               opacity={0.8}
             />
+          </mesh>
+        </group>
+      )}
+
+      {/* Hover ring — flat, edit-mode rollover hint */}
+      {showHoverRing && (
+        <group position={centerTransform.position} rotation={centerTransform.outerRotation}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[crossSection * 1.3, 0.00016, 8, 40]} />
+            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.55} />
           </mesh>
         </group>
       )}

@@ -74,7 +74,6 @@ const CATEGORY_SPACING: Record<string, number> = {
  */
 function spacingKey(bead: BeadLike): string {
   if (bead.product.bead_category === "charm" && bead.product.material === "crystal") {
-    console.log("here?");
     return "crystal";
   } else if (bead.product.bead_category === "bead" && bead.product.material === "resin") {
     return "resin";

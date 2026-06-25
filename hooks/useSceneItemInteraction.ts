@@ -17,6 +17,7 @@
  * of these specific fields changes — not on every unrelated store update.
  */
 
+import { useState } from "react";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { useShallow } from "zustand/react/shallow";
 import { useStore } from "@/lib/store";
@@ -47,6 +48,8 @@ interface SceneItemInteractionOptions {
 export interface SceneItemInteraction {
   isSelected: boolean;
   highlightColor: string;
+  showHoverRing: boolean;
+  isEditMode: boolean;
   handleClick: (e: ThreeEvent<MouseEvent>) => void;
   handlePointerDown: (e: ThreeEvent<PointerEvent>) => void;
   handlePointerEnter: () => void;
@@ -59,6 +62,8 @@ export function useSceneItemInteraction(
   { isLocked = false, onDragStart, selectAllOfType = false, selectionColor }: SceneItemInteractionOptions = {},
 ): SceneItemInteraction {
   const { gl } = useThree();
+  const [isHovered, setIsHovered] = useState(false);
+
 
   const {
     selectBead,
@@ -70,6 +75,7 @@ export function useSceneItemInteraction(
     clearEditSelection,
     isEditMode,
     selectAllActive,
+    replaceSeedTargetIds,
   } = useStore(
     useShallow((s) => ({
       selectBead:           s.selectBead,
@@ -81,14 +87,18 @@ export function useSceneItemInteraction(
       clearEditSelection:   s.clearEditSelection,
       isEditMode:           s.isEditMode,
       selectAllActive:      s.selectAllActive,
+      replaceSeedTargetIds: s.replaceSeedTargetIds,
     })),
   );
 
-  const isSelected = isEditMode
+  // Seed segments queued for replacement light up regardless of edit mode.
+  const isSeedReplaceTarget = replaceSeedTargetIds?.includes(bead.instanceId) ?? false;
+
+  const isSelected = isSeedReplaceTarget || (isEditMode
     ? editSelectedIds.includes(bead.instanceId) ||
       editSelectionGroups.some(g => g.includes(bead.instanceId))
     : selectedBead?.instanceId === bead.instanceId ||
-      (selectAllOfType && selectAllActive && selectedBead?.product.id === bead.product.id);
+      (selectAllOfType && selectAllActive && selectedBead?.product.id === bead.product.id));
 
   const highlightColor = isEditMode
     ? (selectionColor ?? EDIT_MODE_HIGHLIGHT_SELECT_COLOR)
@@ -145,15 +155,20 @@ export function useSceneItemInteraction(
     window.addEventListener("pointerup", onUp);
   }
 
-  function handlePointerEnter() {
+    function handlePointerEnter() {
+    setIsHovered(true);
     if (!isEditMode) return;
     gl.domElement.style.cursor = "grab";
   }
 
   function handlePointerLeave() {
+    setIsHovered(false);
     if (!isEditMode) return;
     gl.domElement.style.cursor = "";
   }
 
-  return { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave };
+  // Edit-mode rollover ring — suppressed once the item is already selected.
+  const showHoverRing = isEditMode && isHovered && !isSelected;
+
+  return { isSelected, isEditMode, highlightColor, showHoverRing, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave };
 }

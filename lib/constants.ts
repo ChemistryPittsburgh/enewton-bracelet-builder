@@ -44,6 +44,16 @@ export const EDIT_MODE_BACKGROUND = "#eff6ff";
 export const HIGHLIGHT_SELECT_COLOR = "#a38d48";  //#a38d48
 export const EDIT_MODE_HIGHLIGHT_SELECT_COLOR = "#1F3A5F";
 
+/* Color of Hover Ring */
+export const EDIT_MODE_RING_HOVER = "#a38d48";
+
+/**
+ * Edit-mode "group beads" feature (saved selection groups in the replace tool).
+ * When false, the "+ New group" button is hidden and the replace tool stays in
+ * plain select-and-replace mode. Set to false to turn grouping off.
+ */
+export const EDIT_GROUPING_ENABLED = false;
+
 /** Per-group colors for edit-replace mode. Each entry has a hex value (for the
  *  3D ring in AllBeads) and Tailwind active/inactive classes (for EditReplaceDialog). */
 export const EDIT_REPLACE_GROUPS = [
