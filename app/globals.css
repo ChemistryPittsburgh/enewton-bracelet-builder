@@ -120,6 +120,15 @@ h2 {
   }
 }
 
+@keyframes tab-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-tab-in {
+  animation: tab-in 0.18s ease-out both;
+}
+
 @keyframes slide-down {
   from { transform: translateY(0); }
   to   { transform: translateY(100%); }

@@ -155,7 +155,7 @@ export function BeadInfoDialog({ isLocked }: { isLocked?: boolean }) {
             )}
             {!isLocked && !isSeed && !selectAllActive && (
               <Button onClick={() => startReplaceMode(bead.instanceId)} className="w-full mt-2" variant="ghost">
-                Replace Bead
+                {bead.product.bead_category === "bar" ? "Replace Bar" : "Replace Bead"}
               </Button>
             )}
             {!isLocked && !isSeed && selectAllActive && (

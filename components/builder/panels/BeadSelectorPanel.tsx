@@ -4,13 +4,14 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, X, Dot, Sparkle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize, unslugify } from "@/lib/utils";
-import type { BeadProduct, SeedColorEntry } from "@/types";
+import type { BeadProduct, PlacedBead, SeedColorEntry, SeedSegmentConfig } from "@/types";
 
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { BraceletFullNotice } from "@/components/ui/BraceletFullNotice";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ScrollableRow } from "@/components/ui/ScrollableRow";
 
@@ -120,15 +121,15 @@ function MaterialPill({ label, active, onClick }: {
 
 // ── Bar picker ─────────────────────────────────────────────────────────────
 
-function BarPicker({ bars, onAdd, error }: {
+function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMode, error }: {
   bars: BeadProduct[];
   onAdd: (bar: BeadProduct) => void;
+  onReplace: (bar: BeadProduct) => void;
+  effectiveBeads: PlacedBead[];
+  isReplaceMode: boolean;
   error: string | null;
 }) {
-  const { placedBeads, braceletSize } = useStore((s) => ({
-    placedBeads:  s.beads,
-    braceletSize: s.braceletSize,
-  }));
+  const braceletSize = useStore((s) => s.braceletSize);
   const { canEdit } = usePermissions();
 
   const [selectedBar, setSelectedBar]       = useState<BeadProduct | null>(null);
@@ -136,7 +137,7 @@ function BarPicker({ bars, onAdd, error }: {
 
   const radius      = BRACELET_SIZE_RADIUS[braceletSize];
   const totalArc    = braceletArc(radius);
-  const used        = usedArc(placedBeads);
+  const used        = usedArc(effectiveBeads);
   const availableMm = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
 
   // Reset slider to the bar's natural size_mm whenever the selection changes
@@ -149,7 +150,7 @@ function BarPicker({ bars, onAdd, error }: {
     [selectedBar, selectedLength],
   );
 
-  const canAdd = productToAdd !== null && beadFits(placedBeads, { product: productToAdd }, radius);
+  const canAdd = productToAdd !== null && beadFits(effectiveBeads, { product: productToAdd }, radius);
 
   return (
     <div className="flex flex-col h-full">
@@ -182,7 +183,7 @@ function BarPicker({ bars, onAdd, error }: {
               selected={selectedBar?.id === bar.id}
               onClick={() => setSelectedBar((prev) => (prev?.id === bar.id ? null : bar))}
               canEdit={canEdit}
-              disabled={!beadFits(placedBeads, { product: bar }, radius)}
+              disabled={!beadFits(effectiveBeads, { product: bar }, radius)}
             />
           ))}
         </div>
@@ -220,17 +221,20 @@ function BarPicker({ bars, onAdd, error }: {
             </p>
             {canEdit && (
               <Button
-                onClick={() => productToAdd && onAdd(productToAdd)}
+                onClick={() => {
+                  if (!productToAdd) return;
+                  isReplaceMode ? onReplace(productToAdd) : onAdd(productToAdd);
+                }}
                 disabled={!canAdd}
                 variant="secondary"
                 className="flex w-full items-center justify-center gap-2"
               >
-                ✦ Add bar
+                ✦ {isReplaceMode ? "Replace bar" : "Add bar"}
               </Button>
             )}
           </>
         ) : (
-          <p className="text-error font-semibold text-sm">Bracelet is full</p>
+          <BraceletFullNotice />
         )}
       </div>
     </div>
@@ -252,6 +256,8 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const replaceBeadInStore = useStore((s) => s.replaceBead);
   const replaceAllBeadsInStore = useStore((s) => s.replaceAllBeads);
   const replaceEditSelectedBeadsAction = useStore((s) => s.replaceEditSelectedBeads);
+  const replaceWithBeadsAction = useStore((s) => s.replaceWithBeads);
+  const replaceBarWithSeedSegmentAction = useStore((s) => s.replaceBarWithSeedSegment);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
   const isEditMode = useStore((s) => s.isEditMode);
@@ -298,6 +304,31 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     [placedBeads, editReplaceTargetIds],
   );
 
+  // ── Bar → non-bar replace context ──────────────────────────────────────────
+  const replaceTargetBead = replaceTargetInstanceId
+    ? placedBeads.find(b => b.instanceId === replaceTargetInstanceId) ?? null
+    : null;
+
+  const isBarSingleReplace =
+    isReplaceSingle && replaceTargetBead?.product.bead_category === "bar";
+
+  const isBarEditReplace =
+    isEditReplace &&
+    editReplaceTargetIds.length > 0 &&
+    editReplaceTargetIds.every(id =>
+      placedBeads.find(b => b.instanceId === id)?.product.bead_category === "bar"
+    );
+
+  const isBarReplace = isBarSingleReplace || isBarEditReplace;
+
+  // BarPicker replace-mode context: which effective bead list to pass for arc calculations.
+  const isBarReplaceMode = isReplaceSingle || isEditReplace;
+  const barEffectiveBeads = isReplaceSingle
+    ? effectivePlacedBeads
+    : isEditReplace
+      ? withoutTargets
+      : placedBeads;
+
   // For replace-all: swap all instances of the target product and check total arc
   function fitsForReplaceAll(candidate: BeadProduct): boolean {
     if (!replaceAllTargetProductId) return false;
@@ -314,6 +345,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   }
 
   function candidateFits(candidate: BeadProduct): boolean {
+    if (isBarEditReplace) return beadFits(withoutTargets, { product: candidate }, braceletRadius);
     if (isEditReplace || isImplicitEditReplace) return fitsForEditReplace(candidate);
     if (isReplaceAll) return fitsForReplaceAll(candidate);
     return beadFits(effectivePlacedBeads, { product: candidate }, braceletRadius);
@@ -339,6 +371,21 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     if (isEditReplace && editReplaceNarrowedIds !== null) setSelectedBead(null);
   }, [editReplaceNarrowedIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-switch to the Bar tab when any replace mode targets bar(s).
+  useEffect(() => {
+    if (replaceTargetInstanceId) {
+      const target = placedBeads.find((b) => b.instanceId === replaceTargetInstanceId);
+      if (target?.product.bead_category === "bar") setActiveTab(BAR_TAB);
+      return;
+    }
+    if (editReplaceMode && editReplaceTargetIds.length > 0) {
+      const allBars = editReplaceTargetIds.every((id) =>
+        placedBeads.find((b) => b.instanceId === id)?.product.bead_category === "bar",
+      );
+      if (allBars) setActiveTab(BAR_TAB);
+    }
+  }, [replaceTargetInstanceId, editReplaceMode, editReplaceTargetIds, placedBeads]);
+
   // How many of the selected candidate type fit in the freed arc (up to the number of removed beads).
   // Computed once per render so JSX doesn't run the loop inline.
   const editReplaceFitCount = useMemo(() => {
@@ -354,10 +401,26 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBead, isEditReplace, isImplicitEditReplace, withoutTargets, editReplaceTargetIds, braceletRadius]);
 
+  // Uncapped fit count for bar → non-bar replace (not limited by run length).
+  const barReplaceFitCount = useMemo(() => {
+    if (!isBarReplace || !selectedBead || selectedBead.bead_category === "bar") return 0;
+    const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
+    let count = 0;
+    let tempList = baseline;
+    while (count < 500 && beadFits(tempList, { product: selectedBead }, braceletRadius)) {
+      count++;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tempList = [...tempList, { instanceId: `__fit_${count}`, product: selectedBead } as any];
+    }
+    return count;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBarReplace, isBarSingleReplace, selectedBead, effectivePlacedBeads, withoutTargets, braceletRadius]);
+
   // Default replaceQuantity to however many fit whenever a new bead is selected or fit count changes
   useEffect(() => {
-    if (editReplaceFitCount > 0) setReplaceQuantity(editReplaceFitCount);
-  }, [editReplaceFitCount]);
+    if (isBarReplace && barReplaceFitCount > 0) setReplaceQuantity(barReplaceFitCount);
+    else if (editReplaceFitCount > 0) setReplaceQuantity(editReplaceFitCount);
+  }, [editReplaceFitCount, isBarReplace, barReplaceFitCount]);
 
   const isSpacerMode = activeTab === SPACER_TAB;
   const isBarMode  = activeTab === BAR_TAB;
@@ -367,6 +430,15 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const totalArc     = braceletArc(radius);
   const used         = usedArc(placedBeads);
   const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+
+  // Freed arc in mm available when replacing bar(s) — used by SpacerPicker and SeedBeadPicker.
+  const barFreedArcMm = useMemo(() => {
+    if (!isBarReplace) return undefined;
+    const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
+    const usedM = usedArc(baseline);
+    return Math.max(0, Math.round((totalArc - usedM) * 1000 * 10) / 10);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBarReplace, isBarSingleReplace, effectivePlacedBeads, withoutTargets, totalArc]);
 
   // Exclude "bar" from the data-driven pills — the bar tab renders BarPicker, not the card grid.
   const beadCategories = useMemo(
@@ -440,6 +512,11 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
   function handleReplace() {
     if (!selectedBead || !replaceTargetInstanceId) return;
+    if (isBarSingleReplace) {
+      const err = replaceWithBeadsAction([replaceTargetInstanceId], selectedBead, replaceQuantity);
+      if (err) { setError(err); setTimeout(() => setError(null), 3000); }
+      return;
+    }
     const err = replaceBeadInStore(replaceTargetInstanceId, selectedBead);
     if (err) {
       setError(err);
@@ -458,6 +535,11 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
   function handleEditReplace() {
     if (!selectedBead || editReplaceTargetIds.length === 0) return;
+    if (isBarEditReplace) {
+      const err = replaceWithBeadsAction(editReplaceTargetIds, selectedBead, replaceQuantity);
+      if (err) { setError(err); setTimeout(() => setError(null), 3000); }
+      return;
+    }
     const isPartialFit = editReplaceFitCount > 0 && editReplaceFitCount < editReplaceTargetIds.length;
     const err = replaceEditSelectedBeadsAction(
       editReplaceTargetIds,
@@ -471,8 +553,23 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   }
 
   function handleAddSpacer(sizeMm: number) {
-    const spacer = createSpacerProduct(sizeMm);
-    const err = addBead(spacer as any);
+    const spacerProduct = createSpacerProduct(sizeMm);
+    if (isBarReplace) {
+      const barIds = isBarSingleReplace ? [replaceTargetInstanceId!] : editReplaceTargetIds;
+      const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
+      let count = 0;
+      let tempList = baseline;
+      while (count < 500 && beadFits(tempList, { product: spacerProduct as any }, braceletRadius)) {
+        count++;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tempList = [...tempList, { instanceId: `__v_${count}`, product: spacerProduct } as any];
+      }
+      if (count === 0) { setError("The spacer is too large for the available space."); setTimeout(() => setError(null), 3000); return; }
+      const err = replaceWithBeadsAction(barIds, spacerProduct as any, count);
+      if (err) { setError(err); setTimeout(() => setError(null), 3000); }
+      return;
+    }
+    const err = addBead(spacerProduct as any);
     if (err) {
       setError(err);
       setTimeout(() => setError(null), 3000);
@@ -487,6 +584,24 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     }
   }
 
+  function handleReplaceBar(product: BeadProduct) {
+    if (replaceTargetInstanceId) {
+      const err = replaceBeadInStore(replaceTargetInstanceId, product);
+      if (err) {
+        setError(err);
+        setTimeout(() => setError(null), 3000);
+      }
+      return;
+    }
+    if (editReplaceMode && editReplaceTargetIds.length > 0) {
+      const err = replaceEditSelectedBeadsAction(editReplaceTargetIds, product);
+      if (err) {
+        setError(err);
+        setTimeout(() => setError(null), 3000);
+      }
+    }
+  }
+
   function handleAddSeedSegment(
     arcMm: number,
     colorway: SeedColorEntry[],
@@ -498,7 +613,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   ) {
     const product = createSeedSegmentProduct(arcMm, randomSeed, seedShape, roundSizeMm, material);
     const isRound = seedShape === "round";
-    const seedConfig = {
+    const seedConfig: SeedSegmentConfig = {
       colorway,
       arc_length_mm: arcMm,
       bead_size_range: (seedSizeMm ? seedBeadSizeRange(seedSizeMm) : SEED_BEAD_SIZE_RANGE) as [number, number],
@@ -507,6 +622,12 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         ? { seed_shape: "round" as const, round_size_mm: roundSizeMm ?? 2 }
         : { seed_size_mm: seedSizeMm ?? 1 }),
     };
+    if (isBarReplace) {
+      const barIds = isBarSingleReplace ? [replaceTargetInstanceId!] : editReplaceTargetIds;
+      const err = replaceBarWithSeedSegmentAction(barIds, product as any, seedConfig);
+      if (err) { setError(err); setTimeout(() => setError(null), 3000); }
+      return;
+    }
     const err = addSeedSegment(product as any, seedConfig);
     if (err) {
       setError(err);
@@ -607,12 +728,31 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
           />
         </ScrollableRow>
 
+        <div key={activeTab ?? "__all"} className="animate-tab-in">
         {isBarMode ? (
-          <BarPicker bars={bars} onAdd={handleAddBar} error={error} />
+          <BarPicker
+            bars={bars}
+            onAdd={handleAddBar}
+            onReplace={handleReplaceBar}
+            effectiveBeads={barEffectiveBeads}
+            isReplaceMode={isBarReplace}
+            error={error}
+          />
         ) : isSpacerMode ? (
-          <SpacerPicker onAdd={handleAddSpacer} error={error} />
+          <SpacerPicker
+            onAdd={handleAddSpacer}
+            error={error}
+            maxArcMm={isBarReplace ? barFreedArcMm : undefined}
+            isReplaceMode={isBarReplace}
+          />
         ) : isSeedMode ? (
-          <SeedBeadPicker onAdd={handleAddSeedSegment} error={error} onManageColors={onManageSeedColors} />
+          <SeedBeadPicker
+            onAdd={handleAddSeedSegment}
+            error={error}
+            onManageColors={onManageSeedColors}
+            maxArcMm={isBarReplace ? barFreedArcMm : undefined}
+            isReplaceMode={isBarReplace}
+          />
         ) : (
           /* ── Normal bead selector ── */
           <>
@@ -745,6 +885,26 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                         </div>
                       </div>
                     )}
+                    {isBarReplace && selectedBead?.bead_category !== "bar" && barReplaceFitCount > 1 && (
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <p className="text-[11px] text-color-base/50">
+                          Up to {barReplaceFitCount} will fit
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setReplaceQuantity(q => Math.max(1, q - 1))}
+                            disabled={replaceQuantity <= 1}
+                            className="w-5 h-5 flex items-center justify-center rounded-[2px] border border-default text-color-base/60 hover:bg-light-grey disabled:opacity-30 disabled:cursor-not-allowed text-xs leading-none"
+                          >−</button>
+                          <span className="w-5 text-center text-[11px] font-medium tabular-nums">{replaceQuantity}</span>
+                          <button
+                            onClick={() => setReplaceQuantity(q => Math.min(barReplaceFitCount, q + 1))}
+                            disabled={replaceQuantity >= barReplaceFitCount}
+                            className="w-5 h-5 flex items-center justify-center rounded-[2px] border border-default text-color-base/60 hover:bg-light-grey disabled:opacity-30 disabled:cursor-not-allowed text-xs leading-none"
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {selectedBead && !isReplaceMode && !isImplicitEditReplace && (
@@ -783,25 +943,25 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                     className="flex w-full items-center justify-center gap-2 disabled group"
                   >
                     <Sparkle size={12} className="-mt-[2.5px] fill-white group-hover:fill-navy stroke-white group-hover:fill-navy group-hover:stroke-navy transition-colors" />
-                    {isEditReplace || isImplicitEditReplace
-                      ? (() => {
-                          const isPartialFit = editReplaceFitCount > 0 && editReplaceFitCount < editReplaceTargetIds.length;
-                          const n = isPartialFit ? replaceQuantity : editReplaceTargetIds.length;
-                          return `Replace ${n} bead${n !== 1 ? "s" : ""}`;
-                        })()
-                      : isReplaceAll ? `Replace All (${replaceAllCount})` : isReplaceSingle ? "Replace Bead" : "Add to design"}
+                    {isBarReplace && selectedBead?.bead_category !== "bar"
+                      ? `Replace bar (×${replaceQuantity})`
+                      : isEditReplace || isImplicitEditReplace
+                        ? (() => {
+                            const isPartialFit = editReplaceFitCount > 0 && editReplaceFitCount < editReplaceTargetIds.length;
+                            const n = isPartialFit ? replaceQuantity : editReplaceTargetIds.length;
+                            return `Replace ${n} bead${n !== 1 ? "s" : ""}`;
+                          })()
+                        : isReplaceAll ? `Replace All (${replaceAllCount})` : isReplaceSingle ? "Replace Bead" : "Add to design"}
                   </Button>
                 )}
                 </>
               ) : (
-                <div className="rounded-[2px] border border-error/20 bg-error/5 px-4 py-3 text-center">
-                  <SectionHeading className="text-error mb-1">Bracelet is full</SectionHeading>
-                  <p className="text-xs text-color-base/80 mt-0">No more items can fit. Remove beads to free up space.</p>
-                </div>
+                <BraceletFullNotice />
               )}
             </div>
           </>
         )}
+        </div>
       </div>
     </Panel>
   );

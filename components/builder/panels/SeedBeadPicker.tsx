@@ -43,9 +43,11 @@ interface SeedBeadPickerProps {
   ) => void;
   error: string | null;
   onManageColors: () => void;
+  maxArcMm?: number;
+  isReplaceMode?: boolean;
 }
 
-export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerProps) {
+export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isReplaceMode }: SeedBeadPickerProps) {
   const { placedBeads, braceletSize } = useStore((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
@@ -106,20 +108,21 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
     setInitialised(true);
   }
 
-  const radius       = BRACELET_SIZE_RADIUS[braceletSize];
-  const totalArc     = braceletArc(radius);
-  const used         = usedArc(placedBeads);
-  const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+  const radius               = BRACELET_SIZE_RADIUS[braceletSize];
+  const totalArc             = braceletArc(radius);
+  const used                 = usedArc(placedBeads);
+  const availableMm          = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+  const effectiveAvailableMm = maxArcMm ?? availableMm;
 
   const parsedQuantity = parseInt(customQuantity) || 0;
   const tooMany = fillMode === "quantity" && parsedQuantity > MAX_QUANTITY;
 
   const arcMm = fillMode === "remaining"
-    ? availableMm
+    ? effectiveAvailableMm
     : fillMode === "quantity"
       ? arcFromQuantity(Math.min(parsedQuantity, MAX_QUANTITY))
       : parseFloat(customMm) || 0;
-  const validArc = arcMm > 0 && arcMm <= availableMm && !tooMany;
+  const validArc = arcMm > 0 && arcMm <= effectiveAvailableMm && !tooMany;
 
   // Preview: generate a small sample of the color distribution
   const previewBeads = useMemo(() => {
@@ -497,7 +500,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
               {fillMode === "remaining" && <span className="w-1.5 h-1.5 rounded-full bg-navy" />}
             </span>
             <span className="flex-1">Fill remaining</span>
-            <span className="text-xs text-color-base/50">{availableMm}mm</span>
+            <span className="text-xs text-color-base/50">{effectiveAvailableMm}mm</span>
           </button>
 
           {/* Custom size (mm) */}
@@ -518,13 +521,13 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
             <input
               type="number"
               min={2}
-              max={availableMm}
+              max={effectiveAvailableMm}
               step={1}
               value={customMm}
               onChange={(e) => { setCustomMm(e.target.value); setFillMode("size"); }}
               onFocus={() => setFillMode("size")}
               onClick={(e) => e.stopPropagation()}
-              placeholder={`2 – ${availableMm}`}
+              placeholder={`2 – ${effectiveAvailableMm}`}
               className={`${fillModeInputClass} ${
                 fillMode === "size"
                   ? "border-default bg-white focus:border-navy"
@@ -583,8 +586,8 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
           {fillMode === "quantity" && parsedQuantity > 0 && !tooMany && (
             <p className="text-xs text-color-base/50 mt-0.5 mb-1 pl-6">
               ≈ {Math.round(arcFromQuantity(parsedQuantity) * 10) / 10}mm
-              {arcFromQuantity(parsedQuantity) > availableMm && (
-                <span className="text-error ml-1">(exceeds {availableMm}mm available)</span>
+              {arcFromQuantity(parsedQuantity) > effectiveAvailableMm && (
+                <span className="text-error ml-1">(exceeds {effectiveAvailableMm}mm available)</span>
               )}
             </p>
           )}
@@ -595,7 +598,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
       <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
         {error && <ErrorAlert message={error} />}
 
-        {availableMm >= 2 ? (
+        {effectiveAvailableMm >= 2 ? (
           <>
             {!tooMany && (
               <SectionHeading>
@@ -621,7 +624,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors }: SeedBeadPickerP
                 ) : (
                   <Square size={16} className="-mt-[2.5px] stroke-white group-hover:stroke-navy transition-colors" />
                 )}
-                {isRound ? "Add round beads" : "Add seed beads"}
+                {isReplaceMode ? "Replace bar" : isRound ? "Add round beads" : "Add seed beads"}
               </Button>
             )}
           </>
