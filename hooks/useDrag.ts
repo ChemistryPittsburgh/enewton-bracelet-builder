@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { getBeadAngle, getBeadTransformLine } from "@/lib/bead-layout";
 import type { BeadProduct, PlacedBead } from "@/types";
 
+
 // ─── Slot-finding helpers ─────────────────────────────────────────────────────
 
 function nearestSlot(point: THREE.Vector3, beads: PlacedBead[], radius: number): number {
@@ -37,22 +38,46 @@ function nearestSlotLine(point: THREE.Vector3, beads: PlacedBead[]): number {
 
 // ─── Reorder drag (edit-mode, in-canvas) ─────────────────────────────────────
 
-export interface DragState { fromIndex: number; toIndex: number }
+export interface DragState {
+  fromIndex: number;
+  toIndex: number;
+  /** Sorted indices of all selected beads when dragging as a group. */
+  groupFromIndices?: number[];
+}
 
 export function useBraceletReorderDrag(
   beadsRef: React.RefObject<PlacedBead[]>,
   radiusRef: React.RefObject<number>,
   viewModeRef: React.RefObject<"3D" | "line">,
-  reorderBeads: (from: number, to: number) => void
 ): { dragState: DragState | null; handleDragStart: (index: number) => void } {
   const { gl, camera } = useThree();
   const [dragState, setDragState] = useState<DragState | null>(null);
+  const reorderBeads = useStore((s) => s.reorderBeads);
+  const reorderBeadsGroup = useStore((s) => s.reorderBeadsGroup);
   const reorderBeadsRef = useRef(reorderBeads);
   reorderBeadsRef.current = reorderBeads;
+  const reorderBeadsGroupRef = useRef(reorderBeadsGroup);
+  reorderBeadsGroupRef.current = reorderBeadsGroup;
   const isDragging = dragState !== null;
 
   function handleDragStart(index: number) {
-    setDragState({ fromIndex: index, toIndex: index });
+    const editSelectedIds = useStore.getState().editSelectedIds;
+    const beads = beadsRef.current!;
+    const draggedBead = beads[index];
+    const isGroupDrag =
+      draggedBead != null &&
+      editSelectedIds.includes(draggedBead.instanceId) &&
+      editSelectedIds.length > 1;
+
+    if (isGroupDrag) {
+      const groupFromIndices = editSelectedIds
+        .map((id) => beads.findIndex((b) => b.instanceId === id))
+        .filter((i) => i !== -1)
+        .sort((a, b) => a - b);
+      setDragState({ fromIndex: index, toIndex: index, groupFromIndices });
+    } else {
+      setDragState({ fromIndex: index, toIndex: index });
+    }
   }
 
   useEffect(() => {
@@ -62,6 +87,7 @@ export function useBraceletReorderDrag(
     const raycaster = new THREE.Raycaster();
     const target = new THREE.Vector3();
     const fromIndex = dragState.fromIndex;
+    const groupFromIndices = dragState.groupFromIndices;
     let toIndex = dragState.toIndex;
 
     function onMove(e: PointerEvent) {
@@ -73,12 +99,17 @@ export function useBraceletReorderDrag(
         toIndex = viewModeRef.current === "line"
           ? nearestSlotLine(target, beadsRef.current!)
           : nearestSlot(target, beadsRef.current!, radiusRef.current!);
-        setDragState({ fromIndex, toIndex });
+        setDragState({ fromIndex, toIndex, ...(groupFromIndices ? { groupFromIndices } : {}) });
       }
     }
 
     function onUp() {
-      if (fromIndex !== toIndex) reorderBeadsRef.current(fromIndex, toIndex);
+      if (groupFromIndices && groupFromIndices.length > 1) {
+        reorderBeadsGroupRef.current(groupFromIndices, fromIndex, toIndex);
+        useStore.getState().clearEditSelection();
+      } else if (fromIndex !== toIndex) {
+        reorderBeadsRef.current(fromIndex, toIndex);
+      }
       setDragState(null);
       gl.domElement.style.cursor = "";
     }

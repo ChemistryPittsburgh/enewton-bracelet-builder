@@ -129,12 +129,15 @@ export function useSceneItemInteraction(
 
     const startX = e.nativeEvent.clientX;
     const startY = e.nativeEvent.clientY;
+    const isInSelection = editSelectedIds.includes(bead.instanceId);
 
     function onMove(moveEvent: PointerEvent) {
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
       if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
-        clearEditSelection();
+        // Keep the selection alive when dragging a selected bead so the group
+        // can be detected downstream. Clear it only for single-bead drags.
+        if (!isInSelection) clearEditSelection();
         clearSelectedBead();
         gl.domElement.style.cursor = "grabbing";
         onDragStart?.(slotIndex);

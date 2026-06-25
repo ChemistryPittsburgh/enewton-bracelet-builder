@@ -18,7 +18,6 @@ const SPACER_VISIBLE_STATUSES = new Set(["draft", "rejected"]);
 
 export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const beads                   = useStore((s) => s.beads);
-  const reorderBeads            = useStore((s) => s.reorderBeads);
   const braceletSize            = useStore((s) => s.braceletSize);
   const viewMode                = useStore((s) => s.viewMode);
   const activeDesignId          = useStore((s) => s.activeDesignId);
@@ -84,7 +83,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const viewModeRef = useRef<"3D" | "line">(viewMode);
   viewModeRef.current = viewMode;
 
-  const { dragState, handleDragStart } = useBraceletReorderDrag(beadsRef, radiusRef, viewModeRef, reorderBeads);
+  const { dragState, handleDragStart } = useBraceletReorderDrag(beadsRef, radiusRef, viewModeRef);
   const { panelDropSlot, dragFromPanel } = usePanelDrop(beadsRef, radiusRef, viewModeRef);
 
   return (
@@ -93,11 +92,11 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
         const isSpacer      = bead.product.bead_category === "spacer";
         const isBar         = bead.product.bead_category === "bar";
         const isSeedSegment = bead.product.bead_category === "seed_segment";
-        const isDragged = dragState?.fromIndex === index;
+        const isDragged =
+          dragState?.fromIndex === index ||
+          (dragState?.groupFromIndices?.includes(index) ?? false);
         const isDragTarget =
-          (dragState !== null &&
-            dragState.toIndex === index &&
-            dragState.fromIndex !== index) ||
+          (dragState !== null && dragState.toIndex === index && !isDragged) ||
           (panelDropSlot === index && dragFromPanel !== null);
 
         return (
