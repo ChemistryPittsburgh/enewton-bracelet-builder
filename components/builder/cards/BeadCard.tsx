@@ -5,8 +5,10 @@ import { useStore } from "@/lib/store";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import type { BeadProduct } from "@/types";
 
-export function BeadCard({ bead, selected, onClick, canEdit, disabled = false }: {
+export function BeadCard({ bead, selected, onClick, canEdit, disabled = false, braceletFull = false }: {
   bead: BeadProduct; selected: boolean; onClick: () => void; canEdit: boolean; disabled?: boolean;
+  /** When the whole bracelet is full, disabled cards stay visible (greyed) instead of hidden. */
+  braceletFull?: boolean;
 }) {
   const setDragFromPanel = useStore((s) => s.setDragFromPanel);
   const startRef = useRef<{ x: number; y: number } | null>(null);
@@ -47,7 +49,7 @@ export function BeadCard({ bead, selected, onClick, canEdit, disabled = false }:
       disabled={disabled}
       className={`flex flex-col gap-1 rounded-[2px] border transition-all overflow-hidden h-full ${
         disabled
-          ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed"
+          ? `border-default bg-light-grey/50 opacity-40 cursor-not-allowed ${braceletFull ? "" : "hidden"}`
           : canEdit
             ? "cursor-grab active:cursor-grabbing"
             : "cursor-default"

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Search, X, Dot, Sparkle, ArrowLeftRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { capitalize, unslugify } from "@/lib/utils";
-import type { BeadProduct, SeedColorEntry, SeedSegmentConfig } from "@/types";
+import type { BeadProduct, PlacedBead, SeedColorEntry, SeedSegmentConfig } from "@/types";
 
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +33,17 @@ import { BarPicker } from "./BarPicker";
 const SPACER_TAB = "__spacer__";
 const BAR_TAB    = "bar";
 const SEED_TAB   = "__seed__";
+
+/** Which category pill a placed bead belongs to — used to default the tab when a
+ *  replace mode opens the selector. Seeds/spacers/bars map to their synthetic
+ *  tabs; everything else to its bead_category (null → "All"). */
+function tabForPlacedBead(b: PlacedBead): string | null {
+  if (b.seedConfig || b.product.bead_category === "seed_segment") return SEED_TAB;
+  const cat = b.product.bead_category;
+  if (cat === "spacer") return SPACER_TAB;
+  if (cat === BAR_TAB)  return BAR_TAB;
+  return cat ?? null;
+}
 
 const panelGapClass = "px-4 xl:px-7";
 
@@ -227,20 +238,27 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     if (isEditReplace && editReplaceNarrowedIds !== null) setSelectedBead(null);
   }, [editReplaceNarrowedIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-switch to the Bar tab when any replace mode targets bar(s).
+  // When a replace mode opens the selector, default the category tab to the item(s)
+  // being replaced: a single target → its tab; several of one category → that tab;
+  // a mix of categories → "All". Re-runs when the target/selection changes (incl.
+  // narrowing) but not on manual tab switches, so the user can freely re-pick after.
   useEffect(() => {
+    let targets: PlacedBead[] = [];
     if (replaceTargetInstanceId) {
-      const target = placedBeads.find((b) => b.instanceId === replaceTargetInstanceId);
-      if (target?.product.bead_category === "bar") setActiveTab(BAR_TAB);
-      return;
+      const t = placedBeads.find((b) => b.instanceId === replaceTargetInstanceId);
+      if (t) targets = [t];
+    } else if (replaceAllTargetProductId !== null) {
+      const t = placedBeads.find((b) => b.product.id === replaceAllTargetProductId);
+      if (t) targets = [t];
+    } else if (replaceSeedTargetIds && replaceSeedTargetIds.length > 0) {
+      targets = placedBeads.filter((b) => replaceSeedTargetIds.includes(b.instanceId));
+    } else if (editReplaceMode && editReplaceTargetIds.length > 0) {
+      targets = placedBeads.filter((b) => editReplaceTargetIds.includes(b.instanceId));
     }
-    if (editReplaceMode && editReplaceTargetIds.length > 0) {
-      const allBars = editReplaceTargetIds.every((id) =>
-        placedBeads.find((b) => b.instanceId === id)?.product.bead_category === "bar",
-      );
-      if (allBars) setActiveTab(BAR_TAB);
-    }
-  }, [replaceTargetInstanceId, editReplaceMode, editReplaceTargetIds, placedBeads]);
+    if (targets.length === 0) return;
+    const tabs = new Set(targets.map(tabForPlacedBead));
+    setActiveTab(tabs.size === 1 ? [...tabs][0] : null);
+  }, [replaceTargetInstanceId, replaceAllTargetProductId, replaceSeedTargetIds, editReplaceMode, editReplaceTargetIds, placedBeads]);
 
   // How many of the selected candidate type fit in the freed arc (up to the number of removed beads).
   // Computed once per render so JSX doesn't run the loop inline.
@@ -312,6 +330,15 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
       })
       .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
   }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode, isBarMode, isSeedMode]);
+
+  // True when nothing in the current view can be added: either no arc is left or
+  // no visible bead fits. Not applicable while replacing (you're swapping, not
+  // adding). Drives both the bottom-bar "full" message and the bead cards, which
+  // show greyed-out (rather than hidden) when the bracelet is full.
+  const braceletFull =
+    !isReplaceMode &&
+    filteredBeads.length > 0 &&
+    !(availableMm >= 1 && filteredBeads.some((b) => candidateFits(b)));
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -720,6 +747,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                       onClick={() => handleSelectBead(bead)}
                       canEdit={canEdit}
                       disabled={!candidateFits(bead)}
+                      braceletFull={braceletFull}
                     />
                   ))}
                 </div>
@@ -730,7 +758,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             <div className={`shrink-0 border-t border-default/50 pt-4 pb-5 space-y-3 ${panelGapClass}`}>
               {error && <ErrorAlert message={error} />}
 
-              {filteredBeads.length === 0 || isReplaceMode || (availableMm >= 1 && filteredBeads.some(b => candidateFits(b))) ? (
+              {!braceletFull ? (
                 <>
                 <p className="text-[12px] tracking-wider uppercase font-bold text-color-base/70 mb-1">
                   {isReplaceMode
