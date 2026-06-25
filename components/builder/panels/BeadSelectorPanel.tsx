@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, X, Dot, Sparkle, ArrowLeftRight } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { capitalize, unslugify } from "@/lib/utils";
+import { capitalize, unslugify, beadMatchesSearch } from "@/lib/utils";
 import type { BeadProduct, PlacedBead, SeedColorEntry, SeedSegmentConfig } from "@/types";
 
 import { Panel } from "@/components/ui/Panel";
@@ -322,7 +322,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const filteredBeads = useMemo(() => {
     return beads
       .filter((b) => {
-        const matchesSearch = !search || b.name.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = beadMatchesSearch(b, search);
         const matchesCategory = !activeTab || isSpacerMode || isBarMode || isSeedMode || b.bead_category === activeTab;
         const matchesMaterial = !activeMaterial || b.material === activeMaterial;
         const matchesType = !activeType || b.bead_type === activeType;
@@ -338,7 +338,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const braceletFull =
     !isReplaceMode &&
     filteredBeads.length > 0 &&
-    !(availableMm >= 0.5 && filteredBeads.some((b) => candidateFits(b)));
+    !(availableMm >= 1 && filteredBeads.some((b) => candidateFits(b)));
 
   // ── Handlers ────────────────────────────────────────────────────────────
 

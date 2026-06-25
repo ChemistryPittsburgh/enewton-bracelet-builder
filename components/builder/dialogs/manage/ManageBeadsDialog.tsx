@@ -28,7 +28,7 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BeadThumbnail } from "@/components/ui/BeadThumbnail";
 import { Tooltip } from "@/components/ui/Tooltip";
 
-import { cn, slugify, unslugify } from "@/lib/utils";
+import { cn, slugify, unslugify, beadMatchesSearch } from "@/lib/utils";
 import { STATUS_META, getBeadCategoryMeta } from "@/lib/category-colors";
 
 import {
@@ -1121,13 +1121,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
     }
 
     if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (b) =>
-          b.name.toLowerCase().includes(q) ||
-          (b.bead_type ?? "").toLowerCase().includes(q) ||
-          (b.sku ?? "").toLowerCase().includes(q),
-      );
+      list = list.filter((b) => beadMatchesSearch(b, search));
     }
 
     return list;
@@ -1339,7 +1333,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
               <div className="relative flex-1 min-w-[180px]">
                 <input
                   type="text"
-                  placeholder="Search by name, type, or SKU"
+                  placeholder="Search by name, type, material, SKU…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full rounded-[2px] border border-default py-2 pl-3 pr-16 text-sm outline-none placeholder:text-color-base/50 focus:border-navy transition-colors"
