@@ -228,6 +228,20 @@ export function BuilderLayout() {
     if (isNarrow && braceletPanelOpen && rightPanelOpen) setRightPanel(null);
   }, [isNarrow, braceletPanelOpen, rightPanelOpen]);
 
+  // Global shortcut: E → enter edit mode (mirrors Cmd+Esc which exits it)
+  useEffect(() => {
+    if (isEditMode) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((e.key === "e" || e.key === "E") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (canEdit && !isLocked) toggleEditMode();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isEditMode, canEdit, isLocked, toggleEditMode]);
+
 
   function openBraceletPanel() {
     const next = !braceletPanelOpen;
