@@ -215,7 +215,7 @@ export const MIN_BEAD_DIAMETER = 0.2;
 /** Maximum iterations when counting how many items fit in freed bar arc. */
 export const BAR_REPLACE_FIT_LIMIT = 500;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "float_charm", "tube", "bar"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "float_charm", "bar"] as const;
 export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "gold_filled", "sterling", "crystal", "resin"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────

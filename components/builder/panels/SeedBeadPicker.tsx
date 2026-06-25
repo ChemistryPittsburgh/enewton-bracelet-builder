@@ -15,7 +15,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSeedColors } from "@/hooks/useSeedColors";
 import { useSeedPresets } from "@/hooks/useSeedPresets";
-import { braceletArc, usedArc } from "@/lib/bead-layout";
+import { maxSeedArcMm } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   SEED_BEAD_THICKNESS_RATIO,
@@ -112,9 +112,10 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
   }
 
   const radius               = BRACELET_SIZE_RADIUS[braceletSize];
-  const totalArc             = braceletArc(radius);
-  const used                 = usedArc(placedBeads);
-  const availableMm          = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+  // Gap-aware: the most seed arc that actually fits when appended (accounts for
+  // the spacing gap inserted before the segment) — floored so we never offer a
+  // value that beadFits would then reject. See maxSeedArcMm.
+  const availableMm          = Math.floor(maxSeedArcMm(placedBeads, radius) * 10) / 10;
   const effectiveAvailableMm = maxArcMm ?? availableMm;
 
   // Smallest arc that can hold at least one bead of the currently selected type/size.

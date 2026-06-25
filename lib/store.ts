@@ -66,6 +66,11 @@ interface Store {
 
   copyBracelet: () => void;
 
+  /** Fork the pattern currently being edited into a fresh, unsaved bracelet:
+   *  keeps the beads on the canvas but detaches from the pattern (so Save creates
+   *  a new design) and drops into edit + replace mode for customising. */
+  newBraceletFromPattern: () => void;
+
   /** Open the info panel for a specific bead. */
   selectBead: (bead: PlacedBead) => void;
 
@@ -172,6 +177,9 @@ interface Store {
   /** Ephemeral — not persisted. True when the canvas is in drag-to-reorder edit mode. */
   isEditMode: boolean;
   toggleEditMode: () => void;
+  /** Enter edit mode with the Replace-bead box already open — used after creating
+   *  a bracelet from a pattern so the user can immediately swap beads to customise. */
+  enterEditReplaceMode: () => void;
 
   /** Ephemeral — when true, colliding charms are highlighted with an orange ring. */
   showCharmCollisions: boolean;
@@ -470,6 +478,23 @@ export const useStore = create<Store>()(
               ? `Copy of ${s.braceletName}`
               : DEFAULT_BRACELET_NAME,
           isDirty: true,             // so Save creates a new bracelet
+        })),
+
+      newBraceletFromPattern: () =>
+        set((s) => ({
+          activeDesignId: null,      // detach from the saved design
+          activePatternId: null,     // stop editing the pattern → Save makes a new design
+          braceletName: DEFAULT_BRACELET_NAME, // fresh bracelet, not "Copy of …"
+          isDirty: true,             // so Save creates a new bracelet
+          // drop straight into edit + replace mode, mirroring create-from-pattern
+          isEditMode: true,
+          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          selectedBead: null,
+          editReplaceMode: true,
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          editSelectedIds: [],
+          ...CLEAR_REPLACE_TARGETS,
         })),
 
       selectBead(bead) {
@@ -988,6 +1013,19 @@ export const useStore = create<Store>()(
           editReplaceMode: false,
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
+        }));
+      },
+
+      enterEditReplaceMode() {
+        set((s) => ({
+          isEditMode: true,
+          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          selectedBead: null,
+          editReplaceMode: true,
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          editSelectedIds: [],
+          ...CLEAR_REPLACE_TARGETS,
         }));
       },
 

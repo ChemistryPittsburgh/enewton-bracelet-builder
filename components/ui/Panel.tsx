@@ -26,12 +26,12 @@ const fixedSlideClasses: Record<SlideDirection, { base: string; open: string; cl
     closed: "translate-y-full",
   },
   right: {
-    base: "absolute right-0 top-0 h-full transition-transform duration-300 ease-out",
+    base: "absolute right-0 border-l border-default top-0 h-full transition-transform duration-300 ease-out",
     open: "translate-x-0",
     closed: "translate-x-full",
   },
   left: {
-    base: "absolute left-0 top-0 h-full transition-transform duration-300 ease-out",
+    base: "absolute left-0 top-0 border-r border-default  h-full transition-transform duration-300 ease-out",
     open: "translate-x-0",
     closed: "-translate-x-full",
   },

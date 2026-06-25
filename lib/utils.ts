@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import type { BeadProduct } from "@/types";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -87,4 +89,35 @@ export function formatDateTime(iso: string): string {
 export function formatMm(mm: number): string {
   const rounded = Math.round(mm * 10) / 10;
   return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
+}
+
+
+/**
+ * Free-text search match for a bead. Looks beyond the name to the bead's
+ * taxonomy — type, category, material, colour — plus its SKU and size, so a
+ * query like "gold", "charm", or "4mm" finds beads even when the term isn't in
+ * the name. Separators (_ -) are treated as spaces, so "float charm" matches a
+ * "float_charm" category. An empty query matches everything.
+ */
+export function beadMatchesSearch(
+  bead: Pick<
+    BeadProduct,
+    "name" | "bead_type" | "bead_category" | "material" | "color" | "sku" | "size_mm"
+  >,
+  query: string,
+): boolean {
+  const q = query.trim().toLowerCase().replace(/[_-]+/g, " ");
+  if (!q) return true;
+  const fields = [
+    bead.name,
+    bead.bead_type,
+    bead.bead_category,
+    bead.material,
+    bead.color,
+    bead.sku,
+    bead.size_mm != null ? `${bead.size_mm}mm` : null,
+  ];
+  return fields.some(
+    (f) => f != null && String(f).toLowerCase().replace(/[_-]+/g, " ").includes(q),
+  );
 }
