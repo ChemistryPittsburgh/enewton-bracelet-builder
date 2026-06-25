@@ -612,15 +612,25 @@ export const useStore = create<Store>()(
         const removedSet = new Set(instanceIds);
         const withoutTargets = s.beads.filter(b => !removedSet.has(b.instanceId));
 
-        let tempList = withoutTargets;
+        // Validate by inserting at the correct slot — not tail-appending — so that
+        // charm-adjacency spacing (body_width_mm) is computed against the real neighbors.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const testInserted: any[] = [];
         for (let i = 0; i < count; i++) {
-          if (!beadFits(tempList, { product: newProduct }, radius)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const next = { instanceId: `__v_${i}`, product: newProduct } as any;
+          const checkList = [
+            ...withoutTargets.slice(0, insertAt),
+            ...testInserted,
+            next,
+            ...withoutTargets.slice(insertAt),
+          ];
+          if (usedArc(checkList) > braceletArc(radius)) {
             return i === 0
               ? "No replacement items fit in the available space."
               : `Only ${i} item${i > 1 ? "s" : ""} fit in the available space.`;
           }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          tempList = [...tempList, { instanceId: `__v_${i}`, product: newProduct } as any];
+          testInserted.push(next);
         }
 
         const inserted: PlacedBead[] = Array.from({ length: count }, () => ({

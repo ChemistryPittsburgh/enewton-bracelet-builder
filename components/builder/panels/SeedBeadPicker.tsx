@@ -8,6 +8,7 @@ import type { SeedColorEntry } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { AvailableSpaceBox } from "@/components/ui/AvailableSpaceBox";
+import { BraceletFullNotice } from "@/components/ui/BraceletFullNotice";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Tooltip } from "@/components/ui/Tooltip";
 
@@ -629,10 +630,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
             )}
           </>
         ) : (
-          <div className="rounded-[2px] border border-error/20 bg-error/5 px-4 py-3 text-center">
-            <SectionHeading className="text-error mb-1">Bracelet is full</SectionHeading>
-            <p className="text-xs text-color-base/80 mt-0">Remove beads to free up space.</p>
-          </div>
+          <BraceletFullNotice />
         )}
       </div>
 

@@ -20,6 +20,7 @@ import { useBeads } from "@/hooks/useBeads";
 import { braceletArc, usedArc, beadFits } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
+  BAR_REPLACE_FIT_LIMIT,
   createSpacerProduct,
   createSeedSegmentProduct,
   SEED_BEAD_SIZE_RANGE,
@@ -407,7 +408,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
     let count = 0;
     let tempList = baseline;
-    while (count < 500 && beadFits(tempList, { product: selectedBead }, braceletRadius)) {
+    while (count < BAR_REPLACE_FIT_LIMIT && beadFits(tempList, { product: selectedBead }, braceletRadius)) {
       count++;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tempList = [...tempList, { instanceId: `__fit_${count}`, product: selectedBead } as any];
@@ -559,7 +560,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
       const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
       let count = 0;
       let tempList = baseline;
-      while (count < 500 && beadFits(tempList, { product: spacerProduct as any }, braceletRadius)) {
+      while (count < BAR_REPLACE_FIT_LIMIT && beadFits(tempList, { product: spacerProduct as any }, braceletRadius)) {
         count++;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tempList = [...tempList, { instanceId: `__v_${count}`, product: spacerProduct } as any];

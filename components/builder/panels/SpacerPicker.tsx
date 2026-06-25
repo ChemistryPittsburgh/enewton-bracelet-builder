@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { AvailableSpaceBox } from "@/components/ui/AvailableSpaceBox";
+import { BraceletFullNotice } from "@/components/ui/BraceletFullNotice";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 import { usePermissions } from "@/hooks/usePermissions";
@@ -125,10 +126,7 @@ export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode }: SpacerPi
           )}
           </>
         ) : (
-          <div className="rounded-[2px] border border-error/20 bg-error/5 px-4 py-3 text-center">
-            <SectionHeading className="mb-1 text-error">Bracelet is full</SectionHeading>
-            <p className="text-xs text-color-base/80 mt-0">Remove beads to free up space.</p>
-          </div>
+          <BraceletFullNotice />
         )}
       </div>
     </div>

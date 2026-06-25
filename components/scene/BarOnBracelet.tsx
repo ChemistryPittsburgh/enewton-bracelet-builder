@@ -62,21 +62,27 @@ export function BarOnBracelet({
     // Clamp V so the LINEAR filter never blends the atlas strip (V=0.846..1.0) with
     // the solid-black background outside it. Without this, the seam vertex at V=1.0
     // bleeds toward V=0.0 (black) via RepeatWrapping, producing the thin dark strip.
+    // Clone each texture before mutating wrapT — MeshStandardMaterial.clone() is a
+    // shallow copy, so rawMat.map etc. point to the same Texture instance cached by
+    // useGLTF. Mutating wrapT in-place would affect all other consumers of that GLB.
     const clampT = (t: Texture | null) => {
       if (!t) return;
-      t.wrapT    = ClampToEdgeWrapping;
-      t.needsUpdate = true;
+      const owned = t.clone();
+      owned.wrapT    = ClampToEdgeWrapping;
+      owned.needsUpdate = true;
+      return owned;
     };
-    clampT(rawMat.map);
-    clampT(rawMat.normalMap);
-    clampT(rawMat.metalnessMap);
-    clampT(rawMat.roughnessMap);
-    clampT(rawMat.aoMap);
-    clampT(rawMat.emissiveMap);
+    rawMat.map          = clampT(rawMat.map)          ?? rawMat.map;
+    rawMat.normalMap    = clampT(rawMat.normalMap)    ?? rawMat.normalMap;
+    rawMat.metalnessMap = clampT(rawMat.metalnessMap) ?? rawMat.metalnessMap;
+    rawMat.roughnessMap = clampT(rawMat.roughnessMap) ?? rawMat.roughnessMap;
+    rawMat.aoMap        = clampT(rawMat.aoMap)        ?? rawMat.aoMap;
+    rawMat.emissiveMap  = clampT(rawMat.emissiveMap)  ?? rawMat.emissiveMap;
+    rawMat.needsUpdate  = true;
 
     return rawMat;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, bead.product.material]);
+  }, [scene, bead.product.material, (bead.product as any).finish]);
 
   // Read the actual UV bounds from the GLB:
   //   V range — texture atlas strip (e.g. 0.846..1.0 for BlissBar_Textured); outside
@@ -98,7 +104,7 @@ export function BarOnBracelet({
     let vMin = Infinity, vMax = -Infinity;
 
     for (let i = 0; i < uvAttr.count; i++) {
-      const uKey = Math.round(uvAttr.getX(i) * 1e4) / 1e4;
+      const uKey = Math.round(uvAttr.getX(i) * 1e3) / 1e3;
       const v    = uvAttr.getY(i);
       if (v < vMin) vMin = v;
       if (v > vMax) vMax = v;
@@ -170,9 +176,9 @@ export function BarOnBracelet({
     const indexArr: number[] = [];
 
     for (let s = 0; s < N; s++) {
-      const posZ = N === 1 ? 0 : -halfLen + (s / (N - 1)) * 2 * halfLen;
+      const posZ = -halfLen + (s / (N - 1)) * 2 * halfLen;
       const phi  = (posZ / halfLen) * halfAngle;
-      const u    = N === 1 ? 0 : s / (N - 1);
+      const u    = s / (N - 1);
 
       for (let r = 0; r <= M; r++) {          // inclusive: r=M duplicates r=0 position with V=vMax
         const theta = (r / M) * 2 * Math.PI;  // at r=M: theta=2π ≡ 0, same position as r=0

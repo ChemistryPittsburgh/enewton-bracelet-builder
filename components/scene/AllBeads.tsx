@@ -92,7 +92,6 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
       {beads.map((bead, index) => {
         const isSpacer      = bead.product.bead_category === "spacer";
         const isBar         = bead.product.bead_category === "bar";
-        const isTexturedBar = isBar && (bead.product.glb_path?.toLowerCase().includes("textured") ?? false);
         const isSeedSegment = bead.product.bead_category === "seed_segment";
         const isDragged = dragState?.fromIndex === index;
         const isDragTarget =

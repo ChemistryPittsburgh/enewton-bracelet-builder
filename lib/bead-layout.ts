@@ -99,7 +99,13 @@ export function braceletArc(radius: number): number {
 // Half-arc a single bead occupies from its own centre (no neighbor context needed).
 // Bars use size_mm (their arc length) rather than diameter (their tube thickness).
 function selfHalf(bead: BeadLike): number {
-  if (bead.product.bead_category === "bar" && bead.product.size_mm != null) {
+  if (bead.product.bead_category === "bar") {
+    if (bead.product.size_mm == null) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[bead-layout] bar has null size_mm — falling back to diameter; arc accounting will be wrong`);
+      }
+      return bead.product.diameter / 2;
+    }
     return bead.product.size_mm / 2 / 1000;
   }
   return bead.product.diameter / 2;
