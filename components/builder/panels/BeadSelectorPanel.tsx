@@ -338,7 +338,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const braceletFull =
     !isReplaceMode &&
     filteredBeads.length > 0 &&
-    !(availableMm >= 1 && filteredBeads.some((b) => candidateFits(b)));
+    !(availableMm >= 0.5 && filteredBeads.some((b) => candidateFits(b)));
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -720,7 +720,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             <div className={`flex-1 min-h-0 overflow-y-auto py-3 ${panelGapClass}`}>
               {filteredBeads.length === 0 ? (
                 <p className="text-xs text-color-base/50 text-center py-8">
-                  No beads match your filters.
+                  No items match your filters.
                 </p>
               ) : isEditReplace && editReplaceTargetIds.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center gap-3 py-12 px-4">
