@@ -110,6 +110,10 @@ interface Store {
   replaceSeedTargetIds: string[] | null;
   /** Enter seed-replace mode for every seed segment matching the given seedMatchKey (size + shape). */
   startReplaceSeedMode: (seedKey: string) => void;
+  /** Clear the seed-replace target without leaving replace mode (used when a bead/charm type is picked instead). */
+  clearReplaceSeed: () => void;
+  /** Enter seed-replace mode for a SINGLE seed segment (clicking one seed) — not the whole size/shape kind. */
+  startReplaceSeedSegment: (instanceId: string) => void;
   /** Swap each queued seed segment in place with a freshly-built segment (preserving its own length). */
   replaceSeedSegments: (replacements: { instanceId: string; product: BeadProduct; seedConfig: SeedSegmentConfig }[]) => string | null;
 
@@ -266,6 +270,44 @@ interface Store {
   setSpacersHiddenForCapture: (hidden: boolean) => void;
 }
 
+/** Reset bundle: clears every "which item(s) are being replaced" pointer, so
+ *  the three flags can never drift out of sync. Spread into a set(). */
+const CLEAR_REPLACE_TARGETS: Pick<
+  Store,
+  "replaceTargetInstanceId" | "replaceAllTargetProductId" | "replaceSeedTargetIds"
+> = {
+  replaceTargetInstanceId: null,
+  replaceAllTargetProductId: null,
+  replaceSeedTargetIds: null,
+};
+
+/** Reset bundle: tears down the whole edit-mode replace selection. */
+const CLEAR_EDIT_REPLACE: Pick<
+  Store,
+  "editReplaceMode" | "editReplaceNarrowedIds" | "editSelectionGroups" | "editSelectedIds"
+> = {
+  editReplaceMode: false,
+  editReplaceNarrowedIds: null,
+  editSelectionGroups: [],
+  editSelectedIds: [],
+};
+
+/** Drop a set of instanceIds from the edit selection, frozen groups, and the
+ *  narrowed subset in one place — shared by removeBead and the replace actions. */
+function pruneEditSelection(
+  s: Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds">,
+  removed: Set<string>,
+): Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds"> {
+  const narrowed = s.editReplaceNarrowedIds?.filter((id) => !removed.has(id)) ?? null;
+  return {
+    editSelectionGroups: s.editSelectionGroups
+      .map((g) => g.filter((id) => !removed.has(id)))
+      .filter((g) => g.length > 0),
+    editSelectedIds: s.editSelectedIds.filter((id) => !removed.has(id)),
+    editReplaceNarrowedIds: narrowed && narrowed.length ? narrowed : null,
+  };
+}
+
 /** Persist the store to localStorage.
  * If fields change be sure to update the migrate function to convert the old data to the new format.
 */
@@ -332,7 +374,7 @@ export const useStore = create<Store>()(
         if (undoStack.length === 0) return;
         const [snapshot, ...rest] = undoStack;
         const current: CanvasSnapshot = { beads: [...beads], braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription };
-        set({ ...snapshot, undoStack: rest, redoStack: [current, ...redoStack], isDirty: true, selectedBead: null, editSelectedIds: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ ...snapshot, undoStack: rest, redoStack: [current, ...redoStack], isDirty: true, selectedBead: null, ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE });
       },
 
       redo() {
@@ -340,7 +382,7 @@ export const useStore = create<Store>()(
         if (redoStack.length === 0) return;
         const [snapshot, ...rest] = redoStack;
         const current: CanvasSnapshot = { beads: [...beads], braceletSize, bandMaterial, hairtieColor, braceletName, braceletDescription };
-        set({ ...snapshot, redoStack: rest, undoStack: [current, ...undoStack], isDirty: true, selectedBead: null, editSelectedIds: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ ...snapshot, redoStack: rest, undoStack: [current, ...undoStack], isDirty: true, selectedBead: null, ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE });
       },
 
       spacersHiddenForCapture: false,
@@ -374,26 +416,18 @@ export const useStore = create<Store>()(
 
       removeBead(instanceId) {
         get().pushUndoSnapshot();
-        set((s) => {
-          const cleanedGroups = s.editSelectionGroups
-            .map((g) => g.filter((id) => id !== instanceId))
-            .filter((g) => g.length > 0);
-          const rawNarrowed = s.editReplaceNarrowedIds?.filter((id) => id !== instanceId) ?? null;
-          return {
-            beads: s.beads.filter((b) => b.instanceId !== instanceId),
-            selectedBead: s.selectedBead?.instanceId === instanceId ? null : s.selectedBead,
-            editSelectedIds: s.editSelectedIds.filter((id) => id !== instanceId),
-            beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
-            editSelectionGroups: cleanedGroups,
-            editReplaceNarrowedIds: rawNarrowed?.length ? rawNarrowed : null,
-            isDirty: true,
-          };
-        });
+        set((s) => ({
+          beads: s.beads.filter((b) => b.instanceId !== instanceId),
+          selectedBead: s.selectedBead?.instanceId === instanceId ? null : s.selectedBead,
+          beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
+          ...pruneEditSelection(s, new Set([instanceId])),
+          isDirty: true,
+        }));
       },
 
       clearBeads() {
         get().pushUndoSnapshot();
-        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE });
       },
 
       resetBracelet: () => set({
@@ -403,17 +437,13 @@ export const useStore = create<Store>()(
         activeDesignId: null,
         activePatternId: null,
         selectedBead: null,
-        editSelectedIds: [],
         isDirty: false,
         braceletSize: "medium" as BraceletSize,
         bandMaterial: "stretchy" as BandMaterial,
         undoStack: [],
         redoStack: [],
-        replaceTargetInstanceId: null,
-        replaceAllTargetProductId: null, replaceSeedTargetIds: null,
-        editReplaceMode: false,
-        editReplaceNarrowedIds: null,
-        editSelectionGroups: [],
+        ...CLEAR_REPLACE_TARGETS,
+        ...CLEAR_EDIT_REPLACE,
       }),
 
       startNewBracelet: () => set({
@@ -423,15 +453,11 @@ export const useStore = create<Store>()(
         activeDesignId: null,
         activePatternId: null,
         selectedBead: null,
-        editSelectedIds: [],
         isDirty: false,
         undoStack: [],
         redoStack: [],
-        replaceTargetInstanceId: null,
-        replaceAllTargetProductId: null, replaceSeedTargetIds: null,
-        editReplaceMode: false,
-        editReplaceNarrowedIds: null,
-        editSelectionGroups: [],
+        ...CLEAR_REPLACE_TARGETS,
+        ...CLEAR_EDIT_REPLACE,
         // braceletSize and bandMaterial intentionally preserved
       }),
 
@@ -447,27 +473,27 @@ export const useStore = create<Store>()(
         })),
 
       selectBead(bead) {
-        set({ selectedBead: bead, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null });
+        set({ selectedBead: bead, selectAllActive: false, ...CLEAR_REPLACE_TARGETS });
       },
 
       clearSelectedBead() {
-        set({ selectedBead: null, selectAllActive: false, replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null });
+        set({ selectedBead: null, selectAllActive: false, ...CLEAR_REPLACE_TARGETS });
       },
 
       startReplaceMode(instanceId) {
-        set({ replaceTargetInstanceId: instanceId, replaceAllTargetProductId: null, replaceSeedTargetIds: null });
+        set({ ...CLEAR_REPLACE_TARGETS, replaceTargetInstanceId: instanceId });
       },
 
       cancelReplaceMode() {
-        set({ replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
+        set({ ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE });
       },
 
       setEditReplaceMode(active) {
         if (active) {
           const hasPreSelection = get().editSelectedIds.length > 0;
-          set({ editReplaceMode: true, replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, ...(hasPreSelection ? {} : { editSelectedIds: [] }) });
+          set({ ...CLEAR_REPLACE_TARGETS, editReplaceMode: true, ...(hasPreSelection ? {} : { editSelectedIds: [] }) });
         } else {
-          set({ editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], editSelectedIds: [] });
+          set({ ...CLEAR_EDIT_REPLACE });
         }
       },
 
@@ -548,18 +574,16 @@ export const useStore = create<Store>()(
         }
 
         const replacedSet = new Set(instanceIds);
-        const newGroups = s.editSelectionGroups
-          .map(g => g.filter(id => !replacedSet.has(id)))
-          .filter(g => g.length > 0);
-        const newSelectedIds = s.editSelectedIds.filter(id => !replacedSet.has(id));
-        const stillHasGroups = newGroups.length > 0 || newSelectedIds.length > 0;
+        const { editSelectionGroups, editSelectedIds } = pruneEditSelection(s, replacedSet);
 
         s.pushUndoSnapshot();
         set({
           beads: current,
           beadLoadErrors: s.beadLoadErrors.filter((e) => !replacedSet.has(e.instanceId)),
-          editSelectionGroups: newGroups,
-          editSelectedIds: newSelectedIds,
+          editSelectionGroups,
+          editSelectedIds,
+          // Stay in replace mode after a replace — the user exits explicitly.
+          editReplaceMode: true,
           editReplaceNarrowedIds: null,
           isDirty: true,
         });
@@ -567,7 +591,7 @@ export const useStore = create<Store>()(
       },
 
       startReplaceAllMode(productId) {
-        set({ replaceAllTargetProductId: productId, replaceTargetInstanceId: null, replaceSeedTargetIds: null });
+        set({ ...CLEAR_REPLACE_TARGETS, replaceAllTargetProductId: productId });
       },
 
       startReplaceSeedMode(seedKey) {
@@ -587,14 +611,35 @@ export const useStore = create<Store>()(
         }
         set({
           replaceSeedTargetIds: ids,
+          // Clear the other replace modes so the selector shows the seed picker.
+          // selectedBead + selectAllActive are left as-is so the Bead Info window
+          // stays open through the replace, matching the bead "Replace All" flow.
+          // editReplaceMode is left as-is so the replace box stays open when seeds
+          // are picked from it.
           replaceTargetInstanceId: null,
           replaceAllTargetProductId: null,
-          // editReplaceMode left as-is so the box stays open when seeds are picked from it.
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
           editSelectedIds: [],
-          selectedBead: null,
+        });
+      },
+
+      clearReplaceSeed() {
+        set({ replaceSeedTargetIds: null });
+      },
+
+      startReplaceSeedSegment(instanceId) {
+        const bead = get().beads.find((b) => b.instanceId === instanceId);
+        if (!bead?.seedConfig) return;
+        set({
+          replaceSeedTargetIds: [instanceId],
+          replaceTargetInstanceId: null,
+          replaceAllTargetProductId: null,
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          editSelectedIds: [],
           selectAllActive: false,
+          // selectedBead left as-is so the info window behaves like the regular-bead replace path.
         });
       },
 
@@ -619,6 +664,8 @@ export const useStore = create<Store>()(
           // Also exit edit-replace, in case this was triggered from an all-seed
           // edit-mode selection (harmless no-op for the dedicated paths).
           editSelectedIds: [],
+          // editReplaceMode left as-is: stays open if replacing from the box,
+          // stays closed if triggered from the Bead Info button.
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
           isDirty: true,
@@ -659,6 +706,7 @@ export const useStore = create<Store>()(
             b.instanceId === instanceId ? { instanceId: b.instanceId, product: newProduct } : b
           ),
           selectedBead: null,
+          selectAllActive: false,
           replaceTargetInstanceId: null,
           beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
           isDirty: true,
@@ -713,21 +761,19 @@ export const useStore = create<Store>()(
           ...withoutTargets.slice(insertAt),
         ];
 
-        const newGroups = s.editSelectionGroups
-          .map(g => g.filter(id => !removedSet.has(id)))
-          .filter(g => g.length > 0);
-        const newSelectedIds = s.editSelectedIds.filter(id => !removedSet.has(id));
-        const stillHasGroups = newGroups.length > 0 || newSelectedIds.length > 0;
+        const { editSelectionGroups, editSelectedIds } = pruneEditSelection(s, removedSet);
+        const stillHasGroups = editSelectionGroups.length > 0 || editSelectedIds.length > 0;
 
         s.pushUndoSnapshot();
         set({
           beads: newBeads,
           beadLoadErrors: s.beadLoadErrors.filter(e => !removedSet.has(e.instanceId)),
           selectedBead: null,
+          selectAllActive: false,
           replaceTargetInstanceId: null,
           editReplaceMode: stillHasGroups,
-          editSelectionGroups: newGroups,
-          editSelectedIds: newSelectedIds,
+          editSelectionGroups,
+          editSelectedIds,
           editReplaceNarrowedIds: null,
           isDirty: true,
         });
@@ -760,21 +806,19 @@ export const useStore = create<Store>()(
           ...withoutTargets.slice(insertAt),
         ];
 
-        const newGroups = s.editSelectionGroups
-          .map(g => g.filter(id => !removedSet.has(id)))
-          .filter(g => g.length > 0);
-        const newSelectedIds = s.editSelectedIds.filter(id => !removedSet.has(id));
-        const stillHasGroups = newGroups.length > 0 || newSelectedIds.length > 0;
+        const { editSelectionGroups, editSelectedIds } = pruneEditSelection(s, removedSet);
+        const stillHasGroups = editSelectionGroups.length > 0 || editSelectedIds.length > 0;
 
         s.pushUndoSnapshot();
         set({
           beads: newBeads,
           beadLoadErrors: s.beadLoadErrors.filter(e => !removedSet.has(e.instanceId)),
           selectedBead: null,
+          selectAllActive: false,
           replaceTargetInstanceId: null,
           editReplaceMode: stillHasGroups,
-          editSelectionGroups: newGroups,
-          editSelectedIds: newSelectedIds,
+          editSelectionGroups,
+          editSelectedIds,
           editReplaceNarrowedIds: null,
           isDirty: true,
         });
@@ -802,7 +846,7 @@ export const useStore = create<Store>()(
       },
 
       loadBeads(beads, name) {
-        set({ beads, selectedBead: null, editSelectedIds: [], isDirty: false, undoStack: [], redoStack: [], replaceTargetInstanceId: null, replaceAllTargetProductId: null, replaceSeedTargetIds: null, editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [], ...(name ? { braceletName: name } : {}) });
+        set({ beads, selectedBead: null, isDirty: false, undoStack: [], redoStack: [], ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE, ...(name ? { braceletName: name } : {}) });
       },
 
       setBraceletName(name) {
@@ -927,10 +971,7 @@ export const useStore = create<Store>()(
       },
 
       clearEditSelection() {
-        // Clear the selection but stay in replace mode — the box only closes via
-        // the explicit "exit bead replacement mode" link, the toolbar toggle, or
-        // leaving edit mode. Stray canvas clicks / drags / Escape no longer close it.
-        set({ editSelectedIds: [], editReplaceNarrowedIds: null, editSelectionGroups: [] });
+        set({ editSelectedIds: [], editReplaceMode: false, editReplaceNarrowedIds: null, editSelectionGroups: [] });
       },
 
       setEditSelectedIds(ids) {

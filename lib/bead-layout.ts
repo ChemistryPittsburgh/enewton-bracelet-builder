@@ -169,6 +169,26 @@ export function beadFits(
   return usedArc([...currentBeads, newBead]) <= braceletArc(radius);
 }
 
+/**
+ * How many copies of `product` fit when appended one-by-one to `beads`,
+ * capped at `cap`. Replaces the hand-rolled fit loops in the bead selector;
+ * only `.product` is read by the arc math, so the temp beads carry no id.
+ */
+export function maxFit(
+  beads: BeadLike[],
+  product: BeadLike["product"],
+  radius: number,
+  cap: number,
+): number {
+  let count = 0;
+  let list: BeadLike[] = beads;
+  while (count < cap && beadFits(list, { product }, radius)) {
+    count++;
+    list = [...list, { product }];
+  }
+  return count;
+}
+
 // ─── Line view geometry ───────────────────────────────────────────────────────
 
 /** Same total length as usedArc — exposed for line-view consumers. */

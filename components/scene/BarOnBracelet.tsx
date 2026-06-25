@@ -10,6 +10,7 @@ import {
   BRACELET_SIZE_RADIUS,
   FINISH_PRESETS,
   DEFAULT_FINISH,
+  EDIT_MODE_RING_HOVER,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 
@@ -137,7 +138,7 @@ export function BarOnBracelet({
   const braceletSize = useStore((s) => s.braceletSize);
   const viewMode     = useStore((s) => s.viewMode);
 
-  const { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave } =
+  const { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave, showHoverRing } =
     useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -238,18 +239,28 @@ export function BarOnBracelet({
         {/* Single continuously bent mesh — no segment joints */}
         {bentGeometry && <mesh geometry={bentGeometry} material={mat} />}
 
-        {/* Invisible hit area */}
-        <mesh visible={false}>
-          <capsuleGeometry args={[vizRadius * 0.15, vizRadius * 1.8, 4, 8]} />
-          <meshBasicMaterial />
+        {/* Invisible hit area — capsule laid ALONG the bar's arc (local Z) so the
+            whole length is hoverable/clickable, not just a vertical sliver at the
+            centre. capsuleGeometry's axis is Y by default, hence the X rotation. */}
+        <mesh visible={false} rotation={[Math.PI / 2, 0, 0]}>
+          <capsuleGeometry args={[vizRadius * 0.5, vizRadius * 1.8, 4, 8]} />
+          <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>
 
         {/* Selection ring — vertical (XY plane, perpendicular to bar's tangent),
             radius matches bead convention: cross-section diameter / 2 */}
         {isSelected && ringRadius > 0 && (
           <mesh>
-            <torusGeometry args={[ringRadius * 1.4, 0.0002, 8, 32]} />
+            <torusGeometry args={[ringRadius * 1.8, 0.0002, 8, 32]} />
             <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
+          </mesh>
+        )}
+
+        {/* Hover ring — flat, edit-mode rollover hint */}
+        {showHoverRing && (
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[ringRadius * 1.8, 0.00018, 8, 40]} />
+            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.55} />
           </mesh>
         )}
 

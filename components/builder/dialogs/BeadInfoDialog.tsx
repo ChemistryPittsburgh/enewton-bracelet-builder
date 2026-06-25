@@ -9,7 +9,7 @@ import { cn, capitalize, slugify, formatMm, unslugify } from "@/lib/utils";
 import { seedSizeLabel, seedKindLabel, beadMatchKey } from "@/lib/seed-bead-utils";
 
 export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: boolean; beadSelectorOpen?: boolean }) {
-  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode, startReplaceMode, startReplaceAllMode, startReplaceSeedMode } = useStore((s) => ({
+  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode, startReplaceMode, startReplaceAllMode, startReplaceSeedMode, startReplaceSeedSegment } = useStore((s) => ({
     beads: s.beads,
     selectedBead: s.selectedBead,
     clearSelectedBead: s.clearSelectedBead,
@@ -21,6 +21,7 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
     startReplaceMode: s.startReplaceMode,
     startReplaceAllMode: s.startReplaceAllMode,
     startReplaceSeedMode: s.startReplaceSeedMode,
+    startReplaceSeedSegment: s.startReplaceSeedSegment,
   }));
   const isOpen = !isLocked && selectedBead !== null;
   // Keep last known bead so content stays rendered during close transition
@@ -30,7 +31,8 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
   const matchCount = bead
     ? beads.filter((b) => b.product.id === bead.product.id).length
     : 0;
-  // Seeds match by (size, shape) across all colors, not by product id.
+  // Seeds match by (size, shape) across all colours, not by product id —
+  // so "select all of this kind" counts segments sharing the seed match key.
   const seedMatchCount = bead?.seedConfig
     ? beads.filter((b) => b.seedConfig && beadMatchKey(b) === beadMatchKey(bead)).length
     : 0;
@@ -43,7 +45,7 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
 
   function handleRemove() {
     if (!bead) return;
-    if (selectAllActive) {
+    if (selectAllActive && !isSeed) {
       removeAllOfType();
     } else {
       removeBead(bead.instanceId);
@@ -138,7 +140,8 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
                 </>
               )}
             </div>
-            {!isLocked && matchCount > 1 && (
+            {/* Select-all-of-type (non-seed): toggles selection by product id */}
+            {!isLocked && !isSeed && matchCount > 1 && (
               <>
                 {selectAllActive ? (
                   <p className="text-sm font-semibold   mb-3 px-2">All {bead.product.name && unslugify(bead.product.name)} {unslugify(bead.product.bead_category ?? "bead")}s selected</p>
@@ -149,14 +152,35 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
                 )}
               </>
             )}
-            {!isLocked && isSeed && seedConfig && !beadSelectorOpen && (
+            {/* Select-all-of-kind (seed): selection only — keeps the info window
+                open and does NOT open the picker, mirroring the bead Select All.
+                Matches by seed key (size + shape), not product id. */}
+            {!isLocked && isSeed && seedConfig && seedMatchCount > 1 && (
+              <>
+                {selectAllActive ? (
+                  <p className="text-sm font-semibold mb-3 px-2">All {seedKindLabel(seedConfig)} Seed Beads selected</p>
+                ) : (
+                  <Button onClick={() => selectAllOfType()} variant="ghost" className="w-full mb-2 !h-auto py-2.5 !text-[11.5px]">
+                    Select All {seedKindLabel(seedConfig)} Seed Beads ({seedMatchCount})
+                  </Button>
+                )}
+              </>
+            )}
+            {/* Replace — single segment when nothing is select-all-ed; whole kind
+                (opens the seed picker) once Select All is active. */}
+            {!isLocked && isSeed && !selectAllActive && !beadSelectorOpen && (
+              <Button onClick={() => startReplaceSeedSegment(bead.instanceId)} className="w-full" variant="secondary">
+                Replace Seed Beads
+              </Button>
+            )}
+            {!isLocked && isSeed && seedConfig && selectAllActive && !beadSelectorOpen && (
               <Button onClick={() => startReplaceSeedMode(beadMatchKey(bead))} className="w-full" variant="secondary">
-                Select All {seedKindLabel(seedConfig)} Seed Beads ({seedMatchCount})
+                Replace All {seedKindLabel(seedConfig)} Seed Beads ({seedMatchCount})
               </Button>
             )}
             {!isLocked && !isSeed && !selectAllActive && !beadSelectorOpen && (
               <Button onClick={() => startReplaceMode(bead.instanceId)} className="w-full" variant="secondary">
-                Replace Bead
+                {bead.product.bead_category === "bar" ? "Replace Bar" : "Replace Bead"}
               </Button>
             )}
             {!isLocked && !isSeed && selectAllActive && !beadSelectorOpen && (
@@ -167,20 +191,10 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
             {!isLocked && (
               <Button onClick={handleRemove} className="w-full mt-2" variant="danger">
                 <Trash2 size={15} />
-                {selectAllActive ? `Remove All (${matchCount})` :
+                {selectAllActive && !isSeed ? `Remove All (${matchCount})` :
                   isSeed ? "Remove seed beads" :
                   `Delete ${unslugify(bead.product.bead_category ?? "bead")}`
                 }
-              </Button>
-            )}
-            {!isLocked && !isSeed && !selectAllActive && (
-              <Button onClick={() => startReplaceMode(bead.instanceId)} className="w-full mt-2" variant="ghost">
-                {bead.product.bead_category === "bar" ? "Replace Bar" : "Replace Bead"}
-              </Button>
-            )}
-            {!isLocked && !isSeed && selectAllActive && (
-              <Button onClick={() => startReplaceAllMode(bead.product.id)} className="w-full mt-2" variant="ghost">
-                Replace All ({matchCount})
               </Button>
             )}
           </>

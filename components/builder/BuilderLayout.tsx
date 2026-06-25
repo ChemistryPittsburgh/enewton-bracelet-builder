@@ -43,7 +43,6 @@ import { SavedDesignsScreen } from "./saved-designs/SavedDesignsScreen";
 import { UsersAdminScreen } from "./users/UsersAdminScreen";
 
 import { getInitials } from "@/lib/utils";
-import { beadMatchKey } from "@/lib/seed-bead-utils";
 
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -90,7 +89,7 @@ export function BuilderLayout() {
   const editReplaceMode = useStore((s) => s.editReplaceMode);
   const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
   const startReplaceMode = useStore((s) => s.startReplaceMode);
-  const startReplaceSeedMode = useStore((s) => s.startReplaceSeedMode);
+  const startReplaceSeedSegment = useStore((s) => s.startReplaceSeedSegment);
 
   const activePatternId = useStore((s) => s.activePatternId);
 
@@ -136,7 +135,7 @@ export function BuilderLayout() {
       editReplaceMode;
     if (alreadyReplacing) return;
     if (selectedBead.seedConfig) {
-      startReplaceSeedMode(beadMatchKey(selectedBead));
+      startReplaceSeedSegment(selectedBead.instanceId);
     } else {
       startReplaceMode(selectedBead.instanceId);
     }

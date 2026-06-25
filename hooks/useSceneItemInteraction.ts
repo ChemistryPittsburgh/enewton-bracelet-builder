@@ -25,6 +25,7 @@ import {
   HIGHLIGHT_SELECT_COLOR,
   EDIT_MODE_HIGHLIGHT_SELECT_COLOR,
 } from "@/lib/constants";
+import { beadMatchKey } from "@/lib/seed-bead-utils";
 import type { PlacedBead } from "@/types";
 
 /** Pixels of pointer movement before a drag initiates (prevents jump on click). */
@@ -94,7 +95,17 @@ export function useSceneItemInteraction(
   // Seed segments queued for replacement light up regardless of edit mode.
   const isSeedReplaceTarget = replaceSeedTargetIds?.includes(bead.instanceId) ?? false;
 
-  const isSelected = isSeedReplaceTarget || (isEditMode
+  // "Select all" on a seed in the info window highlights every segment of the
+  // same kind (size + shape) — seeds group by seed key, not product id, so the
+  // product-id branch below never catches them.
+  const isSeedSelectAll =
+    selectAllActive &&
+    !!bead.seedConfig &&
+    !!selectedBead &&
+    !!selectedBead.seedConfig &&
+    beadMatchKey(bead) === beadMatchKey(selectedBead);
+
+  const isSelected = isSeedReplaceTarget || isSeedSelectAll || (isEditMode
     ? editSelectedIds.includes(bead.instanceId) ||
       editSelectionGroups.some(g => g.includes(bead.instanceId))
     : selectedBead?.instanceId === bead.instanceId ||
