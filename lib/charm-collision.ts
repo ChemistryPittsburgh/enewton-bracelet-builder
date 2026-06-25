@@ -65,6 +65,7 @@ interface CharmEntry {
 export function computeCharmAdjustments(
   beads: readonly PlacedBead[],
   radius: number,
+  extraSpacingPerGap = 0,
 ): Map<string, CharmAdjustment> {
   const adjustments = new Map<string, CharmAdjustment>();
 
@@ -72,7 +73,7 @@ export function computeCharmAdjustments(
     .map((b, i) => ({
       bead: b,
       slotIndex: i,
-      angle: getBeadAngle(i, beads as PlacedBead[], radius),
+      angle: getBeadAngle(i, beads as PlacedBead[], radius, extraSpacingPerGap),
       bodyWidth: charmBodyWidth(b.product),
     }))
     .filter(({ bead }) => bead.product.bead_category === "charm" || bead.product.bead_category === "float_charm");
@@ -130,7 +131,8 @@ export function computeCharmAdjustments(
 export function getCollidingCharmIds(
   beads: readonly PlacedBead[],
   radius: number,
+  extraSpacingPerGap = 0,
 ): string[] {
-  const adjustments = computeCharmAdjustments(beads, radius);
+  const adjustments = computeCharmAdjustments(beads, radius, extraSpacingPerGap);
   return [...adjustments.keys()];
 }

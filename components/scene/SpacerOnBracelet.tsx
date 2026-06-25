@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, EDIT_MODE_RING_HOVER } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
@@ -17,8 +17,6 @@ interface SpacerOnBraceletProps {
   onDragStart?: (index: number) => void;
   /** When false, the spacer still occupies arc space but renders no visible mesh. */
   visible?: boolean;
-  /** Extra arc (metres) added between each bead pair for even spacing. */
-  extraSpacingPerGap?: number;
 }
 
 /**
@@ -36,11 +34,11 @@ export function SpacerOnBracelet({
   isDragTarget = false,
   onDragStart,
   visible = true,
-  extraSpacingPerGap = 0,
 }: SpacerOnBraceletProps) {
-  const beads        = useStore((s) => s.beads);
-  const braceletSize = useStore((s) => s.braceletSize);
-  const viewMode     = useStore((s) => s.viewMode);
+  const beads          = useStore((s) => s.beads);
+  const braceletSize   = useStore((s) => s.braceletSize);
+  const viewMode       = useStore((s) => s.viewMode);
+  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
 
   const {
     isSelected,
@@ -54,6 +52,9 @@ export function SpacerOnBracelet({
   } = useSceneItemInteraction(bead, slotIndex, { onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
+    ? getEvenSpacingBonus(beads, radius)
+    : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(slotIndex, beads)
     : getBeadTransform(slotIndex, beads, radius, extraSpacingPerGap);

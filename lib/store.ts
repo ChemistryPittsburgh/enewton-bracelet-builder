@@ -874,7 +874,8 @@ export const useStore = create<Store>()(
           const arr = [...s.beads];
           const sortedIndices = [...fromIndices].sort((a, b) => a - b);
           const group = sortedIndices.map(i => arr[i]);
-          const remaining = arr.filter((_, i) => !sortedIndices.includes(i));
+          const indexSet = new Set(sortedIndices);
+          const remaining = arr.filter((_, i) => !indexSet.has(i));
           const anchorPositionInGroup = sortedIndices.indexOf(anchorFromIndex);
           const insertPosition = Math.max(0, Math.min(remaining.length, anchorToIndex - anchorPositionInGroup));
           const newArr = [
