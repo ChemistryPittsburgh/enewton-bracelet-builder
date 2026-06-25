@@ -83,7 +83,7 @@ export function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMod
 
         {/* Step 2 — Length slider */}
         {selectedBar && (
-          <div className="mb-5 rounded-lg border border-default bg-light-grey/40 px-4 py-3 space-y-2">
+          <div className="mb-5 rounded-[2px] border border-default bg-light-grey/40 px-4 py-3 space-y-2">
             <div className="flex justify-between text-xs">
               <span className="font-semibold text-color-base/70 uppercase tracking-wide">Length</span>
               <span className="font-semibold text-color-base">{selectedLength} mm</span>
@@ -95,7 +95,7 @@ export function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMod
               step={0.5}
               value={selectedLength}
               onChange={(e) => setSelectedLength(Number(e.target.value))}
-              className="w-full accent-gold"
+              className="w-full accent-navy"
             />
             <div className="flex justify-between text-[11px] text-stone/60">
               <span>5 mm</span>

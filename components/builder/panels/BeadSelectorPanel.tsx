@@ -15,7 +15,7 @@ import { ScrollableRow } from "@/components/ui/ScrollableRow";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
-import { braceletArc, usedArc, beadFits } from "@/lib/bead-layout";
+import { braceletArc, usedArc, beadFits, maxFit } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   BAR_REPLACE_FIT_LIMIT,
@@ -246,30 +246,14 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   // Computed once per render so JSX doesn't run the loop inline.
   const editReplaceFitCount = useMemo(() => {
     if (!selectedBead || (!isEditReplace && !isImplicitEditReplace) || editReplaceTargetIds.length === 0) return 0;
-    let count = 0;
-    let tempList = withoutTargets;
-    while (count < editReplaceTargetIds.length && beadFits(tempList, { product: selectedBead }, braceletRadius)) {
-      count++;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tempList = [...tempList, { instanceId: `__fit_${count}`, product: selectedBead } as any];
-    }
-    return count;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return maxFit(withoutTargets, selectedBead, braceletRadius, editReplaceTargetIds.length);
   }, [selectedBead, isEditReplace, isImplicitEditReplace, withoutTargets, editReplaceTargetIds, braceletRadius]);
 
   // Uncapped fit count for bar → non-bar replace (not limited by run length).
   const barReplaceFitCount = useMemo(() => {
     if (!isBarReplace || !selectedBead || selectedBead.bead_category === "bar") return 0;
     const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
-    let count = 0;
-    let tempList = baseline;
-    while (count < BAR_REPLACE_FIT_LIMIT && beadFits(tempList, { product: selectedBead }, braceletRadius)) {
-      count++;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tempList = [...tempList, { instanceId: `__fit_${count}`, product: selectedBead } as any];
-    }
-    return count;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return maxFit(baseline, selectedBead, braceletRadius, BAR_REPLACE_FIT_LIMIT);
   }, [isBarReplace, isBarSingleReplace, selectedBead, effectivePlacedBeads, withoutTargets, braceletRadius]);
 
   // Default replaceQuantity to however many fit whenever a new bead is selected or fit count changes
@@ -328,9 +312,6 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
       })
       .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
   }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode, isBarMode, isSeedMode]);
-
-  const anyBeadFits  = filteredBeads.some((b) => beadFits(placedBeads, { product: b }, braceletRadius));
-  const braceletFull = filteredBeads.length > 0 && !(availableMm >= 1 && anyBeadFits);
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -407,13 +388,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     if (isBarReplace) {
       const barIds = isBarSingleReplace ? [replaceTargetInstanceId!] : editReplaceTargetIds;
       const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
-      let count = 0;
-      let tempList = baseline;
-      while (count < BAR_REPLACE_FIT_LIMIT && beadFits(tempList, { product: spacerProduct as any }, braceletRadius)) {
-        count++;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tempList = [...tempList, { instanceId: `__v_${count}`, product: spacerProduct } as any];
-      }
+      const count = maxFit(baseline, spacerProduct, braceletRadius, BAR_REPLACE_FIT_LIMIT);
       if (count === 0) { showError("The spacer is too large for the available space."); return; }
       const err = replaceWithBeadsAction(barIds, spacerProduct as any, count);
       if (err) { showError(err); }

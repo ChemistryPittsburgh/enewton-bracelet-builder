@@ -112,7 +112,7 @@ export function SpacerOnBracelet({
         {/* Selection ring */}
         {visible && isSelected && cylRadius > 0 && (
           <mesh rotation={isEditMode ? [Math.PI / 2, 0, 0] : [Math.PI, 0, 0]}>
-            <torusGeometry args={[cylRadius * 1.15, 0.0003, 8, 32]} />
+            <torusGeometry args={[cylRadius * 1.15, 0.0002, 8, 32]} />
             <meshBasicMaterial color={highlightColor} />
           </mesh>
         )}
