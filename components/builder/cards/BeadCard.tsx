@@ -47,7 +47,7 @@ export function BeadCard({ bead, selected, onClick, canEdit, disabled = false }:
       disabled={disabled}
       className={`flex flex-col gap-1 rounded-[2px] border transition-all overflow-hidden h-full ${
         disabled
-          ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed hidden"
+          ? "border-default bg-light-grey/50 opacity-40 cursor-not-allowed"
           : canEdit
             ? "cursor-grab active:cursor-grabbing"
             : "cursor-default"

@@ -66,6 +66,7 @@ export function BuilderLayout() {
     activeDesignId,
     isDirty,
     copyBracelet,
+    newBraceletFromPattern,
   } = useStore((s) => ({
     placedBeads:          s.beads,
     braceletName:         s.braceletName,
@@ -79,6 +80,7 @@ export function BuilderLayout() {
     activeDesignId:       s.activeDesignId,
     isDirty:              s.isDirty,
     copyBracelet:         s.copyBracelet,
+    newBraceletFromPattern: s.newBraceletFromPattern,
   }));
 
   const isEditMode    = useStore((s) => s.isEditMode);
@@ -256,6 +258,13 @@ export function BuilderLayout() {
     copyBracelet();
   }
 
+  function handleNewFromCurrentPattern() {
+    // Shown only while editing a pattern. Forks the current canvas into a fresh,
+    // unsaved bracelet and opens the replace flow. No dirty-guard: the beads carry
+    // forward and the pattern's saved version is untouched, so nothing is lost.
+    newBraceletFromPattern();
+  }
+
   function handleDetailsClick() {
     setBraceletDetailsOpen(true);
     setHighlightReason(null);
@@ -288,6 +297,7 @@ export function BuilderLayout() {
             onFromScratch={handleNewBracelet}
             onCopy={handleCopyBracelet}
             onFromPattern={() => { setSavedDesignsInitialView("patterns"); setSavedDesignsOpen(true); }}
+            onFromCurrentPattern={activePatternId !== null ? handleNewFromCurrentPattern : undefined}
           />
           {activePatternId !== null && canManageComponents && (
             <Button

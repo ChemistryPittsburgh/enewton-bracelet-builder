@@ -119,7 +119,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
           </div>
 
           {savedDesign && (
-            <div className="py-2.5">
+            <div className="py-2.5 flex gap-2">
               {showSubmit && (
                 <WorkflowButton
                   label="Submit for Review"

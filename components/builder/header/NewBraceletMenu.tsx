@@ -9,10 +9,16 @@ interface NewBraceletMenuProps {
   onFromScratch: () => void;
   onCopy: () => void;
   onFromPattern: () => void;
+  /**
+   * Only provided while editing a pattern. When set, the "Copy bracelet" slot is
+   * replaced with "From current pattern" — forking the pattern being edited into
+   * a fresh bracelet (copying a "bracelet" is meaningless when you're on a pattern).
+   */
+  onFromCurrentPattern?: () => void;
 }
 
 /** "New Bracelet" split button: a dropdown of creation options. */
-export function NewBraceletMenu({ onFromScratch, onCopy, onFromPattern }: NewBraceletMenuProps) {
+export function NewBraceletMenu({ onFromScratch, onCopy, onFromPattern, onFromCurrentPattern }: NewBraceletMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -48,13 +54,25 @@ export function NewBraceletMenu({ onFromScratch, onCopy, onFromPattern }: NewBra
               <span className="text-xs text-color-base/60">Start with an empty bracelet</span>
             </span>
           </button>
-          <button onClick={() => select(onCopy)} className={itemClass}>
-            <Copy size={15} className="mt-0.5 shrink-0 text-navy" />
-            <span className="flex flex-col">
-              <span className="text-sm font-semibold">Copy bracelet</span>
-              <span className="text-xs text-color-base/60">Duplicate the current bracelet</span>
-            </span>
-          </button>
+
+          {onFromCurrentPattern ? (
+            <button onClick={() => select(onFromCurrentPattern)} className={itemClass}>
+              <Copy size={15} className="mt-0.5 shrink-0 text-navy" />
+              <span className="flex flex-col">
+                <span className="text-sm font-semibold">From current pattern</span>
+                <span className="text-xs text-color-base/60">New bracelet from the pattern you&apos;re editing</span>
+              </span>
+            </button>
+          ) : (
+            <button onClick={() => select(onCopy)} className={itemClass}>
+              <Copy size={15} className="mt-0.5 shrink-0 text-navy" />
+              <span className="flex flex-col">
+                <span className="text-sm font-semibold">Copy bracelet</span>
+                <span className="text-xs text-color-base/60">Duplicate the current bracelet</span>
+              </span>
+            </button>
+          )}
+
           <button onClick={() => select(onFromPattern)} className={itemClass}>
             <LayoutTemplate size={15} className="mt-0.5 shrink-0 text-navy" />
             <span className="flex flex-col">
