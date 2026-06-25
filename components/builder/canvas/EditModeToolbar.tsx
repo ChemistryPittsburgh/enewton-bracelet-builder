@@ -24,7 +24,6 @@ export function EditModeToolbar() {
     reorderBeadsGroup,
     duplicateBead,
     duplicateGroup,
-    reverseBracelet,
     removeBead,
     editViewMode,
     toggleEditViewMode,
@@ -51,7 +50,6 @@ export function EditModeToolbar() {
     reorderBeadsGroup: s.reorderBeadsGroup,
     duplicateBead: s.duplicateBead,
     duplicateGroup: s.duplicateGroup,
-    reverseBracelet: s.reverseBracelet,
     removeBead: s.removeBead,
     editViewMode: s.editViewMode,
     toggleEditViewMode: s.toggleEditViewMode,
@@ -289,11 +287,6 @@ export function EditModeToolbar() {
           className={duplicateError ? "bg-red-50" : ""}
         >
           <CopyPlus size={22} className={duplicateError ? "text-red-500" : ""} />
-        </EditBtn>
-      </Tooltip>
-      <Tooltip content="Reverse order" placement="bottom">
-        <EditBtn onClick={() => reverseBracelet()} label="Reverse bracelet">
-          <Repeat2 size={22} />
         </EditBtn>
       </Tooltip>
       {viewMode === '3D' && (
