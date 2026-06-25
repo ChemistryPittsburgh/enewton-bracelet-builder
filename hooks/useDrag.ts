@@ -4,19 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useStore } from "@/lib/store";
-import { getBeadAngle, getBeadTransformLine } from "@/lib/bead-layout";
+import { getBeadAngle, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import type { BeadProduct, PlacedBead } from "@/types";
 
 
 // ─── Slot-finding helpers ─────────────────────────────────────────────────────
 
-function nearestSlot(point: THREE.Vector3, beads: PlacedBead[], radius: number): number {
+function nearestSlot(point: THREE.Vector3, beads: PlacedBead[], radius: number, extraSpacingPerGap = 0): number {
   const angle = Math.atan2(point.z, point.x);
   const TWO_PI = 2 * Math.PI;
   let nearest = 0;
   let minDiff = Infinity;
   for (let i = 0; i < beads.length; i++) {
-    let beadAngle = getBeadAngle(i, beads, radius) % TWO_PI;
+    let beadAngle = getBeadAngle(i, beads, radius, extraSpacingPerGap) % TWO_PI;
     if (beadAngle > Math.PI) beadAngle -= TWO_PI;
     let diff = Math.abs(angle - beadAngle);
     if (diff > Math.PI) diff = TWO_PI - diff;
@@ -96,19 +96,30 @@ export function useBraceletReorderDrag(
       const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
       if (raycaster.ray.intersectPlane(plane, target)) {
+        const { isEvenlySpaced } = useStore.getState();
+        const extraSpacingPerGap = isEvenlySpaced && viewModeRef.current === '3D'
+          ? getEvenSpacingBonus(beadsRef.current!, radiusRef.current!)
+          : 0;
         toIndex = viewModeRef.current === "line"
           ? nearestSlotLine(target, beadsRef.current!)
-          : nearestSlot(target, beadsRef.current!, radiusRef.current!);
+          : nearestSlot(target, beadsRef.current!, radiusRef.current!, extraSpacingPerGap);
         setDragState({ fromIndex, toIndex, ...(groupFromIndices ? { groupFromIndices } : {}) });
       }
     }
 
     function onUp() {
       if (groupFromIndices && groupFromIndices.length > 1) {
-        reorderBeadsGroupRef.current(groupFromIndices, fromIndex, toIndex);
+        if (fromIndex !== toIndex) {
+          reorderBeadsGroupRef.current(groupFromIndices, fromIndex, toIndex);
+        }
         useStore.getState().clearEditSelection();
       } else if (fromIndex !== toIndex) {
         reorderBeadsRef.current(fromIndex, toIndex);
+        const state = useStore.getState();
+        const draggedBead = beadsRef.current?.[fromIndex];
+        if (draggedBead && state.editSelectedIds.includes(draggedBead.instanceId)) {
+          state.clearEditSelection();
+        }
       }
       setDragState(null);
       gl.domElement.style.cursor = "";

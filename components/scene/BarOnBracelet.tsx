@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { BufferAttribute, BufferGeometry, ClampToEdgeWrapping, FrontSide, Mesh, MeshStandardMaterial, Texture } from "three";
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import {
   BRACELET_SIZE_RADIUS,
@@ -21,8 +21,6 @@ interface BarOnBraceletProps {
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
   isLocked?: boolean;
-  /** Extra arc (metres) added between each bead pair for even spacing. */
-  extraSpacingPerGap?: number;
 }
 
 export function BarOnBracelet({
@@ -32,7 +30,6 @@ export function BarOnBracelet({
   isDragTarget = false,
   onDragStart,
   isLocked = false,
-  extraSpacingPerGap = 0,
 }: BarOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -134,14 +131,18 @@ export function BarOnBracelet({
     return { vMin, vMax, nativeArcM: nativeArcM > 0 ? nativeArcM : null };
   }, [scene]);
 
-  const beads        = useStore((s) => s.beads);
-  const braceletSize = useStore((s) => s.braceletSize);
-  const viewMode     = useStore((s) => s.viewMode);
+  const beads          = useStore((s) => s.beads);
+  const braceletSize   = useStore((s) => s.braceletSize);
+  const viewMode       = useStore((s) => s.viewMode);
+  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
 
   const { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave, showHoverRing } =
     useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
+  const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
+    ? getEvenSpacingBonus(beads, braceletRadius)
+    : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(slotIndex, beads)
     : getBeadTransform(slotIndex, beads, braceletRadius, extraSpacingPerGap);

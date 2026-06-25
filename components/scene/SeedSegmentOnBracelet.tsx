@@ -8,6 +8,7 @@ import {
   getBeadAngle,
   getBeadPosition,
   getBeadTransformLine,
+  getEvenSpacingBonus,
 } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import {
@@ -37,8 +38,6 @@ interface SeedSegmentOnBraceletProps {
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
   isLocked?: boolean;
-  /** Extra arc (metres) added between each bead pair for even spacing. */
-  extraSpacingPerGap?: number;
 }
 
 /**
@@ -55,11 +54,11 @@ export function SeedSegmentOnBracelet({
   isDragTarget = false,
   onDragStart,
   isLocked = false,
-  extraSpacingPerGap = 0,
 }: SeedSegmentOnBraceletProps) {
-  const beads        = useStore((s) => s.beads);
-  const braceletSize = useStore((s) => s.braceletSize);
-  const viewMode     = useStore((s) => s.viewMode);
+  const beads          = useStore((s) => s.beads);
+  const braceletSize   = useStore((s) => s.braceletSize);
+  const viewMode       = useStore((s) => s.viewMode);
+  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
 
   const {
     isSelected,
@@ -73,6 +72,9 @@ export function SeedSegmentOnBracelet({
   } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
+    ? getEvenSpacingBonus(beads, radius)
+    : 0;
 
   // Load both GLB models — hooks must be called unconditionally
   const { scene: seedGlbScene } = useGLTF(SEED_BEAD_MODEL);
@@ -186,7 +188,7 @@ export function SeedSegmentOnBracelet({
         finishKey: sb.finishKey,
       };
     });
-  }, [config, generatedBeads, slotIndex, beads, radius, viewMode, bead.product.diameter]);
+  }, [config, generatedBeads, slotIndex, beads, radius, viewMode, bead.product.diameter, extraSpacingPerGap]);
 
   // Total arc consumed by this segment (metres). Declared here (before any
   // early return) because the hitChunks memo below depends on it.
@@ -235,7 +237,7 @@ export function SeedSegmentOnBracelet({
       });
     }
     return chunks;
-  }, [viewMode, slotIndex, beads, radius, segArcM]);
+  }, [viewMode, slotIndex, beads, radius, segArcM, extraSpacingPerGap]);
 
   if (!config || seedBead3DData.length === 0 || !seedGeometry) return null;
 

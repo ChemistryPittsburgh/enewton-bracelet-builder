@@ -46,11 +46,12 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     isEvenlySpaced:  s.isEvenlySpaced,
   }));
 
-  const prevViewModeRef     = useRef(viewMode);
-  const prevEditViewModeRef = useRef(editViewMode);
-  const prevIsEditModeRef   = useRef(isEditMode);
-  const prevSelectedBeadRef = useRef(selectedBead);
-  const prevSelectAllRef    = useRef(selectAllActive);
+  const prevViewModeRef        = useRef(viewMode);
+  const prevEditViewModeRef    = useRef(editViewMode);
+  const prevIsEditModeRef      = useRef(isEditMode);
+  const prevSelectedBeadRef    = useRef(selectedBead);
+  const prevSelectAllRef       = useRef(selectAllActive);
+  const prevIsEvenlySpacedRef  = useRef(isEvenlySpaced);
 
   // Refs for values needed inside the effect but that should NOT trigger re-runs.
   // beads is only read to find a selected bead's position; selectedBead changing
@@ -73,11 +74,13 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       selectedBead:    prevSelectedBeadRef.current,
       selectAllActive: prevSelectAllRef.current,
     };
-    prevViewModeRef.current     = viewMode;
-    prevEditViewModeRef.current = editViewMode;
-    prevIsEditModeRef.current   = isEditMode;
-    prevSelectedBeadRef.current = selectedBead;
-    prevSelectAllRef.current    = selectAllActive;
+    prevViewModeRef.current        = viewMode;
+    prevEditViewModeRef.current    = editViewMode;
+    prevIsEditModeRef.current      = isEditMode;
+    prevSelectedBeadRef.current    = selectedBead;
+    prevSelectAllRef.current       = selectAllActive;
+    const isEvenlySpacedChanged    = isEvenlySpaced !== prevIsEvenlySpacedRef.current;
+    prevIsEvenlySpacedRef.current  = isEvenlySpaced;
 
     const radius = BRACELET_SIZE_RADIUS[braceletSizeRef.current];
 
@@ -187,8 +190,9 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
           true,
         );
       }
-    } else if (!selectedBead && !prev.selectedBead) {
-      // Init / reset
+    } else if (!selectedBead && !prev.selectedBead && !isEvenlySpacedChanged) {
+      // Init / reset (skip when only isEvenlySpaced changed — spacing doesn't
+      // affect camera position, and the reset discards the user's orbit angle)
       controls.setLookAt(...CAMERA_DEFAULT_POSITION, 0, 0, 0, true);
     }
   }, [viewMode, isEditMode, editViewMode, selectedBead, controlsRef, selectAllActive, isEvenlySpaced]);

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlignJustify, ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { beadFits } from "@/lib/bead-layout";
+import { beadFits, braceletArc, usedArc } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   CAMERA_MIN_DISTANCE,
@@ -83,6 +83,9 @@ export function EditModeToolbar() {
 
   // Check whether all target beads fit as duplicates
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const gapMm = Math.round((braceletArc(radius) - usedArc(beads)) * 1000 * 10) / 10;
+  const hasGap = gapMm > 0;
+
   const canDuplicate = duplicateTargetIds.length > 0 && (() => {
     let tempList = [...beads];
     for (const id of duplicateTargetIds) {
@@ -125,22 +128,22 @@ export function EditModeToolbar() {
   const canMoveForward = isSingleSelection ? singleIdx !== -1
     : groupIndices.length > 1 && groupIndices[groupIndices.length - 1] < n - 1;
 
-  function handleMoveBack() {
+  const handleMoveBack = useCallback(() => {
     if (isSingleSelection) {
       reorderBeads(singleIdx, (singleIdx - 1 + n) % n);
     } else if (groupIndices.length > 1) {
       reorderBeadsGroup(groupIndices, groupIndices[0], groupIndices[0] - 1);
     }
-  }
+  }, [isSingleSelection, reorderBeads, singleIdx, n, groupIndices, reorderBeadsGroup]);
 
-  function handleMoveForward() {
+  const handleMoveForward = useCallback(() => {
     if (isSingleSelection) {
       reorderBeads(singleIdx, (singleIdx + 1) % n);
     } else if (groupIndices.length > 1) {
       const last = groupIndices[groupIndices.length - 1];
       reorderBeadsGroup(groupIndices, last, last + 1);
     }
-  }
+  }, [isSingleSelection, reorderBeads, singleIdx, n, groupIndices, reorderBeadsGroup]);
 
   // ── Zoom (3D edit mode only; line view has free scroll) ────────────────────
   const isLineView = viewMode === 'line';
@@ -294,13 +297,23 @@ export function EditModeToolbar() {
         </EditBtn>
       </Tooltip>
       {viewMode === '3D' && (
-        <Tooltip content={isEvenlySpaced ? "Restore original spacing" : "Distribute spacing evenly"} placement="bottom">
+        <Tooltip
+          content={
+            !hasGap
+              ? "No gap to distribute (bracelet is full)"
+              : isEvenlySpaced
+                ? `Restore original spacing (distributing ${gapMm}mm)`
+                : `Distribute ${gapMm}mm gap evenly`
+          }
+          placement="bottom"
+        >
           <EditBtn
             onClick={toggleEvenlySpaced}
+            disabled={!hasGap}
             label={isEvenlySpaced ? "Restore original spacing" : "Distribute spacing evenly"}
-            className={isEvenlySpaced ? "bg-navy hover:bg-navy/80" : ""}
+            className={isEvenlySpaced && hasGap ? "bg-navy hover:bg-navy/80" : ""}
           >
-            <AlignJustify size={22} className={isEvenlySpaced ? "text-white" : ""} />
+            <AlignJustify size={22} className={isEvenlySpaced && hasGap ? "text-white" : ""} />
           </EditBtn>
         </Tooltip>
       )}

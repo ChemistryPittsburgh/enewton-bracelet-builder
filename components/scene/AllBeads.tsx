@@ -21,16 +21,15 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const beads                   = useStore((s) => s.beads);
   const braceletSize            = useStore((s) => s.braceletSize);
   const viewMode                = useStore((s) => s.viewMode);
+  const isEvenlySpaced          = useStore((s) => s.isEvenlySpaced);
   const activeDesignId          = useStore((s) => s.activeDesignId);
   const spacersHiddenForCapture = useStore((s) => s.spacersHiddenForCapture);
   const showCharmCollisions     = useStore((s) => s.showCharmCollisions);
   const editReplaceMode         = useStore((s) => s.editReplaceMode);
   const editSelectedIds         = useStore((s) => s.editSelectedIds);
   const editSelectionGroups     = useStore((s) => s.editSelectionGroups);
-  const isEvenlySpaced          = useStore((s) => s.isEvenlySpaced);
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
-
-  const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
+  const extraSpacingPerGap = isEvenlySpaced && viewMode === '3D'
     ? getEvenSpacingBonus(beads, radius)
     : 0;
 
@@ -70,8 +69,8 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
 
   // Charm adjustments — layer offset + bail-pivot swing for nearby charms
   const charmAdjustments = useMemo(
-    () => computeCharmAdjustments(beads, radius),
-    [beads, radius],
+    () => computeCharmAdjustments(beads, radius, extraSpacingPerGap),
+    [beads, radius, extraSpacingPerGap],
   );
 
   // Design status — new/unsaved bracelets default to "draft"
@@ -115,7 +114,6 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                 isDragTarget={isDragTarget}
                 onDragStart={handleDragStart}
                 isLocked={isLocked}
-                extraSpacingPerGap={extraSpacingPerGap}
               />
             ) : isSpacer ? (
               <SpacerOnBracelet
@@ -125,7 +123,6 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                 isDragTarget={isDragTarget}
                 onDragStart={handleDragStart}
                 visible={spacersVisible}
-                extraSpacingPerGap={extraSpacingPerGap}
               />
             ) : isSeedSegment ? (
               <SeedSegmentOnBracelet
@@ -135,7 +132,6 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                 isDragTarget={isDragTarget}
                 onDragStart={handleDragStart}
                 isLocked={isLocked}
-                extraSpacingPerGap={extraSpacingPerGap}
               />
             ) : (
               <Suspense fallback={null}>
@@ -151,7 +147,6 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                   isColliding={showCharmCollisions && charmAdjustments.has(bead.instanceId)}
                   selectionColor={editReplaceColorMap?.get(bead.instanceId)}
                   isCapturing={spacersHiddenForCapture}
-                  extraSpacingPerGap={extraSpacingPerGap}
                 />
               </Suspense>
             )}
