@@ -4,6 +4,7 @@ import { Suspense, useRef, useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, EDIT_REPLACE_GROUP_COLORS } from "@/lib/constants";
 import { computeCharmAdjustments } from "@/lib/charm-collision";
+import { getEvenSpacingBonus } from "@/lib/bead-layout";
 import { useDesign } from "@/hooks/useDesign";
 import type { PlacedBead } from "@/types";
 import { BeadOnBracelet } from "./BeadOnBracelet";
@@ -18,7 +19,6 @@ const SPACER_VISIBLE_STATUSES = new Set(["draft", "rejected"]);
 
 export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const beads                   = useStore((s) => s.beads);
-  const reorderBeads            = useStore((s) => s.reorderBeads);
   const braceletSize            = useStore((s) => s.braceletSize);
   const viewMode                = useStore((s) => s.viewMode);
   const activeDesignId          = useStore((s) => s.activeDesignId);
@@ -27,7 +27,12 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const editReplaceMode         = useStore((s) => s.editReplaceMode);
   const editSelectedIds         = useStore((s) => s.editSelectedIds);
   const editSelectionGroups     = useStore((s) => s.editSelectionGroups);
+  const isEvenlySpaced          = useStore((s) => s.isEvenlySpaced);
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+
+  const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
+    ? getEvenSpacingBonus(beads, radius)
+    : 0;
 
   // Map instanceId → group hex color for edit-replace mode.
   const editReplaceColorMap = useMemo(() => {
@@ -84,7 +89,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const viewModeRef = useRef<"3D" | "line">(viewMode);
   viewModeRef.current = viewMode;
 
-  const { dragState, handleDragStart } = useBraceletReorderDrag(beadsRef, radiusRef, viewModeRef, reorderBeads);
+  const { dragState, handleDragStart } = useBraceletReorderDrag(beadsRef, radiusRef, viewModeRef);
   const { panelDropSlot, dragFromPanel } = usePanelDrop(beadsRef, radiusRef, viewModeRef);
 
   return (
@@ -93,11 +98,11 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
         const isSpacer      = bead.product.bead_category === "spacer";
         const isBar         = bead.product.bead_category === "bar";
         const isSeedSegment = bead.product.bead_category === "seed_segment";
-        const isDragged = dragState?.fromIndex === index;
+        const isDragged =
+          dragState?.fromIndex === index ||
+          (dragState?.groupFromIndices?.includes(index) ?? false);
         const isDragTarget =
-          (dragState !== null &&
-            dragState.toIndex === index &&
-            dragState.fromIndex !== index) ||
+          (dragState !== null && dragState.toIndex === index && !isDragged) ||
           (panelDropSlot === index && dragFromPanel !== null);
 
         return (
@@ -110,6 +115,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                 isDragTarget={isDragTarget}
                 onDragStart={handleDragStart}
                 isLocked={isLocked}
+                extraSpacingPerGap={extraSpacingPerGap}
               />
             ) : isSpacer ? (
               <SpacerOnBracelet
@@ -119,6 +125,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                 isDragTarget={isDragTarget}
                 onDragStart={handleDragStart}
                 visible={spacersVisible}
+                extraSpacingPerGap={extraSpacingPerGap}
               />
             ) : isSeedSegment ? (
               <SeedSegmentOnBracelet
@@ -128,6 +135,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                 isDragTarget={isDragTarget}
                 onDragStart={handleDragStart}
                 isLocked={isLocked}
+                extraSpacingPerGap={extraSpacingPerGap}
               />
             ) : (
               <Suspense fallback={null}>
@@ -143,6 +151,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                   isColliding={showCharmCollisions && charmAdjustments.has(bead.instanceId)}
                   selectionColor={editReplaceColorMap?.get(bead.instanceId)}
                   isCapturing={spacersHiddenForCapture}
+                  extraSpacingPerGap={extraSpacingPerGap}
                 />
               </Suspense>
             )}

@@ -117,6 +117,11 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
   const availableMm          = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
   const effectiveAvailableMm = maxArcMm ?? availableMm;
 
+  // Smallest arc that can hold at least one bead of the currently selected type/size.
+  const minUsefulArcMm = isRound
+    ? roundSizeMm
+    : seedBeadSizeRange(seedSizeMm)[0] * SEED_BEAD_THICKNESS_RATIO;
+
   const parsedQuantity = parseInt(customQuantity) || 0;
   const tooMany = fillMode === "quantity" && parsedQuantity > MAX_QUANTITY;
 
@@ -125,7 +130,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
     : fillMode === "quantity"
       ? arcFromQuantity(Math.min(parsedQuantity, MAX_QUANTITY))
       : parseFloat(customMm) || 0;
-  const validArc = arcMm > 0 && arcMm <= effectiveAvailableMm && !tooMany;
+  const validArc = arcMm >= minUsefulArcMm && arcMm <= effectiveAvailableMm && !tooMany;
 
   // Preview: generate a small sample of the color distribution
   const previewBeads = useMemo(() => {
@@ -603,7 +608,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
       <div className="shrink-0 border-t border-default px-5 pt-4 pb-5 space-y-3">
         {error && <ErrorAlert message={error} />}
 
-        {(replaceMode || effectiveAvailableMm >= 2) ? (
+        {(replaceMode || effectiveAvailableMm >= minUsefulArcMm) ? (
           <>
             {!tooMany && (
               <SectionHeading>

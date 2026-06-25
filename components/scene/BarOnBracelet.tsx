@@ -21,6 +21,8 @@ interface BarOnBraceletProps {
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
   isLocked?: boolean;
+  /** Extra arc (metres) added between each bead pair for even spacing. */
+  extraSpacingPerGap?: number;
 }
 
 export function BarOnBracelet({
@@ -30,6 +32,7 @@ export function BarOnBracelet({
   isDragTarget = false,
   onDragStart,
   isLocked = false,
+  extraSpacingPerGap = 0,
 }: BarOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -141,7 +144,7 @@ export function BarOnBracelet({
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(slotIndex, beads)
-    : getBeadTransform(slotIndex, beads, braceletRadius);
+    : getBeadTransform(slotIndex, beads, braceletRadius, extraSpacingPerGap);
 
   // vizRadius drives the hit capsule (sized to arc length for easy clicking)
   const vizRadius  = (bead.product.size_mm ?? 10) / 2 / 1000;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlignJustify, ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
 import {
@@ -21,6 +21,7 @@ export function EditModeToolbar() {
     beads,
     braceletSize,
     reorderBeads,
+    reorderBeadsGroup,
     duplicateBead,
     duplicateGroup,
     reverseBracelet,
@@ -39,12 +40,15 @@ export function EditModeToolbar() {
     setEditReplaceMode,
     controlsEl,
     viewMode,
+    isEvenlySpaced,
+    toggleEvenlySpaced,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editSelectedIds: s.editSelectedIds,
     beads: s.beads,
     braceletSize: s.braceletSize,
     reorderBeads: s.reorderBeads,
+    reorderBeadsGroup: s.reorderBeadsGroup,
     duplicateBead: s.duplicateBead,
     duplicateGroup: s.duplicateGroup,
     reverseBracelet: s.reverseBracelet,
@@ -63,6 +67,8 @@ export function EditModeToolbar() {
     setEditReplaceMode: s.setEditReplaceMode,
     controlsEl: s.controlsEl,
     viewMode: s.viewMode,
+    isEvenlySpaced: s.isEvenlySpaced,
+    toggleEvenlySpaced: s.toggleEvenlySpaced,
   }));
 
   const n = beads.length;
@@ -103,6 +109,38 @@ export function EditModeToolbar() {
   const singleIdx = isSingleSelection
     ? beads.findIndex((b) => b.instanceId === editSelectedIds[0])
     : -1;
+
+  // Sorted bead indices for the full selection (multi-select move)
+  const groupIndices = useMemo(() =>
+    editSelectedIds
+      .map((id) => beads.findIndex((b) => b.instanceId === id))
+      .filter((i) => i !== -1)
+      .sort((a, b) => a - b),
+    [editSelectedIds, beads],
+  );
+
+  // Single-bead move wraps around; multi-select move stops at the boundary
+  const canMoveBack    = isSingleSelection ? singleIdx !== -1
+    : groupIndices.length > 1 && groupIndices[0] > 0;
+  const canMoveForward = isSingleSelection ? singleIdx !== -1
+    : groupIndices.length > 1 && groupIndices[groupIndices.length - 1] < n - 1;
+
+  function handleMoveBack() {
+    if (isSingleSelection) {
+      reorderBeads(singleIdx, (singleIdx - 1 + n) % n);
+    } else if (groupIndices.length > 1) {
+      reorderBeadsGroup(groupIndices, groupIndices[0], groupIndices[0] - 1);
+    }
+  }
+
+  function handleMoveForward() {
+    if (isSingleSelection) {
+      reorderBeads(singleIdx, (singleIdx + 1) % n);
+    } else if (groupIndices.length > 1) {
+      const last = groupIndices[groupIndices.length - 1];
+      reorderBeadsGroup(groupIndices, last, last + 1);
+    }
+  }
 
   // ── Zoom (3D edit mode only; line view has free scroll) ────────────────────
   const isLineView = viewMode === 'line';
@@ -158,16 +196,16 @@ export function EditModeToolbar() {
       switch (e.key) {
         case "ArrowUp":
         case "ArrowLeft":
-          if (singleIdx === -1) return;
+          if (!canMoveBack) return;
           e.preventDefault();
-          reorderBeads(singleIdx, (singleIdx - 1 + n) % n);
+          handleMoveBack();
           break;
 
         case "ArrowDown":
         case "ArrowRight":
-          if (singleIdx === -1) return;
+          if (!canMoveForward) return;
           e.preventDefault();
-          reorderBeads(singleIdx, (singleIdx + 1) % n);
+          handleMoveForward();
           break;
 
         case "Delete":
@@ -197,26 +235,36 @@ export function EditModeToolbar() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canDuplicate, reorderBeads, removeBead, handleDuplicate, clearEditSelection, undo, redo]);
+  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canMoveBack, canMoveForward, canDuplicate, handleMoveBack, handleMoveForward, reorderBeads, removeBead, handleDuplicate, clearEditSelection, undo, redo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isEditMode) return null;
 
   return (
     <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[3px] divide-x divide-default">
-      <Tooltip content={singleIdx !== -1 ? ( "Move item back" ) : ("Select one item to move")} placement="bottom">
+      <Tooltip content={
+        !hasSelection ? "Select item(s) to move"
+        : !canMoveBack ? "Selection is at the start"
+        : isSingleSelection ? "Move item back"
+        : "Move selection back"
+      } placement="bottom">
         <EditBtn
-          onClick={() => reorderBeads(singleIdx, (singleIdx - 1 + n) % n)}
-          disabled={singleIdx === -1}
-          label="Move item back"
+          onClick={handleMoveBack}
+          disabled={!canMoveBack}
+          label="Move back"
         >
           <ArrowUp size={22} />
         </EditBtn>
       </Tooltip>
-      <Tooltip content={singleIdx !== -1 ? ( "Move item forward" ) : ("Select one item to move")} placement="bottom">
+      <Tooltip content={
+        !hasSelection ? "Select item(s) to move"
+        : !canMoveForward ? "Selection is at the end"
+        : isSingleSelection ? "Move item forward"
+        : "Move selection forward"
+      } placement="bottom">
         <EditBtn
-          onClick={() => reorderBeads(singleIdx, (singleIdx + 1) % n)}
-          disabled={singleIdx === -1}
-          label="Move item forward"
+          onClick={handleMoveForward}
+          disabled={!canMoveForward}
+          label="Move forward"
         >
           <ArrowDown size={22} />
         </EditBtn>
@@ -245,6 +293,17 @@ export function EditModeToolbar() {
           <Repeat2 size={22} />
         </EditBtn>
       </Tooltip>
+      {viewMode === '3D' && (
+        <Tooltip content={isEvenlySpaced ? "Restore original spacing" : "Distribute spacing evenly"} placement="bottom">
+          <EditBtn
+            onClick={toggleEvenlySpaced}
+            label={isEvenlySpaced ? "Restore original spacing" : "Distribute spacing evenly"}
+            className={isEvenlySpaced ? "bg-navy hover:bg-navy/80" : ""}
+          >
+            <AlignJustify size={22} className={isEvenlySpaced ? "text-white" : ""} />
+          </EditBtn>
+        </Tooltip>
+      )}
       <Tooltip content="Replace beads" placement="bottom">
         <EditBtn
           onClick={() => setEditReplaceMode(!editReplaceMode)}

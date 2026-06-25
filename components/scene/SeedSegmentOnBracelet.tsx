@@ -37,6 +37,8 @@ interface SeedSegmentOnBraceletProps {
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
   isLocked?: boolean;
+  /** Extra arc (metres) added between each bead pair for even spacing. */
+  extraSpacingPerGap?: number;
 }
 
 /**
@@ -53,6 +55,7 @@ export function SeedSegmentOnBracelet({
   isDragTarget = false,
   onDragStart,
   isLocked = false,
+  extraSpacingPerGap = 0,
 }: SeedSegmentOnBraceletProps) {
   const beads        = useStore((s) => s.beads);
   const braceletSize = useStore((s) => s.braceletSize);
@@ -165,7 +168,7 @@ export function SeedSegmentOnBracelet({
     }
 
     // 3D circular view: place each tiny bead at its own angle on the arc
-    const centerAngle = getBeadAngle(slotIndex, beads, radius);
+    const centerAngle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
     const segArcM = bead.product.diameter; // total arc in metres
     const halfArcRad = segArcM / 2 / radius;
     const startAngle = centerAngle - halfArcRad;
@@ -206,7 +209,7 @@ export function SeedSegmentOnBracelet({
       }];
     }
 
-    const centerAngle = getBeadAngle(slotIndex, beads, radius);
+    const centerAngle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
     const halfArcRad = segArcM / 2 / radius;
     const startAngle = centerAngle - halfArcRad;
     const endAngle = centerAngle + halfArcRad;
@@ -248,7 +251,7 @@ export function SeedSegmentOnBracelet({
     viewMode === "line"
       ? getBeadTransformLine(slotIndex, beads)
       : (() => {
-          const a = getBeadAngle(slotIndex, beads, radius);
+          const a = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
           return {
             position: getBeadPosition(a, radius),
             outerRotation: [0, -a, 0] as [number, number, number],

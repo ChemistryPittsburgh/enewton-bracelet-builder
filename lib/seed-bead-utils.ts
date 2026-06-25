@@ -123,6 +123,17 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
     cursor += thick;
   }
 
+  // Stretch arc positions to fill the slot so no tail gap is visible at segment boundaries.
+  if (beads.length > 0 && cursor < arcLengthM) {
+    const scale = arcLengthM / cursor;
+    let pos = 0;
+    for (const bead of beads) {
+      const scaledThick = bead.diameter * SEED_BEAD_THICKNESS_RATIO * scale;
+      bead.arcOffset = pos + scaledThick / 2;
+      pos += scaledThick;
+    }
+  }
+
   return beads;
 }
 
@@ -155,6 +166,17 @@ function generateRoundBeads(config: SeedSegmentConfig): GeneratedSeedBead[] {
     });
 
     cursor += thick;
+  }
+
+  // Stretch arc positions to fill the slot so no tail gap is visible at segment boundaries.
+  if (beads.length > 0 && cursor < arcLengthM) {
+    const scale = arcLengthM / cursor;
+    let pos = 0;
+    for (const bead of beads) {
+      const scaledThick = dM * ROUND_BEAD_THICKNESS_RATIO * scale;
+      bead.arcOffset = pos + scaledThick / 2;
+      pos += scaledThick;
+    }
   }
 
   return beads;

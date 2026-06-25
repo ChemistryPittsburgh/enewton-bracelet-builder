@@ -51,6 +51,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useDesignLock } from "@/hooks/useDesignLock";
 import { useSavePattern } from "@/hooks/useSavePattern";
+import { useIsDirty } from "@/hooks/useIsDirty";
 
 export function BuilderLayout() {
   const {
@@ -64,7 +65,6 @@ export function BuilderLayout() {
     startNewBracelet,
     setPendingDesign,
     activeDesignId,
-    isDirty,
     copyBracelet,
   } = useStore((s) => ({
     placedBeads:          s.beads,
@@ -77,10 +77,10 @@ export function BuilderLayout() {
     startNewBracelet:     s.startNewBracelet,
     setPendingDesign:     s.setPendingDesign,
     activeDesignId:       s.activeDesignId,
-    isDirty:              s.isDirty,
     copyBracelet:         s.copyBracelet,
   }));
 
+  const isDirty = useIsDirty();
   const isEditMode    = useStore((s) => s.isEditMode);
   const toggleEditMode = useStore((s) => s.toggleEditMode);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);

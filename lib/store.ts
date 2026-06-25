@@ -130,6 +130,8 @@ interface Store {
 
   /** Move a bead from one index to another — drives the reorder panel. **/
   reorderBeads: (fromIndex: number, toIndex: number) => void;
+  /** Move a group of beads together; anchorFromIndex is the dragged bead, anchorToIndex is its drop target. */
+  reorderBeadsGroup: (fromIndices: number[], anchorFromIndex: number, anchorToIndex: number) => void;
 
   /** Insert a copy of the bead immediately after it. No-op if bracelet is full. */
   duplicateBead: (instanceId: string) => void;
@@ -140,6 +142,10 @@ interface Store {
 
   /** Reverse the entire bead order. */
   reverseBracelet: () => void;
+
+  /** When true, beads are rendered with equal spacing around the bracelet. Purely visual — does not affect capacity. */
+  isEvenlySpaced: boolean;
+  toggleEvenlySpaced: () => void;
 
   bandMaterial: BandMaterial;
   braceletSize: BraceletSize;
@@ -861,6 +867,25 @@ export const useStore = create<Store>()(
         });
       },
 
+      reorderBeadsGroup(fromIndices, anchorFromIndex, anchorToIndex) {
+        if (fromIndices.length === 0) return;
+        get().pushUndoSnapshot();
+        set((s) => {
+          const arr = [...s.beads];
+          const sortedIndices = [...fromIndices].sort((a, b) => a - b);
+          const group = sortedIndices.map(i => arr[i]);
+          const remaining = arr.filter((_, i) => !sortedIndices.includes(i));
+          const anchorPositionInGroup = sortedIndices.indexOf(anchorFromIndex);
+          const insertPosition = Math.max(0, Math.min(remaining.length, anchorToIndex - anchorPositionInGroup));
+          const newArr = [
+            ...remaining.slice(0, insertPosition),
+            ...group,
+            ...remaining.slice(insertPosition),
+          ];
+          return { beads: newArr, isDirty: true };
+        });
+      },
+
       duplicateBead(instanceId) {
         const { beads, braceletSize } = get();
         const index = beads.findIndex((b) => b.instanceId === instanceId);
@@ -922,6 +947,9 @@ export const useStore = create<Store>()(
         get().pushUndoSnapshot();
         set((s) => ({ beads: [...s.beads].reverse(), isDirty: true }));
       },
+
+      isEvenlySpaced: false,
+      toggleEvenlySpaced: () => set((s) => ({ isEvenlySpaced: !s.isEvenlySpaced })),
 
       setbandMaterial: (bandMaterial) => set({ bandMaterial, isDirty: true }),
       setBraceletSize: (braceletSize) => set({ braceletSize, isDirty: true }),
@@ -1071,6 +1099,7 @@ export const useStore = create<Store>()(
         hairtieColor: s.hairtieColor,
         activeDesignId: s.activeDesignId,
         activePatternId: s.activePatternId,
+        isEvenlySpaced: s.isEvenlySpaced,
       }),
     }
   )
