@@ -18,6 +18,7 @@ import { useTags } from "@/hooks/useTags";
 import { useCollections } from "@/hooks/useCollections";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useIsDirty } from "@/hooks/useIsDirty";
 
 import type { Bracelet, BraceletStatus, Collection, Tag, DesignLock } from "@/types";
 
@@ -129,7 +130,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
   const { loadDesign }   = useLoadDesign();
   const beads            = useStore((s) => s.beads);
   const activeDesignId   = useStore((s) => s.activeDesignId);
-  const isDirty          = useStore((s) => s.isDirty);
+  const isDirty          = useIsDirty();
   const setPendingDesign = useStore((s) => s.setPendingDesign);
 
   const { data: currentUser } = useCurrentUser();
