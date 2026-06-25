@@ -138,6 +138,17 @@ function pairAdvance(a: BeadLike, b: BeadLike): number {
   return arcHalf(a, b) + getSpacing(a, b) + arcHalf(b, a);
 }
 
+/**
+ * Extra arc to add between every adjacent pair so the total gap is spread
+ * evenly around the bracelet instead of sitting at the seam.
+ * Returns 0 for empty bracelets or bracelets that are already full.
+ */
+export function getEvenSpacingBonus(beads: BeadLike[], radius: number): number {
+  if (beads.length === 0) return 0;
+  const bonus = (braceletArc(radius) - usedArc(beads)) / beads.length;
+  return Math.max(0, bonus);
+}
+
 /** Total cord length consumed by beads - how much room left */
 export function usedArc(beads: BeadLike[]): number {
   if (beads.length === 0) return 0;
@@ -199,16 +210,21 @@ export function getBeadTransformLine(
 /**
  * Computes the angle for bead at slotIndex based on the actual
  * diameter of every bead before it in the list.
+ *
+ * @param extraSpacingPerGap - optional extra arc (metres) to add between every
+ *   adjacent pair, used by the "distribute spacing" toggle to spread leftover
+ *   gap evenly around the bracelet. Does not affect capacity accounting.
  */
 export function getBeadAngle(
   slotIndex: number,
   beads: BeadLike[],
-  radius = BRACELET_RADIUS
+  radius = BRACELET_RADIUS,
+  extraSpacingPerGap = 0,
 ): number {
   let angle = START_ANGLE_OFFSET + selfHalf(beads[0]) / radius;
 
   for (let i = 0; i < slotIndex; i++) {
-    angle += pairAdvance(beads[i], beads[i + 1]) / radius;
+    angle += (pairAdvance(beads[i], beads[i + 1]) + extraSpacingPerGap) / radius;
   }
 
   return angle;
@@ -233,13 +249,14 @@ const BEAD_INNER_TILT_X = 0;
 export function getBeadTransform(
   slotIndex: number,
   beads: BeadLike[],
-  radius = BRACELET_RADIUS
+  radius = BRACELET_RADIUS,
+  extraSpacingPerGap = 0,
 ): {
   position: [number, number, number];
   outerRotation: [number, number, number];
   innerRotation: [number, number, number];
 } {
-  const angle = getBeadAngle(slotIndex, beads, radius);
+  const angle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
   return {
     position: getBeadPosition(angle, radius),
     outerRotation: [0, getBeadOuterRotationY(angle), 0],

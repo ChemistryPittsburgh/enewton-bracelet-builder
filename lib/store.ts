@@ -139,6 +139,10 @@ interface Store {
   /** Reverse the entire bead order. */
   reverseBracelet: () => void;
 
+  /** When true, beads are rendered with equal spacing around the bracelet. Purely visual — does not affect capacity. */
+  isEvenlySpaced: boolean;
+  toggleEvenlySpaced: () => void;
+
   bandMaterial: BandMaterial;
   braceletSize: BraceletSize;
   hairtieColor: string;
@@ -900,6 +904,9 @@ export const useStore = create<Store>()(
         set((s) => ({ beads: [...s.beads].reverse(), isDirty: true }));
       },
 
+      isEvenlySpaced: false,
+      toggleEvenlySpaced: () => set((s) => ({ isEvenlySpaced: !s.isEvenlySpaced })),
+
       setbandMaterial: (bandMaterial) => set({ bandMaterial, isDirty: true }),
       setBraceletSize: (braceletSize) => set({ braceletSize, isDirty: true }),
       setHairtieColor: (hairtieColor) => set({ hairtieColor, isDirty: true }),
@@ -1051,6 +1058,7 @@ export const useStore = create<Store>()(
         hairtieColor: s.hairtieColor,
         activeDesignId: s.activeDesignId,
         activePatternId: s.activePatternId,
+        isEvenlySpaced: s.isEvenlySpaced,
       }),
     }
   )

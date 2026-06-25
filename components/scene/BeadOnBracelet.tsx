@@ -36,6 +36,8 @@ interface BeadOnBraceletProps {
   selectionColor?: string;
   /** True during thumbnail capture — suppresses all selection rings. */
   isCapturing?: boolean;
+  /** Extra arc (metres) added between each bead pair for even spacing. */
+  extraSpacingPerGap?: number;
 }
 
 export function BeadOnBracelet({
@@ -50,6 +52,7 @@ export function BeadOnBracelet({
   isColliding = false,
   selectionColor,
   isCapturing = false,
+  extraSpacingPerGap = 0,
 }: BeadOnBraceletProps) {
   const { scene } = useGLTF(bead.product.glb_path);
 
@@ -179,7 +182,7 @@ export function BeadOnBracelet({
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const { position, outerRotation, innerRotation } = viewMode === 'line'
     ? getBeadTransformLine(slotIndex, beads)
-    : getBeadTransform(slotIndex, beads, radius);
+    : getBeadTransform(slotIndex, beads, radius, extraSpacingPerGap);
 
   // Radial offset: collision layer stacking + float charm forward push +
   // crystal-charm setback + per-charm depth setback. All shift along the radial

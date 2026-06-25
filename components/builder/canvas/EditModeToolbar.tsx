@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
+import { AlignJustify, ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits } from "@/lib/bead-layout";
 import {
@@ -40,6 +40,8 @@ export function EditModeToolbar() {
     setEditReplaceMode,
     controlsEl,
     viewMode,
+    isEvenlySpaced,
+    toggleEvenlySpaced,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editSelectedIds: s.editSelectedIds,
@@ -65,6 +67,8 @@ export function EditModeToolbar() {
     setEditReplaceMode: s.setEditReplaceMode,
     controlsEl: s.controlsEl,
     viewMode: s.viewMode,
+    isEvenlySpaced: s.isEvenlySpaced,
+    toggleEvenlySpaced: s.toggleEvenlySpaced,
   }));
 
   const n = beads.length;
@@ -289,6 +293,17 @@ export function EditModeToolbar() {
           <Repeat2 size={22} />
         </EditBtn>
       </Tooltip>
+      {viewMode === '3D' && (
+        <Tooltip content={isEvenlySpaced ? "Restore original spacing" : "Distribute spacing evenly"} placement="bottom">
+          <EditBtn
+            onClick={toggleEvenlySpaced}
+            label={isEvenlySpaced ? "Restore original spacing" : "Distribute spacing evenly"}
+            className={isEvenlySpaced ? "bg-navy hover:bg-navy/80" : ""}
+          >
+            <AlignJustify size={22} className={isEvenlySpaced ? "text-white" : ""} />
+          </EditBtn>
+        </Tooltip>
+      )}
       <Tooltip content="Replace beads" placement="bottom">
         <EditBtn
           onClick={() => setEditReplaceMode(!editReplaceMode)}
