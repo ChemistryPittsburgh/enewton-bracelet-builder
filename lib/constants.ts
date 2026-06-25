@@ -197,12 +197,14 @@ export interface FinishPreset {
 }
 
 export const FINISH_PRESETS: Record<string, FinishPreset> = {
-  gold:      { metalness: 1, roughness: 0.1, envMapIntensity: 0.3 },
-  silver:    { metalness: 1,   roughness: 0.12, envMapIntensity: 0.35 },
-  rose_gold: { metalness: 0.95, roughness: 0.2, envMapIntensity: 0.9 },
-  gem:       { metalness: 0.5 },
-  crystal:       { metalness: 0.5 },
-  resin:        { metalness: 0.5}
+  gold:        { metalness: 1,    roughness: 0.18, envMapIntensity: 0.1 },
+  gold_filled: { metalness: 1,    roughness: 0.18, envMapIntensity: 0.1 },
+  silver:      { metalness: 1,    roughness: 0.18, envMapIntensity: 0.35 },
+  sterling:    { metalness: 1,    roughness: 0.18, envMapIntensity: 0.35 },
+  rose_gold:   { metalness: 0.95, roughness: 0.2,  envMapIntensity: 0.9 },
+  gem:         { metalness: 0.5 },
+  crystal:     { metalness: 0.5 },
+  resin:       { metalness: 0.5 },
 };
 
 /** Fallback when product.finish is undefined. Set to null to disable. */
@@ -210,8 +212,11 @@ export const DEFAULT_FINISH: string | null = "gold";
 
 export const MIN_BEAD_DIAMETER = 0.2;
 
-export const BEAD_CATEGORIES = ["bead", "charm", "float_charm", "tube"] as const;
-export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "crystal", "resin"] as const;
+/** Maximum iterations when counting how many items fit in freed bar arc. */
+export const BAR_REPLACE_FIT_LIMIT = 500;
+
+export const BEAD_CATEGORIES = ["bead", "charm", "float_charm", "tube", "gem", "bar"] as const;
+export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "gold_filled", "sterling", "crystal", "resin"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
 // Spacers are invisible gap beads with no GLB — they only consume arc space.

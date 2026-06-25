@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { AvailableSpaceBox } from "@/components/ui/AvailableSpaceBox";
+import { BraceletFullNotice } from "@/components/ui/BraceletFullNotice";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 import { usePermissions } from "@/hooks/usePermissions";
@@ -16,9 +17,11 @@ import { BRACELET_SIZE_RADIUS, SPACER_SIZES_MM } from "@/lib/constants";
 interface SpacerPickerProps {
   onAdd: (sizeMm: number) => void;
   error: string | null;
+  maxArcMm?: number;
+  isReplaceMode?: boolean;
 }
 
-export function SpacerPicker({ onAdd, error }: SpacerPickerProps) {
+export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode }: SpacerPickerProps) {
   const { placedBeads, braceletSize } = useStore((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
@@ -28,16 +31,17 @@ export function SpacerPicker({ onAdd, error }: SpacerPickerProps) {
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [customSize, setCustomSize]     = useState("");
 
-  const radius       = BRACELET_SIZE_RADIUS[braceletSize];
-  const totalArc     = braceletArc(radius);
-  const used         = usedArc(placedBeads);
-  const availableMm  = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+  const radius              = BRACELET_SIZE_RADIUS[braceletSize];
+  const totalArc            = braceletArc(radius);
+  const used                = usedArc(placedBeads);
+  const availableMm         = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+  const effectiveAvailableMm = maxArcMm ?? availableMm;
 
   const MAX_SPACER_MM = 14;
 
   const activeSize = selectedSize ?? (customSize ? parseFloat(customSize) : null);
   const tooLarge = activeSize != null && activeSize > MAX_SPACER_MM;
-  const fits = activeSize != null && activeSize > 0 && activeSize <= availableMm && !tooLarge;
+  const fits = activeSize != null && activeSize > 0 && activeSize <= effectiveAvailableMm && !tooLarge;
 
   return (
     <div className="flex flex-col h-full">
@@ -47,7 +51,7 @@ export function SpacerPicker({ onAdd, error }: SpacerPickerProps) {
         <SectionHeading>Spacer size</SectionHeading>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
           {SPACER_SIZES_MM.map((size) => {
-            const canFit   = size <= availableMm;
+            const canFit   = size <= effectiveAvailableMm;
             const isActive = selectedSize === size && !customSize;
             return (
               <button
@@ -96,11 +100,16 @@ export function SpacerPicker({ onAdd, error }: SpacerPickerProps) {
             Maximum spacer size is {MAX_SPACER_MM}mm.
           </p>
         )}
+        {isReplaceMode && activeSize != null && activeSize > 0 && !tooLarge && (
+          <p className="text-[11px] text-color-base/50 mt-2">
+            Fills {Math.floor(effectiveAvailableMm / activeSize)} × {activeSize}mm spacers
+          </p>
+        )}
       </div>
 
       <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
         {error && <ErrorAlert message={error} />}
-        {(1 < availableMm) ? (
+        {(1 < effectiveAvailableMm) ? (
           <>
            <SectionHeading>
             {activeSize ? `${activeSize}mm spacer` : "Select a size"}
@@ -112,15 +121,12 @@ export function SpacerPicker({ onAdd, error }: SpacerPickerProps) {
               className="flex w-full items-center justify-center gap-2 group"
             >
               <MoveHorizontal size={16} className="-mt-[2.5px] fill-white group-hover:fill-navy stroke-white hover:fill-navy group-hover:stroke-navy transition-colors" />
-              Add spacer
+              {isReplaceMode ? "Replace bar" : "Add spacer"}
             </Button>
           )}
           </>
         ) : (
-          <div className="rounded-[2px] border border-error/20 bg-error/5 px-4 py-3 text-center">
-            <SectionHeading className="mb-1 text-error">Bracelet is full</SectionHeading>
-            <p className="text-xs text-color-base/80 mt-0">Remove beads to free up space.</p>
-          </div>
+          <BraceletFullNotice />
         )}
       </div>
     </div>

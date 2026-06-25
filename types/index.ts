@@ -189,6 +189,7 @@ export interface BeadProduct {
   color: string | null;
   material: string | null;
   size_mm: number | null;
+  sizes?: number[] | null;
   active: number;
   created_at?: string;
   updated_at?: string;

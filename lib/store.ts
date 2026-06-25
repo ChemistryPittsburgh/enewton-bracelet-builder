@@ -99,6 +99,13 @@ interface Store {
    *  Optional maxToReplace caps total replacements across all runs (used when fewer beads fit than were selected). */
   replaceEditSelectedBeads: (instanceIds: string[], newProduct: BeadProduct, maxToReplace?: number) => string | null;
 
+  /** Remove all items in instanceIds and insert `count` copies of newProduct at the first removed slot.
+   *  Used when replacing a bar with multiple smaller items. Returns an error string or null on success. */
+  replaceWithBeads: (instanceIds: string[], newProduct: BeadProduct, count: number) => string | null;
+
+  /** Remove bar(s) and insert a single seed segment (with seedConfig) at the first removed slot. */
+  replaceBarWithSeedSegment: (instanceIds: string[], product: BeadProduct, seedConfig: SeedSegmentConfig) => string | null;
+
   /** Ephemeral — instanceIds of seed segments queued for seed→seed replacement; null when not in seed-replace mode. */
   replaceSeedTargetIds: string[] | null;
   /** Enter seed-replace mode for every seed segment matching the given seedMatchKey (size + shape). */
@@ -650,6 +657,121 @@ export const useStore = create<Store>()(
           beadLoadErrors: s.beadLoadErrors.filter((e) => e.instanceId !== instanceId),
           isDirty: true,
         }));
+        return null;
+      },
+
+      replaceWithBeads(instanceIds, newProduct, count) {
+        const s = get();
+        const radius = BRACELET_SIZE_RADIUS[s.braceletSize];
+
+        const positions = instanceIds
+          .map(id => ({ id, idx: s.beads.findIndex(b => b.instanceId === id) }))
+          .filter(x => x.idx !== -1)
+          .sort((a, b) => a.idx - b.idx);
+
+        if (positions.length === 0) return "Target beads not found.";
+
+        const insertAt = positions[0].idx;
+        const removedSet = new Set(instanceIds);
+        const withoutTargets = s.beads.filter(b => !removedSet.has(b.instanceId));
+
+        // Validate by inserting at the correct slot — not tail-appending — so that
+        // charm-adjacency spacing (body_width_mm) is computed against the real neighbors.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const testInserted: any[] = [];
+        for (let i = 0; i < count; i++) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const next = { instanceId: `__v_${i}`, product: newProduct } as any;
+          const checkList = [
+            ...withoutTargets.slice(0, insertAt),
+            ...testInserted,
+            next,
+            ...withoutTargets.slice(insertAt),
+          ];
+          if (usedArc(checkList) > braceletArc(radius)) {
+            return i === 0
+              ? "No replacement items fit in the available space."
+              : `Only ${i} item${i > 1 ? "s" : ""} fit in the available space.`;
+          }
+          testInserted.push(next);
+        }
+
+        const inserted: PlacedBead[] = Array.from({ length: count }, () => ({
+          instanceId: nanoid(),
+          product: newProduct,
+        }));
+
+        const newBeads = [
+          ...withoutTargets.slice(0, insertAt),
+          ...inserted,
+          ...withoutTargets.slice(insertAt),
+        ];
+
+        const newGroups = s.editSelectionGroups
+          .map(g => g.filter(id => !removedSet.has(id)))
+          .filter(g => g.length > 0);
+        const newSelectedIds = s.editSelectedIds.filter(id => !removedSet.has(id));
+        const stillHasGroups = newGroups.length > 0 || newSelectedIds.length > 0;
+
+        s.pushUndoSnapshot();
+        set({
+          beads: newBeads,
+          beadLoadErrors: s.beadLoadErrors.filter(e => !removedSet.has(e.instanceId)),
+          selectedBead: null,
+          replaceTargetInstanceId: null,
+          editReplaceMode: stillHasGroups,
+          editSelectionGroups: newGroups,
+          editSelectedIds: newSelectedIds,
+          editReplaceNarrowedIds: null,
+          isDirty: true,
+        });
+        return null;
+      },
+
+      replaceBarWithSeedSegment(instanceIds, product, seedConfig) {
+        const s = get();
+        const radius = BRACELET_SIZE_RADIUS[s.braceletSize];
+
+        const positions = instanceIds
+          .map(id => ({ id, idx: s.beads.findIndex(b => b.instanceId === id) }))
+          .filter(x => x.idx !== -1)
+          .sort((a, b) => a.idx - b.idx);
+
+        if (positions.length === 0) return "Target beads not found.";
+
+        const insertAt = positions[0].idx;
+        const removedSet = new Set(instanceIds);
+        const withoutTargets = s.beads.filter(b => !removedSet.has(b.instanceId));
+
+        if (!beadFits(withoutTargets, { product }, radius)) {
+          return "The seed segment doesn't fit in the available space.";
+        }
+
+        const newBead: PlacedBead = { instanceId: nanoid(), product, seedConfig };
+        const newBeads = [
+          ...withoutTargets.slice(0, insertAt),
+          newBead,
+          ...withoutTargets.slice(insertAt),
+        ];
+
+        const newGroups = s.editSelectionGroups
+          .map(g => g.filter(id => !removedSet.has(id)))
+          .filter(g => g.length > 0);
+        const newSelectedIds = s.editSelectedIds.filter(id => !removedSet.has(id));
+        const stillHasGroups = newGroups.length > 0 || newSelectedIds.length > 0;
+
+        s.pushUndoSnapshot();
+        set({
+          beads: newBeads,
+          beadLoadErrors: s.beadLoadErrors.filter(e => !removedSet.has(e.instanceId)),
+          selectedBead: null,
+          replaceTargetInstanceId: null,
+          editReplaceMode: stillHasGroups,
+          editSelectionGroups: newGroups,
+          editSelectedIds: newSelectedIds,
+          editReplaceNarrowedIds: null,
+          isDirty: true,
+        });
         return null;
       },
 

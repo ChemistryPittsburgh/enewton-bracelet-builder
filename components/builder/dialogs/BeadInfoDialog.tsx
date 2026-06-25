@@ -173,6 +173,16 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
                 }
               </Button>
             )}
+            {!isLocked && !isSeed && !selectAllActive && (
+              <Button onClick={() => startReplaceMode(bead.instanceId)} className="w-full mt-2" variant="ghost">
+                {bead.product.bead_category === "bar" ? "Replace Bar" : "Replace Bead"}
+              </Button>
+            )}
+            {!isLocked && !isSeed && selectAllActive && (
+              <Button onClick={() => startReplaceAllMode(bead.product.id)} className="w-full mt-2" variant="ghost">
+                Replace All ({matchCount})
+              </Button>
+            )}
           </>
         )}
       </FloatingDialog>

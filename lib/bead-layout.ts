@@ -27,6 +27,7 @@ type BeadLike = {
     diameter: number;
     bead_category?: string | null;
     body_width_mm?: number | null;
+    size_mm?: number | null;
     material?: string | null;
   };
 };
@@ -94,8 +95,23 @@ export function braceletArc(radius: number): number {
   return 2 * Math.PI * radius;
 }
 
+// Half-arc a single bead occupies from its own centre (no neighbor context needed).
+// Bars use size_mm (their arc length) rather than diameter (their tube thickness).
+function selfHalf(bead: BeadLike): number {
+  if (bead.product.bead_category === "bar") {
+    if (bead.product.size_mm == null) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[bead-layout] bar has null size_mm — falling back to diameter; arc accounting will be wrong`);
+      }
+      return bead.product.diameter / 2;
+    }
+    return bead.product.size_mm / 2 / 1000;
+  }
+  return bead.product.diameter / 2;
+}
+
 // Returns the half-arc a bead contributes toward a given neighbor.
-// Charm–charm pairs use body_width_mm (disc body width); all others use diameter.
+// Charm–charm pairs use body_width_mm (disc body width); all others use selfHalf.
 // Float charms sit sideways on the cord, so their arc contribution is scaled
 // down to match their thin edge profile (FLOAT_CHARM_THIN_SCALE, shared with
 // the hit box and collision math).
@@ -110,7 +126,7 @@ function arcHalf(bead: BeadLike, neighbor: BeadLike): number {
     const half = bead.product.body_width_mm / 2 / 1000;
     return bc === "float_charm" ? half * FLOAT_CHARM_THIN_SCALE : half;
   }
-  return bead.product.diameter / 2;
+  return selfHalf(bead);
 }
 
 /**
@@ -125,11 +141,11 @@ function pairAdvance(a: BeadLike, b: BeadLike): number {
 /** Total cord length consumed by beads - how much room left */
 export function usedArc(beads: BeadLike[]): number {
   if (beads.length === 0) return 0;
-  let total = beads[0].product.diameter / 2;
+  let total = selfHalf(beads[0]);
   for (let i = 0; i < beads.length - 1; i++) {
     total += pairAdvance(beads[i], beads[i + 1]);
   }
-  total += beads[beads.length - 1].product.diameter / 2;
+  total += selfHalf(beads[beads.length - 1]);
   return total;
 }
 
@@ -167,7 +183,7 @@ export function getBeadTransformLine(
   innerRotation: [number, number, number];
 } {
   const totalW = usedArc(beads);
-  let x = -totalW / 2 + beads[0].product.diameter / 2;
+  let x = -totalW / 2 + selfHalf(beads[0]);
   for (let i = 0; i < slotIndex; i++) {
     x += pairAdvance(beads[i], beads[i + 1]);
   }
@@ -189,7 +205,7 @@ export function getBeadAngle(
   beads: BeadLike[],
   radius = BRACELET_RADIUS
 ): number {
-  let angle = START_ANGLE_OFFSET + beads[0].product.diameter / 2 / radius;
+  let angle = START_ANGLE_OFFSET + selfHalf(beads[0]) / radius;
 
   for (let i = 0; i < slotIndex; i++) {
     angle += pairAdvance(beads[i], beads[i + 1]) / radius;
