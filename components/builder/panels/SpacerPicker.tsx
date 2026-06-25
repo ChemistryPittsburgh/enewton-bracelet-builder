@@ -44,8 +44,8 @@ export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode }: SpacerPi
   const fits = activeSize != null && activeSize > 0 && activeSize <= effectiveAvailableMm && !tooLarge;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 px-5 pb-4">
+    <div className="flex flex-col h-full min-h-0 pt-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4">
         <AvailableSpaceBox />
 
         <SectionHeading>Spacer size</SectionHeading>

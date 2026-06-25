@@ -226,8 +226,8 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className={`flex flex-col h-full ${replaceMode && "pt-4"}`}>
-      <div className="flex-1 px-5 pb-4 flex flex-col gap-4">
+    <div className={`flex flex-col h-full min-h-0`}>
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 flex flex-col gap-4 pt-4">
 
         {!replaceMode && <AvailableSpaceBox className="!mb-0" />}
 
@@ -600,7 +600,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
       </div>
 
       {/* Bottom bar */}
-      <div className="shrink-0 border-t border-default/50 px-5 pt-4 pb-5 space-y-3">
+      <div className="shrink-0 border-t border-default px-5 pt-4 pb-5 space-y-3">
         {error && <ErrorAlert message={error} />}
 
         {(replaceMode || effectiveAvailableMm >= 2) ? (

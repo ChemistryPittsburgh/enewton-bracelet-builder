@@ -10,7 +10,7 @@ import { useLoadPattern } from "@/hooks/useLoadPattern";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { Bracelet } from "@/types";
 
-import { PatternCard } from "./PatternCard";
+import { PatternCard } from "./../cards/PatternCard";
 
 const PATTERN_SORT_OPTIONS: { label: string; value: DesignSortOption }[] = [
   { label: "Newest first", value: "newest"   },

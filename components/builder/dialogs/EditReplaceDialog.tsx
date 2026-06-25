@@ -32,6 +32,7 @@ export function EditReplaceDialog() {
     saveCurrentSelectionAsGroup,
     startReplaceSeedMode,
     replaceSeedTargetIds,
+    clearReplaceSeed,
   } = useStore((s) => ({
     isEditMode: s.isEditMode,
     editReplaceMode: s.editReplaceMode,
@@ -45,19 +46,24 @@ export function EditReplaceDialog() {
     saveCurrentSelectionAsGroup: s.saveCurrentSelectionAsGroup,
     startReplaceSeedMode: s.startReplaceSeedMode,
     replaceSeedTargetIds: s.replaceSeedTargetIds,
+    clearReplaceSeed: s.clearReplaceSeed,
   }));
 
-  // Default state: all unique bead types on the bracelet (excludes spacers/seed segments)
-  const typeRows = useMemo(() => {
-    const map = new Map<number, { product: BeadProduct; instanceIds: string[] }>();
+  // Unique bead/charm types on the bracelet (excludes spacers/seed segments),
+  // split so charms get their own section. Charms = "charm" + "float_charm".
+  const { beadRows, charmRows } = useMemo(() => {
+    const beadMap = new Map<number, { product: BeadProduct; instanceIds: string[] }>();
+    const charmMap = new Map<number, { product: BeadProduct; instanceIds: string[] }>();
     for (const bead of beads) {
       const cat = bead.product.bead_category;
       if (cat === "spacer" || cat === "seed_segment") continue;
+      const isCharm = cat === "charm" || cat === "float_charm";
+      const map = isCharm ? charmMap : beadMap;
       const pid = bead.product.id;
       if (!map.has(pid)) map.set(pid, { product: bead.product, instanceIds: [] });
       map.get(pid)!.instanceIds.push(bead.instanceId);
     }
-    return [...map.values()];
+    return { beadRows: [...beadMap.values()], charmRows: [...charmMap.values()] };
   }, [beads]);
 
   // Seed segments grouped by (size, shape) — added to the replace list so users
@@ -126,20 +132,26 @@ export function EditReplaceDialog() {
   }
 
   function handleTypeToggle(allInstanceIds: string[]) {
-    const allSelected = allInstanceIds.every(id => editSelectedIds.includes(id));
+    // Multi-select: toggle this whole type in/out of the running selection so
+    // several types can be queued for replacement at once. Clicking a type that
+    // is already fully selected removes just its instances; otherwise they are
+    // merged into the selection (and any seed target is dropped).
+    const allSelected = allInstanceIds.every((id) => editSelectedIds.includes(id));
     if (allSelected) {
-      setEditSelectedIds(editSelectedIds.filter(id => !allInstanceIds.includes(id)));
+      setEditSelectedIds(editSelectedIds.filter((id) => !allInstanceIds.includes(id)));
     } else {
-      const missing = allInstanceIds.filter(id => !editSelectedIds.includes(id));
-      setEditSelectedIds([...editSelectedIds, ...missing]);
+      setEditSelectedIds([...new Set([...editSelectedIds, ...allInstanceIds])]);
+      clearReplaceSeed();
     }
   }
 
   const title = isExplicitMode
     ? "Replacing selected bead(s)"
     : "Select item by type to replace";
-  // Section labels only earn their keep when both kinds are present.
-  const showSectionLabels = typeRows.length > 0 && seedRows.length > 0;
+  // Section labels only earn their keep when more than one section is present.
+  const sectionCount =
+    (beadRows.length > 0 ? 1 : 0) + (charmRows.length > 0 ? 1 : 0) + (seedRows.length > 0 ? 1 : 0);
+  const showSectionLabels = sectionCount > 1;
 
   return (
     <div
@@ -170,11 +182,11 @@ export function EditReplaceDialog() {
       <div className="max-h-[320px] py-4 px-2 overflow-y-scroll">
         {!isExplicitMode ? (
           /* ── Default mode: bead types and seed beads in separate sections ── */
-          typeRows.length === 0 && seedRows.length === 0 ? (
+          beadRows.length === 0 && charmRows.length === 0 && seedRows.length === 0 ? (
             <p className="text-xs text-color-base/50">No beads on bracelet</p>
           ) : (
             <div className="space-y-3 pr-0.5">
-              {typeRows.length > 0 && (
+              {beadRows.length > 0 && (
                 <div>
                   {showSectionLabels && (
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-color-base/40 px-2 mb-1.5">
@@ -182,43 +194,44 @@ export function EditReplaceDialog() {
                     </p>
                   )}
                   <ul className="space-y-1">
-                    {typeRows.map(({ product, instanceIds }) => {
-                      const selectedCount = instanceIds.filter(id => editSelectedIds.includes(id)).length;
-                      const isSelected = selectedCount > 0;
-                      const isPartial = isSelected && selectedCount < instanceIds.length;
-                      const countDisplay = isPartial
-                        ? `${selectedCount} of ${instanceIds.length}`
-                        : String(instanceIds.length);
-                      const colorIdx = productColorIndex.get(product.id);
-                      const palette = colorIdx !== undefined
-                        ? EDIT_REPLACE_GROUPS[colorIdx % EDIT_REPLACE_GROUPS.length]
-                        : null;
-                      return (
-                        <li key={product.id}>
-                        <Tooltip content={`${isSelected ? "Remove selected item" : ""}`} placement="top-end" className="!block">
-                            <button
-                              onClick={() => handleTypeToggle(instanceIds)}
-                              className={cn(
-                                "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center gap-2",
-                                isSelected && palette ? `${palette.active} font-medium` : "hover:bg-light-grey"
-                              )}
-                            >
-                              <span className="truncate flex-1">{product.name}</span>
-                              <span className={cn("shrink-0 text-xs tabular-nums", isSelected ? "text-white/70" : "text-color-base/50")}>
-                                {countDisplay}
-                              </span>
-                              <X size={12} className={`opacity-0 ${isSelected && "opacity-100"}`} />
-                            </button>
-                          </Tooltip>
-                        </li>
-                      );
-                    })}
+                    {beadRows.map(({ product, instanceIds }) => (
+                      <BeadTypeRow
+                        key={product.id}
+                        product={product}
+                        instanceIds={instanceIds}
+                        editSelectedIds={editSelectedIds}
+                        colorIndex={productColorIndex.get(product.id)}
+                        onToggle={handleTypeToggle}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {charmRows.length > 0 && (
+                <div className={cn(beadRows.length > 0 && "border-t border-default pt-3")}>
+                  {showSectionLabels && (
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-color-base/40 px-2 mb-1.5">
+                      Charms
+                    </p>
+                  )}
+                  <ul className="space-y-1">
+                    {charmRows.map(({ product, instanceIds }) => (
+                      <BeadTypeRow
+                        key={product.id}
+                        product={product}
+                        instanceIds={instanceIds}
+                        editSelectedIds={editSelectedIds}
+                        colorIndex={productColorIndex.get(product.id)}
+                        onToggle={handleTypeToggle}
+                      />
+                    ))}
                   </ul>
                 </div>
               )}
 
               {seedRows.length > 0 && (
-                <div className={cn(typeRows.length > 0 && "border-t border-default pt-3")}>
+                <div className={cn((beadRows.length > 0 || charmRows.length > 0) && "border-t border-default pt-3")}>
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-color-base/40 px-2 mb-1.5">
                     Seed Beads
                   </p>
@@ -245,14 +258,15 @@ export function EditReplaceDialog() {
                           <button
                             onClick={() => startReplaceSeedMode(row.key)}
                             className={cn(
-                              "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center justify-between gap-2",
+                              "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center gap-2",
                               isSelected ? "bg-navy text-white font-medium" : "hover:bg-light-grey"
                             )}
                           >
-                            <span className="truncate">{row.label}</span>
+                            <span className="truncate flex-1">{row.label}</span>
                             <span className={cn("shrink-0 text-xs tabular-nums", isSelected ? "text-white/70" : "text-color-base/50")}>
                               {countDisplay}
                             </span>
+                            <X size={12} className={`opacity-0 ${isSelected && "opacity-100"}`} />
                           </button>
                         </li>
                       );
@@ -295,6 +309,43 @@ export function EditReplaceDialog() {
       )}
     </div>
     </div>
+  );
+}
+
+function BeadTypeRow({ product, instanceIds, editSelectedIds, colorIndex, onToggle }: {
+  product: BeadProduct;
+  instanceIds: string[];
+  editSelectedIds: string[];
+  colorIndex: number | undefined;
+  onToggle: (instanceIds: string[]) => void;
+}) {
+  const selectedCount = instanceIds.filter((id) => editSelectedIds.includes(id)).length;
+  const isSelected = selectedCount > 0;
+  const isPartial = isSelected && selectedCount < instanceIds.length;
+  const countDisplay = isPartial
+    ? `${selectedCount} of ${instanceIds.length}`
+    : String(instanceIds.length);
+  const palette = colorIndex !== undefined
+    ? EDIT_REPLACE_GROUPS[colorIndex % EDIT_REPLACE_GROUPS.length]
+    : null;
+  return (
+    <li>
+      <Tooltip content={`${isSelected ? "Remove selected item" : ""}`} placement="top-end" className="!block">
+        <button
+          onClick={() => onToggle(instanceIds)}
+          className={cn(
+            "w-full text-left text-sm px-2 py-1.5 rounded-[2px] transition-colors flex items-center gap-2",
+            isSelected && palette ? `${palette.active} font-medium` : "hover:bg-light-grey"
+          )}
+        >
+          <span className="truncate flex-1">{product.name}</span>
+          <span className={cn("shrink-0 text-xs tabular-nums", isSelected ? "text-white/70" : "text-color-base/50")}>
+            {countDisplay}
+          </span>
+          <X size={12} className={`opacity-0 ${isSelected && "opacity-100"}`} />
+        </button>
+      </Tooltip>
+    </li>
   );
 }
 
