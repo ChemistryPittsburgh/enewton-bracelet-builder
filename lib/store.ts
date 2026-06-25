@@ -145,9 +145,6 @@ interface Store {
    *  Returns an error string if the group doesn't fit, null on success. */
   duplicateGroup: (instanceIds: string[]) => string | null;
 
-  /** Reverse the entire bead order. */
-  reverseBracelet: () => void;
-
   /** When true, beads are rendered with equal spacing around the bracelet. Purely visual — does not affect capacity. */
   isEvenlySpaced: boolean;
   toggleEvenlySpaced: () => void;
@@ -967,11 +964,6 @@ export const useStore = create<Store>()(
           isDirty: true,
         });
         return null;
-      },
-
-      reverseBracelet() {
-        get().pushUndoSnapshot();
-        set((s) => ({ beads: [...s.beads].reverse(), isDirty: true }));
       },
 
       isEvenlySpaced: false,
