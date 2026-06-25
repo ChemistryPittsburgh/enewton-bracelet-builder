@@ -240,8 +240,8 @@ export function BarOnBracelet({
             whole length is hoverable/clickable, not just a vertical sliver at the
             centre. capsuleGeometry's axis is Y by default, hence the X rotation. */}
         <mesh visible={false} rotation={[Math.PI / 2, 0, 0]}>
-          <capsuleGeometry args={[vizRadius * 0.15, vizRadius * 1.8, 4, 8]} />
-          <meshBasicMaterial />
+          <capsuleGeometry args={[vizRadius * 0.5, vizRadius * 1.8, 4, 8]} />
+          <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>
 
         {/* Selection ring — vertical (XY plane, perpendicular to bar's tangent),
