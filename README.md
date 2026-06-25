@@ -41,7 +41,7 @@ components/
 │   │   └── manage/        # Admin manage dialogs: beads, tags, collections, seed colors
 │   ├── header/            # Top-bar pieces: HeaderToolbar (undo/redo, view, edit,
 │   │                        comments + workflow actions), BraceletExporter, NewBraceletMenu
-│   ├── panels/            # Slide-out panels: bead selector (+ seed/spacer pickers),
+│   ├── panels/            # Slide-out panels: bead selector (+ seed/spacer/bar pickers),
 │   │                        comments, user panel
 │   ├── saved-designs/     # Saved designs screen, design + pattern cards, filter pickers
 │   ├── sections/          # Workflow + assignment sections (inside details dialog)
@@ -49,10 +49,11 @@ components/
 │   └── BuilderLayout.tsx  # Root component — orchestrates panels, dialogs, and
 │                            notifications; delegates lock + realtime to useDesignLock
 ├── scene/
-│   ├── AllBeads.tsx        # Maps placed beads → BeadOnBracelet / SeedSegmentOnBracelet / SpacerOnBracelet
+│   ├── AllBeads.tsx        # Maps placed beads → BeadOnBracelet / SeedSegmentOnBracelet / SpacerOnBracelet / BarOnBracelet
 │   ├── BeadOnBracelet.tsx  # GLB loader, material finish, charm hanging, selection
 │   ├── SeedSegmentOnBracelet.tsx # Procedurally placed seed/round beads along an arc segment
 │   ├── SpacerOnBracelet.tsx# Procedural wireframe cylinder for virtual spacers
+│   ├── BarOnBracelet.tsx   # Elongated "bar" catalog items (arc footprint = size_mm length)
 │   ├── BraceletCord.tsx    # Torus (3D) or cylinder (line) cord mesh
 │   ├── CameraController.tsx# Camera transitions for select, edit, line views
 │   ├── CameraOffset.tsx    # View offset for panel-aware centering
@@ -111,7 +112,8 @@ lib/
 ├── api.ts                 # apiFetch wrapper with auth header, error handling
 ├── auth.ts                # Token get/set/clear (localStorage)
 ├── store.ts               # Zustand store: beads, selection, camera refs, etc.
-├── bead-layout.ts         # Arc geometry: circular + line layout transforms
+├── bead-layout.ts         # Arc geometry: circular + line transforms, per-category spacing,
+│                            charm min-footprint + seed fill-arc helpers
 ├── bead-helpers.ts        # API→frontend bead normalisation (string→number)
 ├── build-bracelet-config.ts # Derives BraceletConfiguration from store state
 ├── charm-collision.ts     # Layer-offset + bail-swing adjustments for close charms
@@ -122,7 +124,7 @@ lib/
 ├── sanitize.ts            # HTML-strip + length-limit for comment text
 ├── pusher.ts              # Pusher singleton with lazy Bearer auth
 ├── query-client.ts        # QueryClient with 401 → logout handler
-└── utils.ts               # cn, slugify, formatMm, formatTimestamp, etc.
+└── utils.ts               # cn, slugify, formatMm, formatTimestamp, beadMatchesSearch, etc.
 
 types/
 └── index.ts               # All shared TypeScript interfaces and types
@@ -178,9 +180,9 @@ Patterns are reusable bracelet templates — a saved arrangement of beads/seed s
 
 > **Backend contract:** because patterns are created via `POST /designs`, `GET /designs` **must** exclude `is_pattern = 1` rows server-side — the frontend `useDesigns` query does not filter them out. If patterns ever start appearing in the Saved Designs grid, that exclusion is the thing to check (or add a defensive `is_pattern` guard to `useDesigns`).
 
-**Entry point.** Patterns surface in the **SavedDesignsScreen → PatternsGrid** tab — a full-screen view alongside Designs, with search + sort. It's reached from the Saved Designs panel, the **New Bracelet → From pattern** menu item, and the **Manage Patterns** admin action.
+**Entry point.** Patterns surface in the **SavedDesignsScreen → PatternsGrid** tab — a full-screen view alongside Designs, with search + sort. It's reached from the Saved Designs panel, the **New Bracelet → From pattern** menu item, and the **Manage Patterns** admin action. While *editing* a pattern, the New Bracelet menu swaps its "Copy bracelet" item for **From current pattern** (`newBraceletFromPattern`), which forks the current canvas into a fresh, unsaved bracelet (detached from the pattern) and opens the replace flow.
 
-Each card offers two actions: **create bracelet** (load the pattern as a fresh, unsaved bracelet) and, for managers, **edit pattern** (load it in edit-in-place mode).
+Each card offers two actions: **create bracelet** (load the pattern as a fresh, unsaved bracelet) and, for managers, **edit pattern** (load it in edit-in-place mode). Creating a bracelet from a pattern drops the user straight into **Edit Mode with the replace box open** (`enterEditReplaceMode`) so they can immediately swap beads to make it their own.
 
 **Loading (`useLoadPattern`).** Exposes `loadPattern`, `editPattern`, and `applyPattern`. The mapping from `configuration.beads` to `PlacedBead[]` mirrors `useLoadDesign` exactly — seed segments are rebuilt from `seed_config` via `createSeedSegmentProduct`, and catalog beads are resolved by `product_id` (silently skipped if the product was removed). The difference is intent:
 
@@ -189,7 +191,7 @@ Each card offers two actions: **create bracelet** (load the pattern as a fresh, 
 
 **Edit-in-place.** When `activePatternId` is set, the canvas is bound to that pattern: the header swaps the normal export/save-as-design control for a **Save Pattern** button (`useSavePattern`, which reads live store state via `useStore.getState()` to dodge stale-closure issues during the async thumbnail capture, then `PUT`s the configuration back). `BraceletDetailsDialog` retitles to "Pattern Details" and hides the "Save as Pattern" affordance. Starting a new bracelet or clearing the canvas resets `activePatternId` to `null`.
 
-`activePatternId` (and `activeDesignId`) are part of the persisted store slice and survive a refresh, with a `version: 4` migration adding `activePatternId`. (Note: the JSDoc on these two store fields still reads "Ephemeral — not persisted," which is stale and worth correcting.)
+`activePatternId` (and `activeDesignId`) are part of the persisted store slice and survive a refresh, with a `version: 4` migration adding `activePatternId`.
 
 ## Edit Locking
 
@@ -208,13 +210,14 @@ The scene renders inside a React Three Fiber `<Canvas>` with `camera-controls` f
 - **BeadOnBracelet** — Loads GLB via `useGLTF`, applies material finish presets (gold/silver/rose_gold), handles charm hanging via bounding-box measurement, and renders selection rings and drag targets.
 - **SeedSegmentOnBracelet** — Renders a run of procedurally placed seed beads (or fixed-size round beads) along an arc segment. Per-bead diameters, positions, and colors come from `seed-bead-utils` and are deterministic for a given `random_seed`.
 - **SpacerOnBracelet** — Procedural wireframe cylinder (no GLB). Visible only in draft/rejected states; suppressed during thumbnail capture.
+- **BarOnBracelet** — Elongated `bar`-category catalog items whose arc footprint is their `size_mm` length (not diameter). Added via the **Bar** tab of the bead selector (`BarPicker`); in Edit Mode a bar can be replaced by several smaller beads (`replaceWithBeads`) or a seed segment (`replaceBarWithSeedSegment`).
 - **BraceletCord** — Torus (3D view) or cylinder (line view) with material-specific properties. Hairtie cord color is user-selectable.
 - **CameraController** — Manages transitions between free orbit, bead zoom, top-down edit, side edit, and line view modes.
 - **CameraOffset** — Applies view offset to keep the bracelet centred when side panels slide open.
 
 All three on-cord items (bead, seed segment, spacer) share pointer, drag-threshold, and selection logic via `useSceneItemInteraction`. When charms sit close together, `charm-collision.ts` applies a small radial layer offset plus a bail-pivot swing so hanging bodies fan apart rather than overlap.
 
-Two canvas layouts are supported: circular (torus in XZ plane) and line (straight along X axis). The `bead-layout.ts` module computes per-bead transforms for both, using actual bead diameters and per-category spacing rules.
+Two canvas layouts are supported: circular (torus in XZ plane) and line (straight along X axis). The `bead-layout.ts` module computes per-bead transforms for both, using actual bead diameters and per-category spacing rules. A charm's footprint next to a non-charm is its `bail_width_mm`, floored to `MIN_CHARM_ARC_MM` so tiny bails can't collapse or overlap (float charms are exempt; charm↔charm spacing uses `body_width_mm`). An optional **evenly-spaced** toggle (`isEvenlySpaced`, in the Edit Mode toolbar) distributes items at equal angular intervals around the bracelet — purely visual, with no effect on capacity.
 
 ## Seed Beads
 
@@ -225,7 +228,7 @@ Seed beads are placed as a **segment** — a single `PlacedBead` whose `seedConf
 
 A segment carries a **colorway** of up to six `SeedColorEntry` weights (hex, label, percent, metallic flag) that must sum to 100%. `seed-bead-utils.ts` uses a deterministic PRNG seeded by `random_seed` to lay out bead positions, sizes, and colors, so the same seed always reproduces the same arrangement — "Shuffle" just picks a new seed and saved designs need only store the seed, not every bead.
 
-The **SeedBeadPicker** panel composes a segment: shape, size, colorway (built from the color catalog or a preset, with metallic/matte groupings), and fill amount (remaining space, custom mm, or bead count). `seedSizeLabel()` in `seed-bead-utils` produces the readable size shown in the bead info and bracelet details dialogs.
+The **SeedBeadPicker** panel composes a segment: shape, size, colorway (built from the color catalog or a preset, with metallic/matte groupings), and fill amount (remaining space, custom mm, or bead count). The **remaining-space** figure comes from `maxSeedArcMm`, which subtracts the inter-item spacing gap a segment introduces when appended — without it a full-length "fill remaining" segment overflows by that gap (notably after charms, whose gap is positive). `seedSizeLabel()` in `seed-bead-utils` produces the readable size shown in the bead info and bracelet details dialogs.
 
 ### Seed Color & Preset Administration
 
@@ -245,6 +248,8 @@ Admins can manage the bead catalog via `ManageBeadsDialog`:
 - Capture bead thumbnails from a preview R3F canvas
 - Toggle active/inactive status (soft delete)
 - Permanently delete beads (409 conflict when referenced by designs)
+
+The inventory search and the in-builder bead-selector search share one matcher, `beadMatchesSearch` (in `utils.ts`), which spans name, type, category, material, colour, SKU, and size — not just the name. In the bead selector, items that don't fit are hidden while space remains but stay visible (greyed) once the bracelet is full, and opening a replace flow defaults the category tab to the item being replaced.
 
 ## Thumbnail Generation
 

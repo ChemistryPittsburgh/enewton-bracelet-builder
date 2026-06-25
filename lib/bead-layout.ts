@@ -119,8 +119,9 @@ function selfHalf(bead: BeadLike): number {
   const half = bead.product.diameter / 2;
   // Charms thread on the cord by their ring (diameter = bail_width). Floor that
   // footprint so a tiny bail still reserves MIN_CHARM_ARC_MM of cord. Does not
-  // touch the charm↔charm body_width path (handled in arcHalf).
-  if (bead.product.bead_category === "charm" || bead.product.bead_category === "float_charm") {
+  // touch the charm↔charm body_width path (handled in arcHalf). Float charms are
+  // intentionally thin and are exempt.
+  if (bead.product.bead_category === "charm") {
     return Math.max(half, MIN_CHARM_ARC_MM / 2 / 1000);
   }
   return half;
