@@ -3,13 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Boxes,
   ChevronRight,
+  LayoutTemplate,
   LogOut,
-  Minus,
   MoreVertical,
-  Plus,
+  Palette,
+  Users,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { clearToken } from "@/lib/auth";
@@ -133,6 +136,29 @@ function buildHistory(designs: Bracelet[], beads: BeadProduct[] = []): HistoryEv
   return events.slice(0, 50);
 }
 
+// ── Administration action row ────────────────────────────────────────────────
+
+function AdminAction({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-color-base hover:bg-light-grey transition-colors"
+    >
+      <Icon size={16} className="shrink-0 text-color-base/60" />
+      <span className="flex-1 truncate">{label}</span>
+      <ChevronRight size={14} className="shrink-0 text-color-base/40" />
+    </button>
+  );
+}
+
 // ── Notification design mini-row ─────────────────────────────────────────────
 
 function DesignMiniRow({
@@ -145,9 +171,9 @@ function DesignMiniRow({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-neutral-100 transition-colors"
+      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-light-grey transition-colors"
     >
-      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-neutral-200 flex items-center justify-center">
+      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-light-grey flex items-center justify-center">
         {design.preview_image_url ? (
           <img
             src={design.preview_image_url}
@@ -155,13 +181,13 @@ function DesignMiniRow({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="h-5 w-5 rounded-full border border-dashed border-neutral-400" />
+          <div className="h-5 w-5 rounded-full border border-dashed border-color-base/30" />
         )}
       </div>
-      <span className="flex-1 truncate text-xs font-medium text-neutral-800">
+      <span className="flex-1 truncate text-xs font-medium text-color-base">
         {design.name}
       </span>
-      <ChevronRight size={13} className="shrink-0 text-neutral-400" />
+      <ChevronRight size={13} className="shrink-0 text-color-base/40" />
     </button>
   );
 }
@@ -184,20 +210,19 @@ function NotificationGroup({
 
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-2">
-        <span className="text-red-500 text-xs leading-none">●</span>
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="flex flex-1 items-center justify-between text-sm text-neutral-800 hover:text-neutral-600 transition-colors"
-        >
-          <span className="underline underline-offset-2">
-            {count} {label}
-          </span>
-          {open
-            ? <Minus size={13} className="shrink-0 text-neutral-500" />
-            : <Plus  size={13} className="shrink-0 text-neutral-500" />}
-        </button>
-      </div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-color-base hover:bg-light-grey transition-colors"
+      >
+        <span className="text-error text-xs leading-none">●</span>
+        <span className="flex-1 text-left">
+          <span className="font-semibold">{count}</span> {label}
+        </span>
+        <ChevronRight
+          size={14}
+          className={`shrink-0 text-color-base/50 transition-transform ${open ? "rotate-90" : ""}`}
+        />
+      </button>
 
       {open && (
         <div className="ml-4 mt-1 flex flex-col gap-0.5">
@@ -241,17 +266,17 @@ function HistoryMenu({
     <div ref={menuRef} className="relative shrink-0">
       <button
         onClick={() => setOpenKey(isOpen ? null : eventKey)}
-        className="flex h-5 w-5 items-center justify-center rounded hover:bg-neutral-200 transition-colors text-neutral-400 hover:text-neutral-700"
+        className="flex h-5 w-5 items-center justify-center rounded hover:bg-light-grey transition-colors text-color-base/40 hover:text-color-base"
         aria-label="More options"
       >
         <MoreVertical size={13} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-6 z-50 w-36 rounded-lg border border-neutral-200 bg-white shadow-lg py-1">
+        <div className="absolute right-0 top-6 z-50 w-36 rounded-lg border border-default bg-white shadow-lg py-1">
           <button
             onClick={() => { onOpen(); setOpenKey(null); }}
-            className="w-full px-3 py-1.5 text-left text-xs text-neutral-700 hover:bg-neutral-100 transition-colors"
+            className="w-full px-3 py-1.5 text-left text-xs text-color-base hover:bg-light-grey transition-colors"
           >
             Open design
           </button>
@@ -326,10 +351,10 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageS
           <div className="border-b border-default">
             {user && (
               <div className="flex items-center justify-between gap-3 px-6 pb-3">
-                <div className="flex items-center gap-3">
-                  {user && <Avatar name={user.name} size="lg" />}
-                  <h3 className="text-sm font-semibold">
-                    {user && <span>{user.name}</span> }
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={user.name} size="lg" />
+                  <h3 className="min-w-0 truncate text-sm font-semibold">
+                    {user.name}
                   </h3>
                   {/* Role badge — color driven by PERMISSION_FIELDS in category-colors */}
                   {(() => {
@@ -345,7 +370,7 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageS
                 <Tooltip content="Close User Panel">
                   <button
                     onClick={onClose}
-                    className="rounded-md p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+                    className="shrink-0 rounded-md p-1 text-color-base/40 hover:text-color-base hover:bg-light-grey transition-colors"
                     aria-label="Close panel"
                   >
                     <X size={16} />
@@ -380,43 +405,23 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageS
 
                 {(!showReview || inReview.length === 0) &&
                  (!showPublish || approved.length === 0) && (
-                  <p className="text-sm text-neutral-400">No new notifications.</p>
+                  <p className="px-2 text-sm text-color-base/50">No new notifications.</p>
                 )}
               </div>
             )}
 
             {/* Administration actions */}
             {(user?.permissions.is_admin || user?.permissions.is_component_admin) && (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-0.5">
                 <SectionHeading>Administration actions</SectionHeading>
                 {user?.permissions.is_admin && (
-                  <button
-                    onClick={() => onEditUsers?.()}
-                    className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
-                  >
-                    Manage Users
-                  </button>
+                  <AdminAction icon={Users} label="Manage Users" onClick={() => onEditUsers?.()} />
                 )}
                 {user?.permissions.is_admin && (
-                  <button
-                    onClick={() => onManageSeedColors?.()}
-                    className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
-                  >
-                    Manage Seed Bead Colors
-                  </button>
+                  <AdminAction icon={Palette} label="Manage Seed Bead Colors" onClick={() => onManageSeedColors?.()} />
                 )}
-                <button
-                  onClick={() => onManageBeads?.()}
-                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
-                >
-                  Manage Inventory
-                </button>
-                <button
-                  onClick={() => onManagePatterns?.()}
-                  className="text-left text-sm text-neutral-800 underline underline-offset-2 hover:text-neutral-600"
-                >
-                  Manage Patterns
-                </button>
+                <AdminAction icon={Boxes} label="Manage Inventory" onClick={() => onManageBeads?.()} />
+                <AdminAction icon={LayoutTemplate} label="Manage Patterns" onClick={() => onManagePatterns?.()} />
               </div>
             )}
 
