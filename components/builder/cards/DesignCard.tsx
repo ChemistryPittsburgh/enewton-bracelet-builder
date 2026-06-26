@@ -5,7 +5,7 @@ import { Archive, CheckCircle, Copy, Eye, Info, LayoutTemplate, Loader2, Lock, M
 import { z } from "zod";
 import type { Bracelet } from "@/types";
 
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Button } from "@/components/ui/Button";
@@ -96,18 +96,6 @@ function SaveAsPatternDialog({
       </div>
     </div>
   );
-}
-
-function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "2-digit",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: true,
-    timeZone: "America/New_York",
-  }).format(new Date(dateStr));
 }
 
 interface DesignCardProps {

@@ -14,9 +14,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { formatDate } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { clearToken } from "@/lib/auth";
 import { disconnectPusher } from "@/lib/pusher";
+import { STATUS_META } from "@/lib/category-colors";
 
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
@@ -150,11 +152,11 @@ function AdminAction({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-color-base hover:bg-light-grey transition-colors"
+      className="group flex w-full items-center gap-2.5 rounded-[3px] px-2 py-1.5 text-left text-sm text-color-base hover:bg-light-grey transition-colors"
     >
-      <Icon size={16} className="shrink-0 text-color-base/60" />
+      <Icon size={17} className="shrink-0 text-color-base/60" />
       <span className="flex-1 truncate">{label}</span>
-      <ChevronRight size={14} className="shrink-0 text-color-base/40" />
+      <ChevronRight size={16} className="shrink-0 text-color-base/80 transition-all translate-x-0 group-hover:translate-x-[3px]" />
     </button>
   );
 }
@@ -169,36 +171,48 @@ function DesignMiniRow({
   onClick: () => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-light-grey transition-colors"
-    >
-      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-light-grey flex items-center justify-center">
-        {design.preview_image_url ? (
-          <img
-            src={design.preview_image_url}
-            alt={design.name}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="h-5 w-5 rounded-full border border-dashed border-color-base/30" />
-        )}
-      </div>
-      <span className="flex-1 truncate text-xs font-medium text-color-base">
-        {design.name}
-      </span>
-      <ChevronRight size={13} className="shrink-0 text-color-base/40" />
-    </button>
+    <Tooltip placement="bottom" content={`Open Design: ${design.name}`} >
+      <button
+        onClick={onClick}
+        className="group flex w-full items-center gap-3 px-2 xl:px-4 py-1.5 xl:py-3 xl:pl-3 xl:pr-2 text-left hover:bg-light-grey/50 transition-colors"
+      >
+        <div className="h-12 w-12 xl:h-20 xl:w-20 shrink-0 overflow-hidden rounded-[2px] border-default border bg-light-grey flex items-center justify-center">
+          {design.preview_image_url ? (
+            <img
+              src={design.preview_image_url}
+              alt={design.name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-5 w-5 rounded-full border border-dashed border-color-base/30" />
+          )}
+        </div>
+        <div className="flex flex-col gap-1 flex-1">
+          <span className="flex-1 truncate text-xs font-medium text-color-base">
+            {design.name}
+          </span>
+          {design.updated_at && (
+            <p className="text-xs text-color-base/70"><span className="text-color-base/70 max-xl:hidden">Last Updated: </span>{formatDate(design.updated_at)}</p>
+          )}
+        </div>
+        <div className="shrink-0 flex gap-[2px] pl-2 pr-1 py-1 bg-shell justify-end items-center text-[11px] text-color-base/80">
+          <span className="hidden xl:block">Open</span>
+          <ChevronRight size={14} className="shrink-0 transition-all translate-x-0 group-hover:translate-x-[3px] text-color-base/80" />
+        </div>
+      </button>
+    </Tooltip>
   );
 }
 
 // ── Notification accordion group ─────────────────────────────────────────────
 
 function NotificationGroup({
+  type,
   label,
   designs,
   onSelect,
 }: {
+  type:string;
   label: string;
   designs: Bracelet[];
   onSelect: (d: Bracelet) => void;
@@ -208,24 +222,26 @@ function NotificationGroup({
 
   if (count === 0) return null;
 
+  const { cls } = type === 'approved' ? STATUS_META['published'] : STATUS_META['in_review'];
+
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className={`border border-navy rounded-[2px] flex flex-col`}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-color-base hover:bg-light-grey transition-colors"
+        className={`${cls} flex w-full items-center gap-2 px-2.5 py-2 text-sm text-color-base hover:bg-shell transition-colors`}
       >
-        <span className="text-error text-xs leading-none">●</span>
+        <span className="text-error text-[18px] relative -top-[1px] leading-none">●</span>
         <span className="flex-1 text-left">
           <span className="font-semibold">{count}</span> {label}
         </span>
         <ChevronRight
-          size={14}
-          className={`shrink-0 text-color-base/50 transition-transform ${open ? "rotate-90" : ""}`}
+          size={16}
+          className={`shrink-0 text-navy transition-transform ${open ? "rotate-90" : ""}`}
         />
       </button>
 
       {open && (
-        <div className="ml-4 mt-1 flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1">
           {designs.map((d) => (
             <DesignMiniRow key={d.id} design={d} onClick={() => onSelect(d)} />
           ))}
@@ -384,14 +400,15 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageS
 
             {/* Notifications */}
             {(showReview || showPublish) && (
-              <div className="flex flex-col gap-1">
-                <SectionHeading>Notifications</SectionHeading>
+              <div className="flex flex-col gap-2">
+                <SectionHeading className="mb-1">Notifications</SectionHeading>
 
                 {showReview && (
                   <NotificationGroup
                     label="bracelets ready for review"
                     designs={inReview}
                     onSelect={requestLoad}
+                    type="in_review"
                   />
                 )}
 
@@ -400,6 +417,7 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageS
                     label="ready to publish"
                     designs={approved}
                     onSelect={requestLoad}
+                    type="approved"
                   />
                 )}
 
@@ -412,7 +430,7 @@ export function UserPanel({ open, onClose, onEditUsers, onManageBeads, onManageS
 
             {/* Administration actions */}
             {(user?.permissions.is_admin || user?.permissions.is_component_admin) && (
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-1">
                 <SectionHeading>Administration actions</SectionHeading>
                 {user?.permissions.is_admin && (
                   <AdminAction icon={Users} label="Manage Users" onClick={() => onEditUsers?.()} />

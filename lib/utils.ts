@@ -66,15 +66,24 @@ export function formatTimestamp(isoString: string): string {
 }
 
 /** Formats an ISO datetime as "mm/dd/yyyy, h:mm am/pm". */
-export function formatDateTime(iso: string): string {
+export function formatDateTime(dateStr: string): string {
   return new Intl.DateTimeFormat("en-US", {
-    month: "2-digit",
+    month: "long",
     day: "2-digit",
     year: "numeric",
     hour: "numeric",
-    minute: "2-digit",
+    minute: "numeric",
     hour12: true,
-  }).format(new Date(iso)).toLowerCase();
+    timeZone: "America/New_York",
+  }).format(new Date(dateStr));
+}
+
+export function formatDate(dateStr: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "2-digit",
+    year: "numeric",
+  }).format(new Date(dateStr));
 }
 
 /**

@@ -341,7 +341,7 @@ export function BuilderLayout() {
             <button
               onClick={() => toggleRightPanel("user")}
               className={cn(
-                "flex h-9 w-9 bg-blush items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors",
+                "flex h-9 w-9 bg-blush hover:bg-white items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors",
                 rightPanel === "user" && "outline outline-navy focus:ring-default focus:ring focus:ring-offset-2"
               )}
               aria-label="Open user profile"
