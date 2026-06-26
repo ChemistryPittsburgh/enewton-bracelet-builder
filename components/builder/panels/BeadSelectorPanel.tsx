@@ -33,6 +33,8 @@ import { BarPicker } from "./BarPicker";
 const SPACER_TAB = "__spacer__";
 const BAR_TAB    = "bar";
 const SEED_TAB   = "__seed__";
+/** Real bead_category (not a synthetic tab) whose grid sorts A–Z instead of by size. */
+const LETTER_CHARM_CATEGORY = "letter_charm";
 
 /** Which category pill a placed bead belongs to — used to default the tab when a
  *  replace mode opens the selector. Seeds/spacers/bars map to their synthetic
@@ -320,15 +322,21 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   }, [beads, activeTab, isSpacerMode, isBarMode, isSeedMode]);
 
   const filteredBeads = useMemo(() => {
-    return beads
-      .filter((b) => {
-        const matchesSearch = beadMatchesSearch(b, search);
-        const matchesCategory = !activeTab || isSpacerMode || isBarMode || isSeedMode || b.bead_category === activeTab;
-        const matchesMaterial = !activeMaterial || b.material === activeMaterial;
-        const matchesType = !activeType || b.bead_type === activeType;
-        return matchesSearch && matchesCategory && matchesMaterial && matchesType;
-      })
-      .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
+    const list = beads.filter((b) => {
+      const matchesSearch = beadMatchesSearch(b, search);
+      const matchesCategory = !activeTab || isSpacerMode || isBarMode || isSeedMode || b.bead_category === activeTab;
+      const matchesMaterial = !activeMaterial || b.material === activeMaterial;
+      const matchesType = !activeType || b.bead_type === activeType;
+      return matchesSearch && matchesCategory && matchesMaterial && matchesType;
+    });
+    // Letter charms read as a list of names → sort A–Z by the label shown on the
+    // card (BeadCard renders bead.name). Everything else sorts by physical size.
+    if (activeTab === LETTER_CHARM_CATEGORY) {
+      return list.sort((a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", undefined, { numeric: true, sensitivity: "base" }),
+      );
+    }
+    return list.sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
   }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode, isBarMode, isSeedMode]);
 
   // True when nothing in the current view can be added: either no arc is left or

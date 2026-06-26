@@ -76,7 +76,7 @@ export function computeCharmAdjustments(
       angle: getBeadAngle(i, beads as PlacedBead[], radius, extraSpacingPerGap),
       bodyWidth: charmBodyWidth(b.product),
     }))
-    .filter(({ bead }) => bead.product.bead_category === "charm" || bead.product.bead_category === "float_charm");
+    .filter(({ bead }) => bead.product.bead_category === "charm" || bead.product.bead_category === "letter_charm" || bead.product.bead_category === "float_charm");
 
   if (charms.length < 2) return adjustments;
 

@@ -115,7 +115,7 @@ export function BeadOnBracelet({
     // body rather than at bail/cord level.
     let charmBodyCenterY = 0;
 
-    if (bead.product.bead_category === "charm" || bead.product.bead_category === "float_charm") {
+    if (bead.product.bead_category === "charm" || bead.product.bead_category === "letter_charm" || bead.product.bead_category === "float_charm") {
       const rotation = bead.product.bead_category === "float_charm"
         ? FLOAT_CHARM_ROTATION
         : CHARM_ROTATION;
@@ -162,8 +162,8 @@ export function BeadOnBracelet({
   } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart, selectAllOfType: true, selectionColor });
 
   const isFloatCharm = bead.product.bead_category === "float_charm";
-  const isCharm = bead.product.bead_category === "charm" || isFloatCharm;
-  const isCharmOnly = bead.product.bead_category === "charm";
+  const isCharm = bead.product.bead_category === "charm" || isFloatCharm || bead.product.bead_category === "letter_charm";
+  const isCharmOnly = bead.product.bead_category === "charm" || bead.product.bead_category === "letter_charm";
   const isCrystalCharm = isCharmOnly && bead.product.material === "crystal";
   const activeCharmRotation = isFloatCharm ? FLOAT_CHARM_ROTATION : CHARM_ROTATION;
 

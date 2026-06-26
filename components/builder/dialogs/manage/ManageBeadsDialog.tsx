@@ -525,7 +525,7 @@ function BeadForm({
   const [thumbUpdated, setThumbUpdated]   = useState(false);
   const [thumbError, setThumbError]       = useState<string | null>(null);
 
-  const isCharm = form.bead_category === "charm" || form.bead_category === "float_charm";
+  const isCharm = form.bead_category === "charm" || form.bead_category === "float_charm" || form.bead_category === "letter_charm";
   const nameValid     = form.name.trim().length > 0;
   const typeValid     = form.bead_type.trim().length > 0;
   // For charms, bail_width_mm is required (used as diameter); for beads, diameter_mm is required
@@ -733,7 +733,7 @@ function BeadForm({
               onChange={(e) => update("name", e.target.value)}
               onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
               placeholder="e.g. Admire"
-              className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+              className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
             />
           </div>
 
@@ -746,7 +746,7 @@ function BeadForm({
                 value={form.bead_type}
                 onChange={(e) => update("bead_type", e.target.value)}
                 placeholder="e.g. Admire, Disc, etc."
-                className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -754,7 +754,7 @@ function BeadForm({
               <select
                 value={form.bead_category}
                 onChange={(e) => update("bead_category", e.target.value)}
-                className="rounded-[2px] border border-default bg-white px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                className="rounded-[2px] border border-default bg-white px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
               >
                 {BEAD_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -777,7 +777,7 @@ function BeadForm({
                   value={form.diameter_mm}
                   onChange={(e) => update("diameter_mm", e.target.value)}
                   placeholder="e.g. 6"
-                  className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                  className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
                 />
               </div>
             )}
@@ -790,7 +790,7 @@ function BeadForm({
                 value={form.size_mm}
                 onChange={(e) => update("size_mm", e.target.value)}
                 placeholder="e.g. 6"
-                className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
               />
             </div>
           </div>
@@ -802,7 +802,7 @@ function BeadForm({
               <select
                 value={form.material}
                 onChange={(e) => update("material", e.target.value)}
-                className="rounded-[2px] border border-default bg-white px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                className="rounded-[2px] border border-default bg-white px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
               >
                 <option value="">None</option>
                 {MATERIAL_OPTIONS.map((mat) => (
@@ -819,7 +819,7 @@ function BeadForm({
                 value={form.sku}
                 onChange={(e) => update("sku", e.target.value)}
                 placeholder="e.g. 00000"
-                className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
               />
             </div>
           </div>
@@ -832,7 +832,7 @@ function BeadForm({
               value={form.color}
               onChange={(e) => update("color", e.target.value)}
               placeholder="e.g. rose, ivory"
-              className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+              className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
             />
             <p className="text-xs text-color-base/60 italic">Color can be left blank (if item is metal/gold/silver/etc)</p>
           </div>
@@ -848,7 +848,7 @@ function BeadForm({
                   step={0.1}
                   value={form.bail_width_mm}
                   onChange={(e) => update("bail_width_mm", e.target.value)}
-                  className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                  className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
                 />
                 <p className="text-xs text-color-base/60 italic">Average bail: 0.5</p>
               </div>
@@ -860,7 +860,7 @@ function BeadForm({
                   step={0.1}
                   value={form.body_width_mm}
                   onChange={(e) => update("body_width_mm", e.target.value)}
-                  className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy transition-colors"
+                  className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none focus:border-navy focus:ring-navy transition-colors"
                 />
               </div>
             </div>
@@ -1217,7 +1217,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
       }
 
       const diameterMm = parseFloat(data.diameter_mm);
-      const isCharmCategory = data.bead_category === "charm" || data.bead_category === "float_charm";
+      const isCharmCategory = data.bead_category === "charm" || data.bead_category === "float_charm" || data.bead_category === "letter_charm";
 
       // For charms, diameter = bail width (the cord-hole), not the overall size.
       // If bail_width_mm is filled in, use that as the diameter instead.
@@ -1336,7 +1336,7 @@ export function ManageBeadsDialog({ open, onClose }: ManageBeadsDialogProps) {
                   placeholder="Search by name, type, material, SKU…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-[2px] border border-default py-2 pl-3 pr-16 text-sm outline-none placeholder:text-color-base/50 focus:border-navy transition-colors"
+                  className="w-full rounded-[2px] border border-default py-2 pl-3 pr-16 text-sm outline-none placeholder:text-color-base/50 focus:border-navy focus:ring-navy transition-colors"
                 />
                 {search && (
                   <button

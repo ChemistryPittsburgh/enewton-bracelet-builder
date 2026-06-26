@@ -66,7 +66,8 @@ export const MIN_CHARM_ARC_MM = 1.8;
  */
 const CATEGORY_SPACING: Record<string, number> = {
   bead:          BEAD_SPACING,     
-  charm:         0.00004,     
+  charm:         0.00004,
+  letter_charm:  0.00004,     
   float_charm:   0.00002,                 
   tube:          BEAD_SPACING,    
   spacer:        0,               
@@ -136,8 +137,8 @@ function arcHalf(bead: BeadLike, neighbor: BeadLike): number {
   const bc = bead.product.bead_category;
   const nc = neighbor.product.bead_category;
   if (
-    (bc === "charm" || bc === "float_charm") &&
-    (nc === "charm" || nc === "float_charm") &&
+    (bc === "charm" || bc === "float_charm" || bc === "letter_charm") &&
+    (nc === "charm" || nc === "float_charm" || nc === "letter_charm") &&
     bead.product.body_width_mm != null
   ) {
     const half = bead.product.body_width_mm / 2 / 1000;
