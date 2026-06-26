@@ -60,18 +60,11 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
   const { data: apiColors = [] } = useSeedColors();
   const { data: apiPresets = [] } = useSeedPresets();
 
-  // Default colorway: first preset if available, otherwise a single gold entry
-  const defaultColorway = useMemo<SeedColorEntry[]>(() => {
-    if (apiPresets.length > 0) {
-      return apiPresets[0].colors.map((c) => ({
-        hex: c.hex,
-        percent: c.percent,
-        label: c.label,
-        is_metallic: c.is_metallic,
-      }));
-    }
-    return [{ hex: "#D4AF37", percent: 100, label: "Gold", is_metallic: true }];
-  }, [apiPresets]);
+  // Presets shown in the picker, sorted alphabetically by name.
+  const sortedPresets = useMemo(
+    () => [...apiPresets].sort((a, b) => a.name.localeCompare(b.name)),
+    [apiPresets],
+  );
 
   const [colorway, setColorway] = useState<SeedColorEntry[]>([]);
   const [fillMode, setFillMode] = useState<"remaining" | "size" | "quantity">("remaining");
@@ -85,6 +78,10 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
   const [activePresetId, setActivePresetId] = useState<number | null>(null);
 
   const isRound = seedShape === "round";
+
+  // Gates the lower half of the picker. Round beads always carry a color
+  // (gold/silver default); seed beads need at least one colorway entry.
+  const hasColors = isRound || colorway.length > 0;
 
   const seedPickerSectionClass = "border-b border-default";
   const fillModeButtonClass = "flex w-full items-center gap-2.5 rounded-[2px] border px-3 py-2.5 text-sm text-left transition-all mb-1.5 min-h-[50px] bg-light-grey/50";
@@ -101,14 +98,6 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
     const [minMm, maxMm] = seedBeadSizeRange(seedSizeMm);
     const avgDiameter = (minMm + maxMm) / 2;
     return qty * avgDiameter * SEED_BEAD_THICKNESS_RATIO;
-  }
-
-  // Initialise colorway from API default once presets load
-  const [initialised, setInitialised] = useState(false);
-  if (!initialised && defaultColorway.length > 0) {
-    setColorway(defaultColorway);
-    if (apiPresets.length > 0) setActivePresetId(apiPresets[0].id);
-    setInitialised(true);
   }
 
   const radius               = BRACELET_SIZE_RADIUS[braceletSize];
@@ -351,7 +340,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
               </div>
 
               <div className="flex gap-2 flex-wrap mb-5">
-                {apiPresets.map((preset) => (
+                {sortedPresets.map((preset) => (
                   <button
                     key={preset.id}
                     onClick={() => handlePresetClick(preset)}
@@ -380,6 +369,11 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
               {/* Active colorway editor */}
               <SectionHeading>Colorway</SectionHeading>
 
+              {colorway.length === 0 ? (
+                <p className="text-sm text-color-base/60 mb-4">
+                  Pick a preset above or add a color below to start your seed beads.
+                </p>
+              ) : (
               <div className="space-y-2 mb-4">
                 {colorway.map((entry, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -418,6 +412,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
                   </div>
                 ))}
               </div>
+              )}
             </div>
 
             {/* Add color swatches — grouped by finish */}
@@ -490,8 +485,8 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
           </>
         )}
 
-        {/* Fill amount — hidden in replace mode (each segment keeps its own length) */}
-        {!replaceMode && (
+        {/* Fill amount — hidden in replace mode + until a colorway is selected */}
+        {!replaceMode && hasColors && (
         <div>
           <SectionHeading>Fill amount</SectionHeading>
 
@@ -613,7 +608,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
           <>
             {!tooMany && (
               <SectionHeading>
-                {arcMm > 0
+                {hasColors && arcMm > 0
                   ? isRound
                     ? fillMode === "quantity"
                       ? `${parsedQuantity}× round ${roundSizeMm}mm ${roundColor} beads`
