@@ -10,7 +10,7 @@ import { useProgress } from "@react-three/drei";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
-import { PANEL_WIDTH } from "@/components/ui/Panel";
+import { usePanelWidth, PANEL_COMPACT_QUERY } from "@/components/ui/Panel";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { BraceletExporter } from "./header/BraceletExporter";
@@ -98,6 +98,9 @@ export function BuilderLayout() {
   const startReplaceSeedSegment = useStore((s) => s.startReplaceSeedSegment);
 
   const activePatternId = useStore((s) => s.activePatternId);
+
+  // Responsive panel width — drives the clip offsets + scene counter-translate below.
+  const panelWidth = usePanelWidth();
 
   const { data: currentUser } = useCurrentUser();
   const { canEdit, canManageComponents } = usePermissions();
@@ -250,7 +253,7 @@ export function BuilderLayout() {
         <Tooltip content="Open Saved Designs Panel" placement="bottom-end">
             <button
               onClick={() => { setSavedDesignsInitialView("designs"); setSavedDesignsOpen(true); }}
-              className="flex items-center rounded-[2px] border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
+              className="flex items-center rounded-[2px] border border-default bg-white px-3.5 py-2.5 xl:px-4.5 xl:py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
               aria-label="Saved Designs"
             >
               <Inbox size={24} />
@@ -336,8 +339,8 @@ export function BuilderLayout() {
         <div
           className="absolute flex flex-col top-0 bottom-0 overflow-hidden"
           style={{
-            left:  braceletPanelOpen ? PANEL_WIDTH : 0,
-            right: rightPanelOpen    ? PANEL_WIDTH : 0,
+            left:  braceletPanelOpen ? panelWidth : 0,
+            right: rightPanelOpen    ? panelWidth : 0,
             transition: "left 300ms ease-out, right 300ms ease-out",
           }}
         >
@@ -394,8 +397,8 @@ export function BuilderLayout() {
             <div
               className="absolute top-0 bottom-0"
               style={{
-                left:  braceletPanelOpen ? -PANEL_WIDTH : 0,
-                right: rightPanelOpen    ? -PANEL_WIDTH : 0,
+                left:  braceletPanelOpen ? -panelWidth : 0,
+                right: rightPanelOpen    ? -panelWidth : 0,
                 transition: "left 300ms ease-out, right 300ms ease-out",
               }}
             >

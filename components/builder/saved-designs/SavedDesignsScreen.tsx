@@ -68,6 +68,9 @@ const BRACELET_STATE_OPTIONS: { label: string; value: BraceletState }[] = [
   { label: "Inactive", value: "inactive" },
 ];
 
+ export const selectClass =
+    "min-w-[100px] 2xl:w-[150px] rounded-[2px] border border-default bg-white px-1.5 py-2 xl:px-2 xl:py-2.5 text-xs xl:text-sm outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
+
 export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", isKickedFromActiveDesign, onRetryLock, onOpenDetails }: SavedDesignsScreenProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -305,8 +308,6 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
   if (!isVisible) return null;
 
   // ── Shared styles ──────────────────────────────────────────────────────────
-  const selectCls =
-    "w-[150px] rounded-[2px] border border-default bg-white px-2 py-2.5 text-sm   outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer";
   const formLabel =
     "form-label text-xs text-color-base/70 uppercase font-semibold tracking-wide";
 
@@ -321,12 +322,12 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
       <div className="flex max-md:flex-col flex-1 overflow-hidden">
 
         {/* ── Sidebar — status filters ───────────────────────────────────── */}
-        <aside className="w-full md:w-[280px] lg:w-[350px] shrink-0 overflow-y-auto bg-light-grey/80 py-6 xl:py-10 px-6">
+        <aside className="w-full md:w-[300px] xl:w-[350px] shrink-0 overflow-y-auto bg-light-grey/80 py-6 xl:py-10 px-6">
           <div className="flex items-center justify-between pb-8">
             <Tooltip content="Close Saved Designs" placement="bottom-end">
               <button
                 onClick={onClose}
-                className="flex items-center rounded-[2px] px-4.5 py-3.5 text-sm font-semibold border border-default bg-white hover:bg-mint hover:border-black transition-colors"
+                className="flex items-center rounded-[2px] px-3.5 py-2.5 xl:px-4.5 xl:py-3.5 text-sm font-semibold border border-default bg-white hover:bg-mint hover:border-black transition-colors"
                 aria-label="Close Saved Designs Screen"
               >
                 <Inbox size={24} />
@@ -385,10 +386,10 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                 <h2 className="text-xl pb-3 xl:py-6">Saved designs</h2>
 
                 {/* Filter bar */}
-                <div className="shrink-0 flex flex-col gap-1 lg:gap-4 pb-3">
+                <div className="shrink-0 flex flex-col gap-1 xl:gap-4 pb-3">
 
                   {/* Row 1: dropdowns · bracelet state · search */}
-                  <div className="flex flex-col lg:flex-wrap lg:flex-row lg:items-center gap-3 lg:gap-6">
+                  <div className="flex flex-col lg:flex-wrap lg:flex-row lg:items-center gap-3 2xl:gap-6">
 
                     {/* Dropdowns */}
                     <div className="flex flex-col gap-2">
@@ -397,7 +398,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                         <select
                           value=""
                           onChange={(e) => addMaterial(e.target.value)}
-                          className={selectCls}
+                          className={selectClass}
                           aria-label="Filter Bracelets by Material"
                         >
                           <option value="">{selectedMaterials.length > 0 ? `Material (${selectedMaterials.length})` : "Material"}</option>
@@ -411,7 +412,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                         <select
                           value=""
                           onChange={(e) => addType(e.target.value)}
-                          className={selectCls}
+                          className={selectClass}
                           aria-label="Filter Bracelets by Type"
                         >
                           <option value="">{selectedTypes.length > 0 ? `Type (${selectedTypes.length})` : "Type"}</option>
@@ -454,7 +455,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                               key={value}
                               onClick={() => setBraceletState(value)}
                               className={cn(
-                                "px-4 py-2 text-sm font-semibold transition-all",
+                                "px-4 py-2 xl:px-4 xl:py-[11px] text-xs xl:text-sm font-semibold transition-all",
                                 braceletState === value
                                   ? "bg-navy text-white"
                                   : "text-color-base hover:bg-mint",
@@ -468,7 +469,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                     )}
 
                     {/* Search */}
-                    <div className="lg:ml-auto max-lg:max-w-[300px] flex flex-col gap-2 min-w-[200px] shrink-0">
+                    <div className="xl:ml-auto flex flex-col gap-2 2xl:min-w-[280px] shrink-0">
                       <p className={formLabel}>Search</p>
                       <div className="flex w-full items-center gap-0 rounded-[2px] border border-default bg-white pr-3 focus-within:border-navy transition-colors">
                         <input
@@ -477,7 +478,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                           onChange={(e) => setSearch(e.target.value)}
                           placeholder="Bracelet Name"
                           aria-label="Search by Bracelet Name"
-                          className="w-48 flex-1 border-0 bg-transparent px-2 py-2.5 text-sm   outline-none ring-0 placeholder:text-color-base/70"
+                          className="2xl:w-48 flex-1 border-0 bg-transparent px-2 py-2.5 text-xs xl:text-sm outline-none ring-0 placeholder:text-color-base/70"
                         />
                         <Search size={15} className="shrink-0 text-color-base/70" />
                       </div>
@@ -565,7 +566,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                 )}
 
                 {!isLoading && !isError && designs.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                     {designs.map((design) => (
                       <DesignCard
                         key={design.id}
