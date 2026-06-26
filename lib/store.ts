@@ -447,7 +447,7 @@ export const useStore = create<Store>()(
 
       clearBeads() {
         get().pushUndoSnapshot();
-        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, isEvenlySpaced: false, ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE });
       },
 
       resetBracelet: () => set({
@@ -458,6 +458,7 @@ export const useStore = create<Store>()(
         activePatternId: null,
         selectedBead: null,
         isDirty: false,
+        isEvenlySpaced: false,
         braceletSize: "medium" as BraceletSize,
         bandMaterial: "stretchy" as BandMaterial,
         undoStack: [],
@@ -474,6 +475,7 @@ export const useStore = create<Store>()(
         activePatternId: null,
         selectedBead: null,
         isDirty: false,
+        isEvenlySpaced: false,
         undoStack: [],
         redoStack: [],
         ...CLEAR_REPLACE_TARGETS,
@@ -498,6 +500,7 @@ export const useStore = create<Store>()(
           activePatternId: null,
           braceletName: DEFAULT_BRACELET_NAME,
           isDirty: true,
+          isEvenlySpaced: false,
           ...editReplaceFields(s.viewMode),
         })),
 
