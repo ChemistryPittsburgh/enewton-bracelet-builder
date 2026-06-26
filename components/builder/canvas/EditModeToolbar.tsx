@@ -241,7 +241,7 @@ export function EditModeToolbar() {
   if (!isEditMode) return null;
 
   return (
-    <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[3px] divide-x divide-default">
+    <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[2px] divide-x divide-default">
       <Tooltip content={
         !hasSelection ? "Select item(s) to move"
         : !canMoveBack ? "Selection is at the start"
@@ -400,7 +400,7 @@ function EditBtn({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`flex items-center justify-center px-4 py-3 transition-colors ${
+      className={`flex items-center justify-center px-3 py-2 xl:px-4 xl:py-3 transition-colors ${
         disabled
           ? "cursor-not-allowed text-grey pointer-events-none"
           : "text-color-base/70 hover:bg-light-blue/50 hover:text-color-base"

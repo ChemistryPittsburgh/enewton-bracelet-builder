@@ -10,7 +10,7 @@ import { useProgress } from "@react-three/drei";
 
 import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
-import { PANEL_WIDTH } from "@/components/ui/Panel";
+import { usePanelWidth, PANEL_COMPACT_QUERY } from "@/components/ui/Panel";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { BraceletExporter } from "./header/BraceletExporter";
@@ -95,6 +95,9 @@ export function BuilderLayout() {
 
   const activePatternId = useStore((s) => s.activePatternId);
 
+  // Responsive panel width — drives the clip offsets + scene counter-translate below.
+  const panelWidth = usePanelWidth();
+
   const { data: currentUser } = useCurrentUser();
   const { canEdit, canManageComponents } = usePermissions();
   const { mutate: savePattern, isPending: isSavingPattern, isError: savePatternFailed } = useSavePattern();
@@ -151,7 +154,9 @@ export function BuilderLayout() {
   const [manageBeadsOpen,     setManageBeadsOpen]     = useState(false);
   const [manageSeedColorsOpen, setManageSeedColorsOpen] = useState(false);
 
-  // True on smaller desktops (1024–1199px); used to keep only one side panel open.
+  // True on smaller desktops; used to keep only one side panel open at a time.
+  // Shares PANEL_COMPACT_QUERY with the responsive panel width, so single-panel
+  // mode engages exactly when the panels go compact.
   const [isNarrow, setIsNarrow] = useState(false);
 
   const [savedDesignsInitialView, setSavedDesignsInitialView] = useState<"designs" | "patterns">("designs");
@@ -215,9 +220,9 @@ export function BuilderLayout() {
     if (isLocked && isEditMode) toggleEditMode();
   }, [isLocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Track the smaller-desktop breakpoint (below 1200px) reactively.
+  // Track the compact-layout breakpoint reactively (shared with the panel width).
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1199px)");
+    const mq = window.matchMedia(PANEL_COMPACT_QUERY);
     const apply = () => setIsNarrow(mq.matches);
     apply();
     mq.addEventListener("change", apply);
@@ -293,7 +298,7 @@ export function BuilderLayout() {
         <Tooltip content="Open Saved Designs Panel" placement="bottom-end">
             <button
               onClick={() => { setSavedDesignsInitialView("designs"); setSavedDesignsOpen(true); }}
-              className="flex items-center rounded-[2px] border border-default bg-white px-4.5 py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
+              className="flex items-center rounded-[2px] border border-default bg-white px-3.5 py-2.5 xl:px-4.5 xl:py-3.5 text-sm font-semibold hover:bg-mint hover:border-black transition-colors"
               aria-label="Saved Designs"
             >
               <Inbox size={24} />
@@ -379,8 +384,8 @@ export function BuilderLayout() {
         <div
           className="absolute flex flex-col top-0 bottom-0 overflow-hidden"
           style={{
-            left:  braceletPanelOpen ? PANEL_WIDTH : 0,
-            right: rightPanelOpen    ? PANEL_WIDTH : 0,
+            left:  braceletPanelOpen ? panelWidth : 0,
+            right: rightPanelOpen    ? panelWidth : 0,
             transition: "left 300ms ease-out, right 300ms ease-out",
           }}
         >
@@ -437,8 +442,8 @@ export function BuilderLayout() {
             <div
               className="absolute top-0 bottom-0"
               style={{
-                left:  braceletPanelOpen ? -PANEL_WIDTH : 0,
-                right: rightPanelOpen    ? -PANEL_WIDTH : 0,
+                left:  braceletPanelOpen ? -panelWidth : 0,
+                right: rightPanelOpen    ? -panelWidth : 0,
                 transition: "left 300ms ease-out, right 300ms ease-out",
               }}
             >
