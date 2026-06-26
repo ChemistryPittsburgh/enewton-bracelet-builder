@@ -15,7 +15,7 @@ import { ScrollableRow } from "@/components/ui/ScrollableRow";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
-import { braceletArc, usedArc, beadFits, maxFit, maxSeedArcMm } from "@/lib/bead-layout";
+import { braceletArc, usedArc, beadFits, maxFit } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   BAR_REPLACE_FIT_LIMIT,
@@ -24,6 +24,7 @@ import {
   SEED_BEAD_SIZE_RANGE,
   seedBeadSizeRange,
 } from "@/lib/constants";
+import { newRandomSeed } from "@/lib/seed-bead-utils";
 
 import { SpacerPicker } from "./SpacerPicker";
 import { SeedBeadPicker } from "./SeedBeadPicker";
@@ -33,6 +34,8 @@ import { BarPicker } from "./BarPicker";
 const SPACER_TAB = "__spacer__";
 const BAR_TAB    = "bar";
 const SEED_TAB   = "__seed__";
+/** Real bead_category (not a synthetic tab) whose grid sorts A–Z instead of by size. */
+const LETTER_CHARM_CATEGORY = "letter_charm";
 
 /** Which category pill a placed bead belongs to — used to default the tab when a
  *  replace mode opens the selector. Seeds/spacers/bars map to their synthetic
@@ -91,6 +94,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const { data: beads = [] } = useBeads();
   const addBead = useStore((s) => s.addBead);
   const addSeedSegment = useStore((s) => s.addSeedSegment);
+  const fillGapsWithSeeds = useStore((s) => s.fillGapsWithSeeds);
   const replaceBeadInStore = useStore((s) => s.replaceBead);
   const replaceAllBeadsInStore = useStore((s) => s.replaceAllBeads);
   const replaceEditSelectedBeadsAction = useStore((s) => s.replaceEditSelectedBeads);
@@ -243,26 +247,22 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   // a mix of categories → "All". Re-runs when the target/selection changes (incl.
   // narrowing) but not on manual tab switches, so the user can freely re-pick after.
   useEffect(() => {
-    // Read current beads from the store directly to avoid re-firing on reorder.
-    const currentBeads = useStore.getState().beads;
     let targets: PlacedBead[] = [];
     if (replaceTargetInstanceId) {
-      const t = currentBeads.find((b) => b.instanceId === replaceTargetInstanceId);
+      const t = placedBeads.find((b) => b.instanceId === replaceTargetInstanceId);
       if (t) targets = [t];
     } else if (replaceAllTargetProductId !== null) {
-      const t = currentBeads.find((b) => b.product.id === replaceAllTargetProductId);
+      const t = placedBeads.find((b) => b.product.id === replaceAllTargetProductId);
       if (t) targets = [t];
     } else if (replaceSeedTargetIds && replaceSeedTargetIds.length > 0) {
-      targets = currentBeads.filter((b) => replaceSeedTargetIds.includes(b.instanceId));
+      targets = placedBeads.filter((b) => replaceSeedTargetIds.includes(b.instanceId));
     } else if (editReplaceMode && editReplaceTargetIds.length > 0) {
-      targets = currentBeads.filter((b) => editReplaceTargetIds.includes(b.instanceId));
+      targets = placedBeads.filter((b) => editReplaceTargetIds.includes(b.instanceId));
     }
     if (targets.length === 0) return;
-    // Filter out null results (malformed bead_category) before deciding the tab.
-    const definiteTabs = new Set(targets.map(tabForPlacedBead).filter((t): t is string => t !== null));
-    if (definiteTabs.size === 0) return;
-    setActiveTab(definiteTabs.size === 1 ? [...definiteTabs][0] : null);
-  }, [replaceTargetInstanceId, replaceAllTargetProductId, replaceSeedTargetIds, editReplaceMode, editReplaceTargetIds]);
+    const tabs = new Set(targets.map(tabForPlacedBead));
+    setActiveTab(tabs.size === 1 ? [...tabs][0] : null);
+  }, [replaceTargetInstanceId, replaceAllTargetProductId, replaceSeedTargetIds, editReplaceMode, editReplaceTargetIds, placedBeads]);
 
   // How many of the selected candidate type fit in the freed arc (up to the number of removed beads).
   // Computed once per render so JSX doesn't run the loop inline.
@@ -296,8 +296,10 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const barFreedArcMm = useMemo(() => {
     if (!isBarReplace) return undefined;
     const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
-    return maxSeedArcMm(baseline, braceletRadius);
-  }, [isBarReplace, isBarSingleReplace, effectivePlacedBeads, withoutTargets, braceletRadius]);
+    const usedM = usedArc(baseline);
+    return Math.max(0, Math.round((totalArc - usedM) * 1000 * 10) / 10);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBarReplace, isBarSingleReplace, effectivePlacedBeads, withoutTargets, totalArc]);
 
   // Exclude "bar" from the data-driven pills — the bar tab renders BarPicker, not the card grid.
   const beadCategories = useMemo(
@@ -322,26 +324,31 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   }, [beads, activeTab, isSpacerMode, isBarMode, isSeedMode]);
 
   const filteredBeads = useMemo(() => {
-    return beads
-      .filter((b) => {
-        const matchesSearch = beadMatchesSearch(b, search);
-        const matchesCategory = !activeTab || isSpacerMode || isBarMode || isSeedMode || b.bead_category === activeTab;
-        const matchesMaterial = !activeMaterial || b.material === activeMaterial;
-        const matchesType = !activeType || b.bead_type === activeType;
-        return matchesSearch && matchesCategory && matchesMaterial && matchesType;
-      })
-      .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
+    const list = beads.filter((b) => {
+      const matchesSearch = beadMatchesSearch(b, search);
+      const matchesCategory = !activeTab || isSpacerMode || isBarMode || isSeedMode || b.bead_category === activeTab;
+      const matchesMaterial = !activeMaterial || b.material === activeMaterial;
+      const matchesType = !activeType || b.bead_type === activeType;
+      return matchesSearch && matchesCategory && matchesMaterial && matchesType;
+    });
+    // Letter charms read as a list of names → sort A–Z by the label shown on the
+    // card (BeadCard renders bead.name). Everything else sorts by physical size.
+    if (activeTab === LETTER_CHARM_CATEGORY) {
+      return list.sort((a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", undefined, { numeric: true, sensitivity: "base" }),
+      );
+    }
+    return list.sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
   }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode, isBarMode, isSeedMode]);
 
-  // True when nothing in the current view can be added. Drives greyed-out bead cards.
+  // True when nothing in the current view can be added: either no arc is left or
+  // no visible bead fits. Not applicable while replacing (you're swapping, not
+  // adding). Drives both the bottom-bar "full" message and the bead cards, which
+  // show greyed-out (rather than hidden) when the bracelet is full.
   const braceletFull =
     !isReplaceMode &&
     filteredBeads.length > 0 &&
     !(availableMm >= 1 && filteredBeads.some((b) => candidateFits(b)));
-
-  // True when the user has narrowed the view with a filter; used to distinguish
-  // "bracelet truly has no room" from "filtered view has nothing that fits".
-  const hasActiveFilter = !!(search || activeTab || activeMaterial || activeType);
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -499,6 +506,25 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     }
   }
 
+  /** Distribute seeds evenly into the gaps between placed beads, using the
+   *  picker's current colorway/size. A fresh random seed per gap varies each run. */
+  function handleFillGapsEvenly(
+    colorway: SeedColorEntry[],
+    seedShape: "seed" | "round",
+    roundSizeMm?: number,
+    material?: string,
+    seedSizeMm?: number,
+  ) {
+    const makeFiller = (arcMm: number) => {
+      const { product, seedConfig } = buildSeedSegment(
+        arcMm, colorway, newRandomSeed(), seedShape, roundSizeMm, material, seedSizeMm,
+      );
+      return { product: product as any, seedConfig };
+    };
+    const err = fillGapsWithSeeds(makeFiller);
+    if (err) showError(err);
+  }
+
   /** Replace every queued seed segment with the picked config, each at its own length. */
   function handleReplaceSeeds(
     _arcMm: number,
@@ -654,6 +680,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         ) : isSeedMode ? (
           <SeedBeadPicker
             onAdd={isSeedReplaceUI ? handleReplaceSeeds : handleAddSeedSegment}
+            onFillGapsEvenly={handleFillGapsEvenly}
             error={error}
             onManageColors={onManageSeedColors}
             maxArcMm={isBarReplace ? barFreedArcMm : undefined}
@@ -854,8 +881,6 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                   </Button>
                 )}
                 </>
-              ) : hasActiveFilter ? (
-                <BraceletFullNotice message="No items in this view fit — try a different filter or remove beads to free up space." />
               ) : (
                 <BraceletFullNotice />
               )}

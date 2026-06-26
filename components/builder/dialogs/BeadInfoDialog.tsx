@@ -45,7 +45,10 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
 
   function handleRemove() {
     if (!bead) return;
-    if (selectAllActive && !isSeed) {
+    if (selectAllActive) {
+      // Seeds and normal beads both match by bead key in the store now, so a
+      // single bulk-remove handles either — for seeds this clears every run of
+      // the kind ("All Large Round Seed Beads"), not just the clicked segment.
       removeAllOfType();
     } else {
       removeBead(bead.instanceId);

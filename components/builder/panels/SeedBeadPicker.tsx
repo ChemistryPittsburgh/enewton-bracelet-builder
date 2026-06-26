@@ -15,7 +15,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSeedColors } from "@/hooks/useSeedColors";
 import { useSeedPresets } from "@/hooks/useSeedPresets";
-import { maxSeedArcMm } from "@/lib/bead-layout";
+import { maxSeedArcMm, getEvenSpacingBonus } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   SEED_BEAD_THICKNESS_RATIO,
@@ -42,6 +42,14 @@ interface SeedBeadPickerProps {
     material?: string,
     seedSizeMm?: number,
   ) => void;
+  /** Distribute seeds evenly into the gaps between the already-placed beads. */
+  onFillGapsEvenly?: (
+    colorway: SeedColorEntry[],
+    seedShape: "seed" | "round",
+    roundSizeMm?: number,
+    material?: string,
+    seedSizeMm?: number,
+  ) => void;
   error: string | null;
   onManageColors: () => void;
   maxArcMm?: number;
@@ -50,7 +58,7 @@ interface SeedBeadPickerProps {
   replaceMode?: boolean;
 }
 
-export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isReplaceMode, replaceMode = false }: SeedBeadPickerProps) {
+export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors, maxArcMm, isReplaceMode, replaceMode = false }: SeedBeadPickerProps) {
   const { placedBeads, braceletSize } = useStore((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
@@ -67,7 +75,7 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
   );
 
   const [colorway, setColorway] = useState<SeedColorEntry[]>([]);
-  const [fillMode, setFillMode] = useState<"remaining" | "size" | "quantity">("remaining");
+  const [fillMode, setFillMode] = useState<"remaining" | "size" | "quantity" | "evenly">("remaining");
   const [customMm, setCustomMm] = useState("");
   const [customQuantity, setCustomQuantity] = useState("");
   const [seed, setSeed] = useState(() => newRandomSeed());
@@ -121,6 +129,15 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
       ? arcFromQuantity(Math.min(parsedQuantity, MAX_QUANTITY))
       : parseFloat(customMm) || 0;
   const validArc = arcMm >= minUsefulArcMm && arcMm <= effectiveAvailableMm && !tooMany;
+
+  // Fill-gaps-evenly: distribute seeds into the gaps between already-placed beads,
+  // using the same even per-gap arc as the "distribute spacing evenly" toggle.
+  const evenGapMm = placedBeads.length > 0
+    ? Math.floor(getEvenSpacingBonus(placedBeads, radius) * 1000 * 10) / 10
+    : 0;
+  const canFillGaps = !replaceMode && placedBeads.length > 0 && evenGapMm >= minUsefulArcMm;
+  const perFillBeadMm = arcFromQuantity(1);
+  const evenApproxBeads = canFillGaps && perFillBeadMm > 0 ? Math.max(1, Math.round(evenGapMm / perFillBeadMm)) : 0;
 
   // Preview: generate a small sample of the color distribution
   const previewBeads = useMemo(() => {
@@ -205,6 +222,17 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
   }
 
   function handleAdd() {
+    if (fillMode === "evenly") {
+      if (!canFillGaps) return;
+      if (isRound) {
+        const opt = ROUND_COLOR_OPTIONS.find((o) => o.value === roundColor) ?? ROUND_COLOR_OPTIONS[0];
+        onFillGapsEvenly?.([{ hex: opt.hex, percent: 100, label: opt.label, is_metallic: true }], "round", roundSizeMm, roundColor);
+      } else {
+        onFillGapsEvenly?.(colorway, "seed", undefined, undefined, seedSizeMm);
+      }
+      setSeed(newRandomSeed());
+      return;
+    }
     if (!replaceMode && !validArc) return;
     if (isRound) {
       const opt = ROUND_COLOR_OPTIONS.find((o) => o.value === roundColor) ?? ROUND_COLOR_OPTIONS[0];
@@ -596,6 +624,30 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
               )}
             </p>
           )}
+
+          {/* Evenly between placed beads — distribute seeds into the gaps */}
+          {placedBeads.length > 0 && (
+            <button
+              onClick={() => { if (canFillGaps) setFillMode("evenly"); }}
+              disabled={!canFillGaps}
+              className={`${fillModeButtonClass} ${
+                fillMode === "evenly" ? "ring-1 ring-navy border-navy" : "border-default hover:border-neutral-400"
+              } ${!canFillGaps ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                fillMode === "evenly" ? "border-navy" : "border-neutral-300"
+              }`}>
+                {fillMode === "evenly" && <span className="w-1.5 h-1.5 rounded-full bg-navy" />}
+              </span>
+              <span className="flex-1">Evenly between beads</span>
+              <span className="text-xs text-color-base/50">{canFillGaps ? `${placedBeads.length} gaps` : "no room"}</span>
+            </button>
+          )}
+          {fillMode === "evenly" && canFillGaps && (
+            <p className="text-xs text-color-base/50 mt-0.5 mb-1 pl-6">
+              Spaces your {placedBeads.length} placed beads evenly · ≈ {evenApproxBeads} per gap.
+            </p>
+          )}
         </div>
         )}
       </div>
@@ -608,7 +660,9 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
           <>
             {!tooMany && (
               <SectionHeading>
-                {hasColors && arcMm > 0
+                {fillMode === "evenly"
+                  ? (canFillGaps ? `Fill ${placedBeads.length} gaps · ≈${evenApproxBeads} beads each` : (isRound ? "Select color & size" : "Configure colorway"))
+                  : hasColors && arcMm > 0
                   ? isRound
                     ? fillMode === "quantity"
                       ? `${parsedQuantity}× round ${roundSizeMm}mm ${roundColor} beads`
@@ -622,7 +676,11 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
             {canEdit && (
               <Button
                 onClick={handleAdd}
-                disabled={(!replaceMode && !validArc) || (!isRound && colorway.length === 0)}
+                disabled={
+                  fillMode === "evenly"
+                    ? (!canFillGaps || (!isRound && colorway.length === 0))
+                    : ((!replaceMode && !validArc) || (!isRound && colorway.length === 0))
+                }
                 className="flex w-full items-center justify-center gap-2 group"
               >
                 {isRound ? (
@@ -630,7 +688,9 @@ export function SeedBeadPicker({ onAdd, error, onManageColors, maxArcMm, isRepla
                 ) : (
                   <Square size={16} className="-mt-[2.5px] stroke-white group-hover:stroke-navy transition-colors" />
                 )}
-                {isReplaceMode ? "Replace bar" : isRound ? (replaceMode ? "Replace round beads" : "Add round beads") : (replaceMode ? "Replace seed beads" : "Add seed beads")}
+                {fillMode === "evenly"
+                  ? "Fill gaps evenly"
+                  : isReplaceMode ? "Replace bar" : isRound ? (replaceMode ? "Replace round beads" : "Add round beads") : (replaceMode ? "Replace seed beads" : "Add seed beads")}
               </Button>
             )}
           </>
