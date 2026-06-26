@@ -35,6 +35,7 @@ export interface BraceletConfiguration {
   band_material: BandMaterial;
   bracelet_size: BraceletSize;
   hairtie_color?: string | null;
+  is_evenly_spaced?: boolean;
   arc_used_mm: number;
   arc_total_mm: number;
   percent_used: number;

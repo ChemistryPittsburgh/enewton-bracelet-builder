@@ -148,6 +148,7 @@ interface Store {
   /** When true, beads are rendered with equal spacing around the bracelet. Purely visual — does not affect capacity. */
   isEvenlySpaced: boolean;
   toggleEvenlySpaced: () => void;
+  setIsEvenlySpaced: (v: boolean) => void;
 
   bandMaterial: BandMaterial;
   braceletSize: BraceletSize;
@@ -296,6 +297,20 @@ const CLEAR_EDIT_REPLACE: Pick<
   editSelectionGroups: [],
   editSelectedIds: [],
 };
+
+/** Shared fields for entering edit + replace mode atomically. */
+function editReplaceFields(viewMode: '3D' | 'line') {
+  return {
+    isEditMode:              true,
+    editViewMode:            viewMode === 'line' ? 'side' : 'top',
+    selectedBead:            null,
+    editReplaceMode:         true,
+    editReplaceNarrowedIds:  null,
+    editSelectionGroups:     [] as string[][],
+    editSelectedIds:         [] as string[],
+    ...CLEAR_REPLACE_TARGETS,
+  } as const;
+}
 
 /** Drop a set of instanceIds from the edit selection, frozen groups, and the
  *  narrowed subset in one place — shared by removeBead and the replace actions. */
@@ -479,19 +494,11 @@ export const useStore = create<Store>()(
 
       newBraceletFromPattern: () =>
         set((s) => ({
-          activeDesignId: null,      // detach from the saved design
-          activePatternId: null,     // stop editing the pattern → Save makes a new design
-          braceletName: DEFAULT_BRACELET_NAME, // fresh bracelet, not "Copy of …"
-          isDirty: true,             // so Save creates a new bracelet
-          // drop straight into edit + replace mode, mirroring create-from-pattern
-          isEditMode: true,
-          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
-          selectedBead: null,
-          editReplaceMode: true,
-          editReplaceNarrowedIds: null,
-          editSelectionGroups: [],
-          editSelectedIds: [],
-          ...CLEAR_REPLACE_TARGETS,
+          activeDesignId: null,
+          activePatternId: null,
+          braceletName: DEFAULT_BRACELET_NAME,
+          isDirty: true,
+          ...editReplaceFields(s.viewMode),
         })),
 
       selectBead(bead) {
@@ -967,7 +974,8 @@ export const useStore = create<Store>()(
       },
 
       isEvenlySpaced: false,
-      toggleEvenlySpaced: () => set((s) => ({ isEvenlySpaced: !s.isEvenlySpaced })),
+      toggleEvenlySpaced: () => set((s) => ({ isEvenlySpaced: !s.isEvenlySpaced, isDirty: true })),
+      setIsEvenlySpaced: (v) => set({ isEvenlySpaced: v }),
 
       setbandMaterial: (bandMaterial) => set({ bandMaterial, isDirty: true }),
       setBraceletSize: (braceletSize) => set({ braceletSize, isDirty: true }),
@@ -1009,16 +1017,7 @@ export const useStore = create<Store>()(
       },
 
       enterEditReplaceMode() {
-        set((s) => ({
-          isEditMode: true,
-          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
-          selectedBead: null,
-          editReplaceMode: true,
-          editReplaceNarrowedIds: null,
-          editSelectionGroups: [],
-          editSelectedIds: [],
-          ...CLEAR_REPLACE_TARGETS,
-        }));
+        set((s) => ({ ...editReplaceFields(s.viewMode) }));
       },
 
       toggleEditViewMode() {
