@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, ChartNoAxesGantt, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { usedArc, braceletArc } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
@@ -13,12 +13,13 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { useDesign } from "@/hooks/useDesign";
 
 export function CanvasStatsBar({ hidden = false }: { hidden?: boolean }) {
-  const { placedBeads, braceletSize, showCharmCollisions, setShowCharmCollisions, activeDesignId } = useStore((s) => ({
+  const { placedBeads, braceletSize, showCharmCollisions, setShowCharmCollisions, activeDesignId, isEvenlySpaced } = useStore((s) => ({
     placedBeads: s.beads,
     braceletSize: s.braceletSize,
     showCharmCollisions: s.showCharmCollisions,
     setShowCharmCollisions: s.setShowCharmCollisions,
     activeDesignId: s.activeDesignId,
+    isEvenlySpaced: s.isEvenlySpaced,
   }));
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -83,6 +84,12 @@ export function CanvasStatsBar({ hidden = false }: { hidden?: boolean }) {
           <Stat label="Items" value={`${placedBeads.length}`} />
           <Stat label="Beads" value={`${String(beadCount)}`} />
           <Stat label="Charms" value={`${String(charmCount)}`} />
+          {isEvenlySpaced && (
+            <span className="rounded-[2px] bg-navy/10 text-navy px-3 py-0.5 xl:py-1 text-xs flex items-center gap-1.5">
+              <ChartNoAxesGantt size={12} />
+              <span className="text-[10px] xl:text-[11px] tracking-wide uppercase font-medium">Evenly Spaced</span>
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -36,6 +36,38 @@ function nearestSlotLine(point: THREE.Vector3, beads: PlacedBead[]): number {
   return nearest;
 }
 
+/**
+ * Direction-aware insertion index for a bead dropped at `point`.
+ * Checks which half of the nearest bead the cursor is on:
+ *   left / counter-clockwise half → insert before (slot)
+ *   right / clockwise half        → insert after  (slot + 1)
+ */
+function resolveDropSlot(
+  point: THREE.Vector3,
+  beads: PlacedBead[],
+  radius: number,
+  extraSpacingPerGap = 0,
+  isLine = false,
+): number {
+  if (beads.length === 0) return 0;
+
+  if (isLine) {
+    const nearest = nearestSlotLine(point, beads);
+    const cx = getBeadTransformLine(nearest, beads).position[0];
+    return point.x > cx ? nearest + 1 : nearest;
+  }
+
+  const TWO_PI = 2 * Math.PI;
+  const nearest = nearestSlot(point, beads, radius, extraSpacingPerGap);
+  let beadAngle = getBeadAngle(nearest, beads, radius, extraSpacingPerGap) % TWO_PI;
+  if (beadAngle > Math.PI) beadAngle -= TWO_PI;
+  const cursorAngle = Math.atan2(point.z, point.x);
+  let diff = cursorAngle - beadAngle;
+  if (diff >  Math.PI) diff -= TWO_PI;
+  if (diff < -Math.PI) diff += TWO_PI;
+  return diff > 0 ? nearest + 1 : nearest;
+}
+
 // ─── Reorder drag (edit-mode, in-canvas) ─────────────────────────────────────
 
 export interface DragState {
@@ -100,9 +132,14 @@ export function useBraceletReorderDrag(
         const extraSpacingPerGap = isEvenlySpaced && viewModeRef.current === '3D'
           ? getEvenSpacingBonus(beadsRef.current!, radiusRef.current!)
           : 0;
-        toIndex = viewModeRef.current === "line"
-          ? nearestSlotLine(target, beadsRef.current!)
-          : nearestSlot(target, beadsRef.current!, radiusRef.current!, extraSpacingPerGap);
+        toIndex = resolveDropSlot(
+          target, beadsRef.current!, radiusRef.current!, extraSpacingPerGap,
+          viewModeRef.current === "line",
+        );
+        // Avoid a no-op micro-swap when hovering either half of the dragged bead itself
+        if (!groupFromIndices && (toIndex === fromIndex || toIndex === fromIndex + 1)) {
+          toIndex = fromIndex;
+        }
         setDragState({ fromIndex, toIndex, ...(groupFromIndices ? { groupFromIndices } : {}) });
       }
     }
@@ -130,6 +167,7 @@ export function useBraceletReorderDrag(
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      gl.domElement.style.cursor = "";
     };
   }, [isDragging]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -172,9 +210,14 @@ export function usePanelDrop(
       const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
       if (raycaster.ray.intersectPlane(plane, target)) {
-        slot = viewModeRef.current === "line"
-          ? nearestSlotLine(target, beadsRef.current!)
-          : nearestSlot(target, beadsRef.current!, radiusRef.current!);
+        const { isEvenlySpaced } = useStore.getState();
+        const extraSpacingPerGap = isEvenlySpaced && viewModeRef.current === '3D'
+          ? getEvenSpacingBonus(beadsRef.current!, radiusRef.current!)
+          : 0;
+        slot = resolveDropSlot(
+          target, beadsRef.current!, radiusRef.current!, extraSpacingPerGap,
+          viewModeRef.current === "line",
+        );
         setPanelDropSlot(slot);
       }
     }

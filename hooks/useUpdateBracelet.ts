@@ -19,7 +19,7 @@ import { slugify } from "@/lib/utils";
  * current user lacks the `is_bracelet_editor` permission.
  */
 export function useUpdateBracelet() {
-  const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize, hairtieColor } = useStore(
+  const { activeDesignId, beads, braceletName, braceletDescription, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced } = useStore(
     (s) => ({
       activeDesignId:      s.activeDesignId,
       beads:               s.beads,
@@ -28,6 +28,7 @@ export function useUpdateBracelet() {
       bandMaterial:        s.bandMaterial,
       braceletSize:        s.braceletSize,
       hairtieColor:        s.hairtieColor,
+      isEvenlySpaced:      s.isEvenlySpaced,
     }),
   );
 
@@ -50,7 +51,7 @@ export function useUpdateBracelet() {
       preview_image_url = await uploadThumbnail(dataUrl, filename);
     }
 
-    const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor);
+    const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor, isEvenlySpaced);
 
     await updateDesign({
       id: activeDesignId,

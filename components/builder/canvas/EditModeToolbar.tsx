@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlignJustify, ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
+import { AlignJustify, ChartNoAxesGantt, ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { beadFits, braceletArc, usedArc } from "@/lib/bead-layout";
 import {
@@ -295,7 +295,7 @@ export function EditModeToolbar() {
             !hasGap
               ? "No gap to distribute (bracelet is full)"
               : isEvenlySpaced
-                ? `Restore original spacing (distributing ${gapMm}mm)`
+                ? `Revert even bead gap (currently distributing ${gapMm}mm)`
                 : `Distribute ${gapMm}mm gap evenly`
           }
           placement="bottom"
@@ -303,10 +303,9 @@ export function EditModeToolbar() {
           <EditBtn
             onClick={toggleEvenlySpaced}
             disabled={!hasGap}
-            label={isEvenlySpaced ? "Restore original spacing" : "Distribute spacing evenly"}
-            className={isEvenlySpaced && hasGap ? "bg-navy hover:bg-navy/80" : ""}
+            label={isEvenlySpaced ? "Revert even bead gap" : "Distribute spacing evenly"}
           >
-            <AlignJustify size={22} className={isEvenlySpaced && hasGap ? "text-white" : ""} />
+            {isEvenlySpaced ? <ChartNoAxesGantt size={22} /> : <AlignJustify size={22} />}
           </EditBtn>
         </Tooltip>
       )}

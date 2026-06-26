@@ -24,6 +24,7 @@ export function useLoadDesign() {
   const setBraceletSize = useStore((s) => s.setBraceletSize);
   const setbandMaterial = useStore((s) => s.setbandMaterial);
   const setHairtieColor = useStore((s) => s.setHairtieColor);
+  const setIsEvenlySpaced = useStore((s) => s.setIsEvenlySpaced);
   const setActiveDesignId  = useStore((s) => s.setActiveDesignId);
   const setActivePatternId = useStore((s) => s.setActivePatternId);
   const markClean = useStore((s) => s.markClean);
@@ -76,9 +77,8 @@ export function useLoadDesign() {
     // the correct radius for the saved bracelet.
     setBraceletSize(configuration.bracelet_size);
     setbandMaterial(configuration.band_material);
-    if (configuration.hairtie_color) {
-      setHairtieColor(configuration.hairtie_color);
-    }
+    if (configuration.hairtie_color) setHairtieColor(configuration.hairtie_color);
+    setIsEvenlySpaced(configuration.is_evenly_spaced ?? false);
     loadBeads(placedBeads, name);
 
     // Restore description (empty string when null so the input stays controlled).
@@ -143,6 +143,7 @@ export function useLoadDesign() {
 
     setBraceletSize(configuration.bracelet_size);
     setbandMaterial(configuration.band_material);
+    setIsEvenlySpaced(configuration.is_evenly_spaced ?? false);
     loadBeads(placedBeads, name);
     setBraceletDescription(description ?? "");
     setActivePatternId(null);

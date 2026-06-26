@@ -18,7 +18,7 @@
  *   - Bead diameter: pulled dynamically from the bead catalog (metres)
  */
 
-import { FLOAT_CHARM_THIN_SCALE } from "@/lib/constants";
+import { FLOAT_CHARM_THIN_SCALE, MIN_CHARM_ARC_MM } from "@/lib/constants";
 
 // ─── Bracelet constants ───────────────────────────────────────────────────────
 
@@ -48,15 +48,6 @@ export const CORD_RADIUS = 0.0008;
 export const BEAD_SPACING = -0.000012;
 
 /**
- * Minimum cord length (mm) a charm occupies via its ring/bail, regardless of how
- * small its bail_width_mm is. Floors a charm's footprint when it sits next to a
- * non-charm (bead / spacer / seed) and at the ends of the bracelet, so tiny bails
- * can't let charms collapse or overlap. Set to 0 to disable. Charm↔charm spacing
- * uses body_width_mm instead and is unaffected by this.
- */
-export const MIN_CHARM_ARC_MM = 1.8;
-
-/**
  * Per-category spacing overrides (metres).
  * When two adjacent items have different categories the larger
  * (least-negative / most-positive) spacing wins, so items that
@@ -69,7 +60,6 @@ const CATEGORY_SPACING: Record<string, number> = {
   charm:         0.00004,
   letter_charm:  0.00004,     
   float_charm:   0.00002,                 
-  tube:          BEAD_SPACING,    
   spacer:        0,               
   seed_segment:  -0.00002,
   crystal:       0.0008,
@@ -207,9 +197,9 @@ export function maxFit(
   return count;
 }
 
-// Length-independent stand-in for a seed segment — used only for spacing lookups
-// (the gap a segment introduces doesn't depend on its arc length).
-const SEED_SPACING_PROBE: BeadLike = { product: { diameter: 0, bead_category: "seed_segment" } };
+// Length-independent stand-ins used only to look up the per-category spacing gap.
+const SEED_SPACING_PROBE:   BeadLike = { product: { diameter: 0, bead_category: "seed_segment" } };
+const SPACER_SPACING_PROBE: BeadLike = { product: { diameter: 0, bead_category: "spacer"       } };
 
 /**
  * Largest seed-segment arc length (mm) that still fits when a segment is appended
@@ -224,6 +214,15 @@ export function maxSeedArcMm(beads: BeadLike[], radius = BRACELET_RADIUS): numbe
   const free = braceletArc(radius) - usedArc(beads);
   const gap = beads.length > 0
     ? getSpacing(beads[beads.length - 1], SEED_SPACING_PROBE)
+    : 0;
+  return Math.max(0, (free - gap) * 1000);
+}
+
+/** Gap-aware maximum arc (mm) available for a spacer segment appended to `beads`. */
+export function maxSpacerArcMm(beads: BeadLike[], radius = BRACELET_RADIUS): number {
+  const free = braceletArc(radius) - usedArc(beads);
+  const gap = beads.length > 0
+    ? getSpacing(beads[beads.length - 1], SPACER_SPACING_PROBE)
     : 0;
   return Math.max(0, (free - gap) * 1000);
 }

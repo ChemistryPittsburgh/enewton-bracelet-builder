@@ -20,6 +20,7 @@ export function buildBraceletConfig(
   braceletSize: BraceletSize,
   bandMaterial: BandMaterial,
   hairtieColor?: string | null,
+  isEvenlySpaced = false,
 ): BraceletConfiguration {
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const maxArc = braceletArc(radius);
@@ -36,6 +37,7 @@ export function buildBraceletConfig(
     band_material: bandMaterial,
     bracelet_size: braceletSize,
     hairtie_color: bandMaterial === "hairtie" ? (hairtieColor ?? null) : null,
+    is_evenly_spaced: isEvenlySpaced,
     arc_used_mm: parseFloat((arcUsed * 1000).toFixed(2)),
     arc_total_mm: parseFloat((maxArc * 1000).toFixed(2)),
     percent_used: parseFloat(Math.min((arcUsed / maxArc) * 100, 100).toFixed(1)),

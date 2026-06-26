@@ -52,6 +52,10 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useDesignLock } from "@/hooks/useDesignLock";
 import { useSavePattern } from "@/hooks/useSavePattern";
 import { useIsDirty } from "@/hooks/useIsDirty";
+import { useNarrowLayout } from "@/hooks/useNarrowLayout";
+import { useHighlightReason } from "@/hooks/useHighlightReason";
+import { useDragGhostCursor } from "@/hooks/useDragGhostCursor";
+import { useLockEnforcement } from "@/hooks/useLockEnforcement";
 
 export function BuilderLayout() {
   const {
@@ -154,11 +158,6 @@ export function BuilderLayout() {
   const [manageBeadsOpen,     setManageBeadsOpen]     = useState(false);
   const [manageSeedColorsOpen, setManageSeedColorsOpen] = useState(false);
 
-  // True on smaller desktops; used to keep only one side panel open at a time.
-  // Shares PANEL_COMPACT_QUERY with the responsive panel width, so single-panel
-  // mode engages exactly when the panels go compact.
-  const [isNarrow, setIsNarrow] = useState(false);
-
   const [savedDesignsInitialView, setSavedDesignsInitialView] = useState<"designs" | "patterns">("designs");
 
   // ── Design lock + realtime sync ────────────────────────────────────────────
@@ -178,62 +177,18 @@ export function BuilderLayout() {
   // ── Name-required highlight ───────────────────────────────────────────────
   // Activated by BraceletExporter when the user tries to save without a name.
   // Auto-clears once the bracelet name is changed from the default.
-  const [highlightReason, setHighlightReason] = useState<"name" | "sku" | null>(null);
-
-  useEffect(() => {
-    const trimmed = braceletName.trim();
-    if (highlightReason !== "name") return;
-    if (trimmed !== "" && trimmed !== DEFAULT_BRACELET_NAME) {
-      setHighlightReason(null);
-    }
-  }, [braceletName, highlightReason]);
-
-  // Auto-clear the SKU highlight once a SKU is saved on the active design
-  useEffect(() => {
-    if (highlightReason !== "sku") return;
-    if (savedDesign?.shopify_sku?.trim()) {
-      setHighlightReason(null);
-    }
-  }, [savedDesign?.shopify_sku, highlightReason]);
+  const [highlightReason, setHighlightReason] = useHighlightReason(
+    braceletName,
+    savedDesign?.shopify_sku,
+  );
 
   const rightPanelOpen = rightPanel !== null;
-  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
-
+  const ghostPos = useDragGhostCursor(!!dragFromPanel);
   const anyPanelOpen = braceletPanelOpen || rightPanelOpen;
+  // True on smaller desktops (≤1199px); keeps only one side panel open at a time.
+  const isNarrow = useNarrowLayout(braceletPanelOpen, rightPanelOpen, setRightPanel);
 
-  useEffect(() => {
-    if (!dragFromPanel) return;
-    document.body.style.cursor = "grabbing";
-    const onMove = (e: PointerEvent) => setGhostPos({ x: e.clientX, y: e.clientY });
-    window.addEventListener("pointermove", onMove);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      document.body.style.cursor = "";
-    };
-  }, [!!dragFromPanel]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!canEdit || isLocked) setBraceletPanelOpen(false);
-  }, [canEdit, isLocked]);
-
-  useEffect(() => {
-    if (isLocked && isEditMode) toggleEditMode();
-  }, [isLocked]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Track the compact-layout breakpoint reactively (shared with the panel width).
-  useEffect(() => {
-    const mq = window.matchMedia(PANEL_COMPACT_QUERY);
-    const apply = () => setIsNarrow(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
-
-  // Safety net: if a resize down to a narrow desktop leaves both panels open,
-  // collapse to one. (The open handlers prevent both opening at once otherwise.)
-  useEffect(() => {
-    if (isNarrow && braceletPanelOpen && rightPanelOpen) setRightPanel(null);
-  }, [isNarrow, braceletPanelOpen, rightPanelOpen]);
+  useLockEnforcement({ isLocked, canEdit, isEditMode, toggleEditMode, setBraceletPanelOpen });
 
   // Global shortcut: E → enter edit mode (mirrors Cmd+Esc which exits it)
   useEffect(() => {

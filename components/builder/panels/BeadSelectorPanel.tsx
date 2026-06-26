@@ -15,7 +15,7 @@ import { ScrollableRow } from "@/components/ui/ScrollableRow";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
-import { braceletArc, usedArc, beadFits, maxFit } from "@/lib/bead-layout";
+import { braceletArc, usedArc, beadFits, maxFit, maxSeedArcMm } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   BAR_REPLACE_FIT_LIMIT,
@@ -243,22 +243,26 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   // a mix of categories → "All". Re-runs when the target/selection changes (incl.
   // narrowing) but not on manual tab switches, so the user can freely re-pick after.
   useEffect(() => {
+    // Read current beads from the store directly to avoid re-firing on reorder.
+    const currentBeads = useStore.getState().beads;
     let targets: PlacedBead[] = [];
     if (replaceTargetInstanceId) {
-      const t = placedBeads.find((b) => b.instanceId === replaceTargetInstanceId);
+      const t = currentBeads.find((b) => b.instanceId === replaceTargetInstanceId);
       if (t) targets = [t];
     } else if (replaceAllTargetProductId !== null) {
-      const t = placedBeads.find((b) => b.product.id === replaceAllTargetProductId);
+      const t = currentBeads.find((b) => b.product.id === replaceAllTargetProductId);
       if (t) targets = [t];
     } else if (replaceSeedTargetIds && replaceSeedTargetIds.length > 0) {
-      targets = placedBeads.filter((b) => replaceSeedTargetIds.includes(b.instanceId));
+      targets = currentBeads.filter((b) => replaceSeedTargetIds.includes(b.instanceId));
     } else if (editReplaceMode && editReplaceTargetIds.length > 0) {
-      targets = placedBeads.filter((b) => editReplaceTargetIds.includes(b.instanceId));
+      targets = currentBeads.filter((b) => editReplaceTargetIds.includes(b.instanceId));
     }
     if (targets.length === 0) return;
-    const tabs = new Set(targets.map(tabForPlacedBead));
-    setActiveTab(tabs.size === 1 ? [...tabs][0] : null);
-  }, [replaceTargetInstanceId, replaceAllTargetProductId, replaceSeedTargetIds, editReplaceMode, editReplaceTargetIds, placedBeads]);
+    // Filter out null results (malformed bead_category) before deciding the tab.
+    const definiteTabs = new Set(targets.map(tabForPlacedBead).filter((t): t is string => t !== null));
+    if (definiteTabs.size === 0) return;
+    setActiveTab(definiteTabs.size === 1 ? [...definiteTabs][0] : null);
+  }, [replaceTargetInstanceId, replaceAllTargetProductId, replaceSeedTargetIds, editReplaceMode, editReplaceTargetIds]);
 
   // How many of the selected candidate type fit in the freed arc (up to the number of removed beads).
   // Computed once per render so JSX doesn't run the loop inline.
@@ -292,10 +296,8 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const barFreedArcMm = useMemo(() => {
     if (!isBarReplace) return undefined;
     const baseline = isBarSingleReplace ? effectivePlacedBeads : withoutTargets;
-    const usedM = usedArc(baseline);
-    return Math.max(0, Math.round((totalArc - usedM) * 1000 * 10) / 10);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBarReplace, isBarSingleReplace, effectivePlacedBeads, withoutTargets, totalArc]);
+    return maxSeedArcMm(baseline, braceletRadius);
+  }, [isBarReplace, isBarSingleReplace, effectivePlacedBeads, withoutTargets, braceletRadius]);
 
   // Exclude "bar" from the data-driven pills — the bar tab renders BarPicker, not the card grid.
   const beadCategories = useMemo(
@@ -331,14 +333,15 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
       .sort((a, b) => (a.size_mm ?? a.diameter * 1000) - (b.size_mm ?? b.diameter * 1000));
   }, [beads, search, activeTab, activeMaterial, activeType, isSpacerMode, isBarMode, isSeedMode]);
 
-  // True when nothing in the current view can be added: either no arc is left or
-  // no visible bead fits. Not applicable while replacing (you're swapping, not
-  // adding). Drives both the bottom-bar "full" message and the bead cards, which
-  // show greyed-out (rather than hidden) when the bracelet is full.
+  // True when nothing in the current view can be added. Drives greyed-out bead cards.
   const braceletFull =
     !isReplaceMode &&
     filteredBeads.length > 0 &&
     !(availableMm >= 1 && filteredBeads.some((b) => candidateFits(b)));
+
+  // True when the user has narrowed the view with a filter; used to distinguish
+  // "bracelet truly has no room" from "filtered view has nothing that fits".
+  const hasActiveFilter = !!(search || activeTab || activeMaterial || activeType);
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -851,6 +854,8 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                   </Button>
                 )}
                 </>
+              ) : hasActiveFilter ? (
+                <BraceletFullNotice message="No items in this view fit — try a different filter or remove beads to free up space." />
               ) : (
                 <BraceletFullNotice />
               )}
