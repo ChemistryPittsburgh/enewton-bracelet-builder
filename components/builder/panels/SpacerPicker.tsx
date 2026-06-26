@@ -11,7 +11,7 @@ import { BraceletFullNotice } from "@/components/ui/BraceletFullNotice";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 import { usePermissions } from "@/hooks/usePermissions";
-import { braceletArc, usedArc } from "@/lib/bead-layout";
+import { maxSpacerArcMm } from "@/lib/bead-layout";
 import { BRACELET_SIZE_RADIUS, SPACER_SIZES_MM } from "@/lib/constants";
 
 interface SpacerPickerProps {
@@ -32,9 +32,7 @@ export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode }: SpacerPi
   const [customSize, setCustomSize]     = useState("");
 
   const radius              = BRACELET_SIZE_RADIUS[braceletSize];
-  const totalArc            = braceletArc(radius);
-  const used                = usedArc(placedBeads);
-  const availableMm         = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+  const availableMm         = Math.round(maxSpacerArcMm(placedBeads, radius) * 10) / 10;
   const effectiveAvailableMm = maxArcMm ?? availableMm;
 
   const MAX_SPACER_MM = 14;

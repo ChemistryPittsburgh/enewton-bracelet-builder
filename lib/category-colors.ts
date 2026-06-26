@@ -34,11 +34,11 @@ export const STATUS_META: Record<BraceletStatus, { label: string; cls: string }>
 
 // ── Bead / charm category badges ──────────────────────────────────────────────
 export const BEAD_CATEGORY_META: Record<string, { label: string; cls: string }> = {
-  bead:        { label: "Bead",        cls: "bg-green/20 text-[#1e6b3a]"  },
-  charm:       { label: "Charm",       cls: "bg-gold/30 text-color-base/80" },
+  bead:        { label: "Bead",        cls: "bg-green/20 text-[#1e6b3a]"     },
+  charm:       { label: "Charm",       cls: "bg-gold/30 text-color-base/80"  },
   float_charm: { label: "Float Charm", cls: "bg-[#c0774a]/30 text-[#8b5e3c]" },
   spacer:      { label: "Spacer",      cls: "bg-stone/30 text-color-base/60" },
-  tube:        { label: "Tube",        cls: "bg-[#2471a3]/20 text-[#0d5c52]" },
+  bar:         { label: "Bar",         cls: "bg-stone/20 text-color-base/70" },
 };
 
 // export const BEAD_MATERIAL_META: Record<string, { label: string; cls: string }> = {
