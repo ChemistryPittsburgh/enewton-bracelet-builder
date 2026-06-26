@@ -200,7 +200,7 @@ function UserRow({
         </Tooltip>
 
         {/* Avatar */}
-        <Avatar name={user.name} color={user.color} size="md" className={`${isSelf && "!bg-white"}`} />
+        <Avatar name={user.name} color={user.color} size="md" className={`${isSelf && "!bg-blush/80"}`} />
 
         {/* Name + email */}
         <div className="flex flex-col min-w-0 flex-1">

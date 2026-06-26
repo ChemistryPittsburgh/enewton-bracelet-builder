@@ -9,11 +9,12 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { ManageTagsDialog } from "@/components/builder/dialogs/manage/ManageTagsDialog";
 import { ManageCollectionsDialog } from "@/components/builder/dialogs/manage/ManageCollectionsDialog";
 import type { Collection, Tag } from "@/types";
+import { selectClass } from "./SavedDesignsScreen";
 
 // ── Shared internals ──────────────────────────────────────────────────────────
 
-const triggerCls = {
-  filter: "min-w-[100px] xxl:w-[150px] rounded-[2px] border border-default bg-white px-2 py-2.5 text-sm outline-none transition-colors hover:border-neutral-400 focus:border-neutral-500 cursor-pointer flex items-center justify-between gap-1",
+const triggerClass = {
+  filter: cn(selectClass, "cursor-pointer flex items-center justify-between gap-1"),
   assign: "flex items-center gap-1.5 rounded-[2px] border border-default bg-white px-3 py-1.5 text-sm min-w-[200px] justify-between transition-colors hover:border-neutral-400 cursor-pointer",
 } as const;
 
@@ -65,7 +66,7 @@ export function TagPicker({
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className={triggerCls[variant]}
+          className={triggerClass[variant]}
           aria-haspopup="listbox"
           aria-expanded={open}
         >
@@ -156,7 +157,7 @@ export function CollectionPicker({
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className={triggerCls[variant]}
+          className={triggerClass[variant]}
           aria-haspopup="listbox"
           aria-expanded={open}
         >

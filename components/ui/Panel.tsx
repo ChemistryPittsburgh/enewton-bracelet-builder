@@ -1,11 +1,41 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
 type SlideDirection = "bottom" | "left" | "right";
 
+/** Default panel width (px) on full-size screens. */
 export const PANEL_WIDTH = 450;
+/** Narrower panel width (px) used on smaller screens. */
+export const PANEL_WIDTH_COMPACT = 380;
+/**
+ * Below this viewport width the layout is in "compact" mode: the panel uses
+ * PANEL_WIDTH_COMPACT, and BuilderLayout allows only one side panel open at a
+ * time. Single source for both so they always engage together.
+ */
+export const PANEL_COMPACT_QUERY = "(max-width: 1279px)";
+
+/**
+ * Responsive panel width in px — the single source of truth shared by the
+ * slide-out panels (here), the canvas clip offsets in BuilderLayout, and the 3D
+ * camera offset (CameraOffset via Scene), so all three stay in lockstep when the
+ * width changes. Returns the default on the first (pre-mount/SSR) render, then
+ * narrows on smaller screens after mount. Add breakpoints here to taste — every
+ * consumer follows automatically.
+ */
+export function usePanelWidth(): number {
+  const [width, setWidth] = useState(PANEL_WIDTH);
+  useEffect(() => {
+    const mq = window.matchMedia(PANEL_COMPACT_QUERY);
+    const apply = () => setWidth(mq.matches ? PANEL_WIDTH_COMPACT : PANEL_WIDTH);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return width;
+}
 
 interface PanelProps {
   open: boolean;
@@ -47,15 +77,16 @@ export function Panel({
   fixed = true,
   overflowYScroll = true,
 }: PanelProps) {
+  const panelWidth = usePanelWidth();
 
   // ── Non-fixed (push) variant ──────────────────────────────────────────
   // Outer wrapper animates its width — canvas slides smoothly.
-  // Inner div stays at full PANEL_WIDTH so content never squishes.
+  // Inner div stays at full panelWidth so content never squishes.
   if (!fixed) {
     return (
       <div
         style={{
-          width: open ? PANEL_WIDTH : 0,
+          width: open ? panelWidth : 0,
           minWidth: 0,
           flexShrink: 0,
           overflow: "hidden",
@@ -64,7 +95,7 @@ export function Panel({
       >
         <div
           className={cn("h-full bg-white shadow-xl flex flex-col", className)}
-          style={{ width: PANEL_WIDTH }}
+          style={{ width: panelWidth }}
         >
           {title && <PanelHeader title={title} onClose={onClose} />}
           {children}
@@ -75,10 +106,8 @@ export function Panel({
 
   // ── Fixed (overlay) variant ───────────────────────────────────────────
   const slide = fixedSlideClasses[direction];
-
   return (
     <>
-
       {/* Panel */}
       <div
         className={cn(
@@ -88,7 +117,7 @@ export function Panel({
           className,
           overflowYScroll && 'overflow-scroll'
         )}
-        style={direction !== "bottom" ? { width: PANEL_WIDTH } : undefined}
+        style={direction !== "bottom" ? { width: panelWidth } : undefined}
       >
         {title && <PanelHeader title={title} onClose={onClose} />}
         {children}
