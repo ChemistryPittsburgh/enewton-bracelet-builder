@@ -40,7 +40,7 @@ export function NewBraceletMenu({ onFromScratch, onCopy, onFromPattern, onFromCu
 
   return (
     <div className="relative" ref={ref}>
-      <Button onClick={() => setOpen((o) => !o)} className="gap-1.5">
+      <Button onClick={() => setOpen((o) => !o)} className="gap-1.5 hocus:text-white focus:text-white">
         <Plus size={14} />
         New Bracelet
       </Button>
