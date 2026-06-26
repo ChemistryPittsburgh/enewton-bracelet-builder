@@ -19,7 +19,7 @@ export function Avatar({ name, color, size = "md", className = "" }: AvatarProps
   const isCurrentUser = name === currentUser?.name;
   const currentUserClass = isCurrentUser ? "avatar-current-user text-navy border-navy border" : "text-white";
 
-  let avatarBg = isCurrentUser ? "#e2ffff" : "#9b948e";
+  let avatarBg = isCurrentUser ? "#F7D9DD" : "#9b948e";
   if (color && !isCurrentUser) {
     avatarBg = color;
   }

@@ -9,7 +9,7 @@ import { AllBeads } from "./AllBeads";
 import { CameraController } from "./CameraController";
 import { CameraOffset } from "./CameraOffset";
 import { BeadErrorToast } from "./BeadErrorToast";
-import { PANEL_WIDTH } from "@/components/ui/Panel";
+import { usePanelWidth } from "@/components/ui/Panel";
 import {
   CAMERA_FOV,
   CAMERA_DEFAULT_POSITION,
@@ -70,6 +70,7 @@ interface SceneProps {
 const DRAG_DESELECT_THRESHOLD_SQ = 4 * 4; // squared px; avoids sqrt on every move event
 
 export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
+  const panelWidth = usePanelWidth();
   const controlsRef = useRef<CameraControls>(null);
   const { isEditMode, clearSelectedBead, clearEditSelection, viewMode } = useStore((s) => ({
     isEditMode: s.isEditMode,
@@ -139,7 +140,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
         <CameraOffset
           leftPanelOpen={panelOpen}
           rightPanelOpen={rightPanelOpen}
-          panelWidth={PANEL_WIDTH}
+          panelWidth={panelWidth}
         />
         <CameraControls
           ref={controlsRef}
