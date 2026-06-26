@@ -23,6 +23,7 @@ export function useLoadPattern() {
   const setBraceletSize    = useStore((s) => s.setBraceletSize);
   const setbandMaterial    = useStore((s) => s.setbandMaterial);
   const setHairtieColor    = useStore((s) => s.setHairtieColor);
+  const setIsEvenlySpaced  = useStore((s) => s.setIsEvenlySpaced);
   const markClean          = useStore((s) => s.markClean);
   const setActiveDesignId  = useStore((s) => s.setActiveDesignId);
   const setActivePatternId = useStore((s) => s.setActivePatternId);
@@ -61,6 +62,7 @@ export function useLoadPattern() {
     setBraceletSize(configuration.bracelet_size);
     setbandMaterial(configuration.band_material);
     if (configuration.hairtie_color != null) setHairtieColor(configuration.hairtie_color);
+    setIsEvenlySpaced(configuration.is_evenly_spaced ?? false);
     // When editing a pattern keep its name; when creating a new bracelet reset to default.
     loadBeads(placedBeads, patternId !== null ? pattern.name : DEFAULT_BRACELET_NAME);
     markClean();

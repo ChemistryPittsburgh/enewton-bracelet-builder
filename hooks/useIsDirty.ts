@@ -20,6 +20,7 @@ export function useIsDirty(): boolean {
     braceletDescription,
     bandMaterial,
     braceletSize,
+    isEvenlySpaced,
   } = useStore((s) => ({
     activeDesignId:      s.activeDesignId,
     beads:               s.beads,
@@ -27,6 +28,7 @@ export function useIsDirty(): boolean {
     braceletDescription: s.braceletDescription,
     bandMaterial:        s.bandMaterial,
     braceletSize:        s.braceletSize,
+    isEvenlySpaced:      s.isEvenlySpaced,
   }));
 
   const { data: savedDesign } = useDesign(activeDesignId);
@@ -43,6 +45,7 @@ export function useIsDirty(): boolean {
   if ((braceletDescription || null) !== (savedDesign.description || null))     return true;
   if (braceletSize !== cfg.bracelet_size)                                       return true;
   if (bandMaterial !== cfg.band_material)                                       return true;
+  if (isEvenlySpaced !== (cfg.is_evenly_spaced ?? false))                       return true;
   if (beads.length !== cfg.beads.length)                                        return true;
 
   // Sort cfg.beads by position to match the order useLoadDesign produces.

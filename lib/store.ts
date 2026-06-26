@@ -146,6 +146,7 @@ interface Store {
   /** When true, beads are rendered with equal spacing around the bracelet. Purely visual — does not affect capacity. */
   isEvenlySpaced: boolean;
   toggleEvenlySpaced: () => void;
+  setIsEvenlySpaced: (v: boolean) => void;
 
   bandMaterial: BandMaterial;
   braceletSize: BraceletSize;
@@ -950,7 +951,8 @@ export const useStore = create<Store>()(
       },
 
       isEvenlySpaced: false,
-      toggleEvenlySpaced: () => set((s) => ({ isEvenlySpaced: !s.isEvenlySpaced })),
+      toggleEvenlySpaced: () => set((s) => ({ isEvenlySpaced: !s.isEvenlySpaced, isDirty: true })),
+      setIsEvenlySpaced: (v) => set({ isEvenlySpaced: v }),
 
       setbandMaterial: (bandMaterial) => set({ bandMaterial, isDirty: true }),
       setBraceletSize: (braceletSize) => set({ braceletSize, isDirty: true }),
