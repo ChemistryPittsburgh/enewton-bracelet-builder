@@ -192,6 +192,9 @@ interface Store {
   /** Ephemeral — not persisted. Which camera view is active in edit mode. */
   editViewMode: 'top' | 'side';
   toggleEditViewMode: () => void;
+  /** Active canvas tool in edit mode: 'select' grabs beads, 'pan' drags the view (hand tool). */
+  canvasTool: 'select' | 'pan';
+  setCanvasTool: (tool: 'select' | 'pan') => void;
 
   /** Ephemeral — not persisted. Which canvas view is active. */
   viewMode: '3D' | 'line';
@@ -307,16 +310,18 @@ const CLEAR_EDIT_REPLACE: Pick<
 /** Drop a set of instanceIds from the edit selection, frozen groups, and the
  *  narrowed subset in one place — shared by removeBead and the replace actions. */
 function pruneEditSelection(
-  s: Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds">,
+  s: Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds" | "replaceSeedTargetIds">,
   removed: Set<string>,
-): Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds"> {
+): Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds" | "replaceSeedTargetIds"> {
   const narrowed = s.editReplaceNarrowedIds?.filter((id) => !removed.has(id)) ?? null;
+  const seedTargets = s.replaceSeedTargetIds?.filter((id) => !removed.has(id)) ?? null;
   return {
     editSelectionGroups: s.editSelectionGroups
       .map((g) => g.filter((id) => !removed.has(id)))
       .filter((g) => g.length > 0),
     editSelectedIds: s.editSelectedIds.filter((id) => !removed.has(id)),
     editReplaceNarrowedIds: narrowed && narrowed.length ? narrowed : null,
+    replaceSeedTargetIds: seedTargets && seedTargets.length ? seedTargets : null,
   };
 }
 
@@ -340,6 +345,7 @@ export const useStore = create<Store>()(
       setShowCharmCollisions: (show) => set({ showCharmCollisions: show }),
       editSelectedIds: [],
       editViewMode: 'top' as const,
+      canvasTool: 'select' as const,
       selectAllActive: false,
       viewMode: '3D' as const,
       dragFromPanel: null,
@@ -536,6 +542,7 @@ export const useStore = create<Store>()(
           // drop straight into edit + replace mode, mirroring create-from-pattern
           isEditMode: true,
           editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          canvasTool: 'select',
           selectedBead: null,
           editReplaceMode: true,
           editReplaceNarrowedIds: null,
@@ -1060,6 +1067,7 @@ export const useStore = create<Store>()(
           selectedBead: null,
           editSelectedIds: [],
           editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          canvasTool: 'select',
           editReplaceMode: false,
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
@@ -1083,10 +1091,15 @@ export const useStore = create<Store>()(
         set((s) => ({ editViewMode: s.editViewMode === 'top' ? 'side' : 'top' }));
       },
 
+      setCanvasTool(tool) {
+        set({ canvasTool: tool });
+      },
+
       setViewMode(mode) {
         set((s) => ({
           viewMode: mode,
           editViewMode: s.isEditMode ? (mode === 'line' ? 'side' : 'top') : s.editViewMode,
+          canvasTool: 'select',
         }));
       },
 

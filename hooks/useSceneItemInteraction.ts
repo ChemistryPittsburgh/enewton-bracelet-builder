@@ -77,6 +77,7 @@ export function useSceneItemInteraction(
     isEditMode,
     selectAllActive,
     replaceSeedTargetIds,
+    canvasTool,
   } = useStore(
     useShallow((s) => ({
       selectBead:           s.selectBead,
@@ -89,6 +90,7 @@ export function useSceneItemInteraction(
       isEditMode:           s.isEditMode,
       selectAllActive:      s.selectAllActive,
       replaceSeedTargetIds: s.replaceSeedTargetIds,
+      canvasTool:           s.canvasTool,
     })),
   );
 
@@ -116,6 +118,7 @@ export function useSceneItemInteraction(
     : HIGHLIGHT_SELECT_COLOR;
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
+    if (canvasTool === 'pan') return;   // hand tool: don't select, let the canvas pan
     e.stopPropagation();
     if (isLocked) return;
     if (isEditMode) {
@@ -136,6 +139,7 @@ export function useSceneItemInteraction(
 
   function handlePointerDown(e: ThreeEvent<PointerEvent>) {
     if (!isEditMode) return;
+    if (canvasTool === 'pan') return;   // hand tool: let camera-controls truck the view
     e.stopPropagation();
 
     const startX = e.nativeEvent.clientX;
@@ -171,18 +175,18 @@ export function useSceneItemInteraction(
 
     function handlePointerEnter() {
     setIsHovered(true);
-    if (!isEditMode) return;
+    if (!isEditMode || canvasTool === 'pan') return;
     gl.domElement.style.cursor = "grab";
   }
 
   function handlePointerLeave() {
     setIsHovered(false);
-    if (!isEditMode) return;
+    if (!isEditMode || canvasTool === 'pan') return;
     gl.domElement.style.cursor = "";
   }
 
   // Edit-mode rollover ring — suppressed once the item is already selected.
-  const showHoverRing = isEditMode && isHovered && !isSelected;
+  const showHoverRing = isEditMode && isHovered && !isSelected && canvasTool !== 'pan';
 
   return { isSelected, isEditMode, highlightColor, showHoverRing, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave };
 }

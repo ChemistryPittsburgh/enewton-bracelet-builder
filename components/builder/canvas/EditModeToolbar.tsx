@@ -1,18 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlignJustify, ChartNoAxesGantt, ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, SwitchCamera, Info, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
+import { AlignJustify, ChartNoAxesGantt, ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, Info, Undo2, Redo2 } from "lucide-react";
+
 import { useStore } from "@/lib/store";
+
+import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { beadFits, braceletArc, usedArc } from "@/lib/bead-layout";
-import {
-  BRACELET_SIZE_RADIUS,
-  CAMERA_MIN_DISTANCE,
-  CAMERA_EDIT_HEIGHT,
-  CAMERA_EDIT_SIDE_POSITION,
-  CAMERA_EDIT_SIDE_DISTANCE,
-  CAMERA_EDIT_ZOOM_STEP,
-} from "@/lib/constants";
+
+import { EditModeHelp } from "./EditModeHelp";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export function EditModeToolbar() {
   const {
@@ -25,8 +23,6 @@ export function EditModeToolbar() {
     duplicateBead,
     duplicateGroup,
     removeBead,
-    editViewMode,
-    toggleEditViewMode,
     clearEditSelection,
     selectBead,
     selectedBead,
@@ -36,8 +32,8 @@ export function EditModeToolbar() {
     redo,
     editReplaceMode,
     editReplaceNarrowedIds,
+    replaceSeedTargetIds,
     setEditReplaceMode,
-    controlsEl,
     viewMode,
     isEvenlySpaced,
     toggleEvenlySpaced,
@@ -51,8 +47,6 @@ export function EditModeToolbar() {
     duplicateBead: s.duplicateBead,
     duplicateGroup: s.duplicateGroup,
     removeBead: s.removeBead,
-    editViewMode: s.editViewMode,
-    toggleEditViewMode: s.toggleEditViewMode,
     clearEditSelection: s.clearEditSelection,
     selectBead: s.selectBead,
     selectedBead: s.selectedBead,
@@ -62,8 +56,8 @@ export function EditModeToolbar() {
     redo: s.redo,
     editReplaceMode: s.editReplaceMode,
     editReplaceNarrowedIds: s.editReplaceNarrowedIds,
+    replaceSeedTargetIds: s.replaceSeedTargetIds,
     setEditReplaceMode: s.setEditReplaceMode,
-    controlsEl: s.controlsEl,
     viewMode: s.viewMode,
     isEvenlySpaced: s.isEvenlySpaced,
     toggleEvenlySpaced: s.toggleEvenlySpaced,
@@ -73,20 +67,22 @@ export function EditModeToolbar() {
   const hasSelection = editSelectedIds.length > 0;
   const isSingleSelection = editSelectedIds.length === 1;
 
-  // In replace mode, prefer the narrowed sub-group for duplicate operations;
-  // fall back to the full edit selection otherwise.
-  const duplicateTargetIds = (editReplaceMode && editReplaceNarrowedIds)
-    ? editReplaceNarrowedIds
-    : editSelectedIds;
+  // The set bulk actions (duplicate / delete) act on. In replace mode that's the
+  // narrowed target — charms/beads via editReplaceNarrowedIds, seeds via
+  // replaceSeedTargetIds (e.g. "Small Seed" picked from the type list) — otherwise
+  // the normal edit selection.
+  const replaceTargetIds = editReplaceNarrowedIds ?? replaceSeedTargetIds;
+  const bulkTargetIds = editReplaceMode && replaceTargetIds ? replaceTargetIds : editSelectedIds;
+  const hasDeletable = bulkTargetIds.length > 0;
 
   // Check whether all target beads fit as duplicates
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const gapMm = Math.round((braceletArc(radius) - usedArc(beads)) * 1000 * 10) / 10;
   const hasGap = gapMm > 0;
 
-  const canDuplicate = duplicateTargetIds.length > 0 && (() => {
+  const canDuplicate = bulkTargetIds.length > 0 && (() => {
     let tempList = [...beads];
-    for (const id of duplicateTargetIds) {
+    for (const id of bulkTargetIds) {
       const bead = beads.find(b => b.instanceId === id);
       if (!bead || !beadFits(tempList, bead, radius)) return false;
       tempList = [...tempList, bead];
@@ -98,13 +94,13 @@ export function EditModeToolbar() {
   const duplicateErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleDuplicate = useCallback(() => {
-    const err = duplicateGroup(duplicateTargetIds);
+    const err = duplicateGroup(bulkTargetIds);
     if (err) {
       if (duplicateErrorTimer.current) clearTimeout(duplicateErrorTimer.current);
       setDuplicateError(err);
       duplicateErrorTimer.current = setTimeout(() => setDuplicateError(null), 3000);
     }
-  }, [duplicateGroup, duplicateTargetIds]);
+  }, [duplicateGroup, bulkTargetIds]);
 
   // Index of the single selected bead — used for arrow-key reordering
   const singleIdx = isSingleSelection
@@ -143,37 +139,6 @@ export function EditModeToolbar() {
     }
   }, [isSingleSelection, reorderBeads, singleIdx, n, groupIndices, reorderBeadsGroup]);
 
-  // ── Zoom (3D edit mode only; line view has free scroll) ────────────────────
-  const isLineView = viewMode === 'line';
-  const baseDistance = editViewMode === 'top' ? CAMERA_EDIT_HEIGHT : CAMERA_EDIT_SIDE_DISTANCE;
-  const [zoomDistance, setZoomDistance] = useState(baseDistance);
-
-  // Sync zoom state whenever CameraController resets the camera (view or mode change)
-  useEffect(() => {
-    setZoomDistance(baseDistance);
-  }, [editViewMode, isEditMode, baseDistance]);
-
-  function handleZoomIn() {
-    const next = Math.max(CAMERA_MIN_DISTANCE, zoomDistance - CAMERA_EDIT_ZOOM_STEP);
-    setZoomDistance(next);
-    controlsEl?.dollyTo(next, true);
-  }
-
-  function handleZoomOut() {
-    const next = Math.min(baseDistance, zoomDistance + CAMERA_EDIT_ZOOM_STEP);
-    setZoomDistance(next);
-    if (next >= baseDistance) {
-      // Fully zoomed out — reset to the initial edit camera position so any
-      // panning the user did while zoomed in is also cleared.
-      const [cx, cy, cz] = editViewMode === 'top'
-        ? [0, CAMERA_EDIT_HEIGHT, 0] as const
-        : CAMERA_EDIT_SIDE_POSITION;
-      controlsEl?.setLookAt(cx, cy, cz, 0, 0, 0, true);
-    } else {
-      controlsEl?.dollyTo(next, true);
-    }
-  }
-
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!isEditMode) return;
@@ -211,9 +176,9 @@ export function EditModeToolbar() {
 
         case "Delete":
         case "Backspace":
-          if (!hasSelection) return;
+          if (bulkTargetIds.length === 0) return;
           e.preventDefault();
-          editSelectedIds.forEach((id) => removeBead(id));
+          bulkTargetIds.forEach((id) => removeBead(id));
           break;
 
         case "d":
@@ -236,152 +201,136 @@ export function EditModeToolbar() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditMode, editSelectedIds, singleIdx, n, hasSelection, canMoveBack, canMoveForward, canDuplicate, handleMoveBack, handleMoveForward, reorderBeads, removeBead, handleDuplicate, clearEditSelection, undo, redo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isEditMode, editSelectedIds, bulkTargetIds, singleIdx, n, hasSelection, canMoveBack, canMoveForward, canDuplicate, handleMoveBack, handleMoveForward, reorderBeads, removeBead, handleDuplicate, clearEditSelection, undo, redo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isEditMode) return null;
 
   return (
-    <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[2px] divide-x divide-default">
-      <Tooltip content={
-        !hasSelection ? "Select item(s) to move"
-        : !canMoveBack ? "Selection is at the start"
-        : isSingleSelection ? "Move item back"
-        : "Move selection back"
-      } placement="bottom">
-        <EditBtn
-          onClick={handleMoveBack}
-          disabled={!canMoveBack}
-          label="Move back"
-        >
-          <ArrowUp size={22} />
-        </EditBtn>
-      </Tooltip>
-      <Tooltip content={
-        !hasSelection ? "Select item(s) to move"
-        : !canMoveForward ? "Selection is at the end"
-        : isSingleSelection ? "Move item forward"
-        : "Move selection forward"
-      } placement="bottom">
-        <EditBtn
-          onClick={handleMoveForward}
-          disabled={!canMoveForward}
-          label="Move forward"
-        >
-          <ArrowDown size={22} />
-        </EditBtn>
-      </Tooltip>
-      <Tooltip
-        content={
-          duplicateError ? duplicateError
-          : duplicateTargetIds.length > 0 && !canDuplicate ? "Bracelet is too full to duplicate"
-          : duplicateTargetIds.length === 0 ? "Select item(s) to duplicate"
-          : duplicateTargetIds.length > 1 ? "Duplicate group"
-          : "Duplicate item"
-        }
-        placement="bottom"
-      >
-        <EditBtn
-          onClick={handleDuplicate}
-          disabled={!canDuplicate}
-          label={duplicateTargetIds.length > 1 ? "Duplicate group" : "Duplicate bead"}
-          className={duplicateError ? "bg-red-50" : ""}
-        >
-          <CopyPlus size={22} className={duplicateError ? "text-red-500" : ""} />
-        </EditBtn>
-      </Tooltip>
-      {viewMode === '3D' && (
-        <Tooltip
-          content={
-            !hasGap
-              ? "No gap to distribute (bracelet is full)"
-              : isEvenlySpaced
-                ? `Revert even bead gap (currently distributing ${gapMm}mm)`
-                : `Distribute ${gapMm}mm gap evenly`
-          }
-          placement="bottom"
-        >
-          <EditBtn
-            onClick={toggleEvenlySpaced}
-            disabled={!hasGap}
-            label={isEvenlySpaced ? "Revert even bead gap" : "Distribute spacing evenly"}
-          >
-            {isEvenlySpaced ? <ChartNoAxesGantt size={22} /> : <AlignJustify size={22} />}
-          </EditBtn>
-        </Tooltip>
-      )}
-      <Tooltip content="Replace beads" placement="bottom">
-        <EditBtn
-          onClick={() => setEditReplaceMode(!editReplaceMode)}
-          label="Replace beads"
-          className={editReplaceMode ? "bg-navy hover:bg-navy/80" : ""}
-        >
-          <ArrowLeftRight size={22} className={editReplaceMode ? "text-white" : ""} />
-        </EditBtn>
-      </Tooltip>
-      <Tooltip content={isSingleSelection
-        ? selectedBead?.instanceId === editSelectedIds[0]
-          ? "Close item info window"
-          : "Open item info window"
-        : "Select one item to view info"
-      } placement="bottom">
-        <EditBtn
-          onClick={() => {
-            if (!isSingleSelection) return;
-            const bead = beads.find((b) => b.instanceId === editSelectedIds[0]);
-            if (!bead) return;
-
-            // If this bead's info is already open, close it — otherwise open it
-            if (selectedBead?.instanceId === bead.instanceId) {
-              clearSelectedBead();
-            } else {
-              selectBead(bead);
+    <div className="flex flex-col">
+      <SectionHeading className="text-[11px] mb-[2px] text-color-base/60">Edit Tools</SectionHeading>
+      <div className="flex gap-2 xl:gap-3">
+        <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[2px] divide-x divide-default shadow-sm rounded-[2px]">
+          <Tooltip content={
+            !hasSelection ? "Select item(s) to move"
+            : !canMoveBack ? "Selection is at the start"
+            : isSingleSelection ? "Move item back"
+            : "Move selection back"
+          } placement="bottom">
+            <EditBtn
+              onClick={handleMoveBack}
+              disabled={!canMoveBack}
+              label="Move back"
+            >
+              <ArrowUp size={22} />
+            </EditBtn>
+          </Tooltip>
+          <Tooltip content={
+            !hasSelection ? "Select item(s) to move"
+            : !canMoveForward ? "Selection is at the end"
+            : isSingleSelection ? "Move item forward"
+            : "Move selection forward"
+          } placement="bottom">
+            <EditBtn
+              onClick={handleMoveForward}
+              disabled={!canMoveForward}
+              label="Move forward"
+            >
+              <ArrowDown size={22} />
+            </EditBtn>
+          </Tooltip>
+          <Tooltip
+            content={
+              duplicateError ? duplicateError
+              : bulkTargetIds.length > 0 && !canDuplicate ? "Bracelet is too full to duplicate"
+              : bulkTargetIds.length === 0 ? "Select item(s) to duplicate"
+              : bulkTargetIds.length > 1 ? "Duplicate group"
+              : "Duplicate item"
             }
-          }}
-          disabled={!isSingleSelection}
-          label="Bead info"
-          className={`${
-                  (selectedBead?.instanceId) && "bg-navy color-white hover:bg-navy/80"
-                }`}
-        >
-          <Info size={22} className={`${selectedBead?.instanceId && "text-white"}`} />
-        </EditBtn>
-      </Tooltip>
-      <Tooltip content={hasSelection ? ( "Delete items" ) : ("Select item(s) to delete")} placement="bottom">
-        <EditBtn
-          onClick={() => editSelectedIds.forEach((id) => removeBead(id))}
-          disabled={!hasSelection}
-          label="Delete bead"
-        >
-          <Trash2 size={22} />
-        </EditBtn>
-      </Tooltip>
-      {!isLineView && (
-        <Tooltip content="Zoom in" placement="bottom">
-          <EditBtn onClick={handleZoomIn} disabled={zoomDistance <= CAMERA_MIN_DISTANCE} label="Zoom in">
-            <ZoomIn size={22} />
-          </EditBtn>
-        </Tooltip>
-      )}
-      {!isLineView && (
-        <Tooltip content="Zoom out" placement="bottom">
-          <EditBtn onClick={handleZoomOut} disabled={zoomDistance >= baseDistance} label="Zoom out">
-            <ZoomOut size={22} />
-          </EditBtn>
-        </Tooltip>
-      )}
-      <Tooltip content={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'} placement="bottom-start">
-        <EditBtn
-          onClick={toggleEditViewMode}
-          label={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
-        >
-          <SwitchCamera size={22} />
-        </EditBtn>
-      </Tooltip>
+            placement="bottom"
+          >
+            <EditBtn
+              onClick={handleDuplicate}
+              disabled={!canDuplicate}
+              label={bulkTargetIds.length > 1 ? "Duplicate group" : "Duplicate bead"}
+              className={duplicateError ? "bg-red-50" : ""}
+            >
+              <CopyPlus size={22} className={duplicateError ? "text-red-500" : ""} />
+            </EditBtn>
+          </Tooltip>
+          {viewMode === '3D' && (
+            <Tooltip
+              content={
+                !hasGap
+                  ? "No gap to distribute (bracelet is full)"
+                  : isEvenlySpaced
+                    ? `Revert even bead gap (currently distributing ${gapMm}mm)`
+                    : `Distribute ${gapMm}mm gap evenly`
+              }
+              placement="bottom"
+            >
+              <EditBtn
+                onClick={toggleEvenlySpaced}
+                disabled={!hasGap}
+                label={isEvenlySpaced ? "Revert even bead gap" : "Distribute spacing evenly"}
+              >
+                {isEvenlySpaced ? <ChartNoAxesGantt size={22} /> : <AlignJustify size={22} />}
+              </EditBtn>
+            </Tooltip>
+          )}
+          <Tooltip content="Replace beads" placement="bottom">
+            <EditBtn
+              onClick={() => setEditReplaceMode(!editReplaceMode)}
+              label="Replace beads"
+              className={editReplaceMode ? "bg-navy hover:bg-navy/80" : ""}
+            >
+              <ArrowLeftRight size={22} className={editReplaceMode ? "text-white" : ""} />
+            </EditBtn>
+          </Tooltip>
+          <Tooltip content={isSingleSelection
+            ? selectedBead?.instanceId === editSelectedIds[0]
+              ? "Close item info window"
+              : "Open item info window"
+            : "Select one item to view info"
+          } placement="bottom">
+            <EditBtn
+              onClick={() => {
+                if (!isSingleSelection) return;
+                const bead = beads.find((b) => b.instanceId === editSelectedIds[0]);
+                if (!bead) return;
+
+                // If this bead's info is already open, close it — otherwise open it
+                if (selectedBead?.instanceId === bead.instanceId) {
+                  clearSelectedBead();
+                } else {
+                  selectBead(bead);
+                }
+              }}
+              disabled={!isSingleSelection}
+              label="Bead info"
+              className={`${
+                      (selectedBead?.instanceId) && "bg-navy color-white hover:bg-navy/80"
+                    }`}
+            >
+              <Info size={22} className={`${selectedBead?.instanceId && "text-white"}`} />
+            </EditBtn>
+          </Tooltip>
+          <Tooltip content={hasDeletable ? ( "Delete items" ) : ("Select item(s) to delete")} placement="bottom">
+            <EditBtn
+              onClick={() => bulkTargetIds.forEach((id) => removeBead(id))}
+              disabled={!hasDeletable}
+              label="Delete bead"
+            >
+              <Trash2 size={22} />
+            </EditBtn>
+          </Tooltip>
+        </div>
+        <EditModeHelp />
+      </div>
     </div>
   );
 }
 
-function EditBtn({
+export function EditBtn({
   onClick,
   disabled = false,
   label,

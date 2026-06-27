@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { AlertTriangle, Loader2, List, Pencil, Undo2, Redo2, X } from "lucide-react";
+import { AlertTriangle, Loader2, List, Pencil, Undo2, Redo2, X, Eye } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 
@@ -272,17 +272,17 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
                 onClick={toggleEditMode}
                 className={`flex items-center gap-1.5 rounded-[2px] border px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
                   isEditMode
-                    ? "bg-stone text-white"
-                    : "border-default bg-white hover:bg-mint"
+                    ? "border-navy bg-shell"
+                    : "border-navy bg-edit"
                 }`}
-                aria-label={isEditMode ? "Exit edit mode" : "Enter Edit Mode"}
+                aria-label={isEditMode ? "Enter View Mode" : "Enter Edit Mode"}
               >
                 {isEditMode ? (
-                  <X size={14} />
+                  <Eye size={15} />
                 ): (
                   <Pencil size={14} />
                 )}
-                Edit
+                {isEditMode ? "View Mode" : "Edit Mode"}
               </button>
             </Tooltip>
           )}
@@ -291,8 +291,8 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
               onClick={onCommentsClick}
               className={`flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
                 commentsOpen
-                  ? "bg-stone text-white"
-                  : "bg-grey text-black hover:bg-stone hover:text-white"
+                  ? "bg-navy text-white border-navy border"
+                  : "border bg-white border-stone/40 text-color-base/80 hover:border-stone hover:bg-mint hover:text-color-base"
               }`}
               aria-label="Open comments"
             >
