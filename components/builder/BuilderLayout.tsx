@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ChevronsRight, Inbox, LayoutTemplate, Loader2 } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
@@ -84,6 +84,7 @@ export function BuilderLayout() {
 
   const isDirty = useIsDirty();
   const isEditMode    = useStore((s) => s.isEditMode);
+  const newDocNonce = useStore((s) => s.newDocNonce);
   const toggleEditMode = useStore((s) => s.toggleEditMode);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
@@ -234,6 +235,18 @@ export function BuilderLayout() {
   useEffect(() => {
     if (isNarrow && braceletPanelOpen && rightPanelOpen) setRightPanel(null);
   }, [isNarrow, braceletPanelOpen, rightPanelOpen]);
+
+  const autoOpenKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    // For a saved design, wait until it loads so status/lock are known.
+    if (activeDesignId !== null && !savedDesign) return;
+    const key = activeDesignId !== null ? `id:${activeDesignId}` : `new:${newDocNonce}`;
+    if (autoOpenKeyRef.current === key) return;
+    if (canEdit && !isLocked) {
+      autoOpenKeyRef.current = key;       // mark handled before toggling to avoid a re-run loop
+      if (!isEditMode) toggleEditMode();
+    }
+  }, [activeDesignId, savedDesign, newDocNonce, canEdit, isLocked, isEditMode, toggleEditMode]);
 
   // Global shortcut: E → enter edit mode (mirrors Cmd+Esc which exits it)
   useEffect(() => {

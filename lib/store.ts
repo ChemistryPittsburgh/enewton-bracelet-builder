@@ -68,6 +68,9 @@ interface Store {
   /** Start a new bracelet preserving the current size and material — used by
    *  the "New Bracelet" button so the user's preferred size is not discarded. */
   startNewBracelet: () => void;
+  /** Bumped on every fresh-document action (new / copy / from-pattern) so the
+   *  builder can auto-open edit mode once per new bracelet. */
+  newDocNonce: number;
 
   copyBracelet: () => void;
 
@@ -344,7 +347,7 @@ export const useStore = create<Store>()(
       showCharmCollisions: false,
       setShowCharmCollisions: (show) => set({ showCharmCollisions: show }),
       editSelectedIds: [],
-      editViewMode: 'top' as const,
+      editViewMode: 'side' as const,
       canvasTool: 'select' as const,
       selectAllActive: false,
       viewMode: '3D' as const,
@@ -356,6 +359,7 @@ export const useStore = create<Store>()(
       editSelectionGroups: [],
       canvasEl: null,
       activeDesignId: null,
+      newDocNonce: 0,
       activePatternId: null,
       pendingDesign: null,
       pendingDesignOnLoad: null,
@@ -507,7 +511,7 @@ export const useStore = create<Store>()(
         ...CLEAR_EDIT_REPLACE,
       }),
 
-      startNewBracelet: () => set({
+      startNewBracelet: () => set((s) => ({
         beads: [],
         braceletName: "New Bracelet",
         braceletDescription: "",
@@ -517,10 +521,11 @@ export const useStore = create<Store>()(
         isDirty: false,
         undoStack: [],
         redoStack: [],
+        newDocNonce: s.newDocNonce + 1, // fresh document → builder auto-opens edit mode
         ...CLEAR_REPLACE_TARGETS,
         ...CLEAR_EDIT_REPLACE,
         // braceletSize and bandMaterial intentionally preserved
-      }),
+      })),
 
       copyBracelet: () =>
         set((s) => ({
@@ -531,6 +536,7 @@ export const useStore = create<Store>()(
               ? `Copy of ${s.braceletName}`
               : DEFAULT_BRACELET_NAME,
           isDirty: true,             // so Save creates a new bracelet
+          newDocNonce: s.newDocNonce + 1,
         })),
 
       newBraceletFromPattern: () =>
@@ -539,9 +545,10 @@ export const useStore = create<Store>()(
           activePatternId: null,     // stop editing the pattern → Save makes a new design
           braceletName: DEFAULT_BRACELET_NAME, // fresh bracelet, not "Copy of …"
           isDirty: true,             // so Save creates a new bracelet
+          newDocNonce: s.newDocNonce + 1,
           // drop straight into edit + replace mode, mirroring create-from-pattern
           isEditMode: true,
-          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          editViewMode: 'side',
           canvasTool: 'select',
           selectedBead: null,
           editReplaceMode: true,
@@ -1066,7 +1073,7 @@ export const useStore = create<Store>()(
           isEditMode: !s.isEditMode,
           selectedBead: null,
           editSelectedIds: [],
-          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          editViewMode: 'side',
           canvasTool: 'select',
           editReplaceMode: false,
           editReplaceNarrowedIds: null,
@@ -1077,7 +1084,7 @@ export const useStore = create<Store>()(
       enterEditReplaceMode() {
         set((s) => ({
           isEditMode: true,
-          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          editViewMode: 'side',
           selectedBead: null,
           editReplaceMode: true,
           editReplaceNarrowedIds: null,
@@ -1098,7 +1105,7 @@ export const useStore = create<Store>()(
       setViewMode(mode) {
         set((s) => ({
           viewMode: mode,
-          editViewMode: s.isEditMode ? (mode === 'line' ? 'side' : 'top') : s.editViewMode,
+          editViewMode: s.isEditMode ? 'side' : s.editViewMode,
           canvasTool: 'select',
         }));
       },
