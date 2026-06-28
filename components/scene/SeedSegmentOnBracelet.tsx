@@ -18,6 +18,9 @@ import {
   FINISH_PRESETS,
   DEFAULT_FINISH,
   EDIT_MODE_RING_HOVER,
+  DRAG_LIFT,
+  DRAG_TARGET_RING_COLOR,
+  DRAG_TARGET_RING_TUBE,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 import {
@@ -282,7 +285,7 @@ export function SeedSegmentOnBracelet({
             key={i}
             position={[
               sb.position[0],
-              sb.position[1] + (isDragged ? 0.003 : 0),
+              sb.position[1] + (isDragged ? DRAG_LIFT : 0),
               sb.position[2],
             ]}
             rotation={sb.outerRotation}
@@ -327,7 +330,7 @@ export function SeedSegmentOnBracelet({
           key={`hit-${i}`}
           position={[
             chunk.position[0],
-            chunk.position[1] + (isDragged ? 0.003 : 0),
+            chunk.position[1] + (isDragged ? DRAG_LIFT : 0),
             chunk.position[2],
           ]}
           rotation={chunk.outerRotation}
@@ -346,7 +349,7 @@ export function SeedSegmentOnBracelet({
         <group
           position={[
             centerTransform.position[0],
-            centerTransform.position[1] + (isDragged ? 0.003 : 0),
+            centerTransform.position[1] + (isDragged ? DRAG_LIFT : 0),
             centerTransform.position[2],
           ]}
           rotation={centerTransform.outerRotation}
@@ -379,8 +382,8 @@ export function SeedSegmentOnBracelet({
           rotation={centerTransform.outerRotation}
         >
           <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[crossSection * 1.3, 0.0002, 8, 32]} />
-            <meshBasicMaterial color="#93c5fd" />
+            <torusGeometry args={[crossSection * 1.6, DRAG_TARGET_RING_TUBE, 10, 40]} />
+            <meshBasicMaterial color={DRAG_TARGET_RING_COLOR} />
           </mesh>
         </group>
       )}

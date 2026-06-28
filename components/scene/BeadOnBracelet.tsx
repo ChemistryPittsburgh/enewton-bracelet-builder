@@ -14,7 +14,10 @@ import {
   CRYSTAL_CHARM_DEPTH_OFFSET, 
   FINISH_PRESETS, 
   DEFAULT_FINISH, 
-  EDIT_MODE_RING_HOVER
+  EDIT_MODE_RING_HOVER,
+  DRAG_LIFT,
+  DRAG_TARGET_RING_COLOR,
+  DRAG_TARGET_RING_TUBE,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 import { cloneShared } from "@/lib/measure-bead";
@@ -209,7 +212,7 @@ export function BeadOnBracelet({
 
   const liftedPosition: [number, number, number] = [
     layeredPosition[0],
-    layeredPosition[1] + hangOffset + (isDragged ? 0.003 : 0),
+    layeredPosition[1] + hangOffset + (isDragged ? DRAG_LIFT : 0),
     layeredPosition[2],
   ];
 
@@ -276,8 +279,8 @@ export function BeadOnBracelet({
         {/* Drag target indicator ring — edit mode only */}
         {isDragTarget && vizRadius > 0 && !isCapturing && (
           <mesh rotation={[Math.PI / 2, 0, 0]} scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}>
-            <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
-            <meshBasicMaterial color="#93c5fd" />
+            <torusGeometry args={[vizRadius * 1.7, DRAG_TARGET_RING_TUBE, 10, 40]} />
+            <meshBasicMaterial color={DRAG_TARGET_RING_COLOR} />
           </mesh>
         )}
 

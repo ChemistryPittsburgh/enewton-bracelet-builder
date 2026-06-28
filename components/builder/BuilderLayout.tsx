@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { ChevronsRight, Inbox, LayoutTemplate, Loader2 } from "lucide-react";
+import { ChevronsRight, Move, Inbox, LayoutTemplate, Loader2 } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -84,6 +84,7 @@ export function BuilderLayout() {
 
   const isDirty = useIsDirty();
   const isEditMode    = useStore((s) => s.isEditMode);
+  const reorderDragLabel = useStore((s) => s.reorderDragLabel);
   const newDocNonce = useStore((s) => s.newDocNonce);
   const toggleEditMode = useStore((s) => s.toggleEditMode);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
@@ -203,15 +204,15 @@ export function BuilderLayout() {
   const anyPanelOpen = braceletPanelOpen || rightPanelOpen;
 
   useEffect(() => {
-    if (!dragFromPanel) return;
-    document.body.style.cursor = "grabbing";
+    if (!dragFromPanel && !reorderDragLabel) return;
+    if (dragFromPanel) document.body.style.cursor = "grabbing";
     const onMove = (e: PointerEvent) => setGhostPos({ x: e.clientX, y: e.clientY });
     window.addEventListener("pointermove", onMove);
     return () => {
       window.removeEventListener("pointermove", onMove);
       document.body.style.cursor = "";
     };
-  }, [!!dragFromPanel]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [!!dragFromPanel, !!reorderDragLabel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!canEdit || isLocked) setBraceletPanelOpen(false);
@@ -546,6 +547,22 @@ export function BuilderLayout() {
         >
           <span className="text-color-base/70">＋</span>
           {dragFromPanel.bead_type ?? dragFromPanel.name}
+        </div>
+      )}
+
+      {reorderDragLabel && !dragFromPanel && (
+        <div
+          style={{
+            position: "fixed",
+            left: ghostPos.x + 12,
+            top:  ghostPos.y + 12,
+            pointerEvents: "none",
+            zIndex: 9999,
+          }}
+          className="rounded-lg bg-navy text-white shadow-lg px-2 py-1 text-sm flex items-center gap-1.5"
+        >
+          <Move size={13} className="opacity-70" />
+          {reorderDragLabel}
         </div>
       )}
 

@@ -207,6 +207,11 @@ interface Store {
   dragFromPanel: BeadProduct | null;
   setDragFromPanel: (product: BeadProduct | null) => void;
 
+  /** Ephemeral — not persisted. Label of the item(s) being reordered in-canvas;
+   *  drives the cursor drag chip. null when no reorder drag is in progress. */
+  reorderDragLabel: string | null;
+  setReorderDragLabel: (label: string | null) => void;
+
   /** Insert a new bead at a specific slot index. Returns an error string or null. */
   insertBead: (product: BeadProduct, atIndex: number) => string | null;
 
@@ -352,6 +357,7 @@ export const useStore = create<Store>()(
       selectAllActive: false,
       viewMode: '3D' as const,
       dragFromPanel: null,
+      reorderDragLabel: null,
       replaceTargetInstanceId: null,
       replaceAllTargetProductId: null, replaceSeedTargetIds: null,
       editReplaceMode: false,
@@ -1112,6 +1118,10 @@ export const useStore = create<Store>()(
 
       setDragFromPanel(product) {
         set({ dragFromPanel: product });
+      },
+
+      setReorderDragLabel(label) {
+        set({ reorderDragLabel: label });
       },
 
       setCanvasEl(el) {

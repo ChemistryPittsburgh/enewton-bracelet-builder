@@ -3,7 +3,7 @@
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, EDIT_MODE_RING_HOVER } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, EDIT_MODE_RING_HOVER, DRAG_LIFT, DRAG_TARGET_RING_COLOR, DRAG_TARGET_RING_TUBE } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 
 /** Fixed cross-section radius for all spacers (metres). ~3mm radius = 6mm visual height. */
@@ -61,7 +61,7 @@ export function SpacerOnBracelet({
 
   const liftedPosition: [number, number, number] = [
     position[0],
-    position[1] + (isDragged ? 0.003 : 0),
+    position[1] + (isDragged ? DRAG_LIFT : 0),
     position[2],
   ];
 
@@ -132,8 +132,8 @@ export function SpacerOnBracelet({
         {/* Drag target indicator */}
         {visible && isDragTarget && cylRadius > 0 && (
           <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[cylRadius * 1.3, 0.0002, 8, 32]} />
-            <meshBasicMaterial color="#93c5fd" />
+            <torusGeometry args={[cylRadius * 1.6, DRAG_TARGET_RING_TUBE, 10, 40]} />
+            <meshBasicMaterial color={DRAG_TARGET_RING_COLOR} />
           </mesh>
         )}
       </group>

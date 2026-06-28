@@ -47,6 +47,16 @@ export const EDIT_MODE_HIGHLIGHT_SELECT_COLOR = "#1F3A5F";
 /* Color of Hover Ring */
 export const EDIT_MODE_RING_HOVER = "#a38d48";
 
+// ── Edit-mode drag-and-drop feedback ─────────────────────────────────────────
+/** Vertical lift (metres) applied to the item being dragged so it visibly pops
+ *  off the strand. Tune up/down to taste. */
+export const DRAG_LIFT = 0.006;
+/** Drop-target / insertion ring colour. Strong blue — high contrast against the
+ *  gold beads so the landing slot is obvious at a glance. */
+export const DRAG_TARGET_RING_COLOR = "#2563eb";
+/** Tube thickness (metres) of the drop-target ring. Bold, not the old hairline. */
+export const DRAG_TARGET_RING_TUBE = 0.0004;
+
 /**
  * Edit-mode "group beads" feature (saved selection groups in the replace tool).
  * When false, the "+ New group" button is hidden and the replace tool stays in

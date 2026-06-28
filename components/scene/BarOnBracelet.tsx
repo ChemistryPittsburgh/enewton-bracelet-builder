@@ -11,6 +11,9 @@ import {
   FINISH_PRESETS,
   DEFAULT_FINISH,
   EDIT_MODE_RING_HOVER,
+  DRAG_LIFT,
+  DRAG_TARGET_RING_COLOR,
+  DRAG_TARGET_RING_TUBE,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
 
@@ -223,7 +226,7 @@ export function BarOnBracelet({
 
   const liftedPosition: [number, number, number] = [
     position[0],
-    position[1] + (isDragged ? 0.003 : 0),
+    position[1] + (isDragged ? DRAG_LIFT : 0),
     position[2],
   ];
 
@@ -268,8 +271,8 @@ export function BarOnBracelet({
         {/* Drag-target ring */}
         {isDragTarget && ringRadius > 0 && (
           <mesh>
-            <torusGeometry args={[ringRadius * 1.4, 0.0002, 8, 32]} />
-            <meshBasicMaterial color="#93c5fd" />
+            <torusGeometry args={[ringRadius * 1.7, DRAG_TARGET_RING_TUBE, 10, 40]} />
+            <meshBasicMaterial color={DRAG_TARGET_RING_COLOR} />
           </mesh>
         )}
       </group>

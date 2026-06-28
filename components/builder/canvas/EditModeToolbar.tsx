@@ -352,7 +352,7 @@ export function EditBtn({
       className={`flex items-center justify-center px-3 py-2 xl:px-4 xl:py-3 transition-colors ${
         disabled
           ? "cursor-not-allowed text-grey pointer-events-none"
-          : "text-color-base/70 hover:bg-light-blue/50 hover:text-color-base"
+          : "text-color-base/70 hover:bg-light-blue/50 hover:text-color-base focus:ring-navy focus-visible:ring-navy focus:outline-navy focus:ring-1 focus-visible:ring"
       } ${className}`}
     >
       {children}

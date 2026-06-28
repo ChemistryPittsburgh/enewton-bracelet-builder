@@ -102,6 +102,24 @@ export function useBraceletReorderDrag(
       editSelectedIds.includes(draggedBead.instanceId) &&
       editSelectedIds.length > 1;
 
+    // const dragLabel = isGroupDrag ? (
+    //   `${editSelectedIds.length} items`
+    // ) : (
+    //   draggedBead?.product.bead_type ?? draggedBead?.product.name ?? "Item";
+    // useStore.getState().setReorderDragLabel(dragLabel);
+
+    let dragLabel: string = "Item";
+    if(isGroupDrag) {
+      dragLabel = `${editSelectedIds.length} items`;
+    } else if(draggedBead?.product.bead_type) {
+      dragLabel = draggedBead?.product.size_mm ? `${draggedBead?.product.bead_type} ${draggedBead?.product.size_mm}mm` : draggedBead?.product.bead_type; 
+    } else if(draggedBead?.product.name) {
+      dragLabel = draggedBead?.product.name;
+    } else {
+      dragLabel = "Item";
+    }
+    useStore.getState().setReorderDragLabel(dragLabel);
+
     if (isGroupDrag) {
       const groupFromIndices = editSelectedIds
         .map((id) => beads.findIndex((b) => b.instanceId === id))
@@ -169,6 +187,7 @@ export function useBraceletReorderDrag(
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       gl.domElement.style.cursor = "";
+      useStore.getState().setReorderDragLabel(null);
     };
   }, [isDragging]); // eslint-disable-line react-hooks/exhaustive-deps
 
