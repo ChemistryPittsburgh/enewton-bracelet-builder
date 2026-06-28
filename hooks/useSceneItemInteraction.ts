@@ -78,6 +78,8 @@ export function useSceneItemInteraction(
     selectAllActive,
     replaceSeedTargetIds,
     canvasTool,
+    dragFromPanel,
+    reorderDragLabel,
   } = useStore(
     useShallow((s) => ({
       selectBead:           s.selectBead,
@@ -91,6 +93,8 @@ export function useSceneItemInteraction(
       selectAllActive:      s.selectAllActive,
       replaceSeedTargetIds: s.replaceSeedTargetIds,
       canvasTool:           s.canvasTool,
+      dragFromPanel:        s.dragFromPanel,
+      reorderDragLabel:     s.reorderDragLabel,
     })),
   );
 
@@ -186,7 +190,10 @@ export function useSceneItemInteraction(
   }
 
   // Edit-mode rollover ring — suppressed once the item is already selected.
-  const showHoverRing = isEditMode && isHovered && !isSelected && canvasTool !== 'pan';
+  // Suppress the rollover hint while any drag is in progress, so the only moving
+  // highlight on the canvas is the drag/selection indicator itself.
+  const isDragActive = dragFromPanel !== null || reorderDragLabel !== null;
+  const showHoverRing = isEditMode && isHovered && !isSelected && canvasTool !== 'pan' && !isDragActive;
 
   return { isSelected, isEditMode, highlightColor, showHoverRing, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave };
 }

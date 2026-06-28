@@ -19,14 +19,14 @@ export function DesignStatusLockedDialog({ status, onClose }: DesignStatusLocked
 
   return (
     <FullScreenDialog open onClose={onClose} title={title} className="max-w-md">
-      <div className="flex flex-col gap-5 py-2">
+      <div className="flex flex-col gap-5">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
-            <Icon size={16} className="text-amber-600" />
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/10">
+            <Icon size={16} className="text-orange" />
           </div>
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-neutral-900">{title}</p>
-            <p className="mt-1 text-xs text-color-base/70 leading-relaxed">{body}</p>
+          <div className="flex flex-col gap-0.5">
+            <p className="mt-1.5 text-sm font-semibold text-color-base">{title}</p>
+            <p className="text-xs text-color-base/70 leading-relaxed">{body}</p>
           </div>
         </div>
 

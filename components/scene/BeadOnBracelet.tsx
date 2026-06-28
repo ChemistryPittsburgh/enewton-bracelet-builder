@@ -14,17 +14,20 @@ import {
   CRYSTAL_CHARM_DEPTH_OFFSET, 
   FINISH_PRESETS, 
   DEFAULT_FINISH, 
-  EDIT_MODE_RING_HOVER,
   DRAG_LIFT,
-  DRAG_TARGET_RING_COLOR,
-  DRAG_TARGET_RING_TUBE,
+  DRAG_FORWARD_OFFSET,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
+import { SelectionRing, HoverRing, DragTargetRing, CollisionRing } from "./ItemRings";
 import { cloneShared } from "@/lib/measure-bead";
 
 interface BeadOnBraceletProps {
   bead: PlacedBead;
   slotIndex: number;
+  /** Live-preview ordering + this item's index within it during an edit-mode
+   *  reorder drag. Absent when idle → layout falls back to the store order. */
+  layoutBeads?: PlacedBead[];
+  layoutIndex?: number;
   isDragged?: boolean;
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
@@ -44,6 +47,8 @@ interface BeadOnBraceletProps {
 export function BeadOnBracelet({
   bead,
   slotIndex,
+  layoutBeads,
+  layoutIndex,
   isDragged = false,
   isDragTarget = false,
   onDragStart,
@@ -148,7 +153,9 @@ export function BeadOnBracelet({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, bead.product.bead_category, CHARM_ROTATION[0], CHARM_ROTATION[1], CHARM_ROTATION[2]]);
 
-  const beads          = useStore((s) => s.beads);
+  const storeBeads     = useStore((s) => s.beads);
+  const beads          = layoutBeads ?? storeBeads;
+  const layoutIdx      = layoutIndex ?? slotIndex;
   const braceletSize   = useStore((s) => s.braceletSize);
   const viewMode       = useStore((s) => s.viewMode);
   const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
@@ -185,8 +192,8 @@ export function BeadOnBracelet({
     ? getEvenSpacingBonus(beads, radius)
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === 'line'
-    ? getBeadTransformLine(slotIndex, beads)
-    : getBeadTransform(slotIndex, beads, radius, extraSpacingPerGap);
+    ? getBeadTransformLine(layoutIdx, beads)
+    : getBeadTransform(layoutIdx, beads, radius, extraSpacingPerGap);
 
   // Radial offset: collision layer stacking + float charm forward push +
   // crystal-charm setback + per-charm depth setback. All shift along the radial
@@ -196,7 +203,11 @@ export function BeadOnBracelet({
     layerOffset +
     (isFloatCharm ? FLOAT_CHARM_DEPTH_OFFSET : 0) +
     (isCrystalCharm ? CRYSTAL_CHARM_DEPTH_OFFSET : 0) +
-    charmDepthOffset;
+    charmDepthOffset +
+    // While dragging, push the charm radially outward so it floats clear of its
+    // neighbours. Goes through the radial projection below, so it stays "forward"
+    // at every angle around the bracelet.
+    (isCharm && isDragged ? DRAG_FORWARD_OFFSET : 0);
 
   const layeredPosition: [number, number, number] = totalRadialOffset !== 0
     ? (() => {
@@ -257,43 +268,34 @@ export function BeadOnBracelet({
           <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>
 
-        {/* Selection Ring */}
-        {isSelected && vizRadius > 0 && !isCapturing && (
-          <mesh
-            rotation={isEditMode || isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}
+        {/* Selection ring — also shown on the item being dragged */}
+        {(isSelected || isDragged) && vizRadius > 0 && !isCapturing && (
+          <SelectionRing
+            radius={vizRadius * 1.4}
+            color={highlightColor}
+            rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}
             scale={!isEditMode && isFloatCharm ? [1, 0.4, 1] : [1, 1, 1]}
-          >
-            <torusGeometry args={[vizRadius * 1.4, 0.0002, 8, 32]} />
-            <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
-          </mesh>
+          />
         )}
 
         {/* Hover ring — flat, edit-mode rollover hint */}
         {showHoverRing && vizRadius > 0 && !isCapturing && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[vizRadius * 1.5, 0.00016, 8, 40]} />
-            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.7} />
-          </mesh>
+          <HoverRing radius={vizRadius * 1.4} position={[0, -vizRadius, 0]} />
         )}
 
         {/* Drag target indicator ring — edit mode only */}
         {isDragTarget && vizRadius > 0 && !isCapturing && (
-          <mesh rotation={[Math.PI / 2, 0, 0]} scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}>
-            <torusGeometry args={[vizRadius * 1.7, DRAG_TARGET_RING_TUBE, 10, 40]} />
-            <meshBasicMaterial color={DRAG_TARGET_RING_COLOR} />
-          </mesh>
+          <DragTargetRing radius={vizRadius * 1.7} scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]} />
         )}
 
         {/* Charm collision highlight ring — shown when user clicks the overlap warning */}
         {isColliding && vizRadius > 0 && !isCapturing && (
-          <mesh
+          <CollisionRing
+            radius={vizRadius * 1.4}
             position={isCharm ? [0, charmBodyCenterY, 0] : [0, 0, 0]}
             rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}
             scale={isFloatCharm ? [1, 0.35, 1] : [1, 1, 1]}
-          >
-            <torusGeometry args={[vizRadius * 1.4, 0.00025, 8, 32]} />
-            <meshBasicMaterial color="#be123c" transparent opacity={0.4} />
-          </mesh>
+          />
         )}
       </group>
     </group>

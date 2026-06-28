@@ -10,16 +10,18 @@ import {
   BRACELET_SIZE_RADIUS,
   FINISH_PRESETS,
   DEFAULT_FINISH,
-  EDIT_MODE_RING_HOVER,
   DRAG_LIFT,
-  DRAG_TARGET_RING_COLOR,
-  DRAG_TARGET_RING_TUBE,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
+import { SelectionRing, HoverRing, DragTargetRing } from "./ItemRings";
 
 interface BarOnBraceletProps {
   bead: PlacedBead;
   slotIndex: number;
+  /** Live-preview ordering + this item's index within it during an edit-mode
+   *  reorder drag. Absent when idle → layout falls back to the store order. */
+  layoutBeads?: PlacedBead[];
+  layoutIndex?: number;
   isDragged?: boolean;
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
@@ -29,6 +31,8 @@ interface BarOnBraceletProps {
 export function BarOnBracelet({
   bead,
   slotIndex,
+  layoutBeads,
+  layoutIndex,
   isDragged = false,
   isDragTarget = false,
   onDragStart,
@@ -134,7 +138,9 @@ export function BarOnBracelet({
     return { vMin, vMax, nativeArcM: nativeArcM > 0 ? nativeArcM : null };
   }, [scene]);
 
-  const beads          = useStore((s) => s.beads);
+  const storeBeads     = useStore((s) => s.beads);
+  const beads          = layoutBeads ?? storeBeads;
+  const layoutIdx      = layoutIndex ?? slotIndex;
   const braceletSize   = useStore((s) => s.braceletSize);
   const viewMode       = useStore((s) => s.viewMode);
   const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
@@ -147,8 +153,8 @@ export function BarOnBracelet({
     ? getEvenSpacingBonus(beads, braceletRadius)
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
-    ? getBeadTransformLine(slotIndex, beads)
-    : getBeadTransform(slotIndex, beads, braceletRadius, extraSpacingPerGap);
+    ? getBeadTransformLine(layoutIdx, beads)
+    : getBeadTransform(layoutIdx, beads, braceletRadius, extraSpacingPerGap);
 
   // vizRadius drives the hit capsule (sized to arc length for easy clicking)
   const vizRadius  = (bead.product.size_mm ?? 10) / 2 / 1000;
@@ -253,27 +259,16 @@ export function BarOnBracelet({
 
         {/* Selection ring — vertical (XY plane, perpendicular to bar's tangent),
             radius matches bead convention: cross-section diameter / 2 */}
-        {isSelected && ringRadius > 0 && (
-          <mesh>
-            <torusGeometry args={[ringRadius * 1.8, 0.0002, 8, 32]} />
-            <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
-          </mesh>
+        {(isSelected || isDragged) && ringRadius > 0 && (
+          <SelectionRing radius={ringRadius * 1.8} color={highlightColor} />
         )}
 
         {/* Hover ring — flat, edit-mode rollover hint */}
-        {showHoverRing && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[ringRadius * 1.8, 0.00018, 8, 40]} />
-            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.55} />
-          </mesh>
-        )}
+        {showHoverRing && <HoverRing radius={ringRadius * 1.8} />}
 
         {/* Drag-target ring */}
         {isDragTarget && ringRadius > 0 && (
-          <mesh>
-            <torusGeometry args={[ringRadius * 1.7, DRAG_TARGET_RING_TUBE, 10, 40]} />
-            <meshBasicMaterial color={DRAG_TARGET_RING_COLOR} />
-          </mesh>
+          <DragTargetRing radius={ringRadius * 1.7} rotation={[0, 0, 0]} />
         )}
       </group>
     </group>

@@ -245,8 +245,8 @@ export function SeedSegmentOnBracelet({
   if (!config || seedBead3DData.length === 0 || !seedGeometry) return null;
 
   // Cross-section radius for hit area and selection — matches the visual
-  // height of the tiny seed beads (~3mm, same as spacer cross-section).
-  const crossSection = 0.003;
+  // height of the tiny seed beads (~1.8mm, same as spacer cross-section).
+   const crossSection = 0.0018;
 
   // Rotate cylinder from default Y-axis to lie along the cord tangent
   const cylRotation: [number, number, number] = [Math.PI / 2, 0, 0];
@@ -354,7 +354,7 @@ export function SeedSegmentOnBracelet({
           ]}
           rotation={centerTransform.outerRotation}
         >
-          <mesh rotation={isEditMode ? [Math.PI / 2, 0, 0] : [0, 0, 0]}>
+          <mesh rotation={[0, 0, 0]}>
             <torusGeometry args={[crossSection * 1.15, 0.0002, 8, 32]} />
             <meshBasicMaterial
               color={highlightColor}

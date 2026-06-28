@@ -3,15 +3,20 @@
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, EDIT_MODE_RING_HOVER, DRAG_LIFT, DRAG_TARGET_RING_COLOR, DRAG_TARGET_RING_TUBE } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, DRAG_LIFT } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
+import { SelectionRing, HoverRing, DragTargetRing } from "./ItemRings";
 
-/** Fixed cross-section radius for all spacers (metres). ~3mm radius = 6mm visual height. */
-const SPACER_CROSS_SECTION = 0.003;
+/** Fixed cross-section radius for all spacers (meters) */
+const SPACER_CROSS_SECTION = 0.0012;
 
 interface SpacerOnBraceletProps {
   bead: PlacedBead;
   slotIndex: number;
+  /** Live-preview ordering + this item's index within it during an edit-mode
+   *  reorder drag. Absent when idle → layout falls back to the store order. */
+  layoutBeads?: PlacedBead[];
+  layoutIndex?: number;
   isDragged?: boolean;
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
@@ -30,12 +35,16 @@ interface SpacerOnBraceletProps {
 export function SpacerOnBracelet({
   bead,
   slotIndex,
+  layoutBeads,
+  layoutIndex,
   isDragged = false,
   isDragTarget = false,
   onDragStart,
   visible = true,
 }: SpacerOnBraceletProps) {
-  const beads          = useStore((s) => s.beads);
+  const storeBeads     = useStore((s) => s.beads);
+  const beads          = layoutBeads ?? storeBeads;
+  const layoutIdx      = layoutIndex ?? slotIndex;
   const braceletSize   = useStore((s) => s.braceletSize);
   const viewMode       = useStore((s) => s.viewMode);
   const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
@@ -56,8 +65,8 @@ export function SpacerOnBracelet({
     ? getEvenSpacingBonus(beads, radius)
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
-    ? getBeadTransformLine(slotIndex, beads)
-    : getBeadTransform(slotIndex, beads, radius, extraSpacingPerGap);
+    ? getBeadTransformLine(layoutIdx, beads)
+    : getBeadTransform(layoutIdx, beads, radius, extraSpacingPerGap);
 
   const liftedPosition: [number, number, number] = [
     position[0],
@@ -114,27 +123,22 @@ export function SpacerOnBracelet({
         </mesh>
 
         {/* Selection ring */}
-        {visible && isSelected && cylRadius > 0 && (
-          <mesh rotation={isEditMode ? [Math.PI / 2, 0, 0] : [Math.PI, 0, 0]}>
-            <torusGeometry args={[cylRadius * 1.15, 0.0002, 8, 32]} />
-            <meshBasicMaterial color={highlightColor} />
-          </mesh>
+        {visible && (isSelected || isDragged) && cylRadius > 0 && (
+          <SelectionRing
+            radius={cylRadius * 1.4}
+            color={highlightColor}
+            rotation={[Math.PI, 0, 0]}
+          />
         )}
 
         {/* Hover ring — flat, edit-mode rollover hint */}
         {visible && showHoverRing && cylRadius > 0 && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[cylRadius * 1.3, 0.00018, 8, 40]} />
-            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.55} />
-          </mesh>
+          <HoverRing radius={cylRadius * 1.8} />
         )}
 
         {/* Drag target indicator */}
         {visible && isDragTarget && cylRadius > 0 && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[cylRadius * 1.6, DRAG_TARGET_RING_TUBE, 10, 40]} />
-            <meshBasicMaterial color={DRAG_TARGET_RING_COLOR} />
-          </mesh>
+          <DragTargetRing radius={cylRadius * 1.6} />
         )}
       </group>
     </group>
