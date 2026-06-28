@@ -280,7 +280,7 @@ export function BeadOnBracelet({
 
         {/* Hover ring — flat, edit-mode rollover hint */}
         {showHoverRing && vizRadius > 0 && !isCapturing && (
-          <HoverRing radius={vizRadius * 1.4} position={[0, -vizRadius, 0]} />
+          <HoverRing radius={isCharm ? vizRadius * 1.4 : vizRadius * 1.6} position={[0, -vizRadius, 0]} />
         )}
 
         {/* Drag target indicator ring — edit mode only */}

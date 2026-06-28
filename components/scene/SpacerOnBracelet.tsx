@@ -125,7 +125,7 @@ export function SpacerOnBracelet({
         {/* Selection ring */}
         {visible && (isSelected || isDragged) && cylRadius > 0 && (
           <SelectionRing
-            radius={cylRadius * 1.4}
+            radius={cylRadius * 1.6}
             color={highlightColor}
             rotation={[Math.PI, 0, 0]}
           />
@@ -133,7 +133,7 @@ export function SpacerOnBracelet({
 
         {/* Hover ring — flat, edit-mode rollover hint */}
         {visible && showHoverRing && cylRadius > 0 && (
-          <HoverRing radius={cylRadius * 1.8} />
+          <HoverRing radius={cylRadius * 1.6} position={[0,-0.0012,0]}  />
         )}
 
         {/* Drag target indicator */}

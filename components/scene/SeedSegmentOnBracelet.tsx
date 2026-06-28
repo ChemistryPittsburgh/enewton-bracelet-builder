@@ -37,6 +37,10 @@ useGLTF.preload(ROUND_SEED_BEAD_MODEL);
 interface SeedSegmentOnBraceletProps {
   bead: PlacedBead;
   slotIndex: number;
+  /** Live-drag layout array (overrides store beads while a drag is in progress). */
+  layoutBeads?: PlacedBead[];
+  /** This segment's index within layoutBeads during a live drag. */
+  layoutIndex?: number;
   isDragged?: boolean;
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
@@ -53,12 +57,16 @@ interface SeedSegmentOnBraceletProps {
 export function SeedSegmentOnBracelet({
   bead,
   slotIndex,
+  layoutBeads,
+  layoutIndex,
   isDragged = false,
   isDragTarget = false,
   onDragStart,
   isLocked = false,
 }: SeedSegmentOnBraceletProps) {
-  const beads          = useStore((s) => s.beads);
+  const storeBeads     = useStore((s) => s.beads);
+  const beads          = layoutBeads ?? storeBeads;
+  const layoutIdx      = layoutIndex ?? slotIndex;
   const braceletSize   = useStore((s) => s.braceletSize);
   const viewMode       = useStore((s) => s.viewMode);
   const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
@@ -151,7 +159,7 @@ export function SeedSegmentOnBracelet({
 
     if (viewMode === "line") {
       // In line view, spread beads along the X axis
-      const lineTransform = getBeadTransformLine(slotIndex, beads);
+      const lineTransform = getBeadTransformLine(layoutIdx, beads);
       const segDiameter = bead.product.diameter;
       const halfSeg = segDiameter / 2;
 
@@ -173,7 +181,7 @@ export function SeedSegmentOnBracelet({
     }
 
     // 3D circular view: place each tiny bead at its own angle on the arc
-    const centerAngle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
+    const centerAngle = getBeadAngle(layoutIdx, beads, radius, extraSpacingPerGap);
     const segArcM = bead.product.diameter; // total arc in metres
     const halfArcRad = segArcM / 2 / radius;
     const startAngle = centerAngle - halfArcRad;
@@ -191,7 +199,7 @@ export function SeedSegmentOnBracelet({
         finishKey: sb.finishKey,
       };
     });
-  }, [config, generatedBeads, slotIndex, beads, radius, viewMode, bead.product.diameter, extraSpacingPerGap]);
+  }, [config, generatedBeads, layoutIdx, beads, radius, viewMode, bead.product.diameter, extraSpacingPerGap]);
 
   // Total arc consumed by this segment (metres). Declared here (before any
   // early return) because the hitChunks memo below depends on it.
@@ -205,7 +213,7 @@ export function SeedSegmentOnBracelet({
   const hitChunks = useMemo(() => {
     if (viewMode === "line") {
       // Line view: one straight cylinder is fine — no curvature
-      const t = getBeadTransformLine(slotIndex, beads);
+      const t = getBeadTransformLine(layoutIdx, beads);
       return [{
         position: t.position,
         outerRotation: t.outerRotation,
@@ -214,7 +222,7 @@ export function SeedSegmentOnBracelet({
       }];
     }
 
-    const centerAngle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
+    const centerAngle = getBeadAngle(layoutIdx, beads, radius, extraSpacingPerGap);
     const halfArcRad = segArcM / 2 / radius;
     const startAngle = centerAngle - halfArcRad;
     const endAngle = centerAngle + halfArcRad;
@@ -240,7 +248,7 @@ export function SeedSegmentOnBracelet({
       });
     }
     return chunks;
-  }, [viewMode, slotIndex, beads, radius, segArcM, extraSpacingPerGap]);
+  }, [viewMode, layoutIdx, beads, radius, segArcM, extraSpacingPerGap]);
 
   if (!config || seedBead3DData.length === 0 || !seedGeometry) return null;
 
@@ -254,9 +262,9 @@ export function SeedSegmentOnBracelet({
   // Center transform for selection ring (stays at midpoint)
   const centerTransform =
     viewMode === "line"
-      ? getBeadTransformLine(slotIndex, beads)
+      ? getBeadTransformLine(layoutIdx, beads)
       : (() => {
-          const a = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
+          const a = getBeadAngle(layoutIdx, beads, radius, extraSpacingPerGap);
           return {
             position: getBeadPosition(a, radius),
             outerRotation: [0, -a, 0] as [number, number, number],
@@ -367,9 +375,13 @@ export function SeedSegmentOnBracelet({
 
       {/* Hover ring — flat, edit-mode rollover hint */}
       {showHoverRing && (
-        <group position={centerTransform.position} rotation={centerTransform.outerRotation}>
+        <group position={[
+            centerTransform.position[0],
+            centerTransform.position[1] - 0.0012,
+            centerTransform.position[2],
+          ]} rotation={centerTransform.outerRotation}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[crossSection * 1.3, 0.00016, 8, 40]} />
+            <torusGeometry args={[crossSection * 1.8, 0.00016, 8, 40]} />
             <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.55} />
           </mesh>
         </group>

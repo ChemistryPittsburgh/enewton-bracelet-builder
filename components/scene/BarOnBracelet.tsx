@@ -260,11 +260,11 @@ export function BarOnBracelet({
         {/* Selection ring — vertical (XY plane, perpendicular to bar's tangent),
             radius matches bead convention: cross-section diameter / 2 */}
         {(isSelected || isDragged) && ringRadius > 0 && (
-          <SelectionRing radius={ringRadius * 1.8} color={highlightColor} />
+          <SelectionRing radius={ringRadius * 2} color={highlightColor} />
         )}
 
         {/* Hover ring — flat, edit-mode rollover hint */}
-        {showHoverRing && <HoverRing radius={ringRadius * 1.8} />}
+        {showHoverRing && <HoverRing radius={ringRadius * 2} position={[0,-0.0012,0]} />}
 
         {/* Drag-target ring */}
         {isDragTarget && ringRadius > 0 && (
