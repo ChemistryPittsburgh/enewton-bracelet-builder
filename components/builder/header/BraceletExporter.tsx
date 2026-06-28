@@ -11,6 +11,7 @@ import { useUpdateBracelet } from "@/hooks/useUpdateBracelet";
 import { useDesign } from "@/hooks/useDesign";
 import { useIsDirty } from "@/hooks/useIsDirty";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { usePermissions } from "@/hooks/usePermissions";
 
 /** Returns true when the user hasn't given the bracelet a real name yet. */
@@ -43,10 +44,10 @@ export function BraceletExporter({ onNameRequired, isKicked, onKickedClick }: Br
   const { canEdit } = usePermissions();
 
   const { activeDesignId, braceletName } =
-    useStore((s) => ({
+    useStore(useShallow((s) => ({
       activeDesignId: s.activeDesignId,
       braceletName:   s.braceletName,
-    }));
+    })));
 
   const setBraceletName = useStore((s) => s.setBraceletName);
 

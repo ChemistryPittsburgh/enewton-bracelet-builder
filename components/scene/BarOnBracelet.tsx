@@ -44,7 +44,7 @@ export function BarOnBracelet({
       : new MeshStandardMaterial({ color: "#D4A843", metalness: 1, roughness: 0.18 });
 
     const finishKey: string | null =
-      (bead.product as any).finish ?? bead.product.material ?? DEFAULT_FINISH;
+      bead.product.finish ?? bead.product.material ?? DEFAULT_FINISH;
     const preset = finishKey ? FINISH_PRESETS[finishKey] : undefined;
     if (preset) {
       if (preset.metalness       !== undefined) rawMat.metalness       = preset.metalness;
@@ -83,7 +83,7 @@ export function BarOnBracelet({
 
     return rawMat;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, bead.product.material, (bead.product as any).finish]);
+  }, [scene, bead.product.material, bead.product.finish]);
 
   // Read the actual UV bounds from the GLB:
   //   V range — texture atlas strip (e.g. 0.846..1.0 for BlissBar_Textured); outside

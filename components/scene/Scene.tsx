@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { CameraControls, Environment, ContactShadows } from "@react-three/drei";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { BraceletCord } from "./BraceletCord";
 import { AllBeads } from "./AllBeads";
 import { CameraController } from "./CameraController";
@@ -72,13 +73,13 @@ const DRAG_DESELECT_THRESHOLD_SQ = 4 * 4; // squared px; avoids sqrt on every mo
 export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const panelWidth = usePanelWidth();
   const controlsRef = useRef<CameraControls>(null);
-  const { isEditMode, clearSelectedBead, clearEditSelection, viewMode, canvasTool } = useStore((s) => ({
+  const { isEditMode, clearSelectedBead, clearEditSelection, viewMode, canvasTool } = useStore(useShallow((s) => ({
     isEditMode: s.isEditMode,
     clearSelectedBead: s.clearSelectedBead,
     clearEditSelection: s.clearEditSelection,
     viewMode: s.viewMode,
     canvasTool: s.canvasTool,
-  }));
+  })));
 
   const panActive = isEditMode && viewMode !== 'line' && canvasTool === 'pan';
 

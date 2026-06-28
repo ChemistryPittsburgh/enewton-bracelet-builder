@@ -1,12 +1,13 @@
 "use client";
 
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 
 export function BeadErrorToast() {
-  const { errors, removeBead } = useStore((s) => ({
+  const { errors, removeBead } = useStore(useShallow((s) => ({
     errors: s.beadLoadErrors,
     removeBead: s.removeBead,
-  }));
+  })));
 
   if (errors.length === 0) return null;
 

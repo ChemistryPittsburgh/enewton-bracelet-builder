@@ -72,7 +72,7 @@ export function BeadOnBracelet({
     // apply it. If it doesn't (e.g. "metal", "enamel"), the preset lookup
     // returns undefined and the GLB's original material is preserved — keeping
     // vibrant colors on painted/colored beads like crosses and gems.
-    const finishKey: string | null = (bead.product as any).finish ?? bead.product.material ?? DEFAULT_FINISH;
+    const finishKey: string | null = bead.product.finish ?? bead.product.material ?? DEFAULT_FINISH;
     const preset = finishKey ? FINISH_PRESETS[finishKey] : undefined;
     if (preset) {
       clone.traverse((child) => {

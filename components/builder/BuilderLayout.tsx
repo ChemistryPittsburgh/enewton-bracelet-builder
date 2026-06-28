@@ -306,7 +306,7 @@ export function BuilderLayout() {
     <div className="flex h-screen flex-col min-h-[500px] overflow-hidden">
 
       {/* Header */}
-      <header className="flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-6">
+      <header className={`flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-4 lg:px-6 xl:px-8`}>
         <div className="flex flex-1 items-center gap-4">
         <Tooltip content="Open Saved Designs Panel" placement="bottom-end">
             <button
@@ -442,12 +442,12 @@ export function BuilderLayout() {
             <CanvasStatsBar hidden={anyPanelOpen} />
 
             {/* Edit mode action toolbar */}
-            <div className="absolute right-6 xl:right-20 top-4 z-20 pointer-events-none">
+            <div className="absolute right-6 xl:right-8 top-4 z-20 pointer-events-none">
               <EditModeToolbar />
             </div>
 
             {/* Edit mode canvas-navigation cluster (zoom / rotate / view) */}
-            <div className="absolute right-6 xl:right-20 bottom-4 lg:bottom-20 flex items-center justify-center w-fit mx-auto  z-20 pointer-events-none">
+            <div className="absolute right-6 xl:right-8 bottom-4 lg:bottom-20 flex items-center justify-center w-fit mx-auto  z-20 pointer-events-none">
               <CanvasControls />
             </div>
 

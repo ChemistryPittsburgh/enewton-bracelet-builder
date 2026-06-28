@@ -2,6 +2,7 @@
 import { useRef } from "react";
 import { Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { Button } from "@/components/ui/Button";
 import { InfoRow } from "@/components/ui/InfoRow";
@@ -9,7 +10,7 @@ import { cn, capitalize, slugify, formatMm, unslugify } from "@/lib/utils";
 import { seedSizeLabel, seedKindLabel, beadMatchKey } from "@/lib/seed-bead-utils";
 
 export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: boolean; beadSelectorOpen?: boolean }) {
-  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode, startReplaceMode, startReplaceAllMode, startReplaceSeedMode, startReplaceSeedSegment } = useStore((s) => ({
+  const { beads, selectedBead, clearSelectedBead, removeBead, selectAllActive, selectAllOfType, removeAllOfType, isEditMode, startReplaceMode, startReplaceAllMode, startReplaceSeedMode, startReplaceSeedSegment } = useStore(useShallow((s) => ({
     beads: s.beads,
     selectedBead: s.selectedBead,
     clearSelectedBead: s.clearSelectedBead,
@@ -22,7 +23,7 @@ export function BeadInfoDialog({ isLocked, beadSelectorOpen }: { isLocked?: bool
     startReplaceAllMode: s.startReplaceAllMode,
     startReplaceSeedMode: s.startReplaceSeedMode,
     startReplaceSeedSegment: s.startReplaceSeedSegment,
-  }));
+  })));
   const isOpen = !isLocked && selectedBead !== null;
   // Keep last known bead so content stays rendered during close transition
   const lastBead = useRef(selectedBead);

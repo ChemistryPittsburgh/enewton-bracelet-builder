@@ -189,6 +189,8 @@ export interface BeadProduct {
   bead_category: string | null;
   color: string | null;
   material: string | null;
+  /** Material finish preset key (e.g. "gold", "silver"). Falls back to `material` when absent. */
+  finish?: string | null;
   size_mm: number | null;
   sizes?: number[] | null;
   active: number;

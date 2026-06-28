@@ -181,11 +181,11 @@ h2 {
   padding: 0.3em;
   border-radius: 3px;
   background-color: transparent;
-  color: color-mix(in srgb, var(--color-text-base) 60%, transparent);
+  color: color-mix(in srgb, var(--color-color-base) 60%, transparent);
   &:hover,
   &:focus {
     background-color: var(--color-light-grey);
-    color: var(--color-text-base);
+    color: var(--color-color-base);
   }
   &.inactive {
     &:hover,
@@ -205,7 +205,7 @@ h2 {
 .manage-bead-row:hover,
 .manage-bead-row:focus {
   .icon-only-btn {
-    color: color-mix(in srgb, var(--color-text-base) 80%, transparent);
+    color: color-mix(in srgb, var(--color-color-base) 80%, transparent);
   }
 }
 
@@ -285,6 +285,20 @@ h2 {
     .close-btn {
       background-color: white;
       color: var(--color-color-base);
+    }
+  }
+}
+
+.band-selector-edit-mode {
+  .toggle-btn {
+    background-color: #e7eaee;
+    height: 50px;
+  }
+  .toggle-btn-icon {
+    background-color: color-mix(in srgb, #FFF 70%, transparent);
+    &:hover,
+    &:focus {
+      background-color: color-mix(in srgb, #FFF 100%, transparent);
     }
   }
 }

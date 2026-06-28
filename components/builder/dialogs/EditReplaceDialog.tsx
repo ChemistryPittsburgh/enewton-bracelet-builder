@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { EDIT_REPLACE_GROUPS, EDIT_REPLACE_GROUP_COLORS, EDIT_GROUPING_ENABLED } from "@/lib/constants";
 import type { BeadProduct } from "@/types";
 import { beadMatchKey, seedKindLabel } from "@/lib/seed-bead-utils";
@@ -33,7 +34,7 @@ export function EditReplaceDialog() {
     startReplaceSeedMode,
     replaceSeedTargetIds,
     clearReplaceSeed,
-  } = useStore((s) => ({
+  } = useStore(useShallow((s) => ({
     isEditMode: s.isEditMode,
     editReplaceMode: s.editReplaceMode,
     editSelectedIds: s.editSelectedIds,
@@ -47,7 +48,7 @@ export function EditReplaceDialog() {
     startReplaceSeedMode: s.startReplaceSeedMode,
     replaceSeedTargetIds: s.replaceSeedTargetIds,
     clearReplaceSeed: s.clearReplaceSeed,
-  }));
+  })));
 
   // Unique bead/charm types on the bracelet (excludes spacers/seed segments),
   // split so charms get their own section. Charms = "charm" + "float_charm".

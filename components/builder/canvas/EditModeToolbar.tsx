@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlignJustify, ChartNoAxesGantt, ArrowUp, ArrowDown, ArrowLeftRight, CopyPlus, Repeat2, Trash2, Info, Undo2, Redo2 } from "lucide-react";
 
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { beadFits, braceletArc, usedArc } from "@/lib/bead-layout";
@@ -37,7 +38,7 @@ export function EditModeToolbar() {
     viewMode,
     isEvenlySpaced,
     toggleEvenlySpaced,
-  } = useStore((s) => ({
+  } = useStore(useShallow((s) => ({
     isEditMode: s.isEditMode,
     editSelectedIds: s.editSelectedIds,
     beads: s.beads,
@@ -61,7 +62,7 @@ export function EditModeToolbar() {
     viewMode: s.viewMode,
     isEvenlySpaced: s.isEvenlySpaced,
     toggleEvenlySpaced: s.toggleEvenlySpaced,
-  }));
+  })));
 
   const n = beads.length;
   const hasSelection = editSelectedIds.length > 0;

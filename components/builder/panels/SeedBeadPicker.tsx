@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { X, Square, Shuffle, Settings, Circle } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import type { SeedColorEntry } from "@/types";
 
 import { Button } from "@/components/ui/Button";
@@ -59,10 +60,10 @@ interface SeedBeadPickerProps {
 }
 
 export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors, maxArcMm, isReplaceMode, replaceMode = false }: SeedBeadPickerProps) {
-  const { placedBeads, braceletSize } = useStore((s) => ({
+  const { placedBeads, braceletSize } = useStore(useShallow((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
-  }));
+  })));
   const { canEdit, isAdmin } = usePermissions();
 
   const { data: apiColors = [] } = useSeedColors();

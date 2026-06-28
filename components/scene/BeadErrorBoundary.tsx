@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { ErrorBoundary, type FallbackProps as EBFallbackProps } from "react-error-boundary";
 import type { PlacedBead } from "@/types";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { getBeadAngle, getBeadPosition, getEvenSpacingBonus } from "@/lib/bead-layout";
 import type { ThreeEvent } from "@react-three/fiber";
@@ -14,14 +15,14 @@ interface FallbackProps {
 }
 
 function BeadFallback({ bead, slotIndex }: FallbackProps) {
-  const { removeBead, addBeadLoadError, beads, braceletSize, viewMode, isEvenlySpaced } = useStore((s) => ({
+  const { removeBead, addBeadLoadError, beads, braceletSize, viewMode, isEvenlySpaced } = useStore(useShallow((s) => ({
     removeBead: s.removeBead,
     addBeadLoadError: s.addBeadLoadError,
     beads: s.beads,
     braceletSize: s.braceletSize,
     viewMode: s.viewMode,
     isEvenlySpaced: s.isEvenlySpaced,
-  }));
+  })));
 
   const filename = bead.product.glb_path?.split("/").pop() ?? bead.product.glb_path ?? bead.product.name;
 

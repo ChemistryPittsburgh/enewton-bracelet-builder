@@ -12,6 +12,7 @@ import { useState } from "react";
 import { AlertTriangle, Loader2, List, Pencil, Undo2, Redo2, X, Eye } from "lucide-react";
 
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 
 import { useDesign } from "@/hooks/useDesign";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -34,7 +35,7 @@ interface HeaderToolbarProps {
 }
 
 export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked, isReadOnly = false, isKicked = false }: HeaderToolbarProps) {
-  const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId, undo, redo, undoStack, redoStack } = useStore((s) => ({
+  const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId, undo, redo, undoStack, redoStack } = useStore(useShallow((s) => ({
     isEditMode:      s.isEditMode,
     toggleEditMode:  s.toggleEditMode,
     viewMode:        s.viewMode,
@@ -44,7 +45,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
     redo:            s.redo,
     undoStack:       s.undoStack,
     redoStack:       s.redoStack,
-  }));
+  })));
 
   const { canEdit } = usePermissions();
   const { data: savedDesign } = useDesign(activeDesignId);
@@ -100,12 +101,12 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
   return (
     <div className="flex flex-col gap-2 pointer-events-none relative z-30">
-      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm pr-2 lg:pr-6">
+      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm pr-4 lg:px-6 xl:px-8">
 
         {/* ── Left — Undo/Redo + workflow actions ──────────────────────── */}
         <div className="flex flex-1 gap-3 divide-x-1 divide-default">
           {/* Undo / Redo — always available, independent of edit mode */}
-          <div className="flex divide-x-1 divide-default border-r border-default">
+          <div className="flex divide-x-1 divide-default border-r border-l border-default">
             <Tooltip content={undoStack.length !== 0 && "Undo (⌘Z)"} placement="bottom-end">
               <button onClick={undo} disabled={undoStack.length === 0} aria-label="Undo" className={iconBtnClass}>
                 <Undo2 size={20} />
@@ -204,9 +205,9 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
               {/* Reactivate — two-step confirmation */}
               {showUndiscontinue && (
                 confirmingReactivate ? (
-                  <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
-                    <AlertTriangle size={13} className="shrink-0 text-amber-500" />
-                    <span className="text-xs font-medium text-amber-700">
+                  <div className="flex items-center gap-2 rounded-[3px] border border-gold bg-gold/10 px-3 py-1.5">
+                    <AlertTriangle size={13} className="shrink-0 text-orange" />
+                    <span className="text-xs font-medium">
                       Reactivating this bracelet will move it to Published.
                     </span>
                     <Button

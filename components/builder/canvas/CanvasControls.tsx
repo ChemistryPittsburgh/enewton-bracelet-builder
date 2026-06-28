@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Hand, SwitchCamera } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import {
   CAMERA_MIN_DISTANCE,
   CAMERA_EDIT_HEIGHT,
@@ -25,7 +26,7 @@ const ROTATE_STEP = Math.PI / 4;
  * instance (store `controlsEl`) the same way the old top-bar zoom buttons did.
  */
 export function CanvasControls() {
-  const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool } = useStore((s) => ({
+  const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool } = useStore(useShallow((s) => ({
     isEditMode: s.isEditMode,
     viewMode: s.viewMode,
     editViewMode: s.editViewMode,
@@ -33,7 +34,7 @@ export function CanvasControls() {
     controlsEl: s.controlsEl,
     canvasTool: s.canvasTool,
     setCanvasTool: s.setCanvasTool,
-  }));
+  })));
 
   const isPanning = canvasTool === 'pan';
 

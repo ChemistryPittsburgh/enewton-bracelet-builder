@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { getBeadAngle, getBeadPosition, getBeadTransformLine, braceletArc, getEvenSpacingBonus } from "@/lib/bead-layout";
 import {
   CAMERA_DEFAULT_POSITION,
@@ -35,7 +36,7 @@ interface CameraControllerProps {
 }
 
 export function CameraController({ controlsRef }: CameraControllerProps) {
-  const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, selectAllActive, isEvenlySpaced, canvasTool } = useStore((s) => ({
+  const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, selectAllActive, isEvenlySpaced, canvasTool } = useStore(useShallow((s) => ({
     selectedBead:    s.selectedBead,
     beads:           s.beads,
     isEditMode:      s.isEditMode,
@@ -45,7 +46,7 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     selectAllActive: s.selectAllActive,
     isEvenlySpaced:  s.isEvenlySpaced,
     canvasTool:      s.canvasTool,
-  }));
+  })));
 
   const prevViewModeRef        = useRef(viewMode);
   const prevEditViewModeRef    = useRef(editViewMode);

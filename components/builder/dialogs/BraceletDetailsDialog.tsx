@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, Eraser, Loader2, Pencil, Trash2, X, AlertTriangle, LayoutTemplate } from "lucide-react";
 
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { BRACELET_SIZE_RADIUS, BRACELET_MATERIALS, BRACELET_SIZES } from "@/lib/constants";
 import { braceletArc, usedArc } from "@/lib/bead-layout";
 import { getCollidingCharmIds } from "@/lib/charm-collision";
@@ -55,7 +56,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     clearBeads,
     showCharmCollisions,
     setShowCharmCollisions,
-  } = useStore((s) => ({
+  } = useStore(useShallow((s) => ({
     braceletName:            s.braceletName,
     braceletDescription:     s.braceletDescription,
     bandMaterial:            s.bandMaterial,
@@ -68,7 +69,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
     clearBeads:              s.clearBeads,
     showCharmCollisions:     s.showCharmCollisions,
     setShowCharmCollisions:  s.setShowCharmCollisions,
-  }));
+  })));
 
   const { data: savedDesign } = useDesign(activeDesignId);
   const { data: patterns = [] } = usePatterns();

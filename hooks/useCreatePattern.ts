@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { apiFetch } from "@/lib/api";
 import { buildBraceletConfig } from "@/lib/build-bracelet-config";
 import { useGenerateThumbnail } from "@/hooks/useGenerateThumbnail";
@@ -19,13 +20,13 @@ function uniqueTags(values: (string | null | undefined)[]): string[] {
 export function useCreatePattern() {
   const queryClient = useQueryClient();
   const { capture } = useGenerateThumbnail();
-  const { beads, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced } = useStore((s) => ({
+  const { beads, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced } = useStore(useShallow((s) => ({
     beads:           s.beads,
     bandMaterial:    s.bandMaterial,
     braceletSize:    s.braceletSize,
     hairtieColor:    s.hairtieColor,
     isEvenlySpaced:  s.isEvenlySpaced,
-  }));
+  })));
 
   const mutation = useMutation({
     mutationFn: async ({ name }: { name: string }) => {

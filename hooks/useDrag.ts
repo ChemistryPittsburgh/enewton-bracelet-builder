@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { getBeadAngle, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import type { BeadProduct, PlacedBead } from "@/types";
 
@@ -182,11 +183,11 @@ export function usePanelDrop(
   viewModeRef: React.RefObject<"3D" | "line">
 ): { panelDropSlot: number | null; dragFromPanel: BeadProduct | null } {
   const { gl, camera } = useThree();
-  const { dragFromPanel, insertBead, setDragFromPanel } = useStore((s) => ({
+  const { dragFromPanel, insertBead, setDragFromPanel } = useStore(useShallow((s) => ({
     dragFromPanel:    s.dragFromPanel,
     insertBead:       s.insertBead,
     setDragFromPanel: s.setDragFromPanel,
-  }));
+  })));
   const [panelDropSlot, setPanelDropSlot] = useState<number | null>(null);
 
   const dragFromPanelRef = useRef(dragFromPanel);

@@ -1,4 +1,4 @@
-import type { BandMaterial, BraceletSize } from "@/types";
+import type { BandMaterial, BraceletSize, BeadProduct } from "@/types";
 
 /** Cord centreline radius per bracelet size, derived from wrist circumference in inches.
  *  Formula: (circumference_in * 0.0254) / (2π)  →  metres
@@ -230,7 +230,7 @@ export const SPACER_SIZES_MM = [1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14];
  * Uses a deterministic negative ID so the same size always maps to the same
  * "product" — important for deduplication and Select-All behaviour.
  */
-export function createSpacerProduct(sizeMm: number) {
+export function createSpacerProduct(sizeMm: number): BeadProduct {
   return {
     id:             -(Math.round(sizeMm * 100)),
     name:           `${sizeMm}mm Spacer`,
@@ -244,9 +244,6 @@ export function createSpacerProduct(sizeMm: number) {
     sku:            null,
     color:          null,
     active:         1,
-    body_width_mm:  null,
-    bail_width_mm:  null,
-    depth_offset:   null,
   };
 }
 
@@ -310,7 +307,7 @@ const SEED_ID_OFFSET = -100_000;
  * `diameter` is set to the total arc length (metres) so the existing layout
  * math works without modification.
  */
-export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number, seedShape?: "seed" | "round", roundSizeMm?: number, material?: string) {
+export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number, seedShape?: "seed" | "round", roundSizeMm?: number, material?: string): BeadProduct {
   const isRound = seedShape === "round";
   const label = isRound
     ? `Round ${roundSizeMm ?? 2}mm beads (${arcLengthMm}mm)`
@@ -322,14 +319,11 @@ export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number
     glb_path:       "",
     bead_category:  "seed_segment" as const,
     bead_type:      isRound ? "Round Seed" : "Seed",
-    material:       (material ?? "gold") as string,
+    material:       material ?? "gold",
     diameter:       arcLengthMm / 1000,
     size_mm:        arcLengthMm,
     sku:            null,
     color:          null,
     active:         1,
-    body_width_mm:  null,
-    bail_width_mm:  null,
-    depth_offset:   null,
   };
 }

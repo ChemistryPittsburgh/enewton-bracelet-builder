@@ -13,13 +13,22 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { useDesign } from "@/hooks/useDesign";
 
 export function CanvasStatsBar({ hidden = false }: { hidden?: boolean }) {
-  const { placedBeads, braceletSize, showCharmCollisions, setShowCharmCollisions, activeDesignId, isEvenlySpaced } = useStore((s) => ({
+  const { 
+    placedBeads, 
+    braceletSize, 
+    showCharmCollisions, 
+    setShowCharmCollisions, 
+    activeDesignId, 
+    isEvenlySpaced,
+    isEditMode,
+  } = useStore((s) => ({
     placedBeads: s.beads,
     braceletSize: s.braceletSize,
     showCharmCollisions: s.showCharmCollisions,
     setShowCharmCollisions: s.setShowCharmCollisions,
     activeDesignId: s.activeDesignId,
     isEvenlySpaced: s.isEvenlySpaced,
+    isEditMode: s.isEditMode,
   }));
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -57,7 +66,8 @@ export function CanvasStatsBar({ hidden = false }: { hidden?: boolean }) {
     <div className={cn(
       "absolute left-4 bottom-4 right-4 z-40 flex flex-col transition-opacity duration-300",
       hidden && "opacity-0 pointer-events-none",
-    )}>
+      isEditMode && "bottom-0 w-full left-0 right-0 bg-navy/20"
+    )} >
       <div className="canvas-stats-wrapper relative w-fit mx-auto">
         {hasCollisions && !isPublished && (
         <Tooltip content="Ensure charms look correct before publishing" className="w-fit ml-auto !block" placement="bottom">
@@ -78,12 +88,15 @@ export function CanvasStatsBar({ hidden = false }: { hidden?: boolean }) {
           </button>
         </Tooltip>
       )}
-        <div className="bg-white backdrop-blur-sm shadow-sm rounded-[5px] flex items-center p-4 m-auto gap-2 xl:gap-4">
-          <Stat label="MM Used" value={`${remainingMm > 0.5 ? formatMm(remainingMm) : "0"}mm / ${formatMm(totalMm)}mm`} />
-          <Stat label="Filled" value={`${percentUsed.toFixed(1)}%`} />
-          <Stat label="Items" value={`${placedBeads.length}`} />
-          <Stat label="Beads" value={`${String(beadCount)}`} />
-          <Stat label="Charms" value={`${String(charmCount)}`} />
+        <div className={cn(
+            "bg-white shadow-sm rounded-[5px] flex items-center p-4 m-auto gap-2 xl:gap-4",
+            isEditMode && "shadow-none border-none bg-transparent py-3 h-[50px]"
+          )} >
+          <Stat label="MM Used" value={`${remainingMm > 0.5 ? formatMm(remainingMm) : "0"}mm / ${formatMm(totalMm)}mm`} isEditMode={isEditMode} />
+          <Stat label="Filled" value={`${percentUsed.toFixed(1)}%`} isEditMode={isEditMode} />
+          <Stat label="Items" value={`${placedBeads.length}`} isEditMode={isEditMode} />
+          <Stat label="Beads" value={`${String(beadCount)}`} isEditMode={isEditMode} />
+          <Stat label="Charms" value={`${String(charmCount)}`} isEditMode={isEditMode} />
           {isEvenlySpaced && (
             <span className="rounded-[2px] bg-navy/10 text-navy px-3 py-0.5 xl:py-1 text-xs flex items-center gap-1.5">
               <ChartNoAxesGantt size={12} />
@@ -96,9 +109,13 @@ export function CanvasStatsBar({ hidden = false }: { hidden?: boolean }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, isEditMode }: { label: string; value: string; isEditMode: boolean }) {
   return (
-    <span className="rounded-[2px] bg-grey/70 px-4 py-0.5 xl:py-1 text-xs">
+    <span
+      className={cn(
+        "rounded-[2px] bg-grey/70 px-4 py-0.5 xl:py-1 text-xs",
+        isEditMode && "bg-white/60"
+      )} >
       <span className="text-[10px] xl:text-[11px] tracking-wide uppercase text-black/80">{label}</span> <span className="xl:text-sm font-semibold ml-1 xl:ml-2">{value}</span>
     </span>
   );

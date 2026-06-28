@@ -1,4 +1,5 @@
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { useDesign } from "@/hooks/useDesign";
 
 /**
@@ -21,7 +22,7 @@ export function useIsDirty(): boolean {
     bandMaterial,
     braceletSize,
     isEvenlySpaced,
-  } = useStore((s) => ({
+  } = useStore(useShallow((s) => ({
     activeDesignId:      s.activeDesignId,
     beads:               s.beads,
     braceletName:        s.braceletName,
@@ -29,7 +30,7 @@ export function useIsDirty(): boolean {
     bandMaterial:        s.bandMaterial,
     braceletSize:        s.braceletSize,
     isEvenlySpaced:      s.isEvenlySpaced,
-  }));
+  })));
 
   const { data: savedDesign } = useDesign(activeDesignId);
 

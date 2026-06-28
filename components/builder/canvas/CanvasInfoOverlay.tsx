@@ -30,7 +30,7 @@ export function CanvasInfoOverlay({
   onDetailsClick,
 }: CanvasInfoOverlayProps) {
   return (
-    <div className="absolute left-2 lg:left-6 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
+    <div className="absolute left-4 lg:left-6 xl:left-8 lg:top-4 top-2 z-20 flex flex-col gap-0.5">
       {activePatternId !== null && (
         <div className="mb-1 flex w-fit items-center gap-1.5 rounded-[2px] bg-gold px-2.5 py-1 text-xs font-medium text-white">
           <LayoutTemplate size={11} className="shrink-0" />

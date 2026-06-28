@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { FloatingDialog } from "@/components/ui/FloatingDialog";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { useDesign } from "@/hooks/useDesign";
 import {
   BRACELET_MATERIALS,
@@ -39,7 +40,8 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
     setHairtieColor,
     beads,
     activeDesignId,
-  } = useStore((s) => ({
+    isEditMode,
+  } = useStore(useShallow((s) => ({
     bandMaterial:    s.bandMaterial,
     braceletSize:    s.braceletSize,
     hairtieColor:    s.hairtieColor,
@@ -48,7 +50,8 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
     setHairtieColor: s.setHairtieColor,
     beads:           s.beads,
     activeDesignId:  s.activeDesignId,
-  }));
+    isEditMode:      s.isEditMode,
+  })));
 
   const { data: savedDesign, isLoading: designLoading } = useDesign(activeDesignId);
   const isLocked =
@@ -79,8 +82,9 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
       buttonTitle="Band Settings"
       bodyClasses="lg:px-3 px-3 py-3 lg:py-3"
       className={cn(
-        "absolute bottom-4 left-4 z-40 transition-all duration-300 ease-out w-auto max-w-[300px]",
-        !panelOpen && "min-w-[11rem] xl:min-w-[16.25rem]"
+        "absolute bottom-4 left-4 lg:left-6 xl:left-8 z-40 transition-all duration-300 ease-out w-auto max-w-[300px]",
+        !panelOpen && "min-w-[11rem] xl:min-w-[16.25rem]",
+        isEditMode && "bottom-0 shadow-none border-none rounded-none band-selector-edit-mode "
       )}
     >
       <div className="space-y-2 xl:space-y-4">

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { apiFetch } from "@/lib/api";
 import { buildBraceletConfig } from "@/lib/build-bracelet-config";
 import type { Bracelet, CreateBraceletRequest } from "@/types";
@@ -24,7 +25,7 @@ function uniqueTags(values: (string | null | undefined)[]): string[] {
  */
 export function useCreateBracelet() {
   const queryClient = useQueryClient();
-  const { beads, braceletName, braceletDescription, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced } = useStore((s) => ({
+  const { beads, braceletName, braceletDescription, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced } = useStore(useShallow((s) => ({
     beads: s.beads,
     braceletName: s.braceletName,
     braceletDescription: s.braceletDescription,
@@ -32,7 +33,7 @@ export function useCreateBracelet() {
     braceletSize: s.braceletSize,
     hairtieColor: s.hairtieColor,
     isEvenlySpaced: s.isEvenlySpaced,
-  }));
+  })));
 
   return useMutation({
     mutationFn({ preview_image_url }: { preview_image_url: string | null }) {
