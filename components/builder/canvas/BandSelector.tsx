@@ -84,6 +84,7 @@ export function BandSelector({ panelOpen = false }: BandSelectorProps) {
       className={cn(
         "absolute bottom-4 left-4 lg:left-6 xl:left-8 z-40 transition-all duration-300 ease-out w-auto max-w-[300px]",
         !panelOpen && "min-w-[11rem] xl:min-w-[16.25rem]",
+        dialogOpen && "open",
         isEditMode && "bottom-0 shadow-none border-none rounded-none band-selector-edit-mode "
       )}
     >

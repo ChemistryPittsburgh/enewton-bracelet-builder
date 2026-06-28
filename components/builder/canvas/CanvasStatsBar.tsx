@@ -66,31 +66,35 @@ export function CanvasStatsBar({ hidden = false }: { hidden?: boolean }) {
     <div className={cn(
       "absolute left-4 bottom-4 right-4 z-40 flex flex-col transition-opacity duration-300",
       hidden && "opacity-0 pointer-events-none",
-      isEditMode && "bottom-0 w-full left-0 right-0 bg-navy/20"
+      isEditMode && "bottom-0 w-full left-0 right-0 bg-white border-t border-color-base/30"
     )} >
       <div className="canvas-stats-wrapper relative w-fit mx-auto">
         {hasCollisions && !isPublished && (
-        <Tooltip content="Ensure charms look correct before publishing" className="w-fit ml-auto !block" placement="bottom">
-          <button
-            onClick={handleCollisionClick}
-            className={`flex mr-4 -mb-[5px] items-center gap-2 px-4 pt-2 pl-2 pr-3 pb-3 rounded-t-[5px] text-xs font-medium transition-all translate-y-0 ${
-              showCharmCollisions
-                ? "bg-error/80 text-white ring-1 ring-error !-translate-y-[5px] hover:bg-error/60 hover:-translate-y-[0px]"
-                : "bg-error/10 text-error backdrop-blur-sm shadow-sm hover:bg-white hover:-translate-y-[5px]"
-            }`}
-          >
-            {showCharmCollisions ? (
-              <X size={14} />
-            ) : (
-              <AlertTriangle size={14} />
-            )}
-            Charms may be overlapping
-          </button>
-        </Tooltip>
-      )}
+          <div className={`${isEditMode && "absolute right-0 -top-7.5 z-0"}`}>
+            <Tooltip content="Ensure charms look correct before publishing" className="w-fit ml-auto !block absolute z-10" placement="top">
+              <button
+                onClick={handleCollisionClick}
+                className={cn(
+                  "flex mr-4 -mb-[5px] items-center gap-2 px-4 pt-2 pl-2 pr-3 pb-3 rounded-t-[5px] text-xs font-medium transition-all translate-y-0",
+                  showCharmCollisions
+                    ? "bg-error/80 text-white ring-1 ring-error !-translate-y-[5px] hover:bg-error/60 hover:-translate-y-[0px]"
+                    : "bg-error/10 text-error hover:bg-white hover:-translate-y-[5px]",
+                  isEditMode && !showCharmCollisions && "hover:-translate-y-[7px] bg-error/15"
+                )}
+              >
+                {showCharmCollisions ? (
+                  <X size={14} />
+                ) : (
+                  <AlertTriangle size={14} />
+                )}
+                Charms may be overlapping
+              </button>
+            </Tooltip>
+          </div>
+        )}
         <div className={cn(
-            "bg-white shadow-sm rounded-[5px] flex items-center p-4 m-auto gap-2 xl:gap-4",
-            isEditMode && "shadow-none border-none bg-transparent py-3 h-[50px]"
+            "bg-white shadow-sm rounded-[5px] flex items-center p-4 m-auto gap-2 xl:gap-4 relative z-20",
+            isEditMode && "shadow-none border-none bg-transparent py-3 h-[50px] relative bg-white"
           )} >
           <Stat label="MM Used" value={`${remainingMm > 0.5 ? formatMm(remainingMm) : "0"}mm / ${formatMm(totalMm)}mm`} isEditMode={isEditMode} />
           <Stat label="Filled" value={`${percentUsed.toFixed(1)}%`} isEditMode={isEditMode} />

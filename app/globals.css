@@ -290,9 +290,22 @@ h2 {
 }
 
 .band-selector-edit-mode {
+  &.open {
+    border: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    .toggle-btn {
+      border:none;
+      border-bottom: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    }
+  }
   .toggle-btn {
-    background-color: #e7eaee;
+    background-color: white;
+    border-left: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
     height: 50px;
+    &:hover,
+    &:focus {
+      background-color: var(--color-light-grey);
+    }
   }
   .toggle-btn-icon {
     background-color: color-mix(in srgb, #FFF 70%, transparent);

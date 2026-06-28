@@ -60,7 +60,7 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
   const { mutate: sendToDraft, isPending: sendingToDraft, canSendToDraft } = useSendToDraft();
   const { mutate: setSku,      isPending: settingSku,    canSetSku }    = useSetDesignSku();
   const { mutate: discontinue,   isPending: discontinuing,   canDiscontinue }   = useDiscontinueDesign();
-  const { mutate: undiscontinue, isPending: undiscontinuing, canUndiscontinue } = useUndiscontinueDesign();
+  const { mutate: undiscontinue, isPending: undiscontinuing, isError: undiscontinueFailed, error: undiscontinueError, reset: resetUndiscontinue, canUndiscontinue } = useUndiscontinueDesign();
   const { update }  = useUpdateBracelet();
   const isDirty     = useStore((s) => s.isDirty);
 
@@ -123,12 +123,13 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
             <ConfirmationPanel
               message="This will reactivate the bracelet and return it to Published status."
               isPending={undiscontinuing}
+              error={undiscontinueFailed ? (undiscontinueError instanceof ApiError ? undiscontinueError.message : "Couldn't reactivate. Please try again.") : undefined}
               confirmVariant="positive"
               onConfirm={() => undiscontinue(id, { onSuccess: () => setConfirmReactivate(false) })}
               onCancel={() => setConfirmReactivate(false)}
             />
           ) : (
-            <Button size="sm" variant="positive" className="w-fit" onClick={() => setConfirmReactivate(true)}>
+            <Button size="sm" variant="positive" className="w-fit" onClick={() => { resetUndiscontinue(); setConfirmReactivate(true); }}>
               Reactivate
             </Button>
           )

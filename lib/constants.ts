@@ -133,7 +133,7 @@ export const LINE_VIEW_CAMERA_POSITION: [number, number, number] = [0, 0.05, 0.0
 export const LINE_VIEW_EDIT_HEIGHT = 0.10;
 
 /** Camera position for the side/angled edit mode view — lower and further forward than the default. */
-export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.09];
+export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.025, 0.09];
 
 /** Distance from bracelet centre for the side edit view (magnitude of CAMERA_EDIT_SIDE_POSITION). */
 export const CAMERA_EDIT_SIDE_DISTANCE = Math.hypot(...CAMERA_EDIT_SIDE_POSITION);

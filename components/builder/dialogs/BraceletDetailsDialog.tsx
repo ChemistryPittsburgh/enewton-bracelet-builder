@@ -453,7 +453,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
 
               {/* Clear all beads — draft/rejected only */}
               {showClearBeads && (
-                <div className="flex items-center justify-between rounded-lg border border-error/20 px-4 py-3">
+                <div className="flex items-center justify-between rounded-[2px] border border-error/20 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium">Clear all beads</p>
                     <p className="text-xs text-color-base/60">
@@ -497,7 +497,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
 
               {/* Delete bracelet */}
               {showDelete && (
-                <div className="flex items-center justify-between rounded-lg border border-error/20 px-4 py-3">
+                <div className="flex items-center justify-between rounded-[2px] border bg-error/5 border-error/20 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium">Delete this bracelet</p>
                     <p className="text-xs text-color-base/60">This action is permanent and cannot be undone.</p>

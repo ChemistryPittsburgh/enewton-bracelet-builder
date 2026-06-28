@@ -20,6 +20,9 @@ import { useSubmitDesign, useApproveDesign, useRejectDesign, usePublishDesign, u
 
 
 import { Button } from "@/components/ui/Button";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { ApiError } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { PusherStatusBadge } from "@/components/builder/canvas/PusherStatusBadge";
 import { Tooltip } from "@/components/ui/Tooltip";
 
@@ -55,7 +58,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
   const { mutate: approve,       isPending: approving,       canApprove }       = useApproveDesign();
   const { mutate: reject,        isPending: rejecting,       canReject }        = useRejectDesign();
   const { mutate: publish,       isPending: publishing,      canPublish }       = usePublishDesign();
-  const { mutate: undiscontinue, isPending: undiscontinuing, canUndiscontinue } = useUndiscontinueDesign();
+  const { mutate: undiscontinue, isPending: undiscontinuing, isError: undiscontinueFailed, error: undiscontinueError, reset: resetUndiscontinue, canUndiscontinue } = useUndiscontinueDesign();
 
   const status =
     savedDesign?.is_discontinued === 1 ? ("discontinued" as const) : savedDesign?.status;
@@ -101,12 +104,12 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
   return (
     <div className="flex flex-col gap-2 pointer-events-none relative z-30">
-      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm pr-4 lg:px-6 xl:px-8">
+      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm pr-4 lg:pr-6 xl:pr-8">
 
         {/* ── Left — Undo/Redo + workflow actions ──────────────────────── */}
         <div className="flex flex-1 gap-3 divide-x-1 divide-default">
           {/* Undo / Redo — always available, independent of edit mode */}
-          <div className="flex divide-x-1 divide-default border-r border-l border-default">
+          <div className="flex divide-x-1 divide-default border-r border-default">
             <Tooltip content={undoStack.length !== 0 && "Undo (⌘Z)"} placement="bottom-end">
               <button onClick={undo} disabled={undoStack.length === 0} aria-label="Undo" className={iconBtnClass}>
                 <Undo2 size={20} />
@@ -205,10 +208,15 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
               {/* Reactivate — two-step confirmation */}
               {showUndiscontinue && (
                 confirmingReactivate ? (
-                  <div className="flex items-center gap-2 rounded-[3px] border border-gold bg-gold/10 px-3 py-1.5">
-                    <AlertTriangle size={13} className="shrink-0 text-orange" />
-                    <span className="text-xs font-medium">
-                      Reactivating this bracelet will move it to Published.
+                  <div className={cn(
+                    "flex items-center gap-2 rounded-lg border px-3 py-1.5",
+                    undiscontinueFailed ? "border-error bg-error/10" : "border-amber-200 bg-amber-50",
+                  )}>
+                    <AlertTriangle size={13} className={cn("shrink-0", undiscontinueFailed ? "text-error" : "text-amber-500")} />
+                    <span className={cn("text-xs font-medium", undiscontinueFailed ? "text-error" : "text-amber-700")}>
+                      {undiscontinueFailed
+                        ? (undiscontinueError instanceof ApiError ? undiscontinueError.message : "Couldn't reactivate. Please try again.")
+                        : "Reactivating this bracelet will move it to Published."}
                     </span>
                     <Button
                       size="xs"
@@ -217,7 +225,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
                       onClick={handleConfirmReactivate}
                     >
                       {undiscontinuing && <Loader2 size={11} className="animate-spin" />}
-                      Confirm
+                      {undiscontinueFailed ? "Retry" : "Confirm"}
                     </Button>
                     <Button
                       size="xs"
@@ -232,7 +240,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
                   <WorkflowButton
                     label="Reactivate"
                     isPending={false}
-                    onClick={() => setConfirmingReactivate(true)}
+                    onClick={() => { resetUndiscontinue(); setConfirmingReactivate(true); }}
                     variant="positive"
                   />
                 )

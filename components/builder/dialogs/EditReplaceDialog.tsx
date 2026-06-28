@@ -180,7 +180,7 @@ export function EditReplaceDialog() {
         </Tooltip>
       </div>
 
-      <div className="max-h-[320px] py-4 px-2 overflow-y-scroll">
+      <div className="max-h-[320px] py-4 px-4 overflow-y-scroll">
         {!isExplicitMode ? (
           /* ── Default mode: bead types and seed beads in separate sections ── */
           beadRows.length === 0 && charmRows.length === 0 && seedRows.length === 0 ? (
