@@ -95,7 +95,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   const { mutate: deleteDesign, isPending: isDeleting } = useDeleteDesign();
 
   const isDiscontinued = savedDesign?.is_discontinued === 1;
-  const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued) && !isLocked;
+  const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued) && !isKicked && (!isLocked || isDiscontinued);
   const isDraft = !savedDesign || savedDesign.status === "draft" || savedDesign.status === "rejected";
   const showClearBeads = isDraft && placedBeads.length > 0 && !isLocked;
 
@@ -336,7 +336,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
         {/* ── Bead list ───────────────────────────────────────────────── */}
         {placedBeads.length > 0 && (
           <div className={dialogSectionClass} >
-            <SectionHeading>Beads ({placedBeads.length})</SectionHeading>
+            <SectionHeading>Items on Bracelet ({placedBeads.length})</SectionHeading>
             <div className="overflow-hidden rounded-[2px] border border-black/50 mb-4">
               <table className="w-full text-sm">
                 <thead>

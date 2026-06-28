@@ -249,6 +249,11 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
         </div>
       </div>
 
+      {effectiveStatus === "in_review" && canReject && (
+        <p className="text-sm text-color-base/70">A bracelet cannot be edited while In Review.<br />Rejecting the bracelet will send it back to Drafts.</p>
+      )}
+
+
       {publishFailed && publishError && (
         <ErrorAlert message={publishError instanceof ApiError ? publishError.message : (publishError as Error).message} />
       )}
@@ -310,20 +315,6 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
             <Button className={actionBtnClasses} size="sm" variant="softDanger" onClick={() => setConfirmReject(true)}>
               Reject
             </Button>
-          )}
-          {effectiveStatus === "in_review" && canSendToDraft && (
-            confirmSendToDraft ? (
-              <ConfirmationPanel
-                message="Recalling this bracelet will remove it from review and require resubmission. Do you want to continue?"
-                isPending={sendingToDraft}
-                onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false), onError: () => setConfirmSendToDraft(false) })}
-                onCancel={() => setConfirmSendToDraft(false)}
-              />
-            ) : (
-              <Button className={actionBtnClasses} size="sm" variant="ghost" onClick={() => setConfirmSendToDraft(true)}>
-                Return Bracelet to Drafts
-              </Button>
-            )
           )}
           {effectiveStatus === "approved" && (canPublish || canSendToDraft) && (
             confirmSendToDraft ? (

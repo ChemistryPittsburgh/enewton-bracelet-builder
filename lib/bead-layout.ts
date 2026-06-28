@@ -95,7 +95,7 @@ export function braceletArc(radius: number): number {
 }
 
 /** Minimum cord footprint (mm) a charm claims when adjacent to a non-charm. See bead-layout.ts. */
-export const MIN_CHARM_ARC_MM = 1.8;
+export const MIN_CHARM_ARC_MM = 1.7;
 
 // Half-arc a single bead occupies from its own centre (no neighbor context needed).
 // Bars use size_mm (their arc length) rather than diameter (their tube thickness).

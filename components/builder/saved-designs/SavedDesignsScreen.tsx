@@ -322,7 +322,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
       <div className="flex max-md:flex-col flex-1 overflow-hidden">
 
         {/* ── Sidebar — status filters ───────────────────────────────────── */}
-        <aside className="w-full md:w-[300px] xl:w-[350px] shrink-0 overflow-y-auto bg-light-grey/80 py-6 xl:py-10 px-6">
+        <aside className="w-full md:w-[300px] xl:w-[350px] shrink-0 overflow-y-auto bg-light-grey/80 py-6 xl:py-10 px-4 lg:px-6 xl:px-8">
           <div className="flex items-center justify-between pb-8">
             <Tooltip content="Close Saved Designs" placement="bottom-end">
               <button

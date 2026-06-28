@@ -249,7 +249,7 @@ export function BeadOnBracelet({
         {/* Hit area — invisible but catches pointer events.
              Float charms are thin/flat, so the sphere is squashed along Z
              to form a disc-shaped hit zone that fits the model better. */}
-        <mesh visible={true} position={[0, 0, 0]} scale={isFloatCharm ? [1, 1, 0.35] : [1, 1, 1]}>
+        <mesh visible={false} position={[0, 0, 0]} scale={isFloatCharm ? [1, 1, 0.35] : [1, 1, 1]}>
           <sphereGeometry args={isCharm ? [vizRadius * 1.3, 8, 8] : [vizRadius * 1.2, 8, 8]} />
           <meshBasicMaterial color="#93c5fd" transparent opacity={0.5} />
         </mesh>

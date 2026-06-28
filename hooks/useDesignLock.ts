@@ -126,11 +126,12 @@ export function useDesignLock({ activeDesignId, savedDesign, designFetching }: U
     savedDesign?.active_lock?.user_id != null &&
     savedDesign.active_lock.user_id !== currentUser.id;
 
-  const isLocked =
-    savedDesign?.status === "approved" ||
-    savedDesign?.status === "published" ||
-    kickedNotification ||
-    lockedByOther;
+const isLocked =
+  savedDesign?.status === "in_review" ||   // ← add this line
+  savedDesign?.status === "approved" ||
+  savedDesign?.status === "published" ||
+  kickedNotification ||
+  lockedByOther;
 
   useDesignHeartbeat(
     (isLockableStatus && !kickedNotification && lockHeld) ? activeDesignId : null,
