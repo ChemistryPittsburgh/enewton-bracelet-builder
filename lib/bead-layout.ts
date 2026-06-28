@@ -18,7 +18,7 @@
  *   - Bead diameter: pulled dynamically from the bead catalog (metres)
  */
 
-import { FLOAT_CHARM_THIN_SCALE, MIN_CHARM_ARC_MM } from "@/lib/constants";
+import { FLOAT_CHARM_THIN_SCALE } from "@/lib/constants";
 
 // ─── Bracelet constants ───────────────────────────────────────────────────────
 
@@ -57,8 +57,7 @@ export const BEAD_SPACING = -0.000012;
  */
 const CATEGORY_SPACING: Record<string, number> = {
   bead:          BEAD_SPACING,     
-  charm:         0.00004,
-  letter_charm:  0.00004,     
+  charm:         0.00004,     
   float_charm:   0.00002,                 
   spacer:        0,               
   seed_segment:  -0.00002,
@@ -95,6 +94,9 @@ export function braceletArc(radius: number): number {
   return 2 * Math.PI * radius;
 }
 
+/** Minimum cord footprint (mm) a charm claims when adjacent to a non-charm. See bead-layout.ts. */
+export const MIN_CHARM_ARC_MM = 1.8;
+
 // Half-arc a single bead occupies from its own centre (no neighbor context needed).
 // Bars use size_mm (their arc length) rather than diameter (their tube thickness).
 function selfHalf(bead: BeadLike): number {
@@ -112,7 +114,7 @@ function selfHalf(bead: BeadLike): number {
   // footprint so a tiny bail still reserves MIN_CHARM_ARC_MM of cord. Does not
   // touch the charm↔charm body_width path (handled in arcHalf). Float charms are
   // intentionally thin and are exempt.
-  if (bead.product.bead_category === "charm") {
+  if (bead.product.bead_category === "charm" || bead.product.bead_category === "letter_charm") {
     return Math.max(half, MIN_CHARM_ARC_MM / 2 / 1000);
   }
   return half;
@@ -127,8 +129,8 @@ function arcHalf(bead: BeadLike, neighbor: BeadLike): number {
   const bc = bead.product.bead_category;
   const nc = neighbor.product.bead_category;
   if (
-    (bc === "charm" || bc === "float_charm" || bc === "letter_charm") &&
-    (nc === "charm" || nc === "float_charm" || nc === "letter_charm") &&
+    (bc === "charm" || bc === "float_charm") &&
+    (nc === "charm" || nc === "float_charm") &&
     bead.product.body_width_mm != null
   ) {
     const half = bead.product.body_width_mm / 2 / 1000;

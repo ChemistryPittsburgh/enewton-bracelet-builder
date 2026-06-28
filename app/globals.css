@@ -297,6 +297,14 @@ h2 {
       border-bottom: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
     }
   }
+  &.panel-open {
+    .toggle-btn {
+      border-top: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    }
+    &.open .toggle-btn {
+      border-top: none;
+    }
+  }
   .toggle-btn {
     background-color: white;
     border-left: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);

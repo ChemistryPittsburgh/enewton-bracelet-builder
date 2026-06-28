@@ -18,7 +18,7 @@ import { EditBtn } from "./EditModeToolbar";
 // One tap orbits the camera 45° around the bracelet. Edit mode pins the
 // elevation (polar) angle but leaves azimuth free, so this rotates at the
 // current top/side height without breaking the two-view lock.
-const ROTATE_STEP = Math.PI / 4;
+const ROTATE_STEP = Math.PI / 7.5;
 
 /**
  * Canvas-navigation cluster pinned to the right edge in edit mode: zoom,
