@@ -11,9 +11,12 @@ import {
   FINISH_PRESETS,
   DEFAULT_FINISH,
   DRAG_LIFT,
+  EDIT_MODE_RING_HOVER,
+  HOVER_EMISSIVE_INTENSITY,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
-import { SelectionRing, HoverRing, DragTargetRing } from "./ItemRings";
+import { SelectionRing, DragTargetRing } from "./ItemRings";
+import { withEmissive } from "@/lib/highlight";
 
 interface BarOnBraceletProps {
   bead: PlacedBead;
@@ -148,6 +151,12 @@ export function BarOnBracelet({
   const { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave, showHoverRing } =
     useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
+  // Hover glows the bar mesh itself (no overlay ring).
+  const hoverMat = useMemo(
+    () => (showHoverRing ? withEmissive(mat, EDIT_MODE_RING_HOVER, HOVER_EMISSIVE_INTENSITY) : mat),
+    [mat, showHoverRing],
+  );
+
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
   const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
     ? getEvenSpacingBonus(beads, braceletRadius)
@@ -247,7 +256,7 @@ export function BarOnBracelet({
     >
       <group rotation={innerRotation} dispose={null}>
         {/* Single continuously bent mesh — no segment joints */}
-        {bentGeometry && <mesh geometry={bentGeometry} material={mat} />}
+        {bentGeometry && <mesh geometry={bentGeometry} material={hoverMat} />}
 
         {/* Invisible hit area — capsule laid ALONG the bar's arc (local Z) so the
             whole length is hoverable/clickable, not just a vertical sliver at the
@@ -264,7 +273,6 @@ export function BarOnBracelet({
         )}
 
         {/* Hover ring — flat, edit-mode rollover hint */}
-        {showHoverRing && <HoverRing radius={ringRadius * 2} position={[0,-0.0012,0]} />}
 
         {/* Drag-target ring */}
         {isDragTarget && ringRadius > 0 && (

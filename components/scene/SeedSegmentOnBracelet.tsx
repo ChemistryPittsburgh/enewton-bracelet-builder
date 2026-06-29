@@ -18,11 +18,13 @@ import {
   FINISH_PRESETS,
   DEFAULT_FINISH,
   EDIT_MODE_RING_HOVER,
+  HOVER_EMISSIVE_INTENSITY,
   DRAG_LIFT,
   DRAG_TARGET_RING_COLOR,
   DRAG_TARGET_RING_TUBE,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
+import { withEmissive } from "@/lib/highlight";
 import {
   generateSeedBeads,
 } from "@/lib/seed-bead-utils";
@@ -145,6 +147,12 @@ export function SeedSegmentOnBracelet({
       roundMaterial: finishedMat,
     };
   }, [activeGlbScene, bead.product.material, bead.seedConfig?.colorway?.[0]?.hex]);
+
+  // Hover glows the actual seed beads instead of a ring at the segment midpoint.
+  const hoverRoundMaterial = useMemo(
+    () => (roundMaterial && showHoverRing ? withEmissive(roundMaterial, EDIT_MODE_RING_HOVER, HOVER_EMISSIVE_INTENSITY) : roundMaterial),
+    [roundMaterial, showHoverRing],
+  );
 
   // Generate the individual tiny beads from the segment config
   const config = bead.seedConfig;
@@ -301,7 +309,7 @@ export function SeedSegmentOnBracelet({
             {isRound && roundMaterial ? (
               <mesh
                 geometry={seedGeometry}
-                material={roundMaterial}
+                material={hoverRoundMaterial ?? undefined}
                 rotation={innerRotation}
                 scale={[scale, scale, scale]}
               />
@@ -317,6 +325,8 @@ export function SeedSegmentOnBracelet({
                     metalness={FINISH_PRESETS[sb.finishKey]?.metalness ?? 1}
                     roughness={Math.max(FINISH_PRESETS[sb.finishKey]?.roughness ?? 0.1, 0.22)}
                     envMapIntensity={FINISH_PRESETS[sb.finishKey]?.envMapIntensity ?? 0.3}
+                    emissive={showHoverRing ? EDIT_MODE_RING_HOVER : "#000000"}
+                    emissiveIntensity={showHoverRing ? HOVER_EMISSIVE_INTENSITY : 0}
                   />
                 ) : (
                   <meshStandardMaterial
@@ -324,6 +334,8 @@ export function SeedSegmentOnBracelet({
                     metalness={0.05}
                     roughness={0.45}
                     envMapIntensity={0.2}
+                    emissive={showHoverRing ? EDIT_MODE_RING_HOVER : "#000000"}
+                    emissiveIntensity={showHoverRing ? HOVER_EMISSIVE_INTENSITY : 0}
                   />
                 )}
               </mesh>
@@ -369,20 +381,6 @@ export function SeedSegmentOnBracelet({
               transparent
               opacity={0.8}
             />
-          </mesh>
-        </group>
-      )}
-
-      {/* Hover ring — flat, edit-mode rollover hint */}
-      {showHoverRing && (
-        <group position={[
-            centerTransform.position[0],
-            centerTransform.position[1] - 0.0012,
-            centerTransform.position[2],
-          ]} rotation={centerTransform.outerRotation}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[crossSection * 1.8, 0.00016, 8, 40]} />
-            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.55} />
           </mesh>
         </group>
       )}

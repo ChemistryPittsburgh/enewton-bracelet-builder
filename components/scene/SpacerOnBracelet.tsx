@@ -3,9 +3,9 @@
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
-import { BRACELET_SIZE_RADIUS, DRAG_LIFT } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, DRAG_LIFT, EDIT_MODE_RING_HOVER, HOVER_EMISSIVE_INTENSITY } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
-import { SelectionRing, HoverRing, DragTargetRing } from "./ItemRings";
+import { SelectionRing, DragTargetRing } from "./ItemRings";
 
 /** Fixed cross-section radius for all spacers (meters) */
 const SPACER_CROSS_SECTION = 0.0012;
@@ -100,6 +100,8 @@ export function SpacerOnBracelet({
                 transparent
                 opacity={0.8}
                 depthWrite={false}
+                emissive={showHoverRing ? EDIT_MODE_RING_HOVER : "#000000"}
+                emissiveIntensity={showHoverRing ? HOVER_EMISSIVE_INTENSITY : 0}
               />
             </mesh>
 
@@ -132,10 +134,6 @@ export function SpacerOnBracelet({
         )}
 
         {/* Hover ring — flat, edit-mode rollover hint */}
-        {visible && showHoverRing && cylRadius > 0 && (
-          <HoverRing radius={cylRadius * 1.6} position={[0,-0.0012,0]}  />
-        )}
-
         {/* Drag target indicator */}
         {visible && isDragTarget && cylRadius > 0 && (
           <DragTargetRing radius={cylRadius * 1.6} />

@@ -16,9 +16,12 @@ import {
   DEFAULT_FINISH, 
   DRAG_LIFT,
   DRAG_FORWARD_OFFSET,
+  EDIT_MODE_RING_HOVER,
+  HOVER_EMISSIVE_INTENSITY,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
-import { SelectionRing, HoverRing, DragTargetRing, CollisionRing } from "./ItemRings";
+import { SelectionRing, DragTargetRing, CollisionRing } from "./ItemRings";
+import { useEmissiveHighlight } from "@/hooks/useEmissiveHighlight";
 import { cloneShared } from "@/lib/measure-bead";
 
 interface BeadOnBraceletProps {
@@ -171,6 +174,13 @@ export function BeadOnBracelet({
     isEditMode,
   } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart, selectAllOfType: true, selectionColor });
 
+  // Hover is shown by glowing the charm itself instead of a ring.
+  useEmissiveHighlight(
+    cloned,
+    showHoverRing && !isCapturing ? EDIT_MODE_RING_HOVER : null,
+    HOVER_EMISSIVE_INTENSITY,
+  );
+
   const isFloatCharm = bead.product.bead_category === "float_charm";
   const isCharm = bead.product.bead_category === "charm" || isFloatCharm || bead.product.bead_category === "letter_charm";
   const isCharmOnly = bead.product.bead_category === "charm" || bead.product.bead_category === "letter_charm";
@@ -276,11 +286,6 @@ export function BeadOnBracelet({
             rotation={isCharmOnly ? [Math.PI / 2, 0, 0] : isFloatCharm ? activeCharmRotation : [0, 0, 0]}
             scale={!isEditMode && isFloatCharm ? [1, 0.4, 1] : [1, 1, 1]}
           />
-        )}
-
-        {/* Hover ring — flat, edit-mode rollover hint */}
-        {showHoverRing && vizRadius > 0 && !isCapturing && (
-          <HoverRing radius={isCharm ? vizRadius * 1.4 : vizRadius * 1.6} position={[0, -vizRadius, 0]} />
         )}
 
         {/* Drag target indicator ring — edit mode only */}

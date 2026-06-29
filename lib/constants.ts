@@ -46,6 +46,8 @@ export const EDIT_MODE_HIGHLIGHT_SELECT_COLOR = "#1F3A5F";
 
 /* Color of Hover Ring */
 export const EDIT_MODE_RING_HOVER = "#a38d48";
+/** Emissive intensity for the hover glow (colour reuses EDIT_MODE_RING_HOVER). */
+export const HOVER_EMISSIVE_INTENSITY = 0.55;
 
 /* Color of Collision Ring when "Charms are Overlapping" is active */
 export const COLLISION_RING_COLOR = "#be123c";
@@ -53,12 +55,12 @@ export const COLLISION_RING_COLOR = "#be123c";
 // ── Edit-mode drag-and-drop feedback ─────────────────────────────────────────
 /** Vertical lift (metres) applied to the item being dragged so it visibly pops
  *  off the strand. Tune up/down to taste. */
-export const DRAG_LIFT = 0.003;
+export const DRAG_LIFT = 0.0022;
 /** Radial outward push (metres) applied to a charm while it is being dragged, so
  *  it floats clear of its neighbours instead of intersecting them. Applied through
  *  the same radial projection as the charm depth offsets, so it stays consistent
  *  at every position around the bracelet (never a flat world-axis shift). */
-export const DRAG_FORWARD_OFFSET = 0.0025;
+export const DRAG_FORWARD_OFFSET = 0.0022;
 /** Drop-target / insertion ring colour. Strong blue — high contrast against the
  *  gold beads so the landing slot is obvious at a glance. */
 export const DRAG_TARGET_RING_COLOR = "#2563eb";
