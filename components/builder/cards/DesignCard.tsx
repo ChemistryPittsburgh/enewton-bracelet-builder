@@ -189,9 +189,9 @@ export function DesignCard({
   return (
     <div
       className={cn(
-        "group flex flex-col rounded-[3px] border cursor-pointer hover:shadow-sm transition-all",
+        "group flex flex-col rounded-[2px] border cursor-pointer hover:shadow-sm transition-all",
         isDiscontinued ? "border-default opacity-50 grayscale pointer-events-auto" :
-        wasRejected    ? "border-error/40 hover:border-error/60" :
+        wasRejected    ? "border-error hover:border-navy" :
                          "border-default hover:border-navy focus:ring-navy",
       )}
       onClick={onClick}
@@ -199,26 +199,20 @@ export function DesignCard({
       <div className="relative aspect-square w-full bg-neutral-50">
         {/* Discontinued badge */}
         {isDiscontinued && (
-          <div className="absolute left-0 top-0 w-full z-10 text-center px-2 bg-error/30 py-1 text-[10px] font-semibold text-error">
+          <div className="absolute left-0 top-0 w-full text-center z-10 bg-error/10 px-2 py-1 text-[10.5px] font-semibold text-error">
             Discontinued
-          </div>
-        )}
-        {/* Rejected badge — clears once the design is edited and re-saved */}
-        {wasRejected && (
-          <div className="absolute left-2 top-2 z-10 rounded-full bg-error/10 px-2 py-0.5 text-[11px] font-semibold text-error">
-            Rejected
           </div>
         )}
         {/* Currently open by this user */}
         {isCurrentlyEditing && (
-          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 rounded-[2px] bg-navy px-2 py-0.5 text-[10px] font-semibold text-white bg-orange">
+          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 rounded-[2px] bg-navy px-2 py-1 text-[10.5px] font-semibold text-white bg-orange">
             <Lock size={9} />
             Currently Editing
           </div>
         )}
         {/* Locked by another user */}
         {lockedByOther && (
-          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
+          <div className="absolute bottom-0 left-0 right-0 w-full z-10 flex items-center gap-1 bg-navy px-2 py-1 text-[10.5px] font-semibold text-white">
             <Lock size={9} />
             {design.active_lock!.user_name}
           </div>
@@ -441,7 +435,7 @@ export function DesignCard({
             <Tooltip content={isLive ? "Bracelet is live" : "Braclet is unpublished"}>
               <Radio size={20} 
                 className={`${
-                  isLive ? "text-green animate-pulse" : "text-color-base/30"
+                  isLive ? "text-green" : "text-color-base/20"
                 }`} />
               </Tooltip>
           ) : (

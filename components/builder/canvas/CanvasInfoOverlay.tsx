@@ -62,7 +62,7 @@ export function CanvasInfoOverlay({
       {collections.length > 0 && (
         <div 
           className={cn(
-              "flex max-w-[260px] w-fit flex-wrap items-center gap-1 py-1 px-2 mb-1 rounded-[3px] border border-navy text-[11px]",
+              "flex max-w-[260px] w-fit flex-wrap items-center gap-1 py-1 px-2 mb-2.5 rounded-[3px] border border-navy text-[11px]",
               CATEGORY_STYLES.collection.bg,
             )} >
           <p className="font-semibold text-color-base/70">Collections:</p>

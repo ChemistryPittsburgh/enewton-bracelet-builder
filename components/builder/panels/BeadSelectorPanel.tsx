@@ -701,7 +701,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                 >
                   <option value="">All materials</option>
                   {materials.map((mat) => (
-                    <option key={mat} value={mat}>{capitalize(mat)}</option>
+                    <option key={mat} value={mat}>{unslugify(mat)}</option>
                   ))}
                 </select>
 
@@ -724,7 +724,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
                 <div className="flex flex-wrap items-center gap-1.5">
                   {activeMaterial && (
                     <span className="inline-flex items-center gap-1 rounded-[2px] bg-mint/50 px-2 py-0.5 text-xs font-medium text-color-base/80">
-                      {capitalize(activeMaterial)}
+                      {unslugify(activeMaterial)}
                       <Tooltip content={`Remove filter ${unslugify(activeMaterial)}`}>
                         <button onClick={() => setActiveMaterial("")} className="ml-0.5 opacity-60 hover:opacity-100" aria-label="Remove material filter">
                           <X size={11} />

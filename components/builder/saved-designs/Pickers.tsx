@@ -107,7 +107,7 @@ export function TagPicker({
                   >
                     {isPending
                       ? <Loader2 size={13} className="shrink-0 animate-spin text-color-base/70" />
-                      : <input type="checkbox" checked={selectedIds.includes(tag.id)} onChange={() => onToggle(tag)} className="h-3.5 w-3.5 text-yellow-600 ring-yellow-600 accent-neutral-800 cursor-pointer" />
+                      : <input type="checkbox" checked={selectedIds.includes(tag.id)} onChange={() => onToggle(tag)} className="h-3.5 w-3.5 text-navy ring-navy accent-neutral-800 cursor-pointer" />
                     }
                     <span className="text-sm  ">{tag.name}</span>
                   </label>
@@ -198,7 +198,7 @@ export function CollectionPicker({
                   >
                     {isPending
                       ? <Loader2 size={13} className="shrink-0 animate-spin text-color-base/70" />
-                      : <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => onToggle(c)} className="h-3.5 w-3.5 text-yellow-600 accent-grey ring-gold cursor-pointer" />
+                      : <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => onToggle(c)} className="h-3.5 w-3.5 text-navy accent-grey ring-navy cursor-pointer" />
                     }
                     <span className="text-sm  ">{c.name}</span>
                   </label>
