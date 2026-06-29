@@ -142,14 +142,14 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
               )}
               {showReject && (
                 confirmingReject ? (
-                  <div className="flex flex-col gap-1.5 rounded-[2px] border border-blush bg-blush/20 px-3 py-2">
+                  <div className="flex flex-col gap-1.5 rounded-[2px] border border-blush bg-blush/10 px-3 py-2">
                     <textarea
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
-                      placeholder="Reason for rejection (optional)…"
-                      rows={2}
+                      placeholder="Reason for rejection (optional)"
+                      rows={1}
                       autoFocus
-                      className="w-56 resize-none rounded border border-blush bg-white px-2 py-1 text-xs   outline-none focus:border-[#8b3040]/50 placeholder:text-color-base/70"
+                      className="w-56 resize-none rounded-[2px] border border-blush bg-white px-2 py-1 text-xs outline-none focus:border-[#8b3040]/50 focus:ring-[#8b3040]/50 placeholder:text-color-base/70"
                     />
                     <div className="flex items-center gap-1.5">
                       <Button
