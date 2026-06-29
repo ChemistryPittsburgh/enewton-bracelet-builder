@@ -175,7 +175,7 @@ export function BraceletExporter({ onNameRequired, isKicked, onKickedClick }: Br
 
       {/* Floating name popover — appears when saving without a name */}
       {showNamePopover && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-default bg-white p-3 shadow-lg">
+        <div className="absolute right-0 top-full mt-2 z-100 w-72 rounded-[2px] border border-default bg-white p-3 shadow-lg">
           <p className="text-xs font-semibold text-color-base/70 mb-2">Name your bracelet to save</p>
           <input
             type="text"
@@ -184,7 +184,7 @@ export function BraceletExporter({ onNameRequired, isKicked, onKickedClick }: Br
             onKeyDown={(e) => { if (e.key === "Enter") handlePopoverSave(); }}
             placeholder="Enter bracelet name"
             autoFocus
-            className="w-full rounded-md border border-default px-3 py-1.5 text-sm outline-none transition-colors focus:border-navy placeholder:text-color-base/70"
+            className="w-full rounded-[2px] border border-default px-3 py-1.5 text-sm outline-none transition-colors focus:border-navy focus:ring-navy placeholder:text-color-base/70"
           />
           <div className="mt-2 flex items-center gap-2 justify-end">
             <Button size="sm" variant="ghost" onClick={() => setShowNamePopover(false)}>

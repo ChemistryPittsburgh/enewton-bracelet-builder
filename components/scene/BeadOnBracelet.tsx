@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
-import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
+import { Box3, Group, Mesh, MeshStandardMaterial, MeshPhysicalMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
 import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
@@ -14,6 +14,8 @@ import {
   CRYSTAL_CHARM_DEPTH_OFFSET, 
   FINISH_PRESETS, 
   DEFAULT_FINISH, 
+  PEARL_PHYSICAL_MATERIAL,
+  PEARL_MATERIAL,
   DRAG_LIFT,
   DRAG_FORWARD_OFFSET,
   EDIT_MODE_RING_HOVER,
@@ -85,7 +87,33 @@ export function BeadOnBracelet({
     // vibrant colors on painted/colored beads like crosses and gems.
     const finishKey: string | null = bead.product.finish ?? bead.product.material ?? DEFAULT_FINISH;
     const preset = finishKey ? FINISH_PRESETS[finishKey] : undefined;
-    if (preset) {
+    if (PEARL_PHYSICAL_MATERIAL && finishKey === "pearl") {
+      // Pearls get a purpose-built physical material (dielectric body + glossy
+      // clearcoat + soft iridescence + warm sheen). This runs ahead of — and
+      // bypasses — the metalness gate below, so pearls render correctly no matter
+      // how the GLB was authored. See PEARL_MATERIAL in constants for tuning.
+      clone.traverse((child) => {
+        if (!(child instanceof Mesh)) return;
+        const src = child.material as MeshStandardMaterial | undefined;
+        const m = new MeshPhysicalMaterial();
+        // Preserve any baked maps the modeller may have included.
+        if (src?.map)       m.map       = src.map;
+        if (src?.normalMap) m.normalMap = src.normalMap;
+        m.color.set(PEARL_MATERIAL.color);
+        m.metalness                 = PEARL_MATERIAL.metalness;
+        m.roughness                 = PEARL_MATERIAL.roughness;
+        m.clearcoat                 = PEARL_MATERIAL.clearcoat;
+        m.clearcoatRoughness        = PEARL_MATERIAL.clearcoatRoughness;
+        m.iridescence               = PEARL_MATERIAL.iridescence;
+        m.iridescenceIOR            = PEARL_MATERIAL.iridescenceIOR;
+        m.iridescenceThicknessRange = PEARL_MATERIAL.iridescenceThicknessRange;
+        m.sheen                     = PEARL_MATERIAL.sheen;
+        m.sheenRoughness            = PEARL_MATERIAL.sheenRoughness;
+        m.sheenColor.set(PEARL_MATERIAL.sheenColor);
+        m.envMapIntensity           = PEARL_MATERIAL.envMapIntensity;
+        child.material = m;
+      });
+    } else if (preset) {
       clone.traverse((child) => {
         if (!(child instanceof Mesh)) return;
         const srcMat = child.material;

@@ -237,6 +237,26 @@ export const FINISH_PRESETS: Record<string, FinishPreset> = {
 /** Fallback when product.finish is undefined. Set to null to disable. */
 export const DEFAULT_FINISH: string | null = "gold";
 
+/**
+ * Set PEARL_PHYSICAL_MATERIAL = false to revert to the old
+ * FINISH_PRESETS.pearl standard-material look.
+ */
+export const PEARL_PHYSICAL_MATERIAL = true;
+export const PEARL_MATERIAL = {
+  color:                      "#f0ebe1",
+  metalness:                  0.00,
+  roughness:                  0.35,
+  clearcoat:                  0.60,
+  clearcoatRoughness:         0.20,
+  iridescence:                0.30,
+  iridescenceIOR:             1.30,
+  iridescenceThicknessRange:  [200, 500] as [number, number],
+  sheen:                      1.00,
+  sheenRoughness:             0.45,
+  sheenColor:                 "#f2e2d2",
+  envMapIntensity:            1.00,
+};
+
 export const MIN_BEAD_DIAMETER = 0.2;
 
 /** Maximum iterations when counting how many items fit in freed bar arc. */

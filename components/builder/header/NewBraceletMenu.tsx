@@ -46,7 +46,7 @@ export function NewBraceletMenu({ onFromScratch, onCopy, onFromPattern, onFromCu
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1.5 w-60 overflow-hidden rounded-[2px] border border-default bg-white font-normal tracking-normal shadow-lg">
+        <div className="absolute right-0 top-full z-100 mt-1.5 w-60 overflow-hidden rounded-[2px] border border-default bg-white font-normal tracking-normal shadow-lg">
           <button onClick={() => select(onFromScratch)} className={itemClass}>
             <Plus size={15} className="mt-0.5 shrink-0 text-navy" />
             <span className="flex flex-col">

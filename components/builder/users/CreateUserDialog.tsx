@@ -5,6 +5,7 @@ import { Loader2, Plus, X } from "lucide-react";
 import { z } from "zod";
 import { useCreateUser, type CreateUserResponse } from "@/hooks/useUsers";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { Button } from "@/components/ui/Button";
 import { PermissionsDropdown, PERMISSION_FIELDS } from "./PermissionsDropdown";
 import type { User } from "@/types";
 
@@ -46,10 +47,10 @@ export function CreateUserDialog({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30">
-      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white shadow-xl p-6 flex flex-col gap-4">
+      <div className="w-full max-w-sm rounded-[2px] border border-neutral-200 bg-white shadow-xl p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-neutral-900">Add user</h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-neutral-100 text-neutral-400">
+          <button onClick={onClose} className="icon-only-btn">
             <X size={16} />
           </button>
         </div>
@@ -62,12 +63,12 @@ export function CreateUserDialog({
               type="text"
               value={name}
               onChange={(e) => { setName(e.target.value); if (nameError) setNameError(null); }}
-              className={`rounded-lg border px-3 py-2 text-sm text-neutral-900 outline-none transition-colors ${
-                nameError ? "border-red-400 focus:border-red-500" : "border-neutral-300 focus:border-neutral-600"
+              className={`rounded-[2px] border px-3 py-2 text-sm text-neutral-900 outline-none transition-colors ${
+                nameError ? "border-error focus:border-error/80" : "border-default focus:border-navy focus:ring-navy"
               }`}
               placeholder="Full name"
             />
-            {nameError && <p className="text-xs text-red-500">{nameError}</p>}
+            {nameError && <p className="text-xs text-error">{nameError}</p>}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -77,12 +78,12 @@ export function CreateUserDialog({
               type="email"
               value={email}
               onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
-              className={`rounded-lg border px-3 py-2 text-sm text-neutral-900 outline-none transition-colors ${
-                emailError ? "border-red-400 focus:border-red-500" : "border-neutral-300 focus:border-neutral-600"
+              className={`rounded-[2px] border px-3 py-2 text-sm text-neutral-900 outline-none transition-colors ${
+                emailError ? "border-error focus:border-error/80" : "border-default focus:border-navy focus:ring-navy"
               }`}
               placeholder="user@example.com"
             />
-            {emailError && <p className="text-xs text-red-500">{emailError}</p>}
+            {emailError && <p className="text-xs text-error">{emailError}</p>}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -95,21 +96,24 @@ export function CreateUserDialog({
           )}
 
           <div className="flex gap-2 pt-1">
-            <button
+          <Button
               type="submit"
+              size="sm"
+              className="min-w-[200px]"
               disabled={isPending}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-neutral-800 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50 transition-colors"
             >
               {isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
               Create
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
+              className="flex-1"
               onClick={onClose}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100 transition-colors"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>
