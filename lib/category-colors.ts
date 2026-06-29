@@ -15,9 +15,9 @@ import type { User } from "@/types";
 // ── Filter chip / badge categories ───────────────────────────────────────────
 export const CATEGORY_STYLES = {
   material:   { bg: "bg-mint",       label: "material"   },
-  type:       { bg: "bg-blush",      label: "type"       },
-  tag:        { bg: "bg-light-blue", label: "tag"        },
-  collection: { bg: "bg-shell",      label: "collection" },
+  type:       { bg: "bg-light-blue",      label: "type"       },
+  tag:        { bg: "bg-shell",       label: "tag"        },
+  collection: { bg: "bg-[#f4e1e7]",  label: "collection" },
 } as const;
 
 export type CategoryKey = keyof typeof CATEGORY_STYLES;

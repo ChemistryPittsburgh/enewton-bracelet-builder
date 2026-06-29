@@ -97,10 +97,6 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
   const isDiscontinued = savedDesign?.is_discontinued === 1;
   const showDelete = savedDesign && canDeleteBracelet && !(savedDesign.status === "published" && !isDiscontinued) && !isKicked && (!isLocked || isDiscontinued);
   const isDraft = !savedDesign || savedDesign.status === "draft" || savedDesign.status === "rejected";
-  const showClearBeads = isDraft && placedBeads.length > 0 && !isLocked;
-
-  // ── Clear beads state ───────────────────────────────────────────────────────
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleEdit = () => {
     setLocalName(braceletName);
@@ -430,7 +426,7 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
 
         {/* ── Saved design metadata ───────────────────────────────────── */}
         {savedDesign && (
-          <div className={(showDelete || showClearBeads) ? dialogSectionClass : "pb-6"}>
+          <div className={(showDelete) ? dialogSectionClass : "pb-6"}>
             <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
               <InfoRow label="Created"       value={formatDateTime(savedDesign.created_at)} />
@@ -446,54 +442,10 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
         )}
 
         {/* ── Danger Zone ─────────────────────────────────────────────── */}
-        {(showDelete || showClearBeads) && (
+        {(showDelete) && (
           <div className="pb-6">
             <SectionHeading>Danger Zone</SectionHeading>
             <div className="flex flex-col gap-2">
-
-              {/* Clear all beads — draft/rejected only */}
-              {showClearBeads && (
-                <div className="flex items-center justify-between rounded-[2px] border border-error/20 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium">Clear all beads</p>
-                    <p className="text-xs text-color-base/60">
-                      Remove all {placedBeads.length} {placedBeads.length === 1 ? "bead" : "beads"} from the bracelet. The design itself is kept.
-                    </p>
-                  </div>
-                  {showClearConfirm ? (
-                    <div className="flex items-center gap-2 ml-3 shrink-0">
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => {
-                          clearBeads();
-                          setShowClearConfirm(false);
-                        }}
-                      >
-                        <Eraser size={13} />
-                        Confirm
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowClearConfirm(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="softDanger"
-                      size="sm"
-                      className="ml-3 shrink-0"
-                      onClick={() => setShowClearConfirm(true)}
-                    >
-                      <Eraser size={14} />
-                      Clear
-                    </Button>
-                  )}
-                </div>
-              )}
 
               {/* Delete bracelet */}
               {showDelete && (

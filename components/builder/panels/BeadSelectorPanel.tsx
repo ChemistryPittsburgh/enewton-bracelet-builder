@@ -286,7 +286,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
 
   const isSpacerMode = activeTab === SPACER_TAB;
   const isBarMode  = activeTab === BAR_TAB;
-  const isSeedMode = activeTab === SEED_TAB || isSeedReplaceUI;
+  const isSeedMode = activeTab === SEED_TAB || isReplaceSeed;
 
   const totalArc     = braceletArc(braceletRadius);
   const used         = usedArc(placedBeads);

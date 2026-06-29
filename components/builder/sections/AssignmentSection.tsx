@@ -106,7 +106,7 @@ export function AssignmentSection<T extends { id: number; name: string }>({
               <span
                 key={item.id}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-[3px] border border-navy px-2.5 py-0.5 text-sm min-w-20 justify-center font-medium text-navy transition-opacity",
+                  "inline-flex items-center gap-1.5 rounded-[2px] border border-navy px-2.5 py-0.5 text-sm min-w-20 justify-center text-navy transition-opacity",
                   style.bg,
                   isPending && "opacity-50",
                 )}
