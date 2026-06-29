@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Hand, SwitchCamera } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Orbit, SwitchCamera } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -36,7 +36,7 @@ export function CanvasControls() {
     setCanvasTool: s.setCanvasTool,
   })));
 
-  const isPanning = canvasTool === 'pan';
+  const isLooking = canvasTool === 'look';
 
   // Line view keeps free scroll/orbit, so zoom + rotate buttons only apply to 3D.
   const isLineView = viewMode === 'line';
@@ -104,10 +104,10 @@ export function CanvasControls() {
           e.preventDefault();
           controlsEl?.rotate(ROTATE_STEP, 0, true);
           break;
-        case "h":
-        case "H":
+        case "l":
+        case "L":
           e.preventDefault();
-          setCanvasTool(canvasTool === 'pan' ? 'select' : 'pan');
+          setCanvasTool(canvasTool === 'look' ? 'select' : 'look');
           break;
       }
     }
@@ -143,13 +143,13 @@ export function CanvasControls() {
               <RotateCw size={22} />
             </EditBtn>
           </Tooltip>
-          <Tooltip content={isPanning ? "Done panning" : "Pan the canvas"} placement="left">
+          <Tooltip content={isLooking ? "Done looking — back to arranging" : "Look around (orbit / pan / zoom)"} placement="left">
             <EditBtn
-              onClick={() => setCanvasTool(isPanning ? 'select' : 'pan')}
-              label={isPanning ? "Stop panning" : "Pan the canvas"}
-              className={isPanning ? "bg-navy hover:bg-navy/80" : ""}
+              onClick={() => setCanvasTool(isLooking ? 'select' : 'look')}
+              label={isLooking ? "Back to arranging" : "Look around"}
+              className={isLooking ? "bg-navy hover:bg-navy/80" : ""}
             >
-              <Hand size={22} className={isPanning ? "text-white" : ""} />
+              <Orbit size={22} className={isLooking ? "text-white" : ""} />
             </EditBtn>
           </Tooltip>
         <Tooltip content={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'} placement="left">

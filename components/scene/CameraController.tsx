@@ -13,6 +13,7 @@ import {
   BRACELET_SIZE_RADIUS,
   CAMERA_FOV,
   LINE_VIEW_EDIT_HEIGHT,
+  EDIT_CAMERA_LOCKED,
 } from "@/lib/constants";
 import { Vector3 } from "three";
 import type { CameraControls } from "@react-three/drei";
@@ -29,6 +30,14 @@ function enableEditControls(c: CameraControls) {
   c.mouseButtons.left = 0; c.mouseButtons.right = 2;  // 2 = TRUCK
   c.mouseButtons.middle = 0; c.mouseButtons.wheel = 0;
   c.touches.one = 0; c.touches.two = 2048; c.touches.three = 0; // 2048 = TOUCH_TRUCK
+}
+// Unlocked "Arrange" tool: left-drag is reserved for bead reorder, so the camera
+// ignores the left button. Right-drag / two-finger still truck and the wheel
+// zooms, so the view can be nudged without stealing the drag gesture.
+function enableArrangeControls(c: CameraControls) {
+  c.mouseButtons.left = 0; c.mouseButtons.right = 2;   // 2 = TRUCK
+  c.mouseButtons.middle = 0; c.mouseButtons.wheel = 16; // 16 = DOLLY
+  c.touches.one = 0; c.touches.two = 2048; c.touches.three = 0;
 }
 
 interface CameraControllerProps {
@@ -139,6 +148,28 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       controls.minPolarAngle = 0;
       controls.maxPolarAngle = Math.PI;
 
+      // Experimental: free-moving edit camera (EDIT_CAMERA_LOCKED = false).
+      // The top/side toggle still snaps the camera into place, but only on entry
+      // or an actual view switch — selecting a bead, or flipping the Look/Arrange
+      // tool, never repositions it, so the user keeps whatever angle they set.
+      if (!EDIT_CAMERA_LOCKED) {
+        if (enteredEdit || switchedEditView || switchedView) {
+          if (editViewMode === 'top') {
+            controls.setLookAt(0, CAMERA_EDIT_HEIGHT, 0, 0, 0, 0, true);
+          } else {
+            controls.setLookAt(...CAMERA_EDIT_SIDE_POSITION, 0, 0, 0, true);
+          }
+        }
+        // Look tool → free orbit/pan/zoom like View mode (beads inert via
+        // useSceneItemInteraction). Arrange tool → left reserved for bead drag.
+        if (canvasToolRef.current === 'look') {
+          enableFreeControls(controls);
+        } else {
+          enableArrangeControls(controls);
+        }
+        return;
+      }
+
       if (editViewMode === 'top') {
         controls.setLookAt(0, CAMERA_EDIT_HEIGHT, 0, 0, 0, 0, true);
       } else {
@@ -157,9 +188,9 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
           controls!.maxPolarAngle = polar;
         }
         enableEditControls(controls!);
-        // Hand tool: left-drag pans (truck) instead of doing nothing; select
+        // Look tool: left-drag trucks the view instead of doing nothing; arrange
         // tool leaves left free for bead interaction.
-        controls!.mouseButtons.left = canvasToolRef.current === 'pan' ? 2 : 0;
+        controls!.mouseButtons.left = canvasToolRef.current === 'look' ? 2 : 0;
         controls!.removeEventListener('rest', lockOnRest);
       }
       controls.addEventListener('rest', lockOnRest);
@@ -204,12 +235,21 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     }
   }, [viewMode, isEditMode, editViewMode, selectedBead, controlsRef, selectAllActive, isEvenlySpaced]);
 
-  // Live-toggle the hand (pan) tool without repositioning the camera: swap the
-  // left mouse button between bead-interaction (0) and truck/pan (2). 3D edit only.
+  // Live-swap the canvas tool (Arrange ↔ Look) without repositioning the camera,
+  // so the user keeps their current angle. 3D edit only.
+  //  • Locked  : only the left button changes — truck for Look, disabled for Arrange.
+  //  • Unlocked: swap the whole scheme — free orbit/pan/zoom for Look, left-reserved
+  //              (bead drag) for Arrange.
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls || !isEditMode || viewMode === 'line') return;
-    controls.mouseButtons.left = canvasTool === 'pan' ? 2 : 0;
+    if (EDIT_CAMERA_LOCKED) {
+      controls.mouseButtons.left = canvasTool === 'look' ? 2 : 0;
+    } else if (canvasTool === 'look') {
+      enableFreeControls(controls);
+    } else {
+      enableArrangeControls(controls);
+    }
   }, [canvasTool, isEditMode, viewMode, controlsRef]);
 
   return null;
