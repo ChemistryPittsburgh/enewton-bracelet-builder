@@ -166,7 +166,7 @@ export function EditReplaceDialog() {
     <div className="bg-white rounded-[3px] border border-default shadow-md">
 
       {/* ── Header (title + close) ── */}
-      <div className="flex items-start justify-between gap-3 border-b border-default px-4 py-3">
+      <div className="flex items-start justify-between gap-3 border-b border-default px-3 py-2">
         <p className="text-sm font-medium text-color-base mt-1">{title}</p>
         <Tooltip content="Exit Replace Mode">
           <button
@@ -180,7 +180,7 @@ export function EditReplaceDialog() {
         </Tooltip>
       </div>
 
-      <div className="max-h-[320px] py-4 px-4 overflow-y-scroll">
+      <div className="max-h-[320px] py-3 px-2 overflow-y-scroll">
         {!isExplicitMode ? (
           /* ── Default mode: bead types and seed beads in separate sections ── */
           beadRows.length === 0 && charmRows.length === 0 && seedRows.length === 0 ? (
@@ -331,7 +331,7 @@ function BeadTypeRow({ product, instanceIds, editSelectedIds, colorIndex, onTogg
     : null;
   return (
     <li>
-      <Tooltip content={`${isSelected ? "Remove selected item" : ""}`} placement="top-end" className="!block">
+      <Tooltip content={`${isSelected ? "Remove selected item" : ""}`} placement="bottom" className="!block">
         <button
           onClick={() => onToggle(instanceIds)}
           className={cn(

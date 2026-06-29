@@ -123,27 +123,27 @@ export function CanvasControls() {
       <>
       <SectionHeading className="text-[11px] mb-[2px] text-color-base/60">Canvas Controls</SectionHeading>
         <div className="pointer-events-auto flex items-center bg-white shadow-sm rounded-[2px] divide-x divide-default rounded-[2px] shadow-sm">
-          <Tooltip content="Zoom in" placement="left">
+          <Tooltip content="Zoom in" placement="top">
             <EditBtn onClick={handleZoomIn} disabled={zoomDistance <= CAMERA_MIN_DISTANCE} label="Zoom in">
               <ZoomIn size={22} />
             </EditBtn>
           </Tooltip>
-          <Tooltip content="Zoom out" placement="left">
+          <Tooltip content="Zoom out" placement="top">
             <EditBtn onClick={handleZoomOut} disabled={zoomDistance >= baseDistance} label="Zoom out">
               <ZoomOut size={22} />
             </EditBtn>
           </Tooltip>
-          <Tooltip content="Rotate left" placement="left">
+          <Tooltip content="Rotate left" placement="top">
             <EditBtn onClick={() => controlsEl?.rotate(-ROTATE_STEP, 0, true)} label="Rotate left">
               <RotateCcw size={22} />
             </EditBtn>
           </Tooltip>
-          <Tooltip content="Rotate right" placement="left">
+          <Tooltip content="Rotate right" placement="top">
             <EditBtn onClick={() => controlsEl?.rotate(ROTATE_STEP, 0, true)} label="Rotate right">
               <RotateCw size={22} />
             </EditBtn>
           </Tooltip>
-          <Tooltip content={isLooking ? "Done looking — back to arranging" : "Look around (orbit / pan / zoom)"} placement="left">
+          <Tooltip content={isLooking ? "Done looking — back to arranging" : "Look around (orbit / pan / zoom)"} placement="top">
             <EditBtn
               onClick={() => setCanvasTool(isLooking ? 'select' : 'look')}
               label={isLooking ? "Back to arranging" : "Look around"}
@@ -152,7 +152,7 @@ export function CanvasControls() {
               <Orbit size={22} className={isLooking ? "text-white" : ""} />
             </EditBtn>
           </Tooltip>
-        <Tooltip content={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'} placement="left">
+        <Tooltip content={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'} placement="top">
           <EditBtn
             onClick={toggleEditViewMode}
             label={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
