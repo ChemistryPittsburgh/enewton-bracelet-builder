@@ -229,9 +229,6 @@ export const FINISH_PRESETS: Record<string, FinishPreset> = {
   silver:      { metalness: 1,    roughness: 0.18, envMapIntensity: 0.35 },
   sterling:    { metalness: 1,    roughness: 0.18, envMapIntensity: 0.35 },
   rose_gold:   { metalness: 0.95, roughness: 0.2,  envMapIntensity: 0.9 },
-  gem:         { metalness: 0.5 },
-  crystal:     { metalness: 0.5 },
-  resin:       { metalness: 0.5 },
 };
 
 /** Fallback when product.finish is undefined. Set to null to disable. */

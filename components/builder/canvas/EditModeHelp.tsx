@@ -36,6 +36,7 @@ const SHORTCUT_GROUPS: { title: string; items: { keys: string; desc: string }[] 
       { keys: "+  /  −",          desc: "Zoom in / out" },
       { keys: "[  /  ]",          desc: "Rotate view left / right" },
       { keys: "V",                desc: "Switch top / side view" },
+      { keys: "H",                desc: "Toggle grab (pan) tool" },
       { keys: "L",                desc: "Toggle look (orbit) tool" },
     ],
   },
@@ -106,9 +107,9 @@ export function EditModeHelp() {
     <div ref={panelRef} className="relative flex justify-center items-center">
       {render && (
         <div
-          className={`pointer-events-auto ${open ? "animate-help-in" : "animate-help-out"} absolute right-0 top-14 z-50 mb-2 w-[300px] max-h-[70vh] rounded-[2px] bg-white shadow-lg border border-default`}
+          className={`pointer-events-auto ${open ? "animate-help-in" : "animate-help-out"} absolute right-0 top-14 z-50 mb-2 w-[300px] max-h-[70vh] overflow-y-auto rounded-[2px] bg-white shadow-lg border border-default`}
         >
-          <div className="sticky top-0 flex items-center justify-between pl-3.5 pr-2 py-1 border-b border-default bg-light-grey">
+          <div className="sticky top-0 flex items-center justify-between pl-3.5 pr-2 py-1 border-b border-default bg-light-grey/70">
             <span className="text-[11.5px] font-semibold tracking-wide text-color-base/80">
               Edit Mode Shortcuts
             </span>
@@ -120,7 +121,7 @@ export function EditModeHelp() {
               <X size={14} />
             </button>
           </div>
-          <div className="px-3.5 py-2.5 space-y-3 max-h-[300px] xl:max-h-[450px] [&>*:last-child]:pb-3 overflow-y-scroll">
+          <div className="px-3.5 py-2.5 space-y-3">
             {SHORTCUT_GROUPS.map((group) => (
               <div key={group.title} className="space-y-2">
                 <div className="text-[10px] font-semibold uppercase tracking-wide text-color-base/40">
