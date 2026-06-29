@@ -785,7 +785,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             </div>
 
             {/* Bottom bar */}
-            <div className={`shrink-0 border-t border-default/50 pt-4 pb-5 space-y-3 ${panelGapClass}`}>
+            <div className={`shrink-0 border-t border-default pt-4 pb-5 space-y-3 ${panelGapClass}`}>
               {error && <ErrorAlert message={error} />}
 
               {!braceletFull ? (

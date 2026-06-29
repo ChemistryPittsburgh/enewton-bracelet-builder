@@ -122,7 +122,7 @@ export function useSceneItemInteraction(
     : HIGHLIGHT_SELECT_COLOR;
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
-    if (canvasTool === 'pan') return;   // hand tool: don't select, let the canvas pan
+    if (canvasTool === 'look') return;   // look tool: don't select, let the camera move
     e.stopPropagation();
     if (isLocked) return;
     if (isEditMode) {
@@ -143,7 +143,7 @@ export function useSceneItemInteraction(
 
   function handlePointerDown(e: ThreeEvent<PointerEvent>) {
     if (!isEditMode) return;
-    if (canvasTool === 'pan') return;   // hand tool: let camera-controls truck the view
+    if (canvasTool === 'look') return;   // look tool: let camera-controls move the view
     e.stopPropagation();
 
     const startX = e.nativeEvent.clientX;
@@ -179,13 +179,13 @@ export function useSceneItemInteraction(
 
     function handlePointerEnter() {
     setIsHovered(true);
-    if (!isEditMode || canvasTool === 'pan') return;
+    if (!isEditMode || canvasTool === 'look') return;
     gl.domElement.style.cursor = "grab";
   }
 
   function handlePointerLeave() {
     setIsHovered(false);
-    if (!isEditMode || canvasTool === 'pan') return;
+    if (!isEditMode || canvasTool === 'look') return;
     gl.domElement.style.cursor = "";
   }
 
@@ -193,7 +193,7 @@ export function useSceneItemInteraction(
   // Suppress the rollover hint while any drag is in progress, so the only moving
   // highlight on the canvas is the drag/selection indicator itself.
   const isDragActive = dragFromPanel !== null || reorderDragLabel !== null;
-  const showHoverRing = isEditMode && isHovered && !isSelected && canvasTool !== 'pan' && !isDragActive;
+  const showHoverRing = isEditMode && isHovered && !isSelected && canvasTool !== 'look' && !isDragActive;
 
   return { isSelected, isEditMode, highlightColor, showHoverRing, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave };
 }
