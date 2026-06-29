@@ -297,7 +297,7 @@ export function createSpacerProduct(sizeMm: number): BeadProduct {
 // ─── Seed bead segments ─────────────────────────────────────────────────────
 
 /** Default individual bead diameter range for seed beads (mm). */
-export const SEED_BEAD_SIZE_RANGE: [number, number] = [1.2, 2.0];
+export const SEED_BEAD_SIZE_RANGE: [number, number] = [1.2, 1.8];
 
 /**
  * Selectable nominal seed bead sizes (mm) for the "seed" shape — Small (1) and
