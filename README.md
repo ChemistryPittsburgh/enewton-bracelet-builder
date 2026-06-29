@@ -54,6 +54,7 @@ components/
 │   ├── SeedSegmentOnBracelet.tsx # Procedurally placed seed/round beads along an arc segment
 │   ├── SpacerOnBracelet.tsx# Procedural wireframe cylinder for virtual spacers
 │   ├── BarOnBracelet.tsx   # Elongated "bar" catalog items (arc footprint = size_mm length)
+│   ├── ItemRings.tsx       # Shared selection / drag-target / collision rings
 │   ├── BraceletCord.tsx    # Torus (3D) or cylinder (line) cord mesh
 │   ├── CameraController.tsx# Camera transitions for select, edit, line views
 │   ├── CameraOffset.tsx    # View offset for panel-aware centering
@@ -80,6 +81,7 @@ hooks/
 ├── useDesignLock.ts       # Lock acquire/confirm, heartbeat kicks, Pusher sync, status-lock detection
 ├── useDesigns.ts          # All designs query with client-side filter/sort
 ├── useDrag.ts             # Canvas drag-to-reorder + panel-to-canvas drop
+├── useEmissiveHighlight.ts # Emissive hover-glow on GLB charm geometry (replaces the hover ring)
 ├── useGenerateThumbnail.ts# WebGL render target capture + content-aware crop
 ├── useIsDirty.ts          # Compares store state to cached saved design
 ├── useLoadDesign.ts       # Hydrate store from saved design + acquire lock
@@ -121,6 +123,7 @@ lib/
 ├── seed-bead-utils.ts     # Deterministic seed-bead placement, sizing, colors
 ├── constants.ts           # Scene, camera, cord, finish presets, spacer + seed sizes
 ├── category-colors.ts     # Status badges, category chips, avatar colors
+├── highlight.ts           # withEmissive helper for the on-cord hover glow
 ├── sanitize.ts            # HTML-strip + length-limit for comment text
 ├── pusher.ts              # Pusher singleton with lazy Bearer auth
 ├── query-client.ts        # QueryClient with 401 → logout handler
@@ -215,7 +218,7 @@ The scene renders inside a React Three Fiber `<Canvas>` with `camera-controls` f
 - **CameraController** — Manages transitions between free orbit, bead zoom, top-down edit, side edit, and line view modes.
 - **CameraOffset** — Applies view offset to keep the bracelet centred when side panels slide open.
 
-All three on-cord items (bead, seed segment, spacer) share pointer, drag-threshold, and selection logic via `useSceneItemInteraction`. When charms sit close together, `charm-collision.ts` applies a small radial layer offset plus a bail-pivot swing so hanging bodies fan apart rather than overlap.
+All four on-cord items (bead, seed segment, spacer, bar) share pointer, drag-threshold, and selection logic via `useSceneItemInteraction`. Highlight states are split by purpose: **selection**, **drag-target**, and **collision** render as rings (`ItemRings`), while **hover** is an emissive glow on the item's own geometry — applied imperatively via `useEmissiveHighlight` for GLB charms, and declaratively via `withEmissive` (`highlight.ts`) for the prop/inline materials of bars, spacers, and seed beads. When charms sit close together, `charm-collision.ts` applies a small radial layer offset plus a bail-pivot swing so hanging bodies fan apart rather than overlap.
 
 Two canvas layouts are supported: circular (torus in XZ plane) and line (straight along X axis). The `bead-layout.ts` module computes per-bead transforms for both, using actual bead diameters and per-category spacing rules. A charm's footprint next to a non-charm is its `bail_width_mm`, floored to `MIN_CHARM_ARC_MM` so tiny bails can't collapse or overlap (float charms are exempt; charm↔charm spacing uses `body_width_mm`). An optional **evenly-spaced** toggle (`isEvenlySpaced`, in the Edit Mode toolbar) distributes items at equal angular intervals around the bracelet — purely visual, with no effect on capacity.
 
