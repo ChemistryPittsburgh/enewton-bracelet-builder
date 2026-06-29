@@ -81,7 +81,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
     canvasTool: s.canvasTool,
   })));
 
-  const panActive = isEditMode && viewMode !== 'line' && canvasTool === 'look';
+  const panActive = isEditMode && viewMode !== 'line' && (canvasTool === 'look' || canvasTool === 'pan');
 
   // Track pointer movement so a canvas drag (pan) doesn't fire deselect on pointer-up
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);

@@ -12,22 +12,6 @@ const squarePeg = Square_Peg({ subsets: ["latin"], variable: "--font-square-peg"
 export const metadata: Metadata = {
   title: 'eNewton | Internal Bracelet Builder',
   description: 'Internal tool to build 3D eNewton Bracelets',
-  keywords: ['React', 'TypeScript', 'Next.js'],
-  openGraph: {
-    title: 'eNewton | Internal Bracelet Builder',
-    description: 'Internal tool to build 3D eNewton Bracelets',
-    url: '#',
-    siteName: 'eNewton Bracelet Builder',
-    images: [
-      {
-        url: LOGO_SRC,
-        width: 200,
-        height: 37,
-      },
-    ],
-    locale: 'en_US',
-    type: 'website',
-  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

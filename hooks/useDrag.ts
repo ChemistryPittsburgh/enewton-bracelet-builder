@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
+
+import { useStore } from "@/lib/store";
+import { formatMm } from "@/lib/utils";
 import { getBeadAngle, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import type { BeadProduct, PlacedBead } from "@/types";
 
@@ -112,7 +114,7 @@ export function useBraceletReorderDrag(
     if(isGroupDrag) {
       dragLabel = `${editSelectedIds.length} items`;
     } else if(draggedBead?.product.bead_type) {
-      dragLabel = draggedBead?.product.size_mm ? `${draggedBead?.product.bead_type} ${draggedBead?.product.size_mm}mm` : draggedBead?.product.bead_type; 
+      dragLabel = draggedBead?.product.size_mm ? `${draggedBead?.product.bead_type} ${formatMm(draggedBead?.product.size_mm)}mm` : draggedBead?.product.bead_type; 
     } else if(draggedBead?.product.name) {
       dragLabel = draggedBead?.product.name;
     } else {

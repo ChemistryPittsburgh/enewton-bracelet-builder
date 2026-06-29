@@ -195,9 +195,9 @@ interface Store {
   /** Ephemeral — not persisted. Which camera view is active in edit mode. */
   editViewMode: 'top' | 'side';
   toggleEditViewMode: () => void;
-  /** Active canvas tool in edit mode: 'select' grabs/arranges beads, 'look' frees the camera (orbit/pan/zoom) and makes beads inert. */
-  canvasTool: 'select' | 'look';
-  setCanvasTool: (tool: 'select' | 'look') => void;
+  /** Active canvas tool in edit mode: 'select' arranges beads, 'pan' grabs/pans the view, 'look' frees the camera (orbit/pan/zoom). 'pan' and 'look' make beads inert. */
+  canvasTool: 'select' | 'pan' | 'look';
+  setCanvasTool: (tool: 'select' | 'pan' | 'look') => void;
 
   /** Ephemeral — not persisted. Which canvas view is active. */
   viewMode: '3D' | 'line';

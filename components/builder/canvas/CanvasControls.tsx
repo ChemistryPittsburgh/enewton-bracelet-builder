@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Orbit, SwitchCamera } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Hand, Orbit, SwitchCamera } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -22,8 +22,9 @@ const ROTATE_STEP = Math.PI / 7.5;
 
 /**
  * Canvas-navigation cluster pinned to the right edge in edit mode: zoom,
- * rotate, and the top/side view toggle. These drive the shared CameraControls
- * instance (store `controlsEl`) the same way the old top-bar zoom buttons did.
+ * rotate, grab/pan, look (orbit), and the top/side view toggle. These drive the
+ * shared CameraControls instance (store `controlsEl`) the same way the old
+ * top-bar zoom buttons did.
  */
 export function CanvasControls() {
   const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool } = useStore(useShallow((s) => ({
@@ -36,6 +37,7 @@ export function CanvasControls() {
     setCanvasTool: s.setCanvasTool,
   })));
 
+  const isPanning = canvasTool === 'pan';
   const isLooking = canvasTool === 'look';
 
   // Line view keeps free scroll/orbit, so zoom + rotate buttons only apply to 3D.
@@ -70,7 +72,7 @@ export function CanvasControls() {
   }
 
   // Keyboard shortcuts mirroring each button: V toggles view (works in both
-  // views); +/- zoom, [ ] rotate, H pan are 3D-only (like the buttons).
+  // views); +/- zoom, [ ] rotate, H grab/pan, L look (orbit) are 3D-only.
   useEffect(() => {
     if (!isEditMode) return;
     function onKey(e: KeyboardEvent) {
@@ -103,6 +105,11 @@ export function CanvasControls() {
         case "]":
           e.preventDefault();
           controlsEl?.rotate(ROTATE_STEP, 0, true);
+          break;
+        case "h":
+        case "H":
+          e.preventDefault();
+          setCanvasTool(canvasTool === 'pan' ? 'select' : 'pan');
           break;
         case "l":
         case "L":
@@ -141,6 +148,15 @@ export function CanvasControls() {
           <Tooltip content="Rotate right" placement="top">
             <EditBtn onClick={() => controlsEl?.rotate(ROTATE_STEP, 0, true)} label="Rotate right">
               <RotateCw size={22} />
+            </EditBtn>
+          </Tooltip>
+          <Tooltip content={isPanning ? "Done — back to arranging" : "Move Canvas / Pan view"} placement="top">
+            <EditBtn
+              onClick={() => setCanvasTool(isPanning ? 'select' : 'pan')}
+              label={isPanning ? "Back to arranging" : "Grab / pan"}
+              className={isPanning ? "bg-navy hover:bg-navy/80" : ""}
+            >
+              <Hand size={22} className={isPanning ? "text-white" : ""} />
             </EditBtn>
           </Tooltip>
           <Tooltip content={isLooking ? "Done looking — back to arranging" : "Look around (orbit / pan / zoom)"} placement="top">
