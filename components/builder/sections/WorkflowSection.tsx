@@ -193,12 +193,11 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
     <div className={workflowSectionClasses}>
       {/* Rejection notice — shown when the design was sent back for revision */}
       {isRejected && (
-        <div className="flex flex-col gap-1 rounded-lg border border-error/30 bg-error/5 px-3 py-2.5">
+        <div className="flex flex-col gap-1 rounded-[2px] border border-error/30 bg-error/5 px-3 py-2.5">
           <p className="text-sm font-semibold text-error">This design was rejected and needs revision.</p>
           {savedDesign.rejection_reason && (
-            <p className="text-xs"><span className="font-semibold text-color-base/80">Reason: </span>&ldquo;{savedDesign.rejection_reason}&rdquo;</p>
+            <p className="text-xs"><span className="font-semibold text-color-base/80">Reason: </span>{savedDesign.rejection_reason}</p>
           )}
-          <p className="text-xs text-color-base/70">Make your changes, then resubmit for review.</p>
         </div>
       )}
 
@@ -376,7 +375,7 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
 
       {/* SKU input */}
       {showSkuField && (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 mt-4">
           <SectionHeading>Shopify SKU</SectionHeading>
           <div className="flex items-center gap-2">
             <input
@@ -385,11 +384,11 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
               onChange={(e) => { setSkuInput(e.target.value); setSkuError(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleSkuSave(); }}
               placeholder="e.g. BB-SUMMER-001"
-              className={`flex-1 rounded-[3px] max-w-[250px] border px-3 py-1.5 text-sm outline-none transition-colors placeholder:text-color-base/70 ${
-                skuError ? "border-error/50 focus:border-error" : "border-default focus:border-navy"
+              className={`flex-1 rounded-[2px] max-w-[250px] border px-3 py-[8px] text-sm outline-none transition-colors placeholder:text-color-base/70 ${
+                skuError ? "border-error/50 focus:border-error" : "border-default focus:border-navy focus:ring-navy"
               }`}
             />
-            <Button className={actionBtnClasses} size="sm" variant="primary" onClick={handleSkuSave} disabled={settingSku}>
+            <Button className={actionBtnClasses} size="sm" variant="secondary" onClick={handleSkuSave} disabled={settingSku}>
               {settingSku && <Loader2 size={12} className="animate-spin" />}
               {skuSaved ? "Saved!" : "Save"}
             </Button>

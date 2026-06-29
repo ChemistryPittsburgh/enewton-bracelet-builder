@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { AlertCircle, Search, X, Inbox } from "lucide-react";
 
 import { useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, unslugify } from "@/lib/utils";
 import { LOGO_SRC, LOGO_ALT } from "@/lib/constants";
 import { CATEGORY_STYLES, type CategoryKey } from "@/lib/category-colors";
 
@@ -163,7 +163,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
   const activeChips: ActiveChip[] = [
     ...selectedMaterials.map((m) => ({
       category: "material" as CategoryKey,
-      label:    m,
+      label:    unslugify(m),
       onRemove: () => setSelectedMaterials((prev) => prev.filter((x) => x !== m)),
     })),
     ...selectedTypes.map((t) => ({
@@ -404,7 +404,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                           <option value="">{selectedMaterials.length > 0 ? `Material (${selectedMaterials.length})` : "Material"}</option>
                           {allMaterials.map((m) => (
                             <option key={m} value={m} disabled={selectedMaterials.includes(m)}>
-                              {m ? m.charAt(0).toUpperCase() + m.slice(1) : m}
+                              {unslugify(m)}
                             </option>
                           ))}
                         </select>
