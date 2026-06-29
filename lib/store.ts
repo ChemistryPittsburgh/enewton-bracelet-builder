@@ -1185,7 +1185,7 @@ export const useStore = create<Store>()(
     {
       name: "enewton-beads",
       storage: createJSONStorage(() => localStorage),
-      version: 4,
+      version: 5,
       migrate(persistedState: unknown, fromVersion: number) {
         const s = (persistedState ?? {}) as PersistedState;
         if (fromVersion < 1) {
@@ -1206,6 +1206,14 @@ export const useStore = create<Store>()(
         if (fromVersion < 4) {
           // activePatternId added to persisted state
           s.activePatternId ??= null;
+        }
+        if (fromVersion < 5) {
+          // Band material was renamed to "stretchy" | "hairtie". Coerce any legacy
+          // or unknown value ("wire", "cord", "chord", …) back to the default so
+          // old persisted snapshots don't render with no material selected.
+          if (s.bandMaterial !== "stretchy" && s.bandMaterial !== "hairtie") {
+            s.bandMaterial = "stretchy";
+          }
         }
         return s;
       },

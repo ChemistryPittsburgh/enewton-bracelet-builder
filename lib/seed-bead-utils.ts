@@ -123,18 +123,29 @@ export function generateSeedBeads(config: SeedSegmentConfig): GeneratedSeedBead[
     cursor += thick;
   }
 
-  // Stretch arc positions to fill the slot so no tail gap is visible at segment boundaries.
+  // Centre the flush-packed run within the segment. Any residual slack becomes
+  // symmetric padding at the two ends — never gaps between adjacent beads. When
+  // the segment's arc is snapped to the packed length at creation (see
+  // seedPackedLengthMm), slack is ~0 and this is a no-op.
   if (beads.length > 0 && cursor < arcLengthM) {
-    const scale = arcLengthM / cursor;
-    let pos = 0;
-    for (const bead of beads) {
-      const scaledThick = bead.diameter * SEED_BEAD_THICKNESS_RATIO * scale;
-      bead.arcOffset = pos + scaledThick / 2;
-      pos += scaledThick;
-    }
+    const pad = (arcLengthM - cursor) / 2;
+    for (const bead of beads) bead.arcOffset += pad;
   }
 
   return beads;
+}
+
+/**
+ * Exact packed length (mm) of a segment's beads — the sum of their physical
+ * thicknesses. Used at creation time to snap a segment's reserved arc to what its
+ * beads actually occupy, so the reserved slot never exceeds the beads. A reserved
+ * slot wider than the beads is what renders as gaps — most visibly on large/few
+ * beads, where the slack lands in just one or two gaps.
+ */
+export function seedPackedLengthMm(config: SeedSegmentConfig): number {
+  const beads = generateSeedBeads(config);
+  const ratio = config.seed_shape === "round" ? ROUND_BEAD_THICKNESS_RATIO : SEED_BEAD_THICKNESS_RATIO;
+  return beads.reduce((sum, b) => sum + b.diameter * ratio, 0) * 1000;
 }
 
 /**
@@ -168,15 +179,10 @@ function generateRoundBeads(config: SeedSegmentConfig): GeneratedSeedBead[] {
     cursor += thick;
   }
 
-  // Stretch arc positions to fill the slot so no tail gap is visible at segment boundaries.
+  // Centre the flush-packed run within the segment (see generateSeedBeads).
   if (beads.length > 0 && cursor < arcLengthM) {
-    const scale = arcLengthM / cursor;
-    let pos = 0;
-    for (const bead of beads) {
-      const scaledThick = dM * ROUND_BEAD_THICKNESS_RATIO * scale;
-      bead.arcOffset = pos + scaledThick / 2;
-      pos += scaledThick;
-    }
+    const pad = (arcLengthM - cursor) / 2;
+    for (const bead of beads) bead.arcOffset += pad;
   }
 
   return beads;

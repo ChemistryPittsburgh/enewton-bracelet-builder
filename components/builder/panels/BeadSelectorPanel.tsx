@@ -24,7 +24,7 @@ import {
   SEED_BEAD_SIZE_RANGE,
   seedBeadSizeRange,
 } from "@/lib/constants";
-import { newRandomSeed } from "@/lib/seed-bead-utils";
+import { newRandomSeed, seedPackedLengthMm } from "@/lib/seed-bead-utils";
 
 import { SpacerPicker } from "./SpacerPicker";
 import { SeedBeadPicker } from "./SeedBeadPicker";
@@ -470,9 +470,8 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     material?: string,
     seedSizeMm?: number,
   ) {
-    const product = createSeedSegmentProduct(arcMm, randomSeed, seedShape, roundSizeMm, material);
     const isRound = seedShape === "round";
-    const seedConfig: SeedSegmentConfig = {
+    const baseConfig: SeedSegmentConfig = {
       colorway,
       arc_length_mm: arcMm,
       bead_size_range: (seedSizeMm ? seedBeadSizeRange(seedSizeMm) : SEED_BEAD_SIZE_RANGE) as [number, number],
@@ -481,6 +480,14 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         ? { seed_shape: "round" as const, round_size_mm: roundSizeMm ?? 2 }
         : { seed_size_mm: seedSizeMm ?? 1 }),
     };
+    // Snap the reserved arc to what the beads actually pack to. The requested arc
+    // (from quantity / size / remaining, or a prior segment when changing size)
+    // can be wider than the beads occupy; that surplus is what renders as gaps,
+    // worst on large/few beads. Snapping keeps the slot flush with the beads.
+    const packedMm = seedPackedLengthMm(baseConfig);
+    const finalArcMm = packedMm > 0 ? Math.round(packedMm * 100) / 100 : arcMm;
+    const product = createSeedSegmentProduct(finalArcMm, randomSeed, seedShape, roundSizeMm, material);
+    const seedConfig: SeedSegmentConfig = { ...baseConfig, arc_length_mm: finalArcMm };
     return { product, seedConfig };
   }
 
@@ -785,7 +792,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             </div>
 
             {/* Bottom bar */}
-            <div className={`shrink-0 border-t border-default pt-4 pb-5 space-y-3 ${panelGapClass}`}>
+            <div className={`shrink-0 border-t border-default/50 pt-4 pb-5 space-y-3 ${panelGapClass}`}>
               {error && <ErrorAlert message={error} />}
 
               {!braceletFull ? (
