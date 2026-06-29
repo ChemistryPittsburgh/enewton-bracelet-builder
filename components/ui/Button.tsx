@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
 const variants = {
-  primary:    "bg-navy border-navy border text-white hover:bg-white hover:text-navy",
+  primary:    "bg-navy border-navy border text-white hover:bg-white hover:text-navy focus:bg-navy/80",
   secondary:  "bg-mint border-navy border text-navy hover:bg-white",
   ghost:      "border bg-white border-stone/40 text-color-base/80 hover:border-stone hover:bg-shell hover:text-color-base",
   danger:     "bg-error text-white hover:bg-error/80",

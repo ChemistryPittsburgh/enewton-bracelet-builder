@@ -9,9 +9,10 @@
  */
 
 import { useState } from "react";
-import { AlertTriangle, Loader2, List, Pencil, Undo2, Redo2, X } from "lucide-react";
+import { AlertTriangle, Loader2, List, Pencil, Undo2, Redo2, X, Eye } from "lucide-react";
 
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 
 import { useDesign } from "@/hooks/useDesign";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -19,6 +20,9 @@ import { useSubmitDesign, useApproveDesign, useRejectDesign, usePublishDesign, u
 
 
 import { Button } from "@/components/ui/Button";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { ApiError } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { PusherStatusBadge } from "@/components/builder/canvas/PusherStatusBadge";
 import { Tooltip } from "@/components/ui/Tooltip";
 
@@ -34,7 +38,7 @@ interface HeaderToolbarProps {
 }
 
 export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublishBlocked, isReadOnly = false, isKicked = false }: HeaderToolbarProps) {
-  const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId, undo, redo, undoStack, redoStack } = useStore((s) => ({
+  const { isEditMode, toggleEditMode, viewMode, setViewMode, activeDesignId, undo, redo, undoStack, redoStack } = useStore(useShallow((s) => ({
     isEditMode:      s.isEditMode,
     toggleEditMode:  s.toggleEditMode,
     viewMode:        s.viewMode,
@@ -44,7 +48,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
     redo:            s.redo,
     undoStack:       s.undoStack,
     redoStack:       s.redoStack,
-  }));
+  })));
 
   const { canEdit } = usePermissions();
   const { data: savedDesign } = useDesign(activeDesignId);
@@ -54,7 +58,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
   const { mutate: approve,       isPending: approving,       canApprove }       = useApproveDesign();
   const { mutate: reject,        isPending: rejecting,       canReject }        = useRejectDesign();
   const { mutate: publish,       isPending: publishing,      canPublish }       = usePublishDesign();
-  const { mutate: undiscontinue, isPending: undiscontinuing, canUndiscontinue } = useUndiscontinueDesign();
+  const { mutate: undiscontinue, isPending: undiscontinuing, isError: undiscontinueFailed, error: undiscontinueError, reset: resetUndiscontinue, canUndiscontinue } = useUndiscontinueDesign();
 
   const status =
     savedDesign?.is_discontinued === 1 ? ("discontinued" as const) : savedDesign?.status;
@@ -100,7 +104,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
 
   return (
     <div className="flex flex-col gap-2 pointer-events-none relative z-30">
-      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm pr-2 lg:pr-6">
+      <div className="relative flex items-center pointer-events-auto bg-white shadow-sm pr-4 lg:pr-6 xl:pr-8">
 
         {/* ── Left — Undo/Redo + workflow actions ──────────────────────── */}
         <div className="flex flex-1 gap-3 divide-x-1 divide-default">
@@ -204,10 +208,15 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
               {/* Reactivate — two-step confirmation */}
               {showUndiscontinue && (
                 confirmingReactivate ? (
-                  <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
-                    <AlertTriangle size={13} className="shrink-0 text-amber-500" />
-                    <span className="text-xs font-medium text-amber-700">
-                      Reactivating this bracelet will move it to Published.
+                  <div className={cn(
+                    "flex items-center gap-2 rounded-lg border px-3 py-1.5",
+                    undiscontinueFailed ? "border-error bg-error/10" : "border-amber-200 bg-amber-50",
+                  )}>
+                    <AlertTriangle size={13} className={cn("shrink-0", undiscontinueFailed ? "text-error" : "text-amber-500")} />
+                    <span className={cn("text-xs font-medium", undiscontinueFailed ? "text-error" : "text-amber-700")}>
+                      {undiscontinueFailed
+                        ? (undiscontinueError instanceof ApiError ? undiscontinueError.message : "Couldn't reactivate. Please try again.")
+                        : "Reactivating this bracelet will move it to Published."}
                     </span>
                     <Button
                       size="xs"
@@ -216,7 +225,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
                       onClick={handleConfirmReactivate}
                     >
                       {undiscontinuing && <Loader2 size={11} className="animate-spin" />}
-                      Confirm
+                      {undiscontinueFailed ? "Retry" : "Confirm"}
                     </Button>
                     <Button
                       size="xs"
@@ -231,7 +240,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
                   <WorkflowButton
                     label="Reactivate"
                     isPending={false}
-                    onClick={() => setConfirmingReactivate(true)}
+                    onClick={() => { resetUndiscontinue(); setConfirmingReactivate(true); }}
                     variant="positive"
                   />
                 )
@@ -272,17 +281,17 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
                 onClick={toggleEditMode}
                 className={`flex items-center gap-1.5 rounded-[2px] border px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
                   isEditMode
-                    ? "bg-stone text-white"
-                    : "border-default bg-white hover:bg-mint"
+                    ? "border-navy bg-shell"
+                    : "border-navy bg-edit"
                 }`}
-                aria-label={isEditMode ? "Exit edit mode" : "Enter Edit Mode"}
+                aria-label={isEditMode ? "Enter View Mode" : "Enter Edit Mode"}
               >
                 {isEditMode ? (
-                  <X size={14} />
+                  <Eye size={15} />
                 ): (
                   <Pencil size={14} />
                 )}
-                Edit
+                {isEditMode ? "View Mode" : "Edit Mode"}
               </button>
             </Tooltip>
           )}
@@ -291,8 +300,8 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
               onClick={onCommentsClick}
               className={`flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
                 commentsOpen
-                  ? "bg-stone text-white"
-                  : "bg-grey text-black hover:bg-stone hover:text-white"
+                  ? "bg-navy text-white border-navy border"
+                  : "border bg-white border-stone/40 text-color-base/80 hover:border-stone hover:bg-mint hover:text-color-base"
               }`}
               aria-label="Open comments"
             >

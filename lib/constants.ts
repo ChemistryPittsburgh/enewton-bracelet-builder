@@ -1,4 +1,4 @@
-import type { BandMaterial, BraceletSize } from "@/types";
+import type { BandMaterial, BraceletSize, BeadProduct } from "@/types";
 
 /** Cord centreline radius per bracelet size, derived from wrist circumference in inches.
  *  Formula: (circumference_in * 0.0254) / (2π)  →  metres
@@ -38,7 +38,7 @@ export const SCENE_BACKGROUND_PREVIEW_BEAD = "#f1f3f5"; // currently light-grey
 export const THUMBNAIL_SIZE = 600;
 
 /** Canvas background color when edit mode is active. */
-export const EDIT_MODE_BACKGROUND = "#eff6ff";
+export const EDIT_MODE_BACKGROUND = "#E8EEF3";
 
 /** Color of ring when bead is selected/highlights */
 export const HIGHLIGHT_SELECT_COLOR = "#a38d48";  //#a38d48
@@ -46,6 +46,30 @@ export const EDIT_MODE_HIGHLIGHT_SELECT_COLOR = "#1F3A5F";
 
 /* Color of Hover Ring */
 export const EDIT_MODE_RING_HOVER = "#a38d48";
+/** Emissive intensity for the hover glow (colour reuses EDIT_MODE_RING_HOVER). */
+export const HOVER_EMISSIVE_INTENSITY = 0.55;
+
+/* Color of Collision Ring when "Charms are Overlapping" is active */
+export const COLLISION_RING_COLOR = "#be123c";
+
+// ── Edit-mode drag-and-drop feedback ─────────────────────────────────────────
+/** Vertical lift (metres) applied to the item being dragged so it visibly pops
+ *  off the strand. Tune up/down to taste. */
+export const DRAG_LIFT = 0.0022;
+/** Radial outward push (metres) applied to a charm while it is being dragged, so
+ *  it floats clear of its neighbours instead of intersecting them. Applied through
+ *  the same radial projection as the charm depth offsets, so it stays consistent
+ *  at every position around the bracelet (never a flat world-axis shift). */
+export const DRAG_FORWARD_OFFSET = 0.0022;
+/** Drop-target / insertion ring colour. Strong blue — high contrast against the
+ *  gold beads so the landing slot is obvious at a glance. */
+export const DRAG_TARGET_RING_COLOR = "#2563eb";
+/** Tube thickness (metres) of the drop-target ring. Bold, not the old hairline. */
+export const DRAG_TARGET_RING_TUBE = 0.0004;
+/** Live reorder preview: while dragging, lay items out in their would-be dropped
+ *  order so neighbours reflow in real time. Set false to revert to the old
+ *  "item stays put until drop" behaviour. */
+export const DRAG_LIVE_PREVIEW = true;
 
 /**
  * Edit-mode "group beads" feature (saved selection groups in the replace tool).
@@ -95,12 +119,6 @@ export const ZOOM_BEAD_Y_OFFSET = 0.015;
 /** Camera Y height for the top-down edit mode view, in metres. */
 export const CAMERA_EDIT_HEIGHT = 0.12;
 
-/**
- * Minimum arc half-contribution for a charm, in metres.
- * Ensures adjacent charms can't fully overlap even when body_width_mm is
- * missing from the API. 0.008 = 8 mm half-width → 16 mm min bail-to-bail.
- */
-export const CHARM_MIN_ARC_HALF = 0.0008;
 
 /** Euler rotation [rx, ry, rz] applied to every charm GLB to orient it hanging from the cord. */
 export const CHARM_ROTATION: [number, number, number] = [Math.PI / 2, 0, Math.PI * 1.5];
@@ -133,7 +151,7 @@ export const LINE_VIEW_CAMERA_POSITION: [number, number, number] = [0, 0.05, 0.0
 export const LINE_VIEW_EDIT_HEIGHT = 0.10;
 
 /** Camera position for the side/angled edit mode view — lower and further forward than the default. */
-export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.06, 0.09];
+export const CAMERA_EDIT_SIDE_POSITION: [number, number, number] = [0, 0.028, 0.09];
 
 /** Distance from bracelet centre for the side edit view (magnitude of CAMERA_EDIT_SIDE_POSITION). */
 export const CAMERA_EDIT_SIDE_DISTANCE = Math.hypot(...CAMERA_EDIT_SIDE_POSITION);
@@ -215,10 +233,8 @@ export const MIN_BEAD_DIAMETER = 0.2;
 /** Maximum iterations when counting how many items fit in freed bar arc. */
 export const BAR_REPLACE_FIT_LIMIT = 500;
 
-/** Minimum cord footprint (mm) a charm claims when adjacent to a non-charm. See bead-layout.ts. */
 export const MIN_CHARM_ARC_MM = 1.8;
-
-export const BEAD_CATEGORIES = ["bead", "charm", "float_charm", "bar"] as const;
+export const BEAD_CATEGORIES = ["bead", "charm", "letter_charm", "float_charm", "bar"] as const;
 export const MATERIAL_OPTIONS = ["gold", "silver", "rose_gold", "gem", "gold_filled", "sterling", "crystal", "resin"] as const;
 
 // ─── Spacer beads ───────────────────────────────────────────────────────────
@@ -232,7 +248,7 @@ export const SPACER_SIZES_MM = [1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14];
  * Uses a deterministic negative ID so the same size always maps to the same
  * "product" — important for deduplication and Select-All behaviour.
  */
-export function createSpacerProduct(sizeMm: number) {
+export function createSpacerProduct(sizeMm: number): BeadProduct {
   return {
     id:             -(Math.round(sizeMm * 100)),
     name:           `${sizeMm}mm Spacer`,
@@ -246,9 +262,6 @@ export function createSpacerProduct(sizeMm: number) {
     sku:            null,
     color:          null,
     active:         1,
-    body_width_mm:  null,
-    bail_width_mm:  null,
-    depth_offset:   null,
   };
 }
 
@@ -312,7 +325,7 @@ const SEED_ID_OFFSET = -100_000;
  * `diameter` is set to the total arc length (metres) so the existing layout
  * math works without modification.
  */
-export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number, seedShape?: "seed" | "round", roundSizeMm?: number, material?: string) {
+export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number, seedShape?: "seed" | "round", roundSizeMm?: number, material?: string): BeadProduct {
   const isRound = seedShape === "round";
   const label = isRound
     ? `Round ${roundSizeMm ?? 2}mm beads (${arcLengthMm}mm)`
@@ -324,14 +337,11 @@ export function createSeedSegmentProduct(arcLengthMm: number, randomSeed: number
     glb_path:       "",
     bead_category:  "seed_segment" as const,
     bead_type:      isRound ? "Round Seed" : "Seed",
-    material:       (material ?? "gold") as string,
+    material:       material ?? "gold",
     diameter:       arcLengthMm / 1000,
     size_mm:        arcLengthMm,
     sku:            null,
     color:          null,
     active:         1,
-    body_width_mm:  null,
-    bail_width_mm:  null,
-    depth_offset:   null,
   };
 }

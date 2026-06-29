@@ -10,13 +10,21 @@ import {
   BRACELET_SIZE_RADIUS,
   FINISH_PRESETS,
   DEFAULT_FINISH,
+  DRAG_LIFT,
   EDIT_MODE_RING_HOVER,
+  HOVER_EMISSIVE_INTENSITY,
 } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
+import { SelectionRing, DragTargetRing } from "./ItemRings";
+import { withEmissive } from "@/lib/highlight";
 
 interface BarOnBraceletProps {
   bead: PlacedBead;
   slotIndex: number;
+  /** Live-preview ordering + this item's index within it during an edit-mode
+   *  reorder drag. Absent when idle → layout falls back to the store order. */
+  layoutBeads?: PlacedBead[];
+  layoutIndex?: number;
   isDragged?: boolean;
   isDragTarget?: boolean;
   onDragStart?: (index: number) => void;
@@ -26,6 +34,8 @@ interface BarOnBraceletProps {
 export function BarOnBracelet({
   bead,
   slotIndex,
+  layoutBeads,
+  layoutIndex,
   isDragged = false,
   isDragTarget = false,
   onDragStart,
@@ -44,7 +54,7 @@ export function BarOnBracelet({
       : new MeshStandardMaterial({ color: "#D4A843", metalness: 1, roughness: 0.18 });
 
     const finishKey: string | null =
-      (bead.product as any).finish ?? bead.product.material ?? DEFAULT_FINISH;
+      bead.product.finish ?? bead.product.material ?? DEFAULT_FINISH;
     const preset = finishKey ? FINISH_PRESETS[finishKey] : undefined;
     if (preset) {
       if (preset.metalness       !== undefined) rawMat.metalness       = preset.metalness;
@@ -83,7 +93,7 @@ export function BarOnBracelet({
 
     return rawMat;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, bead.product.material, (bead.product as any).finish]);
+  }, [scene, bead.product.material, bead.product.finish]);
 
   // Read the actual UV bounds from the GLB:
   //   V range — texture atlas strip (e.g. 0.846..1.0 for BlissBar_Textured); outside
@@ -131,7 +141,9 @@ export function BarOnBracelet({
     return { vMin, vMax, nativeArcM: nativeArcM > 0 ? nativeArcM : null };
   }, [scene]);
 
-  const beads          = useStore((s) => s.beads);
+  const storeBeads     = useStore((s) => s.beads);
+  const beads          = layoutBeads ?? storeBeads;
+  const layoutIdx      = layoutIndex ?? slotIndex;
   const braceletSize   = useStore((s) => s.braceletSize);
   const viewMode       = useStore((s) => s.viewMode);
   const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
@@ -139,13 +151,19 @@ export function BarOnBracelet({
   const { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave, showHoverRing } =
     useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
+  // Hover glows the bar mesh itself (no overlay ring).
+  const hoverMat = useMemo(
+    () => (showHoverRing ? withEmissive(mat, EDIT_MODE_RING_HOVER, HOVER_EMISSIVE_INTENSITY) : mat),
+    [mat, showHoverRing],
+  );
+
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
   const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
     ? getEvenSpacingBonus(beads, braceletRadius)
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
-    ? getBeadTransformLine(slotIndex, beads)
-    : getBeadTransform(slotIndex, beads, braceletRadius, extraSpacingPerGap);
+    ? getBeadTransformLine(layoutIdx, beads)
+    : getBeadTransform(layoutIdx, beads, braceletRadius, extraSpacingPerGap);
 
   // vizRadius drives the hit capsule (sized to arc length for easy clicking)
   const vizRadius  = (bead.product.size_mm ?? 10) / 2 / 1000;
@@ -223,7 +241,7 @@ export function BarOnBracelet({
 
   const liftedPosition: [number, number, number] = [
     position[0],
-    position[1] + (isDragged ? 0.003 : 0),
+    position[1] + (isDragged ? DRAG_LIFT : 0),
     position[2],
   ];
 
@@ -238,7 +256,7 @@ export function BarOnBracelet({
     >
       <group rotation={innerRotation} dispose={null}>
         {/* Single continuously bent mesh — no segment joints */}
-        {bentGeometry && <mesh geometry={bentGeometry} material={mat} />}
+        {bentGeometry && <mesh geometry={bentGeometry} material={hoverMat} />}
 
         {/* Invisible hit area — capsule laid ALONG the bar's arc (local Z) so the
             whole length is hoverable/clickable, not just a vertical sliver at the
@@ -250,27 +268,15 @@ export function BarOnBracelet({
 
         {/* Selection ring — vertical (XY plane, perpendicular to bar's tangent),
             radius matches bead convention: cross-section diameter / 2 */}
-        {isSelected && ringRadius > 0 && (
-          <mesh>
-            <torusGeometry args={[ringRadius * 1.8, 0.0002, 8, 32]} />
-            <meshBasicMaterial color={highlightColor} transparent opacity={0.8} />
-          </mesh>
+        {(isSelected || isDragged) && ringRadius > 0 && (
+          <SelectionRing radius={ringRadius * 2} color={highlightColor} />
         )}
 
         {/* Hover ring — flat, edit-mode rollover hint */}
-        {showHoverRing && (
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[ringRadius * 1.8, 0.00018, 8, 40]} />
-            <meshBasicMaterial color={EDIT_MODE_RING_HOVER} transparent opacity={0.55} />
-          </mesh>
-        )}
 
         {/* Drag-target ring */}
         {isDragTarget && ringRadius > 0 && (
-          <mesh>
-            <torusGeometry args={[ringRadius * 1.4, 0.0002, 8, 32]} />
-            <meshBasicMaterial color="#93c5fd" />
-          </mesh>
+          <DragTargetRing radius={ringRadius * 1.7} rotation={[0, 0, 0]} />
         )}
       </group>
     </group>

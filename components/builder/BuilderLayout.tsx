@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronsRight, Inbox, LayoutTemplate, Loader2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { ChevronsRight, Move, Inbox, LayoutTemplate, Loader2 } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ import { NewBraceletMenu } from "./header/NewBraceletMenu";
 import { BandSelector } from "./canvas/BandSelector";
 import { CanvasStatsBar } from "./canvas/CanvasStatsBar";
 import { EditModeToolbar } from "./canvas/EditModeToolbar";
-import { EditModeHelp } from "./canvas/EditModeHelp";
+import { CanvasControls } from "./canvas/CanvasControls";
 import { CanvasInfoOverlay } from "./canvas/CanvasInfoOverlay";
 
 import { ConfirmReplaceDialog } from "./dialogs/ConfirmReplaceDialog";
@@ -52,10 +52,6 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useDesignLock } from "@/hooks/useDesignLock";
 import { useSavePattern } from "@/hooks/useSavePattern";
 import { useIsDirty } from "@/hooks/useIsDirty";
-import { useNarrowLayout } from "@/hooks/useNarrowLayout";
-import { useHighlightReason } from "@/hooks/useHighlightReason";
-import { useDragGhostCursor } from "@/hooks/useDragGhostCursor";
-import { useLockEnforcement } from "@/hooks/useLockEnforcement";
 
 export function BuilderLayout() {
   const {
@@ -88,6 +84,8 @@ export function BuilderLayout() {
 
   const isDirty = useIsDirty();
   const isEditMode    = useStore((s) => s.isEditMode);
+  const reorderDragLabel = useStore((s) => s.reorderDragLabel);
+  const newDocNonce = useStore((s) => s.newDocNonce);
   const toggleEditMode = useStore((s) => s.toggleEditMode);
   const replaceTargetInstanceId = useStore((s) => s.replaceTargetInstanceId);
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
@@ -158,6 +156,11 @@ export function BuilderLayout() {
   const [manageBeadsOpen,     setManageBeadsOpen]     = useState(false);
   const [manageSeedColorsOpen, setManageSeedColorsOpen] = useState(false);
 
+  // True on smaller desktops; used to keep only one side panel open at a time.
+  // Shares PANEL_COMPACT_QUERY with the responsive panel width, so single-panel
+  // mode engages exactly when the panels go compact.
+  const [isNarrow, setIsNarrow] = useState(false);
+
   const [savedDesignsInitialView, setSavedDesignsInitialView] = useState<"designs" | "patterns">("designs");
 
   // ── Design lock + realtime sync ────────────────────────────────────────────
@@ -177,18 +180,74 @@ export function BuilderLayout() {
   // ── Name-required highlight ───────────────────────────────────────────────
   // Activated by BraceletExporter when the user tries to save without a name.
   // Auto-clears once the bracelet name is changed from the default.
-  const [highlightReason, setHighlightReason] = useHighlightReason(
-    braceletName,
-    savedDesign?.shopify_sku,
-  );
+  const [highlightReason, setHighlightReason] = useState<"name" | "sku" | null>(null);
+
+  useEffect(() => {
+    const trimmed = braceletName.trim();
+    if (highlightReason !== "name") return;
+    if (trimmed !== "" && trimmed !== DEFAULT_BRACELET_NAME) {
+      setHighlightReason(null);
+    }
+  }, [braceletName, highlightReason]);
+
+  // Auto-clear the SKU highlight once a SKU is saved on the active design
+  useEffect(() => {
+    if (highlightReason !== "sku") return;
+    if (savedDesign?.shopify_sku?.trim()) {
+      setHighlightReason(null);
+    }
+  }, [savedDesign?.shopify_sku, highlightReason]);
 
   const rightPanelOpen = rightPanel !== null;
-  const ghostPos = useDragGhostCursor(!!dragFromPanel);
-  const anyPanelOpen = braceletPanelOpen || rightPanelOpen;
-  // True on smaller desktops (≤1199px); keeps only one side panel open at a time.
-  const isNarrow = useNarrowLayout(braceletPanelOpen, rightPanelOpen, setRightPanel);
+  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
 
-  useLockEnforcement({ isLocked, canEdit, isEditMode, toggleEditMode, setBraceletPanelOpen });
+  const anyPanelOpen = braceletPanelOpen || rightPanelOpen;
+
+  useEffect(() => {
+    if (!dragFromPanel && !reorderDragLabel) return;
+    if (dragFromPanel) document.body.style.cursor = "grabbing";
+    const onMove = (e: PointerEvent) => setGhostPos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("pointermove", onMove);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      document.body.style.cursor = "";
+    };
+  }, [!!dragFromPanel, !!reorderDragLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!canEdit || isLocked) setBraceletPanelOpen(false);
+  }, [canEdit, isLocked]);
+
+  useEffect(() => {
+    if (isLocked && isEditMode) toggleEditMode();
+  }, [isLocked]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track the compact-layout breakpoint reactively (shared with the panel width).
+  useEffect(() => {
+    const mq = window.matchMedia(PANEL_COMPACT_QUERY);
+    const apply = () => setIsNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  // Safety net: if a resize down to a narrow desktop leaves both panels open,
+  // collapse to one. (The open handlers prevent both opening at once otherwise.)
+  useEffect(() => {
+    if (isNarrow && braceletPanelOpen && rightPanelOpen) setRightPanel(null);
+  }, [isNarrow, braceletPanelOpen, rightPanelOpen]);
+
+  const autoOpenKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    // For a saved design, wait until it loads so status/lock are known.
+    if (activeDesignId !== null && !savedDesign) return;
+    const key = activeDesignId !== null ? `id:${activeDesignId}` : `new:${newDocNonce}`;
+    if (autoOpenKeyRef.current === key) return;
+    if (canEdit && !isLocked) {
+      autoOpenKeyRef.current = key;       // mark handled before toggling to avoid a re-run loop
+      if (!isEditMode) toggleEditMode();
+    }
+  }, [activeDesignId, savedDesign, newDocNonce, canEdit, isLocked, isEditMode, toggleEditMode]);
 
   // Global shortcut: E → enter edit mode (mirrors Cmd+Esc which exits it)
   useEffect(() => {
@@ -248,7 +307,7 @@ export function BuilderLayout() {
     <div className="flex h-screen flex-col min-h-[500px] overflow-hidden">
 
       {/* Header */}
-      <header className="flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-6">
+      <header className={`flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-4 lg:px-6 xl:px-8`}>
         <div className="flex flex-1 items-center gap-4">
         <Tooltip content="Open Saved Designs Panel" placement="bottom-end">
             <button
@@ -296,7 +355,7 @@ export function BuilderLayout() {
             <button
               onClick={() => toggleRightPanel("user")}
               className={cn(
-                "flex h-9 w-9 bg-mint items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors",
+                "flex h-9 w-9 bg-blush hover:bg-white items-center justify-center rounded-full text-sm font-bold text-navy border-navy border transition-colors",
                 rightPanel === "user" && "outline outline-navy focus:ring-default focus:ring focus:ring-offset-2"
               )}
               aria-label="Open user profile"
@@ -384,11 +443,14 @@ export function BuilderLayout() {
             <CanvasStatsBar hidden={anyPanelOpen} />
 
             {/* Edit mode action toolbar */}
-            <div className="absolute right-4 lg:right-6 top-4 z-20 pointer-events-none shadow-sm rounded-[2px]">
+            <div className="absolute right-6 xl:right-8 top-4 z-20 pointer-events-none">
               <EditModeToolbar />
             </div>
 
-            <EditModeHelp />
+            {/* Edit mode canvas-navigation cluster (zoom / rotate / view) */}
+            <div className="absolute right-6 xl:right-8 bottom-4 lg:bottom-20 flex items-center justify-center w-fit mx-auto  z-20 pointer-events-none">
+              <CanvasControls />
+            </div>
 
             {canEdit && !isLocked && (
               <BandSelector panelOpen={braceletPanelOpen || rightPanelOpen} />
@@ -485,6 +547,22 @@ export function BuilderLayout() {
         >
           <span className="text-color-base/70">＋</span>
           {dragFromPanel.bead_type ?? dragFromPanel.name}
+        </div>
+      )}
+
+      {reorderDragLabel && !dragFromPanel && (
+        <div
+          style={{
+            position: "fixed",
+            left: ghostPos.x + 12,
+            top:  ghostPos.y + 12,
+            pointerEvents: "none",
+            zIndex: 9999,
+          }}
+          className="rounded-lg bg-navy text-white shadow-lg px-2 py-1 text-sm flex items-center gap-1.5"
+        >
+          <Move size={13} className="opacity-70" />
+          {reorderDragLabel}
         </div>
       )}
 

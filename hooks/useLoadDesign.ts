@@ -64,7 +64,7 @@ export function useLoadDesign() {
           );
           return [{
             instanceId: configBead.instance_id,
-            product: product as unknown as BeadProduct,
+            product: product,
             seedConfig: configBead.seed_config,
           }];
         }
@@ -132,7 +132,7 @@ export function useLoadDesign() {
           );
           return [{
             instanceId: configBead.instance_id,
-            product: product as unknown as BeadProduct,
+            product: product,
             seedConfig: configBead.seed_config,
           }];
         }

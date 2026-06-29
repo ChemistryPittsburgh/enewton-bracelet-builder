@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { getBeadAngle, getBeadPosition, getBeadTransformLine, braceletArc, getEvenSpacingBonus } from "@/lib/bead-layout";
 import {
   CAMERA_DEFAULT_POSITION,
@@ -35,7 +36,7 @@ interface CameraControllerProps {
 }
 
 export function CameraController({ controlsRef }: CameraControllerProps) {
-  const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, selectAllActive, isEvenlySpaced } = useStore((s) => ({
+  const { selectedBead, beads, isEditMode, editViewMode, viewMode, braceletSize, selectAllActive, isEvenlySpaced, canvasTool } = useStore(useShallow((s) => ({
     selectedBead:    s.selectedBead,
     beads:           s.beads,
     isEditMode:      s.isEditMode,
@@ -44,7 +45,8 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     braceletSize:    s.braceletSize,
     selectAllActive: s.selectAllActive,
     isEvenlySpaced:  s.isEvenlySpaced,
-  }));
+    canvasTool:      s.canvasTool,
+  })));
 
   const prevViewModeRef        = useRef(viewMode);
   const prevEditViewModeRef    = useRef(editViewMode);
@@ -60,6 +62,8 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
   beadsRef.current        = beads;
   const braceletSizeRef   = useRef(braceletSize);
   braceletSizeRef.current = braceletSize;
+  const canvasToolRef     = useRef(canvasTool);
+  canvasToolRef.current   = canvasTool;
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -153,6 +157,9 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
           controls!.maxPolarAngle = polar;
         }
         enableEditControls(controls!);
+        // Hand tool: left-drag pans (truck) instead of doing nothing; select
+        // tool leaves left free for bead interaction.
+        controls!.mouseButtons.left = canvasToolRef.current === 'pan' ? 2 : 0;
         controls!.removeEventListener('rest', lockOnRest);
       }
       controls.addEventListener('rest', lockOnRest);
@@ -196,6 +203,14 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       controls.setLookAt(...CAMERA_DEFAULT_POSITION, 0, 0, 0, true);
     }
   }, [viewMode, isEditMode, editViewMode, selectedBead, controlsRef, selectAllActive, isEvenlySpaced]);
+
+  // Live-toggle the hand (pan) tool without repositioning the camera: swap the
+  // left mouse button between bead-interaction (0) and truck/pan (2). 3D edit only.
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls || !isEditMode || viewMode === 'line') return;
+    controls.mouseButtons.left = canvasTool === 'pan' ? 2 : 0;
+  }, [canvasTool, isEditMode, viewMode, controlsRef]);
 
   return null;
 }

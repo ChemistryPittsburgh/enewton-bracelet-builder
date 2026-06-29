@@ -554,24 +554,40 @@ function PresetEditor({
         <p className="text-xs text-color-base/60">Add at least one color from the palette below.</p>
       )}
 
-      {/* Palette */}
-      {available.length > 0 && (
-        <div>
-          <SectionHeading className="mb-1.5">Add color</SectionHeading>
-          <div className="flex flex-wrap gap-1.5">
-            {available.map((c) => (
-              <Tooltip content={c.label} key={c.id}>
-                <button
-                  onClick={() => addColor(c)}
-                  title={c.label}
-                  className="h-6 w-6 rounded-full border border-color-base/30 transition-all hover:ring-2 hover:ring-navy"
-                  style={{ backgroundColor: c.hex }}
-                />
-              </Tooltip>
-            ))}
+      {/* Palette — grouped by finish, mirroring the seed bead picker */}
+      {available.length > 0 && (() => {
+        const metallic = available.filter((c) => c.is_metallic);
+        const matte    = available.filter((c) => !c.is_metallic);
+
+        const swatch = (c: ApiSeedColor) => (
+          <Tooltip content={c.label} key={c.id}>
+            <button
+              onClick={() => addColor(c)}
+              title={c.label}
+              className="h-6 w-6 rounded-full border border-color-base/30 transition-all hover:ring-2 hover:ring-navy"
+              style={{ backgroundColor: c.hex }}
+            />
+          </Tooltip>
+        );
+
+        return (
+          <div>
+            <SectionHeading className="mb-1.5">Add color</SectionHeading>
+            {metallic.length > 0 && (
+              <div className="mb-3">
+                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-color-base/50">Metallic</p>
+                <div className="flex flex-wrap gap-1.5">{metallic.map(swatch)}</div>
+              </div>
+            )}
+            {matte.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-color-base/50">Matte</p>
+                <div className="flex flex-wrap gap-1.5">{matte.map(swatch)}</div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="flex items-center gap-2">
         <Button onClick={submit} disabled={isSaving || !valid} size="sm" variant="secondary">

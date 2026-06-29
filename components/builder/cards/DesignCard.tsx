@@ -5,7 +5,7 @@ import { Archive, CheckCircle, Copy, Eye, Info, LayoutTemplate, Loader2, Lock, M
 import { z } from "zod";
 import type { Bracelet } from "@/types";
 
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +14,7 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useSaveDesignAsPattern } from "@/hooks/useSaveDesignAsPattern";
+import { CATEGORY_STYLES } from "@/lib/category-colors";
 
 const patternNameSchema = z.string().min(1, "Name is required");
 
@@ -98,18 +99,6 @@ function SaveAsPatternDialog({
   );
 }
 
-function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "2-digit",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: true,
-    timeZone: "America/New_York",
-  }).format(new Date(dateStr));
-}
-
 interface DesignCardProps {
   design: Bracelet;
   onClick?: () => void;
@@ -188,6 +177,10 @@ export function DesignCard({
 
   const isLive = design.status === "published" && !isDiscontinued;
 
+  // Collection chip — show the first collection (with a +N for the rest).
+  const firstCollection = design.collections?.[0] ?? null;
+  const extraCollections = Math.max(0, (design.collections?.length ?? 0) - 1);
+
   const hasWorkflowActions = showSubmit || showApprove || showReject;
   const hasAdminActions    = showDiscontinue || showDelete;
 
@@ -206,7 +199,7 @@ export function DesignCard({
       <div className="relative aspect-square w-full bg-neutral-50">
         {/* Discontinued badge */}
         {isDiscontinued && (
-          <div className="absolute left-2 top-2 z-10 rounded-full bg-error/30 px-2 py-0.5 text-[10px] font-semibold text-error">
+          <div className="absolute left-0 top-0 w-full z-10 text-center px-2 bg-error/30 py-1 text-[10px] font-semibold text-error">
             Discontinued
           </div>
         )}
@@ -233,6 +226,23 @@ export function DesignCard({
         {/* Pulse skeleton — visible while the image is loading */}
           {imgState === "loading" && (
             <div className="absolute inset-0 animate-pulse bg-light-grey" />
+          )}
+        {firstCollection && !isDiscontinued && (
+            <div className="absolute left-2 top-2 min-w-0">
+              <Tooltip content={`Collections: ${design.collections.map((c) => c.name).join(", ")}`} className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    "inline-flex min-w-0 max-w-full items-center truncate rounded-[2px] border border-navy px-2 py-0.5 text-[11px] font-medium text-navy",
+                    CATEGORY_STYLES.collection.bg,
+                  )}
+                >
+                  {firstCollection.name}
+                </span>
+                {extraCollections > 0 && (
+                  <span className="shrink-0 text-[10px] font-medium text-color-base/50">+{extraCollections}</span>
+                )}
+              </Tooltip>
+            </div>
           )}
 
           {/* Actual image */}
@@ -418,9 +428,9 @@ export function DesignCard({
 
       {/* Card footer */}
       <div className="flex gap-2 justify-between px-3 py-3">
-        <div className="flex flex-col gap-1 flex-1">
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="text-sm font-medium">{design.name}</p>
+            <p className="text-sm font-medium truncate">{design.name}</p>
           </div>
           {design.updated_at && (
             <p className="text-xs text-color-base/70"><span className="text-color-base/70 max-xl:hidden">Last Updated: </span>{formatDate(design.updated_at)}</p>

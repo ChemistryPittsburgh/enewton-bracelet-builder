@@ -57,7 +57,7 @@ export function FloatingDialog({
         onClick={handleToggle}
         title={open ? `Close ${buttonTitle}` : `Open ${buttonTitle}`}
         className={cn(
-          "group transition-transform duration-200",
+          "toggle-btn group transition-transform duration-200",
           includeTitleBar
             ? "flex w-full items-center justify-between px-3 py-2"
             : "absolute right-2 top-2 z-10 icon-only-btn"
@@ -69,7 +69,7 @@ export function FloatingDialog({
 
         <div
           className={cn(
-            "flex items-center justify-center rounded-full text-color-base/70",
+            "toggle-btn-icon flex items-center justify-center rounded-full text-color-base/70",
             includeTitleBar ?
               "h-7 w-7 border border-default group-hover:bg-mint group-hover:ring-2 group-hover:ring-navy"
               : ""

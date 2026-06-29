@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { getBeadAngle, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
 import type { BeadProduct, PlacedBead } from "@/types";
 
@@ -101,6 +102,24 @@ export function useBraceletReorderDrag(
       editSelectedIds.includes(draggedBead.instanceId) &&
       editSelectedIds.length > 1;
 
+    // const dragLabel = isGroupDrag ? (
+    //   `${editSelectedIds.length} items`
+    // ) : (
+    //   draggedBead?.product.bead_type ?? draggedBead?.product.name ?? "Item";
+    // useStore.getState().setReorderDragLabel(dragLabel);
+
+    let dragLabel: string = "Item";
+    if(isGroupDrag) {
+      dragLabel = `${editSelectedIds.length} items`;
+    } else if(draggedBead?.product.bead_type) {
+      dragLabel = draggedBead?.product.size_mm ? `${draggedBead?.product.bead_type} ${draggedBead?.product.size_mm}mm` : draggedBead?.product.bead_type; 
+    } else if(draggedBead?.product.name) {
+      dragLabel = draggedBead?.product.name;
+    } else {
+      dragLabel = "Item";
+    }
+    useStore.getState().setReorderDragLabel(dragLabel);
+
     if (isGroupDrag) {
       const groupFromIndices = editSelectedIds
         .map((id) => beads.findIndex((b) => b.instanceId === id))
@@ -168,6 +187,7 @@ export function useBraceletReorderDrag(
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       gl.domElement.style.cursor = "";
+      useStore.getState().setReorderDragLabel(null);
     };
   }, [isDragging]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -182,11 +202,11 @@ export function usePanelDrop(
   viewModeRef: React.RefObject<"3D" | "line">
 ): { panelDropSlot: number | null; dragFromPanel: BeadProduct | null } {
   const { gl, camera } = useThree();
-  const { dragFromPanel, insertBead, setDragFromPanel } = useStore((s) => ({
+  const { dragFromPanel, insertBead, setDragFromPanel } = useStore(useShallow((s) => ({
     dragFromPanel:    s.dragFromPanel,
     insertBead:       s.insertBead,
     setDragFromPanel: s.setDragFromPanel,
-  }));
+  })));
   const [panelDropSlot, setPanelDropSlot] = useState<number | null>(null);
 
   const dragFromPanelRef = useRef(dragFromPanel);

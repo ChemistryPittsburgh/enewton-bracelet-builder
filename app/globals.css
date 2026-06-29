@@ -19,6 +19,7 @@
   --color-error: var(--color-rose-700);
   --color-green: var(--color-emerald-600);
   --color-orange: #c0774a;
+  --color-edit: #E8EEF3;
 
   --color-color-base: #2E3340;
 
@@ -150,6 +151,21 @@ h2 {
   animation: slide-up 0.5s ease-in both;
 }
 
+@keyframes help-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.5); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-help-in { animation: help-in 0.22s ease-out both; transform-origin: top right; }
+
+@keyframes help-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-6px) scale(0.5); }
+}
+.animate-help-out {
+  animation: help-out 0.22s ease-in both;
+  transform-origin: top right;
+}
+
 .avatar {
   background-color: var(--color-navy);
   color: var(--color-white);
@@ -165,11 +181,11 @@ h2 {
   padding: 0.3em;
   border-radius: 3px;
   background-color: transparent;
-  color: color-mix(in srgb, var(--color-text-base) 60%, transparent);
+  color: color-mix(in srgb, var(--color-color-base) 60%, transparent);
   &:hover,
   &:focus {
     background-color: var(--color-light-grey);
-    color: var(--color-text-base);
+    color: var(--color-color-base);
   }
   &.inactive {
     &:hover,
@@ -189,7 +205,7 @@ h2 {
 .manage-bead-row:hover,
 .manage-bead-row:focus {
   .icon-only-btn {
-    color: color-mix(in srgb, var(--color-text-base) 80%, transparent);
+    color: color-mix(in srgb, var(--color-color-base) 80%, transparent);
   }
 }
 
@@ -269,6 +285,41 @@ h2 {
     .close-btn {
       background-color: white;
       color: var(--color-color-base);
+    }
+  }
+}
+
+.band-selector-edit-mode {
+  &.open {
+    border: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    .toggle-btn {
+      border:none;
+      border-bottom: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    }
+  }
+  &.panel-open {
+    .toggle-btn {
+      border-top: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    }
+    &.open .toggle-btn {
+      border-top: none;
+    }
+  }
+  .toggle-btn {
+    background-color: white;
+    border-left: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--color-color-base) 30%, transparent);
+    height: 50px;
+    &:hover,
+    &:focus {
+      background-color: var(--color-light-grey);
+    }
+  }
+  .toggle-btn-icon {
+    background-color: color-mix(in srgb, #FFF 70%, transparent);
+    &:hover,
+    &:focus {
+      background-color: color-mix(in srgb, #FFF 100%, transparent);
     }
   }
 }

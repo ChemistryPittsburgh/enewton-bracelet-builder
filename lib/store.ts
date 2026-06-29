@@ -50,6 +50,11 @@ interface Store {
 
   /** Add a seed bead segment. Returns an error string or null. */
   addSeedSegment: (product: BeadProduct, seedConfig: SeedSegmentConfig) => string | null;
+  /** Insert an evenly-sized seed run between each currently-placed bead, so the
+   *  placed beads end up evenly spaced with seed beads filling every gap. */
+  fillGapsWithSeeds: (
+    makeFiller: (arcMm: number) => { product: BeadProduct; seedConfig: SeedSegmentConfig },
+  ) => string | null;
 
   /** Remove a bead by instanceId. Closes the panel if that bead was selected. */
   removeBead: (instanceId: string) => void;
@@ -63,6 +68,9 @@ interface Store {
   /** Start a new bracelet preserving the current size and material — used by
    *  the "New Bracelet" button so the user's preferred size is not discarded. */
   startNewBracelet: () => void;
+  /** Bumped on every fresh-document action (new / copy / from-pattern) so the
+   *  builder can auto-open edit mode once per new bracelet. */
+  newDocNonce: number;
 
   copyBracelet: () => void;
 
@@ -148,7 +156,8 @@ interface Store {
   /** When true, beads are rendered with equal spacing around the bracelet. Purely visual — does not affect capacity. */
   isEvenlySpaced: boolean;
   toggleEvenlySpaced: () => void;
-  setIsEvenlySpaced: (v: boolean) => void;
+  /** Set the flag to an explicit value (used when restoring a loaded design). */
+  setIsEvenlySpaced: (value: boolean) => void;
 
   bandMaterial: BandMaterial;
   braceletSize: BraceletSize;
@@ -186,6 +195,9 @@ interface Store {
   /** Ephemeral — not persisted. Which camera view is active in edit mode. */
   editViewMode: 'top' | 'side';
   toggleEditViewMode: () => void;
+  /** Active canvas tool in edit mode: 'select' grabs beads, 'pan' drags the view (hand tool). */
+  canvasTool: 'select' | 'pan';
+  setCanvasTool: (tool: 'select' | 'pan') => void;
 
   /** Ephemeral — not persisted. Which canvas view is active. */
   viewMode: '3D' | 'line';
@@ -194,6 +206,11 @@ interface Store {
   /** Ephemeral — not persisted. Bead being dragged from the selector panel onto the canvas. */
   dragFromPanel: BeadProduct | null;
   setDragFromPanel: (product: BeadProduct | null) => void;
+
+  /** Ephemeral — not persisted. Label of the item(s) being reordered in-canvas;
+   *  drives the cursor drag chip. null when no reorder drag is in progress. */
+  reorderDragLabel: string | null;
+  setReorderDragLabel: (label: string | null) => void;
 
   /** Insert a new bead at a specific slot index. Returns an error string or null. */
   insertBead: (product: BeadProduct, atIndex: number) => string | null;
@@ -298,33 +315,21 @@ const CLEAR_EDIT_REPLACE: Pick<
   editSelectedIds: [],
 };
 
-/** Shared fields for entering edit + replace mode atomically. */
-function editReplaceFields(viewMode: '3D' | 'line') {
-  return {
-    isEditMode:              true,
-    editViewMode:            viewMode === 'line' ? 'side' : 'top',
-    selectedBead:            null,
-    editReplaceMode:         true,
-    editReplaceNarrowedIds:  null,
-    editSelectionGroups:     [] as string[][],
-    editSelectedIds:         [] as string[],
-    ...CLEAR_REPLACE_TARGETS,
-  } as const;
-}
-
 /** Drop a set of instanceIds from the edit selection, frozen groups, and the
  *  narrowed subset in one place — shared by removeBead and the replace actions. */
 function pruneEditSelection(
-  s: Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds">,
+  s: Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds" | "replaceSeedTargetIds">,
   removed: Set<string>,
-): Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds"> {
+): Pick<Store, "editSelectionGroups" | "editSelectedIds" | "editReplaceNarrowedIds" | "replaceSeedTargetIds"> {
   const narrowed = s.editReplaceNarrowedIds?.filter((id) => !removed.has(id)) ?? null;
+  const seedTargets = s.replaceSeedTargetIds?.filter((id) => !removed.has(id)) ?? null;
   return {
     editSelectionGroups: s.editSelectionGroups
       .map((g) => g.filter((id) => !removed.has(id)))
       .filter((g) => g.length > 0),
     editSelectedIds: s.editSelectedIds.filter((id) => !removed.has(id)),
     editReplaceNarrowedIds: narrowed && narrowed.length ? narrowed : null,
+    replaceSeedTargetIds: seedTargets && seedTargets.length ? seedTargets : null,
   };
 }
 
@@ -347,10 +352,12 @@ export const useStore = create<Store>()(
       showCharmCollisions: false,
       setShowCharmCollisions: (show) => set({ showCharmCollisions: show }),
       editSelectedIds: [],
-      editViewMode: 'top' as const,
+      editViewMode: 'side' as const,
+      canvasTool: 'select' as const,
       selectAllActive: false,
       viewMode: '3D' as const,
       dragFromPanel: null,
+      reorderDragLabel: null,
       replaceTargetInstanceId: null,
       replaceAllTargetProductId: null, replaceSeedTargetIds: null,
       editReplaceMode: false,
@@ -358,6 +365,7 @@ export const useStore = create<Store>()(
       editSelectionGroups: [],
       canvasEl: null,
       activeDesignId: null,
+      newDocNonce: 0,
       activePatternId: null,
       pendingDesign: null,
       pendingDesignOnLoad: null,
@@ -434,6 +442,49 @@ export const useStore = create<Store>()(
         return null;
       },
 
+      fillGapsWithSeeds(makeFiller) {
+        const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
+        const anchors = get().beads;
+        if (anchors.length === 0) {
+          return "Place a few beads first, then fill the gaps between them.";
+        }
+
+        // One seed run after every anchor (the last sits across the seam). Each run
+        // reserves an equal arc, so the anchors come out evenly spaced around the loop.
+        const build = (mm: number): PlacedBead[] => {
+          const seq: PlacedBead[] = [];
+          for (const a of anchors) {
+            seq.push(a);
+            const { product, seedConfig } = makeFiller(mm);
+            seq.push({ instanceId: nanoid(), product, seedConfig });
+          }
+          return seq;
+        };
+
+        // Exact per-gap arc: lay the sequence out with zero-width seed probes to
+        // capture the anchor footprints AND the charm↔seed spacing, then split the
+        // arc that's actually left equally. (A flat safety margin left visible slack
+        // that pooled at the seam.) Floor only to dodge floating-point overflow.
+        const usedArc0 = usedArc(build(0));
+        let gapMm = Math.floor(((braceletArc(radius) - usedArc0) / anchors.length) * 1000 * 10) / 10;
+        if (gapMm <= 0) return "There's no room left to add seed beads between them.";
+
+        let seq = build(gapMm);
+        let guard = 0;
+        while (usedArc(seq) > braceletArc(radius) && gapMm > 0 && guard < 8) {
+          gapMm = Math.max(0, Math.floor((gapMm - 0.1) * 10) / 10);
+          seq = build(gapMm);
+          guard++;
+        }
+        if (gapMm <= 0 || usedArc(seq) > braceletArc(radius)) {
+          return "There's no room left to add seed beads between them.";
+        }
+
+        get().pushUndoSnapshot();
+        set({ beads: seq, isDirty: true });
+        return null;
+      },
+
       removeBead(instanceId) {
         get().pushUndoSnapshot();
         set((s) => ({
@@ -447,7 +498,7 @@ export const useStore = create<Store>()(
 
       clearBeads() {
         get().pushUndoSnapshot();
-        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, isEvenlySpaced: false, ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE });
+        set({ beads: [], selectedBead: null, beadLoadErrors: [], activeDesignId: null, activePatternId: null, isDirty: false, ...CLEAR_REPLACE_TARGETS, ...CLEAR_EDIT_REPLACE });
       },
 
       resetBracelet: () => set({
@@ -458,7 +509,6 @@ export const useStore = create<Store>()(
         activePatternId: null,
         selectedBead: null,
         isDirty: false,
-        isEvenlySpaced: false,
         braceletSize: "medium" as BraceletSize,
         bandMaterial: "stretchy" as BandMaterial,
         undoStack: [],
@@ -467,7 +517,7 @@ export const useStore = create<Store>()(
         ...CLEAR_EDIT_REPLACE,
       }),
 
-      startNewBracelet: () => set({
+      startNewBracelet: () => set((s) => ({
         beads: [],
         braceletName: "New Bracelet",
         braceletDescription: "",
@@ -475,13 +525,13 @@ export const useStore = create<Store>()(
         activePatternId: null,
         selectedBead: null,
         isDirty: false,
-        isEvenlySpaced: false,
         undoStack: [],
         redoStack: [],
+        newDocNonce: s.newDocNonce + 1, // fresh document → builder auto-opens edit mode
         ...CLEAR_REPLACE_TARGETS,
         ...CLEAR_EDIT_REPLACE,
         // braceletSize and bandMaterial intentionally preserved
-      }),
+      })),
 
       copyBracelet: () =>
         set((s) => ({
@@ -492,16 +542,26 @@ export const useStore = create<Store>()(
               ? `Copy of ${s.braceletName}`
               : DEFAULT_BRACELET_NAME,
           isDirty: true,             // so Save creates a new bracelet
+          newDocNonce: s.newDocNonce + 1,
         })),
 
       newBraceletFromPattern: () =>
         set((s) => ({
-          activeDesignId: null,
-          activePatternId: null,
-          braceletName: DEFAULT_BRACELET_NAME,
-          isDirty: true,
-          isEvenlySpaced: false,
-          ...editReplaceFields(s.viewMode),
+          activeDesignId: null,      // detach from the saved design
+          activePatternId: null,     // stop editing the pattern → Save makes a new design
+          braceletName: DEFAULT_BRACELET_NAME, // fresh bracelet, not "Copy of …"
+          isDirty: true,             // so Save creates a new bracelet
+          newDocNonce: s.newDocNonce + 1,
+          // drop straight into edit + replace mode, mirroring create-from-pattern
+          isEditMode: true,
+          editViewMode: 'side',
+          canvasTool: 'select',
+          selectedBead: null,
+          editReplaceMode: true,
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          editSelectedIds: [],
+          ...CLEAR_REPLACE_TARGETS,
         })),
 
       selectBead(bead) {
@@ -860,8 +920,12 @@ export const useStore = create<Store>()(
       selectAllOfType() {
         const { beads, selectedBead, isEditMode } = get();
         if (!selectedBead) return;
+        // Match by bead key, not product id: seed segments each carry their own
+        // generated product id (a fill run gets a fresh random seed per gap), so
+        // product-id matching would only ever catch the one clicked segment.
+        const key = beadMatchKey(selectedBead);
         const matchingIds = beads
-          .filter((b) => b.product.id === selectedBead.product.id)
+          .filter((b) => beadMatchKey(b) === key)
           .map((b) => b.instanceId);
         set({
           selectAllActive: true,
@@ -873,7 +937,10 @@ export const useStore = create<Store>()(
         const { beads, selectedBead } = get();
         if (!selectedBead) return;
         get().pushUndoSnapshot();
-        const filtered = beads.filter((b) => b.product.id !== selectedBead.product.id);
+        // Same keying as selectAllOfType so "Remove all of this kind" clears every
+        // matching seed run, not just the segment that happened to be clicked.
+        const key = beadMatchKey(selectedBead);
+        const filtered = beads.filter((b) => beadMatchKey(b) !== key);
         set({ beads: filtered, selectedBead: null, selectAllActive: false, editSelectedIds: [], isDirty: true });
       },
 
@@ -977,8 +1044,8 @@ export const useStore = create<Store>()(
       },
 
       isEvenlySpaced: false,
-      toggleEvenlySpaced: () => set((s) => ({ isEvenlySpaced: !s.isEvenlySpaced, isDirty: true })),
-      setIsEvenlySpaced: (v) => set({ isEvenlySpaced: v }),
+      toggleEvenlySpaced: () => set((s) => ({ isEvenlySpaced: !s.isEvenlySpaced })),
+      setIsEvenlySpaced: (value) => set({ isEvenlySpaced: value }),
 
       setbandMaterial: (bandMaterial) => set({ bandMaterial, isDirty: true }),
       setBraceletSize: (braceletSize) => set({ braceletSize, isDirty: true }),
@@ -1012,7 +1079,8 @@ export const useStore = create<Store>()(
           isEditMode: !s.isEditMode,
           selectedBead: null,
           editSelectedIds: [],
-          editViewMode: s.viewMode === 'line' ? 'side' : 'top',
+          editViewMode: 'side',
+          canvasTool: 'select',
           editReplaceMode: false,
           editReplaceNarrowedIds: null,
           editSelectionGroups: [],
@@ -1020,22 +1088,40 @@ export const useStore = create<Store>()(
       },
 
       enterEditReplaceMode() {
-        set((s) => ({ ...editReplaceFields(s.viewMode) }));
+        set((s) => ({
+          isEditMode: true,
+          editViewMode: 'side',
+          selectedBead: null,
+          editReplaceMode: true,
+          editReplaceNarrowedIds: null,
+          editSelectionGroups: [],
+          editSelectedIds: [],
+          ...CLEAR_REPLACE_TARGETS,
+        }));
       },
 
       toggleEditViewMode() {
         set((s) => ({ editViewMode: s.editViewMode === 'top' ? 'side' : 'top' }));
       },
 
+      setCanvasTool(tool) {
+        set({ canvasTool: tool });
+      },
+
       setViewMode(mode) {
         set((s) => ({
           viewMode: mode,
-          editViewMode: s.isEditMode ? (mode === 'line' ? 'side' : 'top') : s.editViewMode,
+          editViewMode: s.isEditMode ? 'side' : s.editViewMode,
+          canvasTool: 'select',
         }));
       },
 
       setDragFromPanel(product) {
         set({ dragFromPanel: product });
+      },
+
+      setReorderDragLabel(label) {
+        set({ reorderDragLabel: label });
       },
 
       setCanvasEl(el) {
