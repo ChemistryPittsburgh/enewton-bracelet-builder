@@ -19,6 +19,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { usePermissions } from "@/hooks/usePermissions";
+import { toast } from "@/lib/toast";
 import type { Bracelet } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ export function useSubmitDesign() {
       if (!canSubmit) throw new Error("Permission denied: is_bracelet_editor or is_admin required.");
       return apiFetch<Bracelet>(`/designs/${id}/submit`, { method: "POST" });
     },
-    onSuccess: (data) => invalidateDesign(queryClient, data),
+    onSuccess: (data) => { invalidateDesign(queryClient, data); toast.success('Submitted for review'); },
   });
 
   return { ...mutation, canSubmit };
@@ -66,7 +67,7 @@ export function useApproveDesign() {
       if (!canApprove) throw new Error("Permission denied: is_reviewer or is_admin required.");
       return apiFetch<Bracelet>(`/designs/${id}/approve`, { method: "POST" });
     },
-    onSuccess: (data) => invalidateDesign(queryClient, data),
+    onSuccess: (data) => { invalidateDesign(queryClient, data); toast.success('Design approved'); },
   });
 
   return { ...mutation, canApprove };
@@ -89,7 +90,7 @@ export function useRejectDesign() {
         body: JSON.stringify({ reason: reason ?? null }),
       });
     },
-    onSuccess: (data) => invalidateDesign(queryClient, data),
+    onSuccess: (data) => { invalidateDesign(queryClient, data); toast.success('Design rejected'); },
   });
 
   return { ...mutation, canReject: canReview };
@@ -111,7 +112,7 @@ export function usePublishDesign() {
       if (!canPublish) throw new Error("Permission denied: is_publisher or is_admin required.");
       return apiFetch<Bracelet>(`/designs/${id}/publish`, { method: "POST" });
     },
-    onSuccess: (data) => invalidateDesign(queryClient, data),
+    onSuccess: (data) => { invalidateDesign(queryClient, data); toast.success('Design published'); },
   });
 
   return { ...mutation, canPublish };
@@ -133,7 +134,7 @@ export function useUnPublishDesign() {
       if (!canUnPublish) throw new Error("Permission denied: is_publisher or is_admin required.");
       return apiFetch<Bracelet>(`/designs/${id}/unpublish`, { method: "POST" });
     },
-    onSuccess: (data) => invalidateDesign(queryClient, data),
+    onSuccess: (data) => { invalidateDesign(queryClient, data); toast.success('Moved back to draft'); },
   });
 
   return { ...mutation, canUnPublish };
@@ -154,7 +155,7 @@ export function useSendToDraft() {
       if (!canSendToDraft) throw new Error("Permission denied: is_bracelet_editor or is_admin required.");
       return apiFetch<Bracelet>(`/designs/${id}/send-to-draft`, { method: "POST" });
     },
-    onSuccess: (data) => invalidateDesign(queryClient, data),
+    onSuccess: (data) => { invalidateDesign(queryClient, data); toast.success('Moved back to draft'); },
   });
 
   return { ...mutation, canSendToDraft };
@@ -177,7 +178,7 @@ export function useReopenDesign() {
     mutationFn(id: number) {
       return apiFetch<Bracelet>(`/designs/${id}/reopen`, { method: "POST" });
     },
-    onSuccess: (data) => invalidateDesign(queryClient, data),
+    onSuccess: (data) => { invalidateDesign(queryClient, data); toast.success('Reopened as draft'); },
   });
 
   return { ...mutation, canReopen: canEdit };
@@ -200,6 +201,7 @@ export function useDiscontinueDesign() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["designs"] });
+      toast.success('Design discontinued');
     },
   });
 
@@ -223,6 +225,7 @@ export function useUndiscontinueDesign() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["designs"] });
+      toast.success('Design reactivated');
     },
   });
 
@@ -249,7 +252,7 @@ export function useSetDesignSku() {
         body: JSON.stringify({ shopify_sku }),
       });
     },
-    onSuccess: (data) => invalidateDesign(queryClient, data),
+    onSuccess: (data) => { invalidateDesign(queryClient, data); toast.success('SKU saved'); },
   });
 
   return { ...mutation, canSetSku };

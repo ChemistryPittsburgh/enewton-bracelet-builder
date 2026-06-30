@@ -170,6 +170,11 @@ interface Store {
   beadLoadErrors: { instanceId: string; name: string; filename: string }[];
   addBeadLoadError: (instanceId: string, name: string, filename: string) => void;
 
+  /** Ephemeral — not persisted. Transient toast notifications (success/error/info). */
+  toasts: { id: string; type: "success" | "error" | "info"; message: string }[];
+  addToast: (toast: { type?: "success" | "error" | "info"; message: string; durationMs?: number }) => void;
+  removeToast: (id: string) => void;
+
   /** Ephemeral — not persisted. Bead(s) selected inside edit mode — drives EditModeToolbar. */
   editSelectedIds: string[];
   /** Replace selection with a single bead (normal click). */
@@ -347,6 +352,7 @@ export const useStore = create<Store>()(
       braceletSize: "medium" as BraceletSize,
       hairtieColor: "gray",
       beadLoadErrors: [],
+      toasts: [],
       isEditMode: false,
 
       showCharmCollisions: false,
@@ -1180,6 +1186,19 @@ export const useStore = create<Store>()(
           if (s.beadLoadErrors.some((e) => e.instanceId === instanceId)) return s;
           return { beadLoadErrors: [...s.beadLoadErrors, { instanceId, name, filename }] };
         });
+      },
+
+      addToast({ type = "success", message, durationMs = 3200 }) {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        set((s) => ({ toasts: [...s.toasts, { id, type, message }] }));
+        if (durationMs > 0 && typeof window !== "undefined") {
+          window.setTimeout(() => {
+            set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+          }, durationMs);
+        }
+      },
+      removeToast(id) {
+        set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
       },
     }),
     {

@@ -84,15 +84,6 @@ export function PatternCard({ pattern, canDelete, onLoad, onEdit }: PatternCardP
       {/* Footer */}
       <div className="flex flex-col items-center justify-between gap-2 px-3 py-3">
         <p className="truncate text-sm font-medium">{pattern.name}</p>
-        <Button
-          onClick={(e) => { e.stopPropagation(); onLoad(); }}
-          size="xs"
-          variant="secondary"
-          className="w-full group-hover:bg-white"
-        >
-          <Plus size={10} />
-          create bracelet from pattern
-        </Button>
       </div>
 
       {/* Inline delete confirmation */}
