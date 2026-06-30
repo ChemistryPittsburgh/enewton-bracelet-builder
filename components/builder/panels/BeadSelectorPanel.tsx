@@ -109,7 +109,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const editReplaceMode = useStore((s) => s.editReplaceMode);
   const editReplaceNarrowedIds = useStore((s) => s.editReplaceNarrowedIds);
   const editSelectedIds = useStore((s) => s.editSelectedIds);
-  const editSelectionGroups = useStore((s) => s.editSelectionGroups);
+  const groups = useStore((s) => s.groups);
   const placedBeads = useStore((s) => s.beads);
   const braceletSize = useStore((s) => s.braceletSize);
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -133,16 +133,16 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     if (!isEditReplace && !isImplicitEditReplace) return [];
     if (isEditReplace) {
       if (editReplaceNarrowedIds !== null) {
-        // In explicit mode, IDs live in editSelectionGroups (editSelectedIds is empty) — skip the filter.
+        // In explicit mode, IDs live in groups (editSelectedIds is empty) — skip the filter.
         // In auto mode, confirm the IDs are still in the active selection.
-        return editSelectionGroups.length > 0
+        return groups.length > 0
           ? editReplaceNarrowedIds
           : editReplaceNarrowedIds.filter((id) => editSelectedIds.includes(id));
       }
       return editSelectedIds;
     }
     return editSelectedIds;
-  }, [isEditReplace, isImplicitEditReplace, editReplaceNarrowedIds, editSelectedIds, editSelectionGroups]);
+  }, [isEditReplace, isImplicitEditReplace, editReplaceNarrowedIds, editSelectedIds, groups]);
 
   // Beads remaining after the replace targets are removed — shared by fit functions below.
   const withoutTargets = useMemo(

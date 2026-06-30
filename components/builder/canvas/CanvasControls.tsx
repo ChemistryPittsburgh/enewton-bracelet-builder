@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Orbit, SwitchCamera } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Orbit, SwitchCamera, Palette } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -26,7 +26,7 @@ const ROTATE_STEP = Math.PI / 7.5;
  * instance (store `controlsEl`) the same way the old top-bar zoom buttons did.
  */
 export function CanvasControls() {
-  const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool } = useStore(useShallow((s) => ({
+  const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool, editBgVariant, toggleEditBgVariant } = useStore(useShallow((s) => ({
     isEditMode: s.isEditMode,
     viewMode: s.viewMode,
     editViewMode: s.editViewMode,
@@ -34,6 +34,8 @@ export function CanvasControls() {
     controlsEl: s.controlsEl,
     canvasTool: s.canvasTool,
     setCanvasTool: s.setCanvasTool,
+    editBgVariant: s.editBgVariant,
+    toggleEditBgVariant: s.toggleEditBgVariant,
   })));
 
   const isLooking = canvasTool === 'look';
@@ -69,8 +71,19 @@ export function CanvasControls() {
     }
   }
 
+  // Sync zoomDistance when the camera is moved by scroll wheel or other
+  // non-button means (enableArrangeControls/enableFreeControls enable DOLLY).
+  useEffect(() => {
+    if (!controlsEl) return;
+    function syncDistance() {
+      setZoomDistance(controlsEl!.distance);
+    }
+    controlsEl.addEventListener('rest', syncDistance);
+    return () => controlsEl.removeEventListener('rest', syncDistance);
+  }, [controlsEl]);
+
   // Keyboard shortcuts mirroring each button: V toggles view (works in both
-  // views); +/- zoom, [ ] rotate, H pan are 3D-only (like the buttons).
+  // views); +/- zoom, [ ] rotate, L look are 3D-only (like the buttons).
   useEffect(() => {
     if (!isEditMode) return;
     function onKey(e: KeyboardEvent) {
@@ -158,6 +171,17 @@ export function CanvasControls() {
             label={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
           >
             <SwitchCamera size={22} />
+          </EditBtn>
+        </Tooltip>
+        <Tooltip content={`Switch to ${editBgVariant === 'blue' ? 'beige' : 'blue'} background`} placement="top">
+          <EditBtn onClick={toggleEditBgVariant} label="Toggle background">
+            <span className="relative">
+              <Palette size={22} />
+              <span
+                className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-white"
+                style={{ background: editBgVariant === 'blue' ? '#f5f0eb' : '#E8EEF3' }}
+              />
+            </span>
           </EditBtn>
         </Tooltip>
       </div>

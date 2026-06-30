@@ -19,6 +19,7 @@
  */
 
 import { FLOAT_CHARM_THIN_SCALE } from "@/lib/constants";
+import type { BeadGroup, PlacedBead } from "@/types";
 
 // ─── Bracelet constants ───────────────────────────────────────────────────────
 
@@ -159,6 +160,53 @@ export function getEvenSpacingBonus(beads: BeadLike[], radius: number): number {
   return Math.max(0, bonus);
 }
 
+/**
+ * Combines saved groups and the pending (unsaved) selection into a single
+ * flat string[][] so the spacing calculation treats the active selection as
+ * the next group, matching how the Replace dialog already displays it.
+ */
+export function buildEffectiveGroups(
+  savedGroups: BeadGroup[],
+  pendingIds: string[],
+): string[][] {
+  const saved = savedGroups.map((g) => g.instanceIds);
+  return pendingIds.length > 0 ? [...saved, pendingIds] : saved;
+}
+
+/**
+ * Group-aware variant of getEvenSpacingBonus. When explicit replacement groups
+ * are active, beads within the same group are treated as one visual unit — no
+ * extra gap is inserted between adjacent same-group beads. The full leftover arc
+ * is divided by the number of units (groups + ungrouped beads) and applied only
+ * at group boundaries.
+ *
+ * Returns a per-gap array (index i = extra spacing between bead[i] and bead[i+1]).
+ */
+export function getGroupSpacingBonuses(
+  beads: PlacedBead[],
+  groups: string[][],
+  radius: number,
+): number[] {
+  if (beads.length === 0) return [];
+  const idToGroup = new Map<string, number>();
+  groups.forEach((group, g) => group.forEach((id) => idToGroup.set(id, g)));
+
+  const ungroupedCount = beads.filter((b) => !idToGroup.has(b.instanceId)).length;
+  const numUnits = groups.length + ungroupedCount;
+  const gapBonus = numUnits > 0
+    ? Math.max(0, (braceletArc(radius) - usedArc(beads)) / numUnits)
+    : 0;
+
+  return beads.map((bead, i) => {
+    if (i === beads.length - 1) return 0;
+    const nextBead = beads[i + 1];
+    const thisGroup = idToGroup.get(bead.instanceId);
+    const nextGroup = idToGroup.get(nextBead.instanceId);
+    if (thisGroup !== undefined && nextGroup !== undefined && thisGroup === nextGroup) return 0;
+    return gapBonus;
+  });
+}
+
 /** Total cord length consumed by beads - how much room left */
 export function usedArc(beads: BeadLike[]): number {
   if (beads.length === 0) return 0;
@@ -279,12 +327,13 @@ export function getBeadAngle(
   slotIndex: number,
   beads: BeadLike[],
   radius = BRACELET_RADIUS,
-  extraSpacingPerGap = 0,
+  extraSpacingPerGap: number | number[] = 0,
 ): number {
   let angle = START_ANGLE_OFFSET + selfHalf(beads[0]) / radius;
 
   for (let i = 0; i < slotIndex; i++) {
-    angle += (pairAdvance(beads[i], beads[i + 1]) + extraSpacingPerGap) / radius;
+    const extra = Array.isArray(extraSpacingPerGap) ? (extraSpacingPerGap[i] ?? 0) : extraSpacingPerGap;
+    angle += (pairAdvance(beads[i], beads[i + 1]) + extra) / radius;
   }
 
   return angle;
@@ -310,7 +359,7 @@ export function getBeadTransform(
   slotIndex: number,
   beads: BeadLike[],
   radius = BRACELET_RADIUS,
-  extraSpacingPerGap = 0,
+  extraSpacingPerGap: number | number[] = 0,
 ): {
   position: [number, number, number];
   outerRotation: [number, number, number];

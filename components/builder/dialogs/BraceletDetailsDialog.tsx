@@ -220,14 +220,14 @@ export function BraceletDetailsDialog({ open, onClose, isKicked = false }: Brace
                   onChange={(e) => setLocalName(e.target.value)}
                   placeholder="Bracelet name"
                   autoFocus
-                  className="w-full rounded-[2px] border border-default px-3 py-1.5 text-base font-semibold text-color-base/70 focus:border-navy focus:ring-navy focus:outline-none"
+                  className="w-full rounded-[2px] border border-default px-3 py-1.5 text-base font-semibold text-color-base/70 focus:border-navy focus:ring-2 focus:ring-navy focus:outline-none"
                 />
                 <textarea
                   value={localDescription}
                   onChange={(e) => setLocalDescription(e.target.value)}
                   placeholder="Add a description…"
                   rows={3}
-                  className="w-full resize-none rounded-[2px] border border-default px-3 py-1.5 text-sm text-color-base/70 focus:border-navy focus:ring-navy focus:outline-none"
+                  className="w-full resize-none rounded-[2px] border border-default px-3 py-1.5 text-sm text-color-base/70 focus:border-navy focus:ring-2 focus:ring-navy focus:outline-none"
                 />
                 <div className="flex items-center gap-2">
                   <Button

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus, CORD_RADIUS } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus, getGroupSpacingBonuses, buildEffectiveGroups, CORD_RADIUS } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import { 
   BRACELET_SIZE_RADIUS, 
@@ -161,7 +161,9 @@ export function BeadOnBracelet({
   const layoutIdx      = layoutIndex ?? slotIndex;
   const braceletSize   = useStore((s) => s.braceletSize);
   const viewMode       = useStore((s) => s.viewMode);
-  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
+  const isEvenlySpaced        = useStore((s) => s.isEvenlySpaced);
+  const groups                = useStore((s) => s.groups);
+  const editSelectedIds       = useStore((s) => s.editSelectedIds);
 
   const {
     isSelected,
@@ -198,8 +200,11 @@ export function BeadOnBracelet({
   const charmDepthOffset = (isCharm && !isFloatCharm) ? (bead.product.depth_offset ?? -0.0005) : 0;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
-    ? getEvenSpacingBonus(beads, radius)
+    ? (effectiveGroups.length > 0
+        ? getGroupSpacingBonuses(beads, effectiveGroups, radius)
+        : getEvenSpacingBonus(beads, radius))
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === 'line'
     ? getBeadTransformLine(layoutIdx, beads)

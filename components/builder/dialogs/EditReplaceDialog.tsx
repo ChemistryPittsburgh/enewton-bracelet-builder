@@ -24,13 +24,15 @@ export function EditReplaceDialog() {
     isEditMode,
     editReplaceMode,
     editSelectedIds,
-    editSelectionGroups,
+    groups,
     editReplaceNarrowedIds,
     beads,
     setEditReplaceNarrowedIds,
     setEditSelectedIds,
     cancelReplaceMode,
+    setEditReplaceMode,
     saveCurrentSelectionAsGroup,
+    removeGroup,
     startReplaceSeedMode,
     replaceSeedTargetIds,
     clearReplaceSeed,
@@ -38,13 +40,15 @@ export function EditReplaceDialog() {
     isEditMode: s.isEditMode,
     editReplaceMode: s.editReplaceMode,
     editSelectedIds: s.editSelectedIds,
-    editSelectionGroups: s.editSelectionGroups,
+    groups: s.groups,
     editReplaceNarrowedIds: s.editReplaceNarrowedIds,
     beads: s.beads,
     setEditReplaceNarrowedIds: s.setEditReplaceNarrowedIds,
     setEditSelectedIds: s.setEditSelectedIds,
     cancelReplaceMode: s.cancelReplaceMode,
+    setEditReplaceMode: s.setEditReplaceMode,
     saveCurrentSelectionAsGroup: s.saveCurrentSelectionAsGroup,
+    removeGroup: s.removeGroup,
     startReplaceSeedMode: s.startReplaceSeedMode,
     replaceSeedTargetIds: s.replaceSeedTargetIds,
     clearReplaceSeed: s.clearReplaceSeed,
@@ -92,7 +96,7 @@ export function EditReplaceDialog() {
     return order;
   }, [editSelectedIds, beads]);
 
-  const isExplicitMode = EDIT_GROUPING_ENABLED && editSelectionGroups.length > 0;
+  const isExplicitMode = EDIT_GROUPING_ENABLED && groups.length > 0;
   const isOpen = isEditMode && editReplaceMode;
 
   const plural = (n: number) => `${n} bead${n !== 1 ? "s" : ""}`;
@@ -100,19 +104,19 @@ export function EditReplaceDialog() {
   // Explicit mode: frozen saved groups + the active pending selection as a trailing group.
   const explicitGroups: ReplaceGroup[] = isExplicitMode
     ? [
-        ...editSelectionGroups.map((ids, i) => ({
-          key: `group-${i}`,
-          label: `${plural(ids.length)} – Group ${i + 1}`,
-          instanceIds: ids,
+        ...groups.map((g, i) => ({
+          key: g.id,
+          label: `${plural(g.instanceIds.length)} – Group ${i + 1}`,
+          instanceIds: g.instanceIds,
           colorIndex: i,
           showDot: true,
         })),
         ...(editSelectedIds.length > 0
           ? [{
               key: "group-pending",
-              label: `${plural(editSelectedIds.length)} – Group ${editSelectionGroups.length + 1}`,
+              label: `${plural(editSelectedIds.length)} – Group ${groups.length + 1}`,
               instanceIds: editSelectedIds,
-              colorIndex: editSelectionGroups.length,
+              colorIndex: groups.length,
               showDot: true,
             }]
           : []),
@@ -171,7 +175,7 @@ export function EditReplaceDialog() {
         <Tooltip content="Exit Replace Mode">
           <button
             type="button"
-            onClick={cancelReplaceMode}
+            onClick={() => setEditReplaceMode(false)}
             aria-label="Exit bead replacement mode"
             className="icon-only-btn"
           >
@@ -283,12 +287,13 @@ export function EditReplaceDialog() {
             <p className="text-xs text-color-base/50">Select beads to replace</p>
           ) : (
             <ul className="space-y-1">
-              {explicitGroups.map((g) => (
+              {explicitGroups.map((g, i) => (
                 <GroupButton
                   key={g.key}
                   group={g}
                   active={isGroupActive(g.instanceIds)}
                   onClick={() => handleGroupClick(g.instanceIds)}
+                  onRemove={g.key !== "group-pending" ? () => removeGroup(g.key) : undefined}
                 />
               ))}
             </ul>
@@ -331,7 +336,7 @@ function BeadTypeRow({ product, instanceIds, editSelectedIds, colorIndex, onTogg
     : null;
   return (
     <li>
-      <Tooltip content={`${isSelected ? "Remove selected item" : ""}`} placement="bottom" className="!block">
+      <Tooltip content={`${isSelected ? "Remove selected item" : ""}`} placement="top-end" className="!block">
         <button
           onClick={() => onToggle(instanceIds)}
           className={cn(
@@ -350,15 +355,20 @@ function BeadTypeRow({ product, instanceIds, editSelectedIds, colorIndex, onTogg
   );
 }
 
-function GroupButton({ group, active, onClick }: { group: ReplaceGroup; active: boolean; onClick: () => void }) {
+function GroupButton({ group, active, onClick, onRemove }: {
+  group: ReplaceGroup;
+  active: boolean;
+  onClick: () => void;
+  onRemove?: () => void;
+}) {
   const palette = EDIT_REPLACE_GROUPS[group.colorIndex % EDIT_REPLACE_GROUPS.length];
   const dotColor = EDIT_REPLACE_GROUP_COLORS[group.colorIndex % EDIT_REPLACE_GROUP_COLORS.length];
   return (
-    <li>
+    <li className="flex items-center gap-1">
       <button
         onClick={onClick}
         className={cn(
-          "w-full text-left text-sm px-2 py-1 rounded-[2px] transition-colors flex items-center gap-2",
+          "flex-1 min-w-0 text-left text-sm px-2 py-1 rounded-[2px] transition-colors flex items-center gap-2",
           active ? `${palette.active} font-medium` : palette.inactive
         )}
       >
@@ -370,8 +380,20 @@ function GroupButton({ group, active, onClick }: { group: ReplaceGroup; active: 
         ) : (
           <span className="shrink-0 text-xs opacity-70">•</span>
         )}
-        {group.label}
+        <span className="truncate">{group.label}</span>
       </button>
+      {onRemove && (
+        <Tooltip content="Ungroup" placement="top">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            aria-label="Remove group"
+            className="shrink-0 p-1 rounded text-color-base/40 hover:text-color-base/70 hover:bg-light-grey transition-colors"
+          >
+            <X size={12} />
+          </button>
+        </Tooltip>
+      )}
     </li>
   );
 }

@@ -70,8 +70,10 @@ export function useSceneItemInteraction(
     selectBead,
     selectedBead,
     editSelectedIds,
-    editSelectionGroups,
+    groups,
+    editReplaceMode,
     toggleEditBead,
+    setEditSelectedIds,
     clearSelectedBead,
     clearEditSelection,
     isEditMode,
@@ -85,8 +87,10 @@ export function useSceneItemInteraction(
       selectBead:           s.selectBead,
       selectedBead:         s.selectedBead,
       editSelectedIds:      s.editSelectedIds,
-      editSelectionGroups:  s.editSelectionGroups,
+      groups:               s.groups,
+      editReplaceMode:      s.editReplaceMode,
       toggleEditBead:       s.toggleEditBead,
+      setEditSelectedIds:   s.setEditSelectedIds,
       clearSelectedBead:    s.clearSelectedBead,
       clearEditSelection:   s.clearEditSelection,
       isEditMode:           s.isEditMode,
@@ -113,7 +117,7 @@ export function useSceneItemInteraction(
 
   const isSelected = isSeedReplaceTarget || isSeedSelectAll || (isEditMode
     ? editSelectedIds.includes(bead.instanceId) ||
-      editSelectionGroups.some(g => g.includes(bead.instanceId))
+      (editReplaceMode && groups.some(g => g.instanceIds.includes(bead.instanceId)))
     : selectedBead?.instanceId === bead.instanceId ||
       (selectAllOfType && selectAllActive && selectedBead?.product.id === bead.product.id));
 
@@ -127,14 +131,31 @@ export function useSceneItemInteraction(
     if (isLocked) return;
     if (isEditMode) {
       const ne = e.nativeEvent;
+      const beadGroup = groups.find(g => g.instanceIds.includes(bead.instanceId));
       if (ne && (ne.metaKey || ne.ctrlKey)) {
-        // Cmd/Ctrl+click opens the info panel for this item and toggles selection.
         selectBead(bead);
-        toggleEditBead(bead.instanceId);
+        if (beadGroup) {
+          const allIn = beadGroup.instanceIds.every(id => editSelectedIds.includes(id));
+          setEditSelectedIds(
+            allIn
+              ? editSelectedIds.filter(id => !beadGroup.instanceIds.includes(id))
+              : [...new Set([...editSelectedIds, ...beadGroup.instanceIds])],
+          );
+        } else {
+          toggleEditBead(bead.instanceId);
+        }
       } else {
-        // Plain click toggles edit selection; close info panel if open.
         clearSelectedBead();
-        toggleEditBead(bead.instanceId);
+        if (beadGroup) {
+          const allIn = beadGroup.instanceIds.every(id => editSelectedIds.includes(id));
+          setEditSelectedIds(
+            allIn
+              ? editSelectedIds.filter(id => !beadGroup.instanceIds.includes(id))
+              : [...new Set([...editSelectedIds, ...beadGroup.instanceIds])],
+          );
+        } else {
+          toggleEditBead(bead.instanceId);
+        }
       }
     } else {
       selectBead(bead);
@@ -148,7 +169,13 @@ export function useSceneItemInteraction(
 
     const startX = e.nativeEvent.clientX;
     const startY = e.nativeEvent.clientY;
-    const isInSelection = editSelectedIds.includes(bead.instanceId);
+
+    // If the bead belongs to a saved group, prime editSelectedIds with all
+    // group members now — handleDragStart reads getState() directly so it will
+    // see them as a group drag once the threshold is crossed.
+    const beadGroup = groups.find(g => g.instanceIds.includes(bead.instanceId));
+    if (beadGroup) setEditSelectedIds(beadGroup.instanceIds);
+    const isInSelection = beadGroup != null || editSelectedIds.includes(bead.instanceId);
 
     function onMove(moveEvent: PointerEvent) {
       const dx = moveEvent.clientX - startX;

@@ -106,7 +106,7 @@ export function EditModeHelp() {
     <div ref={panelRef} className="relative flex justify-center items-center">
       {render && (
         <div
-          className={`pointer-events-auto ${open ? "animate-help-in" : "animate-help-out"} absolute right-0 top-14 z-50 mb-2 w-[300px] max-h-[70vh] rounded-[2px] bg-white shadow-lg border border-default`}
+          className={`pointer-events-auto ${open ? "animate-help-in" : "animate-help-out"} absolute right-0 top-14 z-50 mb-2 w-[300px] max-h-[70vh] overflow-hidden rounded-[2px] bg-white shadow-lg border border-default`}
         >
           <div className="sticky top-0 flex items-center justify-between pl-3.5 pr-2 py-1 border-b border-default bg-light-grey">
             <span className="text-[11.5px] font-semibold tracking-wide text-color-base/80">

@@ -249,6 +249,15 @@ export interface SeedSegmentConfig {
 }
 
 /**
+ * A user-defined group of placed beads — treated as a unit for spacing,
+ * replacement, dragging, and deletion. Persisted alongside beads.
+ */
+export interface BeadGroup {
+  id: string;
+  instanceIds: string[];
+}
+
+/**
  * A single bead that has been placed on the bracelet.
  */
 export interface PlacedBead {

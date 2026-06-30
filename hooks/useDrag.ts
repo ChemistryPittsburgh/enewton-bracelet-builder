@@ -127,7 +127,18 @@ export function useBraceletReorderDrag(
         .sort((a, b) => a - b);
       setDragState({ fromIndex: index, toIndex: index, groupFromIndices });
     } else {
-      setDragState({ fromIndex: index, toIndex: index });
+      // Safety fallback: if editSelectedIds wasn't primed yet, check saved groups directly.
+      const savedGroup = useStore.getState().groups
+        .find(g => g.instanceIds.includes(draggedBead?.instanceId ?? ''));
+      if (savedGroup && savedGroup.instanceIds.length > 1) {
+        const groupFromIndices = savedGroup.instanceIds
+          .map((id) => beads.findIndex((b) => b.instanceId === id))
+          .filter((i) => i !== -1)
+          .sort((a, b) => a - b);
+        setDragState({ fromIndex: index, toIndex: index, groupFromIndices });
+      } else {
+        setDragState({ fromIndex: index, toIndex: index });
+      }
     }
   }
 

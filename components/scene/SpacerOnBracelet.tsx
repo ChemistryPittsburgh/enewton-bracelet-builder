@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus, getGroupSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, DRAG_LIFT, EDIT_MODE_RING_HOVER, HOVER_EMISSIVE_INTENSITY } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
@@ -47,7 +47,9 @@ export function SpacerOnBracelet({
   const layoutIdx      = layoutIndex ?? slotIndex;
   const braceletSize   = useStore((s) => s.braceletSize);
   const viewMode       = useStore((s) => s.viewMode);
-  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
+  const isEvenlySpaced      = useStore((s) => s.isEvenlySpaced);
+  const groups              = useStore((s) => s.groups);
+  const editSelectedIds     = useStore((s) => s.editSelectedIds);
 
   const {
     isSelected,
@@ -61,8 +63,11 @@ export function SpacerOnBracelet({
   } = useSceneItemInteraction(bead, slotIndex, { onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
+  const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
-    ? getEvenSpacingBonus(beads, radius)
+    ? (effectiveGroups.length > 0
+        ? getGroupSpacingBonuses(beads, effectiveGroups, radius)
+        : getEvenSpacingBonus(beads, radius))
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(layoutIdx, beads)
