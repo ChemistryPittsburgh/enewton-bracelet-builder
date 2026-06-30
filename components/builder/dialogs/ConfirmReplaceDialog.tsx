@@ -166,7 +166,7 @@ export function ConfirmReplaceDialog() {
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === e.currentTarget && status !== "saving") handleCancel(); }}
     >
-      <div className="w-[450px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-3">
+      <div className="w-[450px] rounded-[2px] bg-white p-6 shadow-2xl flex flex-col gap-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -175,7 +175,7 @@ export function ConfirmReplaceDialog() {
             </h3>
             <p className="mt-2 text-sm text-color-base/80 leading-relaxed">
               You have beads on{" "}
-              <span className="font-medium  ">"{braceletName}"</span> that aren't saved and will be lost.<br />
+              <span className="font-semibold ">"{braceletName}"</span> that aren't saved and will be lost.<br />
               <span className="pb-1 block" />
               {pendingDesign.id === -1
                 ? canEdit
@@ -184,11 +184,11 @@ export function ConfirmReplaceDialog() {
                 : canEdit
                   ? <>
                       {" "}Save before loading{" "}
-                      <span className="font-medium">"{pendingDesign.name}"</span>?
+                      <span className="font-semibold">"{pendingDesign.name}"</span>?
                     </>
                   : <>
                       {" "}Load{" "}
-                      <span className="font-medium">"{pendingDesign.name}"</span>?
+                      <span className="font-semibold">"{pendingDesign.name}"</span>?
                     </>
               }
             </p>
@@ -196,7 +196,7 @@ export function ConfirmReplaceDialog() {
           <button
             onClick={handleCancel}
             disabled={status === "saving"}
-            className="mt-0.5 shrink-0 rounded-full p-1 text-color-base/70 hover:bg-default/50 hover:text-color-base transition-colors disabled:opacity-40"
+            className="icon-only-btn"
             aria-label="Close"
           >
             <X size={16} />
@@ -218,7 +218,7 @@ export function ConfirmReplaceDialog() {
               onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSaveAndLoad(); }}
               placeholder="Enter bracelet name"
               autoFocus
-              className="w-full rounded-[2px] border border-default px-3 py-2 text-sm outline-none transition-colors focus:border-navy focus:ring-navy placeholder:text-color-base/70"
+              className="w-full rounded-[3px] border border-default px-3 py-2 text-sm outline-none transition-colors focus:border-navy focus:ring-navy placeholder:text-color-base/70"
             />
           </div>
         )}
@@ -287,7 +287,7 @@ function PatternConfirmDialog({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="w-[420px] rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-3">
+      <div className="w-[420px] rounded-[3px] bg-white p-6 shadow-2xl flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-[20px] font-semibold">{editMode ? "Edit pattern?" : "Load pattern?"}</h3>
@@ -306,7 +306,7 @@ function PatternConfirmDialog({
           </div>
           <button
             onClick={onCancel}
-            className="mt-0.5 shrink-0 rounded-full p-1 text-color-base/70 hover:bg-default/50 hover:text-color-base transition-colors"
+            className="icon-only-btn"
             aria-label="Close"
           >
             <X size={16} />

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 export function useDeleteDesign() {
   const queryClient = useQueryClient();
@@ -10,6 +11,7 @@ export function useDeleteDesign() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["designs"] });
+      toast.success("Design deleted");
     },
   });
 }

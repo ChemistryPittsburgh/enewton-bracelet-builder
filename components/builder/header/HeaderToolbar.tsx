@@ -142,7 +142,7 @@ export function HeaderToolbar({ commentsOpen = false, onCommentsClick, onPublish
               )}
               {showReject && (
                 confirmingReject ? (
-                  <div className="flex flex-col gap-1.5 rounded-[2px] border border-blush bg-blush/10 px-3 py-2">
+                  <div className="flex gap-1.5 rounded-[2px] border border-blush bg-blush/10 px-3 py-2">
                     <textarea
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}

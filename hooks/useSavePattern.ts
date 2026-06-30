@@ -5,6 +5,7 @@ import { buildBraceletConfig } from "@/lib/build-bracelet-config";
 import { useGenerateThumbnail } from "@/hooks/useGenerateThumbnail";
 import { uploadThumbnail } from "@/hooks/useUploadThumbnail";
 import { slugify } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 /**
  * Saves the current canvas state back to the active pattern (PUT /patterns/:id).
@@ -46,6 +47,7 @@ export function useSavePattern() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patterns"] });
       markClean();
+      toast.success("Pattern saved");
     },
   });
 }
