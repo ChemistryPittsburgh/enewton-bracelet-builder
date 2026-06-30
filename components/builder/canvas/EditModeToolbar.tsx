@@ -9,7 +9,6 @@ import { useShallow } from "zustand/react/shallow";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 import { beadFits, braceletArc, usedArc } from "@/lib/bead-layout";
 
-import { EditModeHelp } from "./EditModeHelp";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
@@ -325,7 +324,6 @@ export function EditModeToolbar() {
             </EditBtn>
           </Tooltip>
         </div>
-        <EditModeHelp />
       </div>
     </div>
   );
