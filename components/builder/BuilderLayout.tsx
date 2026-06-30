@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { usePanelWidth, PANEL_COMPACT_QUERY } from "@/components/ui/Panel";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Toaster } from "@/components/ui/Toaster";
+import { KeyboardShortcutsHelp } from "@/components/ui/KeyboardShortcutsHelp";
 
 import { BraceletExporter } from "./header/BraceletExporter";
 import { HeaderToolbar } from "./header/HeaderToolbar";
@@ -365,6 +366,9 @@ export function BuilderLayout() {
             isKicked={kickedNotification}
             onKickedClick={() => setShowKickedModal(true)}
           />}
+          {/* Keyboard shortcuts — global help, available in any mode */}
+          <KeyboardShortcutsHelp />
+
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
           <Tooltip content={rightPanel === "user" ? "Close User Panel" : "Open User Panel"} placement="bottom-start">
