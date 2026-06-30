@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { usePanelWidth, PANEL_COMPACT_QUERY } from "@/components/ui/Panel";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Toaster } from "@/components/ui/Toaster";
+import { toast } from "@/lib/toast";
 import { KeyboardShortcutsHelp } from "@/components/ui/KeyboardShortcutsHelp";
 
 import { BraceletExporter } from "./header/BraceletExporter";
@@ -292,10 +293,11 @@ export function BuilderLayout() {
   }
 
   function handleNewBracelet() {
+    const doNew = () => { startNewBracelet(); toast.info("Started a new bracelet"); };
     if (isDirty) {
-      setPendingDesign({ id: -1, name: DEFAULT_BRACELET_NAME } as any, () => startNewBracelet());
+      setPendingDesign({ id: -1, name: DEFAULT_BRACELET_NAME } as any, doNew);
     } else {
-      startNewBracelet();
+      doNew();
     }
   }
 
@@ -304,6 +306,7 @@ export function BuilderLayout() {
     // the beads/band but detaches from the saved design/pattern so the next Save
     // creates a brand-new bracelet rather than overwriting the original.
     copyBracelet();
+    toast.info("Copied to a new unsaved draft");
   }
 
   function handleNewFromCurrentPattern() {
@@ -311,6 +314,7 @@ export function BuilderLayout() {
     // unsaved bracelet and opens the replace flow. No dirty-guard: the beads carry
     // forward and the pattern's saved version is untouched, so nothing is lost.
     newBraceletFromPattern();
+    toast.info("New bracelet from this pattern");
   }
 
   function handleDetailsClick() {
@@ -457,6 +461,7 @@ export function BuilderLayout() {
               savedDesign={savedDesign}
               braceletName={braceletName}
               highlightReason={highlightReason}
+              isUnsavedDraft={activePatternId === null && activeDesignId === null && placedBeads.length > 0}
               onDetailsClick={handleDetailsClick}
             />
 

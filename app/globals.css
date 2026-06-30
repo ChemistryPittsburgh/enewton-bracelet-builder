@@ -165,6 +165,10 @@ h2 {
   animation: help-out 0.22s ease-in both;
   transform-origin: top right;
 }
+@keyframes toastIn {
+  from { opacity:0;transform:translateY(-6px); }
+  to { opacity:1;transform:translateY(0); }
+}
 
 .avatar {
   background-color: var(--color-navy);

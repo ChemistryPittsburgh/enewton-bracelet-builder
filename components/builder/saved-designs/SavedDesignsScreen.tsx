@@ -30,6 +30,7 @@ import { DiscontinueBraceletDialog } from "@/components/builder/dialogs/Disconti
 import { DesignLockedDialog } from "@/components/builder/dialogs/DesignLockedDialog";
 import { RejectBraceletDialog } from "@/components/builder/dialogs/RejectBraceletDialog";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { toast } from "@/lib/toast";
 
 interface SavedDesignsScreenProps {
   isOpen: boolean;
@@ -221,7 +222,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
     // beads/band, new identity) so the next Save creates a separate bracelet.
     // Mirrors proceedWithLoad's unsaved-work guard: when work is pending the
     // confirm dialog loads the design first, then runs this callback to fork it.
-    const forkAfterLoad = () => { useStore.getState().copyBracelet(); onClose(); };
+    const forkAfterLoad = () => { useStore.getState().copyBracelet(); toast.info("Copied to a new unsaved draft"); onClose(); };
     const hasUnsavedWork = isDirty || (beads.length > 0 && activeDesignId === null);
     if (hasUnsavedWork) {
       setPendingDesign(design, forkAfterLoad);
@@ -469,7 +470,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                     )}
 
                     {/* Search */}
-                    <div className="xl:ml-auto flex flex-col gap-2 xl:flex-1 xl:max-w-[350px] min-w-[200px] 2xl:min-w-[280px] shrink-0">
+                    <div className="xl:ml-auto flex flex-col gap-2 2xl:min-w-[280px] shrink-0">
                       <p className={formLabel}>Search</p>
                       <div className="flex w-full items-center gap-0 rounded-[2px] border border-default bg-white pr-3 focus-within:border-navy transition-colors">
                         <input

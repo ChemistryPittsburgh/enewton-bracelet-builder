@@ -16,6 +16,7 @@ interface CanvasInfoOverlayProps {
   savedDesign: Bracelet | undefined;
   braceletName: string;
   highlightReason: "name" | "sku" | null;
+  isUnsavedDraft: boolean;
   onDetailsClick: () => void;
 }
 
@@ -28,6 +29,7 @@ export function CanvasInfoOverlay({
   savedDesign,
   braceletName,
   highlightReason,
+  isUnsavedDraft,
   onDetailsClick,
 }: CanvasInfoOverlayProps) {
   // Collections only apply to bracelet designs, not patterns.
@@ -39,6 +41,12 @@ export function CanvasInfoOverlay({
         <div className="mb-1 flex w-fit items-center gap-1.5 rounded-[2px] bg-gold px-2.5 py-1 text-xs font-medium text-white">
           <LayoutTemplate size={11} className="shrink-0" />
           <span className="font-bold">Pattern mode</span>
+        </div>
+      )}
+      {isUnsavedDraft && (
+        <div className="mb-1 flex w-fit items-center gap-1.5 rounded-[2px] bg-white border border-gold px-2.5 py-1 text-xs font-medium text-color-base shadow-sm">
+          <span className="h-1.5 w-1.5 rounded-full bg-gold shrink-0" />
+          <span className="font-bold">Unsaved draft</span>
         </div>
       )}
       {(kickedNotification || lockedByOther) && (
