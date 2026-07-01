@@ -72,14 +72,14 @@ interface SceneProps {
 const DRAG_DESELECT_THRESHOLD_SQ = 4 * 4; // squared px; avoids sqrt on every move event
 
 const BG_VARIANTS = {
-  blue:  { bg: EDIT_MODE_BACKGROUND, cellColor: "#6f9ab5", sectionColor: "#4d7d96" },
+  blue:  { bg: EDIT_MODE_BACKGROUND, cellColor: "#5c8199", sectionColor: "#4d7d96" },
   beige: { bg: SCENE_BACKGROUND,     cellColor: "#a89f94", sectionColor: "#8f8479" },
 } as const;
 
 export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const panelWidth = usePanelWidth();
   const controlsRef = useRef<CameraControls>(null);
-  const { isEditMode, clearSelectedBead, clearEditSelection, setSelectedGapIndex, viewMode, canvasTool, editBgVariant, spacersHiddenForCapture } = useStore(useShallow((s) => ({
+  const { isEditMode, clearSelectedBead, clearEditSelection, setSelectedGapIndex, viewMode, canvasTool, editBgVariant, showGrid, spacersHiddenForCapture } = useStore(useShallow((s) => ({
     isEditMode:              s.isEditMode,
     clearSelectedBead:       s.clearSelectedBead,
     clearEditSelection:      s.clearEditSelection,
@@ -87,6 +87,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
     viewMode:                s.viewMode,
     canvasTool:              s.canvasTool,
     editBgVariant:           s.editBgVariant,
+    showGrid:                s.showGrid,
     spacersHiddenForCapture: s.spacersHiddenForCapture,
   })));
 
@@ -142,17 +143,17 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
           <CameraController controlsRef={controlsRef} />
         </Suspense>
 
-        {isEditMode && viewMode !== 'line' && !spacersHiddenForCapture && (
+        {isEditMode && viewMode !== 'line' && !spacersHiddenForCapture && showGrid && (
           <Grid
             args={[0.5, 0.5]}
-            position={[0, -0.001, 0]}
+            position={[0, -0.008, 0]}
             cellSize={0.01}
-            cellThickness={0.4}
+            cellThickness={0.6}
             cellColor={BG_VARIANTS[editBgVariant].cellColor}
             sectionSize={0.05}
-            sectionThickness={0.8}
+            sectionThickness={1.5}
             sectionColor={BG_VARIANTS[editBgVariant].sectionColor}
-            fadeDistance={0.4}
+            fadeDistance={0.5}
             fadeStrength={2}
           />
         )}

@@ -314,6 +314,10 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     return Math.floor(maxArcMmAtGap(placedBeads, selectedGapIndex, braceletRadius, effectiveGroups, isEvenlySpaced, category) * 10) / 10;
   }, [selectedGapIndex, isEvenlySpaced, placedBeads, braceletRadius, groups, editSelectedIds, isSpacerMode]);
 
+  // A gap is the insert target and we're adding (not replacing) — pickers hide
+  // their amount controls and fill the gap instead.
+  const gapFillActive = selectedGapIndex !== null && !isReplaceMode && !isBarReplace;
+
   // Exclude "bar" from the data-driven pills — the bar tab renders BarPicker, not the card grid.
   const beadCategories = useMemo(
     () => [...new Set(beads.map((b) => b.bead_category).filter(Boolean))].filter((c) => c !== BAR_TAB) as string[],
@@ -606,7 +610,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
         {selectedGapIndex !== null && !isReplaceMode && (
           <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-gold px-4 py-2 text-white">
             <span className="text-xs font-semibold">
-              Filling gap {selectedGapIndex + 1}
+              Filling gap
               {gapArcMm !== undefined && gapArcMm > 0 && (
                 <span className="font-normal opacity-80"> · {gapArcMm}mm</span>
               )}
@@ -707,6 +711,8 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             effectiveBeads={barEffectiveBeads}
             isReplaceMode={isBarReplace}
             error={error}
+            maxArcMm={gapArcMm}
+            isGapFill={gapFillActive}
           />
         ) : isSpacerMode ? (
           <SpacerPicker
@@ -714,6 +720,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             error={error}
             maxArcMm={isBarReplace ? barFreedArcMm : gapArcMm}
             isReplaceMode={isBarReplace}
+            isGapFill={gapFillActive}
           />
         ) : isSeedMode ? (
           <SeedBeadPicker
@@ -724,6 +731,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             maxArcMm={isBarReplace ? barFreedArcMm : gapArcMm}
             isReplaceMode={isBarReplace}
             replaceMode={isSeedReplaceUI}
+            isGapFill={gapFillActive && !isSeedReplaceUI}
           />
         ) : (
           /* ── Normal bead selector ── */

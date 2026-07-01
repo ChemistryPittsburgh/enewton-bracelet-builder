@@ -208,9 +208,12 @@ interface Store {
   canvasTool: 'select' | 'pan' | 'look';
   setCanvasTool: (tool: 'select' | 'pan' | 'look') => void;
 
-  /** Ephemeral — dev-only toggle for background color testing in edit mode. */
+  /** Ephemeral — background color variant driving edit-mode bg + grid colors. */
   editBgVariant: 'blue' | 'beige';
-  toggleEditBgVariant: () => void;
+
+  /** Ephemeral — whether the edit-mode floor grid is shown. Toggled from Canvas Controls. */
+  showGrid: boolean;
+  toggleGrid: () => void;
 
   /** Ephemeral — not persisted. Which canvas view is active. */
   viewMode: '3D' | 'line';
@@ -373,6 +376,7 @@ export const useStore = create<Store>()(
       editViewMode: 'side' as const,
       canvasTool: 'select' as const,
       editBgVariant: 'blue' as const,
+      showGrid: true,
       selectAllActive: false,
       viewMode: '3D' as const,
       dragFromPanel: null,
@@ -1203,8 +1207,8 @@ export const useStore = create<Store>()(
         set({ canvasTool: tool });
       },
 
-      toggleEditBgVariant() {
-        set((s) => ({ editBgVariant: s.editBgVariant === 'blue' ? 'beige' : 'blue' }));
+      toggleGrid() {
+        set((s) => ({ showGrid: !s.showGrid }));
       },
 
       setViewMode(mode) {

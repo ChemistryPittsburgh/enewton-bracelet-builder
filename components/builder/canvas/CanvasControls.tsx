@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Hand, Orbit, SwitchCamera, Palette } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Hand, Orbit, SwitchCamera, Grid } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -27,7 +27,7 @@ const ROTATE_STEP = Math.PI / 7.5;
  * top-bar zoom buttons did.
  */
 export function CanvasControls() {
-  const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool, editBgVariant, toggleEditBgVariant } = useStore(useShallow((s) => ({
+  const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool, showGrid, toggleGrid } = useStore(useShallow((s) => ({
     isEditMode: s.isEditMode,
     viewMode: s.viewMode,
     editViewMode: s.editViewMode,
@@ -35,8 +35,8 @@ export function CanvasControls() {
     controlsEl: s.controlsEl,
     canvasTool: s.canvasTool,
     setCanvasTool: s.setCanvasTool,
-    editBgVariant: s.editBgVariant,
-    toggleEditBgVariant: s.toggleEditBgVariant,
+    showGrid: s.showGrid,
+    toggleGrid: s.toggleGrid,
   })));
 
   const isPanning = canvasTool === 'pan';
@@ -189,15 +189,13 @@ export function CanvasControls() {
             <SwitchCamera size={22} />
           </EditBtn>
         </Tooltip>
-        <Tooltip content={`Switch to ${editBgVariant === 'blue' ? 'beige' : 'blue'} background`} placement="top">
-          <EditBtn onClick={toggleEditBgVariant} label="Toggle background">
-            <span className="relative">
-              <Palette size={22} />
-              <span
-                className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-white"
-                style={{ background: editBgVariant === 'blue' ? '#f5f0eb' : '#E8EEF3' }}
-              />
-            </span>
+        <Tooltip content={showGrid ? "Hide grid" : "Show grid"} placement="top">
+          <EditBtn
+            onClick={toggleGrid}
+            label={showGrid ? "Hide grid" : "Show grid"}
+            className={showGrid ? "bg-navy hover:bg-navy/80" : ""}
+          >
+            <Grid size={22} className={showGrid ? "text-white" : ""} />
           </EditBtn>
         </Tooltip>
       </div>

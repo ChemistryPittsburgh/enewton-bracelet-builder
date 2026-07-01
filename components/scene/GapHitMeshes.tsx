@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { CatmullRomCurve3, TubeGeometry, Vector3 } from "three";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
-import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
+import { BRACELET_SIZE_RADIUS, EDIT_MODE_RING_HOVER } from "@/lib/constants";
 import {
   buildEffectiveGroups,
   getGapFillAwareSpacingBonuses,
@@ -12,10 +12,10 @@ import {
   selfHalf,
 } from "@/lib/bead-layout";
 
-const GAP_HOVER_COLOR  = "#5eb88a";
-const GAP_ACTIVE_COLOR = "#2563eb";
+const GAP_HOVER_COLOR  = EDIT_MODE_RING_HOVER;
+const GAP_ACTIVE_COLOR = "#5c8199";
 const HIT_TUBE_RADIUS  = 0.004;
-const VIS_TUBE_RADIUS  = 0.0008;
+const VIS_TUBE_RADIUS  = 0.0005;
 
 const TWO_PI = Math.PI * 2;
 
