@@ -15,7 +15,7 @@ import { ScrollableRow } from "@/components/ui/ScrollableRow";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
-import { braceletArc, usedArc, beadFits, maxFit } from "@/lib/bead-layout";
+import { braceletArc, usedArc, beadFits, maxFit, maxSeedArcMm, maxSeedArcMmAtGap } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   BAR_REPLACE_FIT_LIMIT,
@@ -107,6 +107,9 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
   const isEditMode = useStore((s) => s.isEditMode);
   const editReplaceMode = useStore((s) => s.editReplaceMode);
+  const selectedGapIndex = useStore((s) => s.selectedGapIndex);
+  const setSelectedGapIndex = useStore((s) => s.setSelectedGapIndex);
+  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
   const editReplaceNarrowedIds = useStore((s) => s.editReplaceNarrowedIds);
   const editSelectedIds = useStore((s) => s.editSelectedIds);
   const groups = useStore((s) => s.groups);
@@ -300,6 +303,14 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     return Math.max(0, Math.round((totalArc - usedM) * 1000 * 10) / 10);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBarReplace, isBarSingleReplace, effectivePlacedBeads, withoutTargets, totalArc]);
+
+  // Arc (in mm) available for gap-fill insertion — caps maxArcMm for spacer/seed pickers.
+  // Uses maxSeedArcMmAtGap (accounts for actual gap neighbors) so the cap matches what
+  // beadFitsAtIndex will allow for this specific insertion position.
+  const gapArcMm = useMemo(() => {
+    if (selectedGapIndex === null || !isEvenlySpaced || placedBeads.length < 2) return undefined;
+    return Math.floor(maxSeedArcMmAtGap(placedBeads, selectedGapIndex, braceletRadius) * 10) / 10;
+  }, [selectedGapIndex, isEvenlySpaced, placedBeads, braceletRadius]);
 
   // Exclude "bar" from the data-driven pills — the bar tab renders BarPicker, not the card grid.
   const beadCategories = useMemo(
@@ -582,6 +593,24 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
           </div>
         )}
 
+        {/* Gap-insert banner — shown when a gap is selected as insertion target */}
+        {selectedGapIndex !== null && !isReplaceMode && (
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-gold px-4 py-2 text-white">
+            <span className="text-xs font-semibold">
+              Filling gap {selectedGapIndex + 1}
+              {gapArcMm !== undefined && gapArcMm > 0 && (
+                <span className="font-normal opacity-80"> · {gapArcMm}mm</span>
+              )}
+            </span>
+            <button
+              onClick={() => setSelectedGapIndex(null)}
+              className="text-xs font-medium underline underline-offset-2 hover:no-underline"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
         {/* Search — hidden in spacer/bar/seed mode */}
         {!isSpacerMode && !isBarMode && !isSeedMode && (
           <div className={`shrink-0 pt-4 ${panelGapClass}`}>
@@ -674,7 +703,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
           <SpacerPicker
             onAdd={handleAddSpacer}
             error={error}
-            maxArcMm={isBarReplace ? barFreedArcMm : undefined}
+            maxArcMm={isBarReplace ? barFreedArcMm : gapArcMm}
             isReplaceMode={isBarReplace}
           />
         ) : isSeedMode ? (
@@ -683,7 +712,7 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             onFillGapsEvenly={handleFillGapsEvenly}
             error={error}
             onManageColors={onManageSeedColors}
-            maxArcMm={isBarReplace ? barFreedArcMm : undefined}
+            maxArcMm={isBarReplace ? barFreedArcMm : gapArcMm}
             isReplaceMode={isBarReplace}
             replaceMode={isSeedReplaceUI}
           />

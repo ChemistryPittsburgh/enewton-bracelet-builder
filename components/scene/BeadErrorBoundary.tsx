@@ -6,7 +6,7 @@ import type { PlacedBead } from "@/types";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
-import { getBeadAngle, getBeadPosition, getEvenSpacingBonus, getGroupSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
+import { getBeadAngle, getBeadPosition, getGapFillAwareSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
 import type { ThreeEvent } from "@react-three/fiber";
 
 interface FallbackProps {
@@ -35,9 +35,7 @@ function BeadFallback({ bead, slotIndex }: FallbackProps) {
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = isEvenlySpaced && viewMode === '3D'
-    ? (effectiveGroups.length > 0
-        ? getGroupSpacingBonuses(beads, effectiveGroups, radius)
-        : getEvenSpacingBonus(beads, radius))
+    ? getGapFillAwareSpacingBonuses(beads, effectiveGroups, radius)
     : 0;
   const angle = getBeadAngle(slotIndex, beads, radius, extraSpacingPerGap);
   const position = getBeadPosition(angle, radius);

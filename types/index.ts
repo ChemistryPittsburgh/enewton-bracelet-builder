@@ -25,6 +25,8 @@ export interface BraceletConfigBead {
   instance_id: string;
   /** Present only for seed_segment items — serialises the colorway + arc config. */
   seed_config?: SeedSegmentConfig;
+  /** Present when this bead was inserted via gap-fill; controls distribute spacing. */
+  is_gap_fill?: boolean;
 }
 
 /**
@@ -266,6 +268,8 @@ export interface PlacedBead {
   product: BeadProduct;
   /** Present only when bead_category === "seed_segment". */
   seedConfig?: SeedSegmentConfig;
+  /** Set when inserted via gap-fill. Excluded from distribute spacing; sits tight against neighbors. */
+  isGapFill?: boolean;
 }
 
 // ─── Collections ──────────────────────────────────────────────────────────────

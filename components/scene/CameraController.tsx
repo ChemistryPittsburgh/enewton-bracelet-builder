@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
-import { getBeadAngle, getBeadPosition, getBeadTransformLine, braceletArc, getEvenSpacingBonus } from "@/lib/bead-layout";
+import { getBeadAngle, getBeadPosition, getBeadTransformLine, braceletArc, buildEffectiveGroups, getGapFillAwareSpacingBonuses } from "@/lib/bead-layout";
 import {
   CAMERA_DEFAULT_POSITION,
   CAMERA_EDIT_HEIGHT,
@@ -176,7 +176,10 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
       // Zoom toward the bead, preserving current camera angle
       const i = beadsRef.current.findIndex((b) => b.instanceId === selectedBead!.instanceId);
       if (i !== -1) {
-        const extraSpacing = isEvenlySpaced ? getEvenSpacingBonus(beadsRef.current, radius) : 0;
+        const { groups, editSelectedIds } = useStore.getState();
+        const extraSpacing = isEvenlySpaced
+          ? getGapFillAwareSpacingBonuses(beadsRef.current, buildEffectiveGroups(groups, editSelectedIds), radius)
+          : 0;
         const angle = getBeadAngle(i, beadsRef.current, radius, extraSpacing);
         const [bx, by, bz] = getBeadPosition(angle, radius);
         const radialLen = Math.sqrt(bx * bx + bz * bz);

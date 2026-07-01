@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { BufferAttribute, BufferGeometry, ClampToEdgeWrapping, FrontSide, Mesh, MeshStandardMaterial, Texture } from "three";
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus, getGroupSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getGapFillAwareSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import {
   BRACELET_SIZE_RADIUS,
@@ -162,9 +162,7 @@ export function BarOnBracelet({
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
   const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
-    ? (effectiveGroups.length > 0
-        ? getGroupSpacingBonuses(beads, effectiveGroups, braceletRadius)
-        : getEvenSpacingBonus(beads, braceletRadius))
+    ? getGapFillAwareSpacingBonuses(beads, effectiveGroups, braceletRadius)
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(layoutIdx, beads)

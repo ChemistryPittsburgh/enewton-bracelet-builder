@@ -8,8 +8,7 @@ import {
   getBeadAngle,
   getBeadPosition,
   getBeadTransformLine,
-  getEvenSpacingBonus,
-  getGroupSpacingBonuses,
+  getGapFillAwareSpacingBonuses,
   buildEffectiveGroups,
 } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
@@ -91,9 +90,7 @@ export function SeedSegmentOnBracelet({
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
-    ? (effectiveGroups.length > 0
-        ? getGroupSpacingBonuses(beads, effectiveGroups, radius)
-        : getEvenSpacingBonus(beads, radius))
+    ? getGapFillAwareSpacingBonuses(beads, effectiveGroups, radius)
     : 0;
 
   // Load both GLB models — hooks must be called unconditionally

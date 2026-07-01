@@ -303,7 +303,7 @@ export function EditReplaceDialog() {
 
       {/* ── Footer: grouping action only — exit lives in the header ✕ ── */}
       {EDIT_GROUPING_ENABLED && (editSelectedIds.length > 0 || isExplicitMode) && (
-        <div className="flex items-center justify-end mt-3 pt-3 border-t border-default">
+        <div className="flex items-center justify-end px-3 py-2.5 border-t border-default">
           <button
             onClick={saveCurrentSelectionAsGroup}
             disabled={editSelectedIds.length === 0}

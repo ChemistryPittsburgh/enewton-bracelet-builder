@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { BraceletCord } from "./BraceletCord";
 import { AllBeads } from "./AllBeads";
+import { GapHitMeshes } from "./GapHitMeshes";
 import { CameraController } from "./CameraController";
 import { CameraOffset } from "./CameraOffset";
 import { BeadErrorToast } from "./BeadErrorToast";
@@ -78,13 +79,14 @@ const BG_VARIANTS = {
 export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const panelWidth = usePanelWidth();
   const controlsRef = useRef<CameraControls>(null);
-  const { isEditMode, clearSelectedBead, clearEditSelection, viewMode, canvasTool, editBgVariant } = useStore(useShallow((s) => ({
-    isEditMode: s.isEditMode,
-    clearSelectedBead: s.clearSelectedBead,
+  const { isEditMode, clearSelectedBead, clearEditSelection, setSelectedGapIndex, viewMode, canvasTool, editBgVariant } = useStore(useShallow((s) => ({
+    isEditMode:         s.isEditMode,
+    clearSelectedBead:  s.clearSelectedBead,
     clearEditSelection: s.clearEditSelection,
-    viewMode: s.viewMode,
-    canvasTool: s.canvasTool,
-    editBgVariant: s.editBgVariant,
+    setSelectedGapIndex: s.setSelectedGapIndex,
+    viewMode:           s.viewMode,
+    canvasTool:         s.canvasTool,
+    editBgVariant:      s.editBgVariant,
   })));
 
   const lookActive = isEditMode && viewMode !== 'line' && canvasTool === 'look';
@@ -121,6 +123,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
           if (didDrag.current) return;
           clearSelectedBead();
           clearEditSelection();
+          setSelectedGapIndex(null);
         }}
       >
         <CanvasRegistrar />
@@ -134,6 +137,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
         <Suspense fallback={null}>
           <BraceletCord />
           <AllBeads isLocked={isLocked} />
+          <GapHitMeshes />
           <CameraController controlsRef={controlsRef} />
         </Suspense>
 

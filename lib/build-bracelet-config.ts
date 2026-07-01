@@ -30,7 +30,8 @@ export function buildBraceletConfig(
     position: i + 1,
     product_id: b.product.id,
     instance_id: b.instanceId,
-    ...(b.seedConfig ? { seed_config: b.seedConfig } : {}),
+    ...(b.seedConfig  ? { seed_config:  b.seedConfig  } : {}),
+    ...(b.isGapFill   ? { is_gap_fill:  true           } : {}),
   }));
 
   return {

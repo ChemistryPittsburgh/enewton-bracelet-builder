@@ -66,11 +66,16 @@ export function useLoadDesign() {
             instanceId: configBead.instance_id,
             product: product,
             seedConfig: configBead.seed_config,
+            ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
           }];
         }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return []; // product removed from catalog — skip gracefully
-        return [{ instanceId: configBead.instance_id, product }];
+        return [{
+          instanceId: configBead.instance_id,
+          product,
+          ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
+        }];
       });
 
     // Restore size + material before loading beads so capacity checks use
@@ -134,11 +139,16 @@ export function useLoadDesign() {
             instanceId: configBead.instance_id,
             product: product,
             seedConfig: configBead.seed_config,
+            ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
           }];
         }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return [];
-        return [{ instanceId: configBead.instance_id, product }];
+        return [{
+          instanceId: configBead.instance_id,
+          product,
+          ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
+        }];
       });
 
     setBraceletSize(configuration.bracelet_size);

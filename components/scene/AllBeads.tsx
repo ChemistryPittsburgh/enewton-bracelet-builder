@@ -4,7 +4,7 @@ import { Suspense, useRef, useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, EDIT_REPLACE_GROUP_COLORS, DRAG_LIVE_PREVIEW } from "@/lib/constants";
 import { computeCharmAdjustments } from "@/lib/charm-collision";
-import { getEvenSpacingBonus, getGroupSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
+import { getGapFillAwareSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
 import { useDesign } from "@/hooks/useDesign";
 import type { PlacedBead } from "@/types";
 import { BeadOnBracelet } from "./BeadOnBracelet";
@@ -86,9 +86,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
 
   const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = isEvenlySpaced && viewMode === '3D'
-    ? (effectiveGroups.length > 0
-        ? getGroupSpacingBonuses(displayBeads, effectiveGroups, radius)
-        : getEvenSpacingBonus(displayBeads, radius))
+    ? getGapFillAwareSpacingBonuses(displayBeads, effectiveGroups, radius)
     : 0;
 
   // Map instanceId → group hex color for edit-replace mode.

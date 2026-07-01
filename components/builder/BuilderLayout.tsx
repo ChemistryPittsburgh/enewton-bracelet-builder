@@ -91,6 +91,7 @@ export function BuilderLayout() {
   const replaceAllTargetProductId = useStore((s) => s.replaceAllTargetProductId);
   const replaceSeedTargetIds = useStore((s) => s.replaceSeedTargetIds);
   const editReplaceMode = useStore((s) => s.editReplaceMode);
+  const selectedGapIndex = useStore((s) => s.selectedGapIndex);
   const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
   const startReplaceMode = useStore((s) => s.startReplaceMode);
   const startReplaceSeedSegment = useStore((s) => s.startReplaceSeedSegment);
@@ -126,6 +127,10 @@ export function BuilderLayout() {
   useEffect(() => {
     if (replaceTargetInstanceId !== null || replaceAllTargetProductId !== null || (replaceSeedTargetIds?.length ?? 0) > 0 || editReplaceMode) setBraceletPanelOpen(true);
   }, [replaceTargetInstanceId, replaceAllTargetProductId, replaceSeedTargetIds, editReplaceMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (selectedGapIndex !== null) setBraceletPanelOpen(true);
+  }, [selectedGapIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Opening the bead selector with a bead selected means "replace this bead":
   // drop straight into replace mode for it (seed-replace for seed segments).

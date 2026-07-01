@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus, getGroupSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getGapFillAwareSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, DRAG_LIFT, EDIT_MODE_RING_HOVER, HOVER_EMISSIVE_INTENSITY } from "@/lib/constants";
 import { useSceneItemInteraction } from "@/hooks/useSceneItemInteraction";
@@ -65,9 +65,7 @@ export function SpacerOnBracelet({
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
-    ? (effectiveGroups.length > 0
-        ? getGroupSpacingBonuses(beads, effectiveGroups, radius)
-        : getEvenSpacingBonus(beads, radius))
+    ? getGapFillAwareSpacingBonuses(beads, effectiveGroups, radius)
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(layoutIdx, beads)
