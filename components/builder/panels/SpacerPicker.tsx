@@ -9,6 +9,7 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { AvailableSpaceBox } from "@/components/ui/AvailableSpaceBox";
 import { BraceletFullNotice } from "@/components/ui/BraceletFullNotice";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { GapFillNotice } from "@/components/ui/GapFillNotice";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { maxSpacerArcMm } from "@/lib/bead-layout";
@@ -19,9 +20,11 @@ interface SpacerPickerProps {
   error: string | null;
   maxArcMm?: number;
   isReplaceMode?: boolean;
+  /** Gap-fill: a gap is the insert target. Hides the size controls; the spacer fills the gap. */
+  isGapFill?: boolean;
 }
 
-export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode }: SpacerPickerProps) {
+export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode, isGapFill = false }: SpacerPickerProps) {
   const { placedBeads, braceletSize } = useStore((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
@@ -37,7 +40,7 @@ export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode }: SpacerPi
 
   const MAX_SPACER_MM = 14;
 
-  const activeSize = selectedSize ?? (customSize ? parseFloat(customSize) : null);
+  const activeSize = isGapFill ? effectiveAvailableMm : (selectedSize ?? (customSize ? parseFloat(customSize) : null));
   const tooLarge = activeSize != null && activeSize > MAX_SPACER_MM;
   const fits = activeSize != null && activeSize > 0 && activeSize <= effectiveAvailableMm && !tooLarge;
 
@@ -46,6 +49,9 @@ export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode }: SpacerPi
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4">
         <AvailableSpaceBox />
 
+        {isGapFill ? (
+          <GapFillNotice gapMm={effectiveAvailableMm} subject="This spacer" />
+        ) : (<>
         <SectionHeading>Spacer size</SectionHeading>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
           {SPACER_SIZES_MM.map((size) => {
@@ -98,6 +104,7 @@ export function SpacerPicker({ onAdd, error, maxArcMm, isReplaceMode }: SpacerPi
             Maximum spacer size is {MAX_SPACER_MM}mm.
           </p>
         )}
+        </>)}
         {isReplaceMode && activeSize != null && activeSize > 0 && !tooLarge && (
           <p className="text-[11px] text-color-base/50 mt-2">
             Fills {Math.floor(effectiveAvailableMm / activeSize)} × {activeSize}mm spacers

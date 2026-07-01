@@ -76,7 +76,7 @@ export const DRAG_LIVE_PREVIEW = true;
  * When false, the "+ New group" button is hidden and the replace tool stays in
  * plain select-and-replace mode. Set to false to turn grouping off.
  */
-export const EDIT_GROUPING_ENABLED = false;
+export const EDIT_GROUPING_ENABLED = true;
 
 /** Per-group colors for edit-replace mode. Each entry has a hex value (for the
  *  3D ring in AllBeads) and Tailwind active/inactive classes (for EditReplaceDialog). */
@@ -158,15 +158,6 @@ export const CAMERA_EDIT_SIDE_DISTANCE = Math.hypot(...CAMERA_EDIT_SIDE_POSITION
 
 /** Distance step (metres) for each Zoom In / Zoom Out button press in edit mode. */
 export const CAMERA_EDIT_ZOOM_STEP = 0.015;
-
-/**
- * Edit-mode camera lock. When true (original behaviour), entering edit mode pins
- * the camera to a fixed top OR side view: elevation is locked and only the
- * toolbar's pan/rotate/zoom can move it. When false (experimental), the top/side
- * toggle still snaps the camera into place, but the user can then orbit / pan /
- * zoom freely with the mouse — exactly like View mode. Set back to true to revert.
- */
-export const EDIT_CAMERA_LOCKED = false;
 
 // ─── Cord ─────────────────────────────────────────────────────────────────────
 

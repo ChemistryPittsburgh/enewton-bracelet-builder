@@ -15,7 +15,7 @@ import { ScrollableRow } from "@/components/ui/ScrollableRow";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
-import { braceletArc, usedArc, beadFits, maxFit } from "@/lib/bead-layout";
+import { braceletArc, usedArc, beadFits, maxFit, maxSeedArcMm, maxArcMmAtGap, buildEffectiveGroups } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   BAR_REPLACE_FIT_LIMIT,
@@ -107,9 +107,12 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   const cancelReplaceMode = useStore((s) => s.cancelReplaceMode);
   const isEditMode = useStore((s) => s.isEditMode);
   const editReplaceMode = useStore((s) => s.editReplaceMode);
+  const selectedGapIndex = useStore((s) => s.selectedGapIndex);
+  const setSelectedGapIndex = useStore((s) => s.setSelectedGapIndex);
+  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
   const editReplaceNarrowedIds = useStore((s) => s.editReplaceNarrowedIds);
   const editSelectedIds = useStore((s) => s.editSelectedIds);
-  const editSelectionGroups = useStore((s) => s.editSelectionGroups);
+  const groups = useStore((s) => s.groups);
   const placedBeads = useStore((s) => s.beads);
   const braceletSize = useStore((s) => s.braceletSize);
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
@@ -133,16 +136,16 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     if (!isEditReplace && !isImplicitEditReplace) return [];
     if (isEditReplace) {
       if (editReplaceNarrowedIds !== null) {
-        // In explicit mode, IDs live in editSelectionGroups (editSelectedIds is empty) — skip the filter.
+        // In explicit mode, IDs live in groups (editSelectedIds is empty) — skip the filter.
         // In auto mode, confirm the IDs are still in the active selection.
-        return editSelectionGroups.length > 0
+        return groups.length > 0
           ? editReplaceNarrowedIds
           : editReplaceNarrowedIds.filter((id) => editSelectedIds.includes(id));
       }
       return editSelectedIds;
     }
     return editSelectedIds;
-  }, [isEditReplace, isImplicitEditReplace, editReplaceNarrowedIds, editSelectedIds, editSelectionGroups]);
+  }, [isEditReplace, isImplicitEditReplace, editReplaceNarrowedIds, editSelectedIds, groups]);
 
   // Beads remaining after the replace targets are removed — shared by fit functions below.
   const withoutTargets = useMemo(
@@ -300,6 +303,20 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
     return Math.max(0, Math.round((totalArc - usedM) * 1000 * 10) / 10);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBarReplace, isBarSingleReplace, effectivePlacedBeads, withoutTargets, totalArc]);
+
+  // Arc (in mm) available for gap-fill insertion — caps maxArcMm for spacer/seed pickers.
+  // Uses maxArcMmAtGap (accounts for actual gap neighbors, and the item category's own
+  // spacing rule) so the cap matches what beadFitsAtIndex will allow for this position.
+  const gapArcMm = useMemo(() => {
+    if (selectedGapIndex === null || !isEvenlySpaced || placedBeads.length < 2) return undefined;
+    const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
+    const category = isSpacerMode ? "spacer" : "seed_segment";
+    return Math.floor(maxArcMmAtGap(placedBeads, selectedGapIndex, braceletRadius, effectiveGroups, isEvenlySpaced, category) * 10) / 10;
+  }, [selectedGapIndex, isEvenlySpaced, placedBeads, braceletRadius, groups, editSelectedIds, isSpacerMode]);
+
+  // A gap is the insert target and we're adding (not replacing) — pickers hide
+  // their amount controls and fill the gap instead.
+  const gapFillActive = selectedGapIndex !== null && !isReplaceMode && !isBarReplace;
 
   // Exclude "bar" from the data-driven pills — the bar tab renders BarPicker, not the card grid.
   const beadCategories = useMemo(
@@ -589,6 +606,24 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
           </div>
         )}
 
+        {/* Gap-insert banner — shown when a gap is selected as insertion target */}
+        {selectedGapIndex !== null && !isReplaceMode && (
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-gold px-4 py-2 text-white">
+            <span className="text-xs font-semibold">
+              Filling gap
+              {gapArcMm !== undefined && gapArcMm > 0 && (
+                <span className="font-normal opacity-80"> · {gapArcMm}mm</span>
+              )}
+            </span>
+            <button
+              onClick={() => setSelectedGapIndex(null)}
+              className="text-xs font-medium underline underline-offset-2 hover:no-underline"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
         {/* Search — hidden in spacer/bar/seed mode */}
         {!isSpacerMode && !isBarMode && !isSeedMode && (
           <div className={`shrink-0 pt-4 ${panelGapClass}`}>
@@ -676,13 +711,16 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             effectiveBeads={barEffectiveBeads}
             isReplaceMode={isBarReplace}
             error={error}
+            maxArcMm={gapArcMm}
+            isGapFill={gapFillActive}
           />
         ) : isSpacerMode ? (
           <SpacerPicker
             onAdd={handleAddSpacer}
             error={error}
-            maxArcMm={isBarReplace ? barFreedArcMm : undefined}
+            maxArcMm={isBarReplace ? barFreedArcMm : gapArcMm}
             isReplaceMode={isBarReplace}
+            isGapFill={gapFillActive}
           />
         ) : isSeedMode ? (
           <SeedBeadPicker
@@ -690,9 +728,10 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
             onFillGapsEvenly={handleFillGapsEvenly}
             error={error}
             onManageColors={onManageSeedColors}
-            maxArcMm={isBarReplace ? barFreedArcMm : undefined}
+            maxArcMm={isBarReplace ? barFreedArcMm : gapArcMm}
             isReplaceMode={isBarReplace}
             replaceMode={isSeedReplaceUI}
+            isGapFill={gapFillActive && !isSeedReplaceUI}
           />
         ) : (
           /* ── Normal bead selector ── */

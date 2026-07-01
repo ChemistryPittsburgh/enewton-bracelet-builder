@@ -7,13 +7,13 @@ import { useShallow } from "zustand/react/shallow";
 
 import { useStore } from "@/lib/store";
 import { formatMm } from "@/lib/utils";
-import { getBeadAngle, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
+import { getBeadAngle, getBeadTransformLine, buildEffectiveGroups, getGapFillAwareSpacingBonuses } from "@/lib/bead-layout";
 import type { BeadProduct, PlacedBead } from "@/types";
 
 
 // ─── Slot-finding helpers ─────────────────────────────────────────────────────
 
-function nearestSlot(point: THREE.Vector3, beads: PlacedBead[], radius: number, extraSpacingPerGap = 0): number {
+function nearestSlot(point: THREE.Vector3, beads: PlacedBead[], radius: number, extraSpacingPerGap: number | number[] = 0): number {
   const angle = Math.atan2(point.z, point.x);
   const TWO_PI = 2 * Math.PI;
   let nearest = 0;
@@ -49,7 +49,7 @@ function resolveDropSlot(
   point: THREE.Vector3,
   beads: PlacedBead[],
   radius: number,
-  extraSpacingPerGap = 0,
+  extraSpacingPerGap: number | number[] = 0,
   isLine = false,
 ): number {
   if (beads.length === 0) return 0;
@@ -129,7 +129,18 @@ export function useBraceletReorderDrag(
         .sort((a, b) => a - b);
       setDragState({ fromIndex: index, toIndex: index, groupFromIndices });
     } else {
-      setDragState({ fromIndex: index, toIndex: index });
+      // Safety fallback: if editSelectedIds wasn't primed yet, check saved groups directly.
+      const savedGroup = useStore.getState().groups
+        .find(g => g.instanceIds.includes(draggedBead?.instanceId ?? ''));
+      if (savedGroup && savedGroup.instanceIds.length > 1) {
+        const groupFromIndices = savedGroup.instanceIds
+          .map((id) => beads.findIndex((b) => b.instanceId === id))
+          .filter((i) => i !== -1)
+          .sort((a, b) => a - b);
+        setDragState({ fromIndex: index, toIndex: index, groupFromIndices });
+      } else {
+        setDragState({ fromIndex: index, toIndex: index });
+      }
     }
   }
 
@@ -149,9 +160,9 @@ export function useBraceletReorderDrag(
       const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
       if (raycaster.ray.intersectPlane(plane, target)) {
-        const { isEvenlySpaced } = useStore.getState();
+        const { isEvenlySpaced, groups, editSelectedIds } = useStore.getState();
         const extraSpacingPerGap = isEvenlySpaced && viewModeRef.current === '3D'
-          ? getEvenSpacingBonus(beadsRef.current!, radiusRef.current!)
+          ? getGapFillAwareSpacingBonuses(beadsRef.current!, buildEffectiveGroups(groups, editSelectedIds), radiusRef.current!)
           : 0;
         toIndex = resolveDropSlot(
           target, beadsRef.current!, radiusRef.current!, extraSpacingPerGap,
@@ -232,9 +243,9 @@ export function usePanelDrop(
       const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
       if (raycaster.ray.intersectPlane(plane, target)) {
-        const { isEvenlySpaced } = useStore.getState();
+        const { isEvenlySpaced, groups, editSelectedIds } = useStore.getState();
         const extraSpacingPerGap = isEvenlySpaced && viewModeRef.current === '3D'
-          ? getEvenSpacingBonus(beadsRef.current!, radiusRef.current!)
+          ? getGapFillAwareSpacingBonuses(beadsRef.current!, buildEffectiveGroups(groups, editSelectedIds), radiusRef.current!)
           : 0;
         slot = resolveDropSlot(
           target, beadsRef.current!, radiusRef.current!, extraSpacingPerGap,

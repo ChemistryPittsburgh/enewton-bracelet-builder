@@ -2,7 +2,7 @@ import { useBeads } from "@/hooks/useBeads";
 import { useStore } from "@/lib/store";
 import { useLockDesign } from "@/hooks/useLockDesign";
 import { useReleaseLock } from "@/hooks/useReleaseLock";
-import type { Bracelet, PlacedBead, BeadProduct } from "@/types";
+import type { Bracelet, PlacedBead, BeadProduct, BeadGroup } from "@/types";
 import { createSeedSegmentProduct } from "@/lib/constants";
 
 /**
@@ -66,12 +66,19 @@ export function useLoadDesign() {
             instanceId: configBead.instance_id,
             product: product,
             seedConfig: configBead.seed_config,
+            ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
           }];
         }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return []; // product removed from catalog — skip gracefully
-        return [{ instanceId: configBead.instance_id, product }];
+        return [{
+          instanceId: configBead.instance_id,
+          product,
+          ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
+        }];
       });
+
+    const groups: BeadGroup[] = (configuration.groups ?? []).map((g) => ({ id: g.id, instanceIds: g.instance_ids }));
 
     // Restore size + material before loading beads so capacity checks use
     // the correct radius for the saved bracelet.
@@ -79,7 +86,7 @@ export function useLoadDesign() {
     setbandMaterial(configuration.band_material);
     if (configuration.hairtie_color) setHairtieColor(configuration.hairtie_color);
     setIsEvenlySpaced(configuration.is_evenly_spaced ?? false);
-    loadBeads(placedBeads, name);
+    loadBeads(placedBeads, name, groups);
 
     // Restore description (empty string when null so the input stays controlled).
     setBraceletDescription(design.description ?? "");
@@ -134,17 +141,24 @@ export function useLoadDesign() {
             instanceId: configBead.instance_id,
             product: product,
             seedConfig: configBead.seed_config,
+            ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
           }];
         }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return [];
-        return [{ instanceId: configBead.instance_id, product }];
+        return [{
+          instanceId: configBead.instance_id,
+          product,
+          ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
+        }];
       });
+
+    const groups: BeadGroup[] = (configuration.groups ?? []).map((g) => ({ id: g.id, instanceIds: g.instance_ids }));
 
     setBraceletSize(configuration.bracelet_size);
     setbandMaterial(configuration.band_material);
     setIsEvenlySpaced(configuration.is_evenly_spaced ?? false);
-    loadBeads(placedBeads, name);
+    loadBeads(placedBeads, name, groups);
     setBraceletDescription(description ?? "");
     setActivePatternId(null);
     markClean();

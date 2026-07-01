@@ -19,6 +19,7 @@
  */
 
 import { FLOAT_CHARM_THIN_SCALE } from "@/lib/constants";
+import type { BeadGroup, PlacedBead } from "@/types";
 
 // ─── Bracelet constants ───────────────────────────────────────────────────────
 
@@ -99,7 +100,7 @@ export const MIN_CHARM_ARC_MM = 1.7;
 
 // Half-arc a single bead occupies from its own centre (no neighbor context needed).
 // Bars use size_mm (their arc length) rather than diameter (their tube thickness).
-function selfHalf(bead: BeadLike): number {
+export function selfHalf(bead: BeadLike): number {
   if (bead.product.bead_category === "bar") {
     if (bead.product.size_mm == null) {
       if (process.env.NODE_ENV !== "production") {
@@ -149,14 +150,70 @@ function pairAdvance(a: BeadLike, b: BeadLike): number {
 }
 
 /**
- * Extra arc to add between every adjacent pair so the total gap is spread
- * evenly around the bracelet instead of sitting at the seam.
- * Returns 0 for empty bracelets or bracelets that are already full.
+ * Combines saved groups and the pending (unsaved) selection into a single
+ * flat string[][] so the spacing calculation treats the active selection as
+ * the next group, matching how the Replace dialog already displays it.
  */
-export function getEvenSpacingBonus(beads: BeadLike[], radius: number): number {
-  if (beads.length === 0) return 0;
-  const bonus = (braceletArc(radius) - usedArc(beads)) / beads.length;
-  return Math.max(0, bonus);
+export function buildEffectiveGroups(
+  savedGroups: BeadGroup[],
+  pendingIds: string[],
+): string[][] {
+  const saved = savedGroups.map((g) => g.instanceIds);
+  return pendingIds.length > 0 ? [...saved, pendingIds] : saved;
+}
+
+/**
+ * Unified distribute spacing: handles gap-fill items, explicit groups, or neither.
+ *
+ * Gap-fill beads (isGapFill=true) sit tight against their neighbors — no bonus
+ * spacing is added before or after them. Only the gaps between anchor beads (or
+ * between anchor groups) receive the distribute bonus.
+ *
+ * Degenerate cases:
+ *   - No gap-fill, no groups → a flat (braceletArc - usedArc) / count spread
+ *     evenly across every gap
+ *   - Groups only            → beads within the same group are treated as one
+ *     visual unit (no bonus between adjacent same-group beads); leftover arc
+ *     is divided by the number of units (groups + ungrouped beads) and applied
+ *     only at group boundaries
+ *
+ * The wrap-around gap (last array element, index n-1) participates in bonus
+ * distribution when both flanking beads are eligible anchors. getBeadAngle
+ * never reads extraSpacingPerGap[n-1], so bead positions are unaffected.
+ */
+export function getGapFillAwareSpacingBonuses(
+  beads: PlacedBead[],
+  groups: string[][],
+  radius: number,
+): number[] {
+  const n = beads.length;
+  if (n === 0) return [];
+
+  const idToGroup = new Map<string, number>();
+  groups.forEach((group, g) => group.forEach((id) => idToGroup.set(id, g)));
+
+  let numDistribute = 0;
+  for (let i = 0; i < n; i++) {
+    const curr = beads[i];
+    const next = beads[(i + 1) % n];
+    if (curr.isGapFill || next.isGapFill) continue;
+    const tg = idToGroup.get(curr.instanceId);
+    const ng = idToGroup.get(next.instanceId);
+    if (tg !== undefined && tg === ng) continue;
+    numDistribute++;
+  }
+
+  const freeArc = Math.max(0, braceletArc(radius) - usedArc(beads));
+  const bonus = numDistribute > 0 ? freeArc / numDistribute : 0;
+
+  return beads.map((bead, i) => {
+    const next = beads[(i + 1) % n];
+    if (bead.isGapFill || next.isGapFill) return 0;
+    const tg = idToGroup.get(bead.instanceId);
+    const ng = idToGroup.get(next.instanceId);
+    if (tg !== undefined && tg === ng) return 0;
+    return bonus;
+  });
 }
 
 /** Total cord length consumed by beads - how much room left */
@@ -177,6 +234,40 @@ export function beadFits(
   radius = BRACELET_RADIUS
 ): boolean {
   return usedArc([...currentBeads, newBead]) <= braceletArc(radius);
+}
+
+/**
+ * Like beadFits, but tests inserting newBead after beads[insertAfter] rather
+ * than appending to the end. Necessary when gap neighbors have different spacing
+ * categories (e.g. two crystals) than the tail bead — append would under-count
+ * the real arc cost, silently allowing overflow.
+ *
+ * When isEvenlySpaced is active, the whole-ring check alone isn't enough: leftover
+ * arc is displayed as "bonus" spacing distributed across every eligible gap
+ * (getGapFillAwareSpacingBonuses), so a specific gap's true visual size is only
+ * its fractional share of that leftover, not the whole ring's slack. Without this
+ * second check, a fill could pass the whole-ring test yet visually overflow the
+ * one gap it's actually going into.
+ */
+export function beadFitsAtIndex(
+  beads: PlacedBead[],
+  newBead: BeadLike,
+  insertAfter: number,
+  radius = BRACELET_RADIUS,
+  groups: string[][] = [],
+  isEvenlySpaced = false,
+): boolean {
+  const arr = [...beads];
+  arr.splice(insertAfter + 1, 0, newBead as PlacedBead);
+  if (usedArc(arr) > braceletArc(radius)) return false;
+  if (!isEvenlySpaced || beads.length < 2) return true;
+  const bonuses = getGapFillAwareSpacingBonuses(beads, groups, radius);
+  // insertAfter === -1 means "insert before the first bead" — the same physical
+  // seam as the wraparound gap at index beads.length - 1, not a missing index.
+  const gapIndex = insertAfter < 0 ? beads.length - 1 : insertAfter;
+  const visualCapM = bonuses[gapIndex] ?? 0;
+  const newBeadCostM = usedArc(arr) - usedArc(beads);
+  return newBeadCostM <= visualCapM;
 }
 
 /**
@@ -218,6 +309,70 @@ export function maxSeedArcMm(beads: BeadLike[], radius = BRACELET_RADIUS): numbe
     ? getSpacing(beads[beads.length - 1], SEED_SPACING_PROBE)
     : 0;
   return Math.max(0, (free - gap) * 1000);
+}
+
+/**
+ * Per-gap arc (mm) that "Fill Gaps Evenly" will use: lays the non-gap-fill
+ * anchor beads out with a zero-width seed-segment probe after each one (to
+ * capture the real inter-category spacing cost), then splits whatever arc is
+ * left equally across them. Shared by the store's fillGapsWithSeeds (the
+ * actual fill) and the seed picker's preview so the two can never diverge —
+ * a flat (braceletArc - usedArc) / count estimate omits that spacing cost and
+ * over-counts gap-fill beads as if they were additional anchors.
+ */
+export function evenFillGapMm(beads: PlacedBead[], radius = BRACELET_RADIUS): number {
+  const anchors = beads.filter((b) => !b.isGapFill);
+  if (anchors.length === 0) return 0;
+  const withProbes: BeadLike[] = [];
+  for (const a of anchors) {
+    withProbes.push(a);
+    withProbes.push(SEED_SPACING_PROBE);
+  }
+  const usedArc0 = usedArc(withProbes);
+  return Math.max(0, Math.floor(((braceletArc(radius) - usedArc0) / anchors.length) * 1000 * 10) / 10);
+}
+
+/**
+ * Max arc (mm) for inserting a seed segment or spacer at a specific gap
+ * position. Uses the actual left/right neighbors of the gap; unlike
+ * maxSeedArcMm (which always compares against the last bead), this is correct
+ * when gap neighbors differ from the tail bead in spacing category.
+ *
+ * `category` selects which item's own spacing rule to use against its
+ * neighbors — pass "spacer" when computing the cap for a spacer insert, since
+ * spacers and seed segments have different CATEGORY_SPACING values.
+ *
+ * When isEvenlySpaced is active, this gap's true visual size is only its
+ * fractional share of the ring's total leftover arc (see
+ * getGapFillAwareSpacingBonuses) — the bare whole-ring figure below would let a
+ * fill exceed what's actually shown at this specific gap, so it's capped by that
+ * gap's current bonus share.
+ */
+export function maxArcMmAtGap(
+  beads: PlacedBead[],
+  insertAfterIndex: number,
+  radius = BRACELET_RADIUS,
+  groups: string[][] = [],
+  isEvenlySpaced = false,
+  category: "seed_segment" | "spacer" = "seed_segment",
+): number {
+  if (beads.length < 2) return category === "spacer" ? maxSpacerArcMm(beads, radius) : maxSeedArcMm(beads, radius);
+  const probe: BeadLike = { product: { diameter: 0, bead_category: category } };
+  const L = beads[insertAfterIndex];
+  const R = beads[(insertAfterIndex + 1) % beads.length];
+  const freeArc = braceletArc(radius) - usedArc(beads);
+  // usedArc sums only the forward chain (first→last), never the wrap-around pair.
+  // For a mid-bracelet insertion, getSpacing(L,R) is already in usedArc and gets
+  // freed by the insertion, so we add it back. For the wrap-around gap the pair
+  // cost was never counted, so there is nothing to reclaim.
+  const isWrapAround = insertAfterIndex === beads.length - 1;
+  const maxArcM = freeArc
+    - getSpacing(L, probe)
+    - getSpacing(probe, R)
+    + (isWrapAround ? 0 : getSpacing(L, R));
+  if (!isEvenlySpaced) return Math.max(0, maxArcM * 1000);
+  const visualCapM = getGapFillAwareSpacingBonuses(beads, groups, radius)[insertAfterIndex] ?? 0;
+  return Math.max(0, Math.min(maxArcM, visualCapM) * 1000);
 }
 
 /** Gap-aware maximum arc (mm) available for a spacer segment appended to `beads`. */
@@ -279,12 +434,13 @@ export function getBeadAngle(
   slotIndex: number,
   beads: BeadLike[],
   radius = BRACELET_RADIUS,
-  extraSpacingPerGap = 0,
+  extraSpacingPerGap: number | number[] = 0,
 ): number {
   let angle = START_ANGLE_OFFSET + selfHalf(beads[0]) / radius;
 
   for (let i = 0; i < slotIndex; i++) {
-    angle += (pairAdvance(beads[i], beads[i + 1]) + extraSpacingPerGap) / radius;
+    const extra = Array.isArray(extraSpacingPerGap) ? (extraSpacingPerGap[i] ?? 0) : extraSpacingPerGap;
+    angle += (pairAdvance(beads[i], beads[i + 1]) + extra) / radius;
   }
 
   return angle;
@@ -305,12 +461,30 @@ export function getBeadPosition(angle: number, radius = BRACELET_RADIUS): [numbe
 /** Tilt applied to the inner group — lays the bead on its side. */
 const BEAD_INNER_TILT_X = 0;
 
+/**
+ * Computes all bead angles in a single O(n) pass.
+ * Prefer this over calling getBeadAngle(i, …) n times, which is O(n²).
+ */
+export function getBeadAngles(
+  beads: BeadLike[],
+  radius = BRACELET_RADIUS,
+  extraSpacingPerGap: number | number[] = 0,
+): number[] {
+  if (beads.length === 0) return [];
+  const angles: number[] = [START_ANGLE_OFFSET + selfHalf(beads[0]) / radius];
+  for (let i = 0; i < beads.length - 1; i++) {
+    const extra = Array.isArray(extraSpacingPerGap) ? (extraSpacingPerGap[i] ?? 0) : extraSpacingPerGap;
+    angles.push(angles[i] + (pairAdvance(beads[i], beads[i + 1]) + extra) / radius);
+  }
+  return angles;
+}
+
 /** Returns the complete transform for a bead at the given slot. */
 export function getBeadTransform(
   slotIndex: number,
   beads: BeadLike[],
   radius = BRACELET_RADIUS,
-  extraSpacingPerGap = 0,
+  extraSpacingPerGap: number | number[] = 0,
 ): {
   position: [number, number, number];
   outerRotation: [number, number, number];
@@ -323,3 +497,4 @@ export function getBeadTransform(
     innerRotation: [BEAD_INNER_TILT_X, 0, 0],
   };
 }
+

@@ -13,6 +13,7 @@ import type {
   BraceletSize,
   BraceletConfiguration,
   BraceletConfigBead,
+  BeadGroup,
 } from "@/types";
 
 export function buildBraceletConfig(
@@ -21,6 +22,7 @@ export function buildBraceletConfig(
   bandMaterial: BandMaterial,
   hairtieColor?: string | null,
   isEvenlySpaced = false,
+  groups: BeadGroup[] = [],
 ): BraceletConfiguration {
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const maxArc = braceletArc(radius);
@@ -30,7 +32,8 @@ export function buildBraceletConfig(
     position: i + 1,
     product_id: b.product.id,
     instance_id: b.instanceId,
-    ...(b.seedConfig ? { seed_config: b.seedConfig } : {}),
+    ...(b.seedConfig  ? { seed_config:  b.seedConfig  } : {}),
+    ...(b.isGapFill   ? { is_gap_fill:  true           } : {}),
   }));
 
   return {
@@ -42,5 +45,6 @@ export function buildBraceletConfig(
     arc_total_mm: parseFloat((maxArc * 1000).toFixed(2)),
     percent_used: parseFloat(Math.min((arcUsed / maxArc) * 100, 100).toFixed(1)),
     beads: configBeads,
+    groups: groups.map((g) => ({ id: g.id, instance_ids: g.instanceIds })),
   };
 }
