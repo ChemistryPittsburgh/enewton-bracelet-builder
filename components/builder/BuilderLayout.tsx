@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { ChevronsRight, Move, Inbox, LayoutTemplate, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronsRight, Move, Inbox, LayoutTemplate, Loader2, Eye } from "lucide-react";
 
 import { LOGO_SRC, LOGO_ALT, DEFAULT_BRACELET_NAME} from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ import { useSavePattern } from "@/hooks/useSavePattern";
 import { useIsDirty } from "@/hooks/useIsDirty";
 
 export function BuilderLayout() {
+  const router = useRouter();
   const {
     placedBeads,
     braceletName,
@@ -373,6 +375,16 @@ export function BuilderLayout() {
           />}
           {/* Keyboard shortcuts — global help, available in any mode */}
           <KeyboardShortcutsHelp />
+
+          <Tooltip content="View read-only gallery" placement="bottom-end">
+            <button
+              onClick={() => router.push("/read-only")}
+              className="flex h-9 w-9 items-center justify-center rounded-[2px] border border-default bg-white hover:bg-mint hover:border-black transition-colors"
+              aria-label="View read-only gallery"
+            >
+              <Eye size={18} />
+            </button>
+          </Tooltip>
 
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">

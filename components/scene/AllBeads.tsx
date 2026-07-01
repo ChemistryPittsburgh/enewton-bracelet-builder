@@ -172,6 +172,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
                 isDragTarget={isDragTarget}
                 onDragStart={handleDragStart}
                 visible={spacersVisible}
+                isLocked={isLocked}
               />
             ) : isSeedSegment ? (
               <SeedSegmentOnBracelet
