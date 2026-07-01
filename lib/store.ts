@@ -10,7 +10,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import type { Bracelet, BeadGroup, BeadProduct, PlacedBead, BandMaterial, BraceletSize, SeedSegmentConfig } from "@/types";
-import { beadFits, beadFitsAtIndex, usedArc, braceletArc, buildEffectiveGroups } from "@/lib/bead-layout";
+import { beadFits, beadFitsAtIndex, usedArc, braceletArc, buildEffectiveGroups, evenFillGapMm } from "@/lib/bead-layout";
 import { beadMatchKey } from "@/lib/seed-bead-utils";
 import { BRACELET_SIZE_RADIUS, DEFAULT_BRACELET_NAME } from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
@@ -481,10 +481,16 @@ export const useStore = create<Store>()(
 
       fillGapsWithSeeds(makeFiller) {
         const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
-        const anchors = get().beads.filter(b => !b.isGapFill);
+        const allBeads = get().beads;
+        const anchors = allBeads.filter(b => !b.isGapFill);
         if (anchors.length === 0) {
           return "Place a few beads first, then fill the gaps between them.";
         }
+        // Recalculating an even fill discards any beads placed via the separate
+        // "select a gap, fill it" flow — they aren't evenly spaced, so there's no
+        // way to reconcile them with a fresh even distribution. Warn rather than
+        // silently dropping them.
+        const discardedGapFillCount = allBeads.length - anchors.length;
 
         // One seed run after every anchor (the last sits across the seam). Each run
         // reserves an equal arc, so the anchors come out evenly spaced around the loop.
@@ -498,12 +504,10 @@ export const useStore = create<Store>()(
           return seq;
         };
 
-        // Exact per-gap arc: lay the sequence out with zero-width seed probes to
-        // capture the anchor footprints AND the charm↔seed spacing, then split the
-        // arc that's actually left equally. (A flat safety margin left visible slack
-        // that pooled at the seam.) Floor only to dodge floating-point overflow.
-        const usedArc0 = usedArc(build(0));
-        let gapMm = Math.floor(((braceletArc(radius) - usedArc0) / anchors.length) * 1000 * 10) / 10;
+        // Exact per-gap arc — shared with the seed picker's preview (evenFillGapMm)
+        // so the two can never diverge. (A flat safety margin left visible slack
+        // that pooled at the seam.)
+        let gapMm = evenFillGapMm(allBeads, radius);
         if (gapMm <= 0) return "There's no room left to add seed beads between them.";
 
         let seq = build(gapMm);
@@ -519,6 +523,12 @@ export const useStore = create<Store>()(
 
         get().pushUndoSnapshot();
         set({ beads: seq, isDirty: true });
+        if (discardedGapFillCount > 0) {
+          get().addToast({
+            type: "info",
+            message: `Replaced ${discardedGapFillCount} previously placed gap bead${discardedGapFillCount === 1 ? "" : "s"} with the even fill.`,
+          });
+        }
         return null;
       },
 
@@ -639,13 +649,36 @@ export const useStore = create<Store>()(
         // otherwise re-selecting an existing group (toggleGroup's echo-select)
         // and saving again creates a second group with overlapping instanceIds,
         // which breaks the "groups partition beads" assumption in the group-aware
-        // spacing math (getGroupSpacingBonuses / getGapFillAwareSpacingBonuses).
+        // spacing math (getGapFillAwareSpacingBonuses).
+        //
+        // Only dissolve an existing group when the WHOLE group is covered by the
+        // new selection. A partial overlap can happen outside the click-to-echo
+        // flow (e.g. "Select All" of one product type inside a mixed-type group,
+        // via selectAllOfType) — dissolving in that case would silently strand
+        // the group's untouched members with no group at all. Keep those groups
+        // intact instead, and drop their ids from the new group so a bead is
+        // never claimed by two groups at once.
         const selected = new Set(s.editSelectedIds);
+        const groupsToKeep: typeof s.groups = [];
+        const idsClaimedByKeptGroups = new Set<string>();
+        for (const g of s.groups) {
+          const fullyCovered = g.instanceIds.every((id) => selected.has(id));
+          if (fullyCovered) continue;
+          groupsToKeep.push(g);
+          for (const id of g.instanceIds) {
+            if (selected.has(id)) idsClaimedByKeptGroups.add(id);
+          }
+        }
+        const newGroupIds = s.editSelectedIds.filter((id) => !idsClaimedByKeptGroups.has(id));
+        if (newGroupIds.length === 0) {
+          s.addToast({ type: "info", message: "Those beads already belong to an existing group." });
+          return;
+        }
         get().pushUndoSnapshot();
         set({
           groups: [
-            ...s.groups.filter((g) => !g.instanceIds.some((id) => selected.has(id))),
-            { id: nanoid(), instanceIds: s.editSelectedIds },
+            ...groupsToKeep,
+            { id: nanoid(), instanceIds: newGroupIds },
           ],
           editSelectedIds: [],
           editReplaceNarrowedIds: null,
@@ -1056,6 +1089,7 @@ export const useStore = create<Store>()(
           instanceId: nanoid(),
           product: bead.product,
           ...(bead.seedConfig ? { seedConfig: bead.seedConfig } : {}),
+          ...(bead.isGapFill  ? { isGapFill: true } : {}),
         };
         set({ beads: [...beads.slice(0, index + 1), copy, ...beads.slice(index + 1)], isDirty: true });
       },
@@ -1086,6 +1120,7 @@ export const useStore = create<Store>()(
             instanceId: nanoid(),
             product: bead.product,
             ...(bead.seedConfig ? { seedConfig: bead.seedConfig } : {}),
+            ...(bead.isGapFill  ? { isGapFill: true } : {}),
           };
           copies.push(copy);
           tempList = [...tempList, copy];

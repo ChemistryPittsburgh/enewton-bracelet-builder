@@ -21,7 +21,7 @@ export function useSavePattern() {
     mutationFn: async () => {
       // Read live store values at execution time to avoid stale closure issues
       // during the async thumbnail capture + upload window.
-      const { activePatternId, beads, bandMaterial, braceletSize, hairtieColor, braceletName, isEvenlySpaced } =
+      const { activePatternId, beads, bandMaterial, braceletSize, hairtieColor, braceletName, isEvenlySpaced, groups } =
         useStore.getState();
 
       if (activePatternId === null) throw new Error("No active pattern to save");
@@ -33,7 +33,7 @@ export function useSavePattern() {
         preview_image_url = await uploadThumbnail(dataUrl, filename);
       }
 
-      const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor, isEvenlySpaced);
+      const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor, isEvenlySpaced, groups);
 
       return apiFetch(`/patterns/${activePatternId}`, {
         method: "PUT",

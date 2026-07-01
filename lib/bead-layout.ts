@@ -150,17 +150,6 @@ function pairAdvance(a: BeadLike, b: BeadLike): number {
 }
 
 /**
- * Extra arc to add between every adjacent pair so the total gap is spread
- * evenly around the bracelet instead of sitting at the seam.
- * Returns 0 for empty bracelets or bracelets that are already full.
- */
-export function getEvenSpacingBonus(beads: BeadLike[], radius: number): number {
-  if (beads.length === 0) return 0;
-  const bonus = (braceletArc(radius) - usedArc(beads)) / beads.length;
-  return Math.max(0, bonus);
-}
-
-/**
  * Combines saved groups and the pending (unsaved) selection into a single
  * flat string[][] so the spacing calculation treats the active selection as
  * the next group, matching how the Replace dialog already displays it.
@@ -174,49 +163,19 @@ export function buildEffectiveGroups(
 }
 
 /**
- * Group-aware variant of getEvenSpacingBonus. When explicit replacement groups
- * are active, beads within the same group are treated as one visual unit — no
- * extra gap is inserted between adjacent same-group beads. The full leftover arc
- * is divided by the number of units (groups + ungrouped beads) and applied only
- * at group boundaries.
- *
- * Returns a per-gap array (index i = extra spacing between bead[i] and bead[i+1]).
- */
-export function getGroupSpacingBonuses(
-  beads: PlacedBead[],
-  groups: string[][],
-  radius: number,
-): number[] {
-  if (beads.length === 0) return [];
-  const idToGroup = new Map<string, number>();
-  groups.forEach((group, g) => group.forEach((id) => idToGroup.set(id, g)));
-
-  const ungroupedCount = beads.filter((b) => !idToGroup.has(b.instanceId)).length;
-  const numUnits = groups.length + ungroupedCount;
-  const gapBonus = numUnits > 0
-    ? Math.max(0, (braceletArc(radius) - usedArc(beads)) / numUnits)
-    : 0;
-
-  return beads.map((bead, i) => {
-    if (i === beads.length - 1) return 0;
-    const nextBead = beads[i + 1];
-    const thisGroup = idToGroup.get(bead.instanceId);
-    const nextGroup = idToGroup.get(nextBead.instanceId);
-    if (thisGroup !== undefined && nextGroup !== undefined && thisGroup === nextGroup) return 0;
-    return gapBonus;
-  });
-}
-
-/**
  * Unified distribute spacing: handles gap-fill items, explicit groups, or neither.
  *
  * Gap-fill beads (isGapFill=true) sit tight against their neighbors — no bonus
  * spacing is added before or after them. Only the gaps between anchor beads (or
  * between anchor groups) receive the distribute bonus.
  *
- * Degenerate cases match existing functions:
- *   - No gap-fill, no groups → same as getEvenSpacingBonus
- *   - Groups only            → same as getGroupSpacingBonuses
+ * Degenerate cases:
+ *   - No gap-fill, no groups → a flat (braceletArc - usedArc) / count spread
+ *     evenly across every gap
+ *   - Groups only            → beads within the same group are treated as one
+ *     visual unit (no bonus between adjacent same-group beads); leftover arc
+ *     is divided by the number of units (groups + ungrouped beads) and applied
+ *     only at group boundaries
  *
  * The wrap-around gap (last array element, index n-1) participates in bonus
  * distribution when both flanking beads are eligible anchors. getBeadAngle
@@ -303,7 +262,10 @@ export function beadFitsAtIndex(
   if (usedArc(arr) > braceletArc(radius)) return false;
   if (!isEvenlySpaced || beads.length < 2) return true;
   const bonuses = getGapFillAwareSpacingBonuses(beads, groups, radius);
-  const visualCapM = bonuses[insertAfter] ?? 0;
+  // insertAfter === -1 means "insert before the first bead" — the same physical
+  // seam as the wraparound gap at index beads.length - 1, not a missing index.
+  const gapIndex = insertAfter < 0 ? beads.length - 1 : insertAfter;
+  const visualCapM = bonuses[gapIndex] ?? 0;
   const newBeadCostM = usedArc(arr) - usedArc(beads);
   return newBeadCostM <= visualCapM;
 }
@@ -350,10 +312,35 @@ export function maxSeedArcMm(beads: BeadLike[], radius = BRACELET_RADIUS): numbe
 }
 
 /**
- * Max seed-segment arc (mm) for inserting at a specific gap position.
- * Uses the actual left/right neighbors of the gap; unlike maxSeedArcMm (which
- * always compares against the last bead), this is correct when gap neighbors
- * differ from the tail bead in spacing category.
+ * Per-gap arc (mm) that "Fill Gaps Evenly" will use: lays the non-gap-fill
+ * anchor beads out with a zero-width seed-segment probe after each one (to
+ * capture the real inter-category spacing cost), then splits whatever arc is
+ * left equally across them. Shared by the store's fillGapsWithSeeds (the
+ * actual fill) and the seed picker's preview so the two can never diverge —
+ * a flat (braceletArc - usedArc) / count estimate omits that spacing cost and
+ * over-counts gap-fill beads as if they were additional anchors.
+ */
+export function evenFillGapMm(beads: PlacedBead[], radius = BRACELET_RADIUS): number {
+  const anchors = beads.filter((b) => !b.isGapFill);
+  if (anchors.length === 0) return 0;
+  const withProbes: BeadLike[] = [];
+  for (const a of anchors) {
+    withProbes.push(a);
+    withProbes.push(SEED_SPACING_PROBE);
+  }
+  const usedArc0 = usedArc(withProbes);
+  return Math.max(0, Math.floor(((braceletArc(radius) - usedArc0) / anchors.length) * 1000 * 10) / 10);
+}
+
+/**
+ * Max arc (mm) for inserting a seed segment or spacer at a specific gap
+ * position. Uses the actual left/right neighbors of the gap; unlike
+ * maxSeedArcMm (which always compares against the last bead), this is correct
+ * when gap neighbors differ from the tail bead in spacing category.
+ *
+ * `category` selects which item's own spacing rule to use against its
+ * neighbors — pass "spacer" when computing the cap for a spacer insert, since
+ * spacers and seed segments have different CATEGORY_SPACING values.
  *
  * When isEvenlySpaced is active, this gap's true visual size is only its
  * fractional share of the ring's total leftover arc (see
@@ -361,14 +348,16 @@ export function maxSeedArcMm(beads: BeadLike[], radius = BRACELET_RADIUS): numbe
  * fill exceed what's actually shown at this specific gap, so it's capped by that
  * gap's current bonus share.
  */
-export function maxSeedArcMmAtGap(
+export function maxArcMmAtGap(
   beads: PlacedBead[],
   insertAfterIndex: number,
   radius = BRACELET_RADIUS,
   groups: string[][] = [],
   isEvenlySpaced = false,
+  category: "seed_segment" | "spacer" = "seed_segment",
 ): number {
-  if (beads.length < 2) return maxSeedArcMm(beads, radius);
+  if (beads.length < 2) return category === "spacer" ? maxSpacerArcMm(beads, radius) : maxSeedArcMm(beads, radius);
+  const probe: BeadLike = { product: { diameter: 0, bead_category: category } };
   const L = beads[insertAfterIndex];
   const R = beads[(insertAfterIndex + 1) % beads.length];
   const freeArc = braceletArc(radius) - usedArc(beads);
@@ -378,8 +367,8 @@ export function maxSeedArcMmAtGap(
   // cost was never counted, so there is nothing to reclaim.
   const isWrapAround = insertAfterIndex === beads.length - 1;
   const maxArcM = freeArc
-    - getSpacing(L, SEED_SPACING_PROBE)
-    - getSpacing(SEED_SPACING_PROBE, R)
+    - getSpacing(L, probe)
+    - getSpacing(probe, R)
     + (isWrapAround ? 0 : getSpacing(L, R));
   if (!isEvenlySpaced) return Math.max(0, maxArcM * 1000);
   const visualCapM = getGapFillAwareSpacingBonuses(beads, groups, radius)[insertAfterIndex] ?? 0;

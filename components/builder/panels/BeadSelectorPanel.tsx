@@ -15,7 +15,7 @@ import { ScrollableRow } from "@/components/ui/ScrollableRow";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBeads } from "@/hooks/useBeads";
-import { braceletArc, usedArc, beadFits, maxFit, maxSeedArcMm, maxSeedArcMmAtGap, buildEffectiveGroups } from "@/lib/bead-layout";
+import { braceletArc, usedArc, beadFits, maxFit, maxSeedArcMm, maxArcMmAtGap, buildEffectiveGroups } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   BAR_REPLACE_FIT_LIMIT,
@@ -305,13 +305,14 @@ export function BeadSelectorPanel({ isOpen, onClose, onManageSeedColors }: BeadS
   }, [isBarReplace, isBarSingleReplace, effectivePlacedBeads, withoutTargets, totalArc]);
 
   // Arc (in mm) available for gap-fill insertion — caps maxArcMm for spacer/seed pickers.
-  // Uses maxSeedArcMmAtGap (accounts for actual gap neighbors) so the cap matches what
-  // beadFitsAtIndex will allow for this specific insertion position.
+  // Uses maxArcMmAtGap (accounts for actual gap neighbors, and the item category's own
+  // spacing rule) so the cap matches what beadFitsAtIndex will allow for this position.
   const gapArcMm = useMemo(() => {
     if (selectedGapIndex === null || !isEvenlySpaced || placedBeads.length < 2) return undefined;
     const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
-    return Math.floor(maxSeedArcMmAtGap(placedBeads, selectedGapIndex, braceletRadius, effectiveGroups, isEvenlySpaced) * 10) / 10;
-  }, [selectedGapIndex, isEvenlySpaced, placedBeads, braceletRadius, groups, editSelectedIds]);
+    const category = isSpacerMode ? "spacer" : "seed_segment";
+    return Math.floor(maxArcMmAtGap(placedBeads, selectedGapIndex, braceletRadius, effectiveGroups, isEvenlySpaced, category) * 10) / 10;
+  }, [selectedGapIndex, isEvenlySpaced, placedBeads, braceletRadius, groups, editSelectedIds, isSpacerMode]);
 
   // Exclude "bar" from the data-driven pills — the bar tab renders BarPicker, not the card grid.
   const beadCategories = useMemo(

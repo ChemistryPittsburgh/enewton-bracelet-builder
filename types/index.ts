@@ -29,6 +29,12 @@ export interface BraceletConfigBead {
   is_gap_fill?: boolean;
 }
 
+/** A saved BeadGroup as persisted inside a bracelet configuration. */
+export interface BraceletConfigGroup {
+  id: string;
+  instance_ids: string[];
+}
+
 /**
  * Full bracelet configuration persisted on the server.
  * Extends the legacy { beads: number[] } shape with layout + band metadata.
@@ -42,6 +48,8 @@ export interface BraceletConfiguration {
   arc_total_mm: number;
   percent_used: number;
   beads: BraceletConfigBead[];
+  /** User-defined bead groups (see BeadGroup) — persisted alongside beads. */
+  groups?: BraceletConfigGroup[];
 }
 
 /**

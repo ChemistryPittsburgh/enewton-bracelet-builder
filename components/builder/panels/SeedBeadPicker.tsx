@@ -16,7 +16,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSeedColors } from "@/hooks/useSeedColors";
 import { useSeedPresets } from "@/hooks/useSeedPresets";
-import { maxSeedArcMm, getEvenSpacingBonus } from "@/lib/bead-layout";
+import { maxSeedArcMm, evenFillGapMm } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   SEED_BEAD_THICKNESS_RATIO,
@@ -131,11 +131,10 @@ export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors,
       : parseFloat(customMm) || 0;
   const validArc = arcMm >= minUsefulArcMm && arcMm <= effectiveAvailableMm && !tooMany;
 
-  // Fill-gaps-evenly: distribute seeds into the gaps between already-placed beads,
-  // using the same even per-gap arc as the "distribute spacing evenly" toggle.
-  const evenGapMm = placedBeads.length > 0
-    ? Math.floor(getEvenSpacingBonus(placedBeads, radius) * 1000 * 10) / 10
-    : 0;
+  // Fill-gaps-evenly: distribute seeds into the gaps between already-placed beads.
+  // Shares its formula with the store's fillGapsWithSeeds (evenFillGapMm) so this
+  // preview can never diverge from what the button actually does.
+  const evenGapMm = evenFillGapMm(placedBeads, radius);
   const canFillGaps = !replaceMode && placedBeads.length > 0 && evenGapMm >= minUsefulArcMm;
   const perFillBeadMm = arcFromQuantity(1);
   const evenApproxBeads = canFillGaps && perFillBeadMm > 0 ? Math.max(1, Math.round(evenGapMm / perFillBeadMm)) : 0;

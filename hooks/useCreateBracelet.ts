@@ -25,7 +25,7 @@ function uniqueTags(values: (string | null | undefined)[]): string[] {
  */
 export function useCreateBracelet() {
   const queryClient = useQueryClient();
-  const { beads, braceletName, braceletDescription, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced } = useStore(useShallow((s) => ({
+  const { beads, braceletName, braceletDescription, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced, groups } = useStore(useShallow((s) => ({
     beads: s.beads,
     braceletName: s.braceletName,
     braceletDescription: s.braceletDescription,
@@ -33,11 +33,12 @@ export function useCreateBracelet() {
     braceletSize: s.braceletSize,
     hairtieColor: s.hairtieColor,
     isEvenlySpaced: s.isEvenlySpaced,
+    groups: s.groups,
   })));
 
   return useMutation({
     mutationFn({ preview_image_url }: { preview_image_url: string | null }) {
-      const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor, isEvenlySpaced);
+      const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor, isEvenlySpaced, groups);
 
       // Derive material_tags and bead_types from the placed beads
       const material_tags = uniqueTags(beads.map((b) => b.product.material));

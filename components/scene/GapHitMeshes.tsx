@@ -36,6 +36,8 @@ function GapMesh({
 }) {
   const [hovered, setHovered] = useState(false);
   const setSelectedGapIndex = useStore((s) => s.setSelectedGapIndex);
+  const canvasTool = useStore((s) => s.canvasTool);
+  const isCameraTool = canvasTool === 'look' || canvasTool === 'pan';
 
   // Guard before geometry allocation so gaps too small to render never
   // allocate (and leak) TubeGeometry objects.
@@ -78,9 +80,21 @@ function GapMesh({
       <mesh
         visible={false}
         geometry={geometries.hit}
-        onClick={(e) => { e.stopPropagation(); setSelectedGapIndex(gapIndex); }}
-        onPointerEnter={() => { setHovered(true); document.body.style.cursor = "pointer"; }}
-        onPointerLeave={() => { setHovered(false); document.body.style.cursor = ""; }}
+        onClick={(e) => {
+          if (isCameraTool) return; // look/grab: let camera-controls move the view
+          e.stopPropagation();
+          setSelectedGapIndex(gapIndex);
+        }}
+        onPointerEnter={() => {
+          if (isCameraTool) return;
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerLeave={() => {
+          if (isCameraTool) return;
+          setHovered(false);
+          document.body.style.cursor = "";
+        }}
       >
         <meshBasicMaterial />
       </mesh>
