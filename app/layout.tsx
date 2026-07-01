@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Square_Peg, Italiana } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/QueryProvider";
-import { DesktopOnly } from "@/components/ui/DesktopOnly";
 import { LOGO_SRC } from "@/lib/constants";
 
 const italiana = Italiana({ subsets: ["latin"], variable: "--font-italiana", display: 'swap', weight: ['400'] });
@@ -18,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${squarePeg.variable} ${italiana.variable}`}>
       <body className="font-regular bg-neutral-50 text-neutral-900 antialiased">
-        <QueryProvider><DesktopOnly>{children}</DesktopOnly></QueryProvider>
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

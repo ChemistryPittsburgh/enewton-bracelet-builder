@@ -22,6 +22,7 @@ interface SpacerOnBraceletProps {
   onDragStart?: (index: number) => void;
   /** When false, the spacer still occupies arc space but renders no visible mesh. */
   visible?: boolean;
+  isLocked?: boolean;
 }
 
 /**
@@ -41,6 +42,7 @@ export function SpacerOnBracelet({
   isDragTarget = false,
   onDragStart,
   visible = true,
+  isLocked = false,
 }: SpacerOnBraceletProps) {
   const storeBeads     = useStore((s) => s.beads);
   const beads          = layoutBeads ?? storeBeads;
@@ -60,7 +62,7 @@ export function SpacerOnBracelet({
     handlePointerLeave,
     showHoverRing,
     isEditMode,
-  } = useSceneItemInteraction(bead, slotIndex, { onDragStart });
+  } = useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);

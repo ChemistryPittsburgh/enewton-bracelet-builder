@@ -28,6 +28,16 @@ export const DEFAULT_BRACELET_NAME = "New Bracelet";
 export const LOGO_SRC = "/images/enewton-logo.svg";
 export const LOGO_ALT = "eNewton Logo";
 
+// ─── Responsive breakpoints ─────────────────────────────────────────────────
+
+/**
+ * Desktop = viewport at least 1024px wide. Width-based (not pointer-based) so
+ * resizing the window below 1024 shows the "desktop required" message, and so
+ * it isn't fooled by Chrome DevTools device mode, which emulates a coarse/
+ * touch pointer at any size. Used by DesktopOnly to gate the main builder.
+ */
+export const DESKTOP_QUERY = "(min-width: 1024px)";
+
 // ─── Scene ────────────────────────────────────────────────────────────────────
 
 /** Default canvas background color. */
