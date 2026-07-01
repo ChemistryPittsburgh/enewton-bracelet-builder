@@ -3,6 +3,7 @@ import { useCreateBracelet } from "@/hooks/useCreateBracelet";
 import { useGenerateThumbnail } from "@/hooks/useGenerateThumbnail";
 import { uploadThumbnail } from "@/hooks/useUploadThumbnail";
 import { slugify } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 /**
  * Shared bracelet save logic — capture thumbnail → upload → POST /designs.
@@ -31,6 +32,7 @@ export function useSaveBracelet() {
     const created = await createBracelet({ preview_image_url });
     setActiveDesignId(created.id);
     markClean();
+    toast.success("Bracelet saved");
   }
 
   return { save };

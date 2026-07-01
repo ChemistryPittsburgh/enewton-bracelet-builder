@@ -12,6 +12,8 @@ import { Scene } from "@/components/scene/Scene";
 import { Button } from "@/components/ui/Button";
 import { usePanelWidth, PANEL_COMPACT_QUERY } from "@/components/ui/Panel";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { Toaster } from "@/components/ui/Toaster";
+import { KeyboardShortcutsHelp } from "@/components/ui/KeyboardShortcutsHelp";
 
 import { BraceletExporter } from "./header/BraceletExporter";
 import { HeaderToolbar } from "./header/HeaderToolbar";
@@ -268,6 +270,19 @@ export function BuilderLayout() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isEditMode, canEdit, isLocked, toggleEditMode]);
 
+  // Warn before closing/refreshing the tab or navigating away with unsaved beads.
+  // In-app navigation (new bracelet, loading a design/pattern) is already guarded
+  // by the ConfirmReplaceDialog flow; this covers the browser-level exits.
+  useEffect(() => {
+    if (!isDirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = ""; // required for the native prompt in some browsers
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
 
   function openBraceletPanel() {
     const next = !braceletPanelOpen;
@@ -310,6 +325,8 @@ export function BuilderLayout() {
 
   return (
     <div className="flex h-screen flex-col min-h-[500px] overflow-hidden">
+
+      <Toaster />
 
       {/* Header */}
       <header className={`flex shrink-0 items-center gap-4 py-4 border-b border-default bg-white px-4 lg:px-6 xl:px-8`}>
@@ -354,6 +371,9 @@ export function BuilderLayout() {
             isKicked={kickedNotification}
             onKickedClick={() => setShowKickedModal(true)}
           />}
+          {/* Keyboard shortcuts — global help, available in any mode */}
+          <KeyboardShortcutsHelp />
+
           {/* Profile icon + notification badge */}
           <div className="relative ml-2 shrink-0">
           <Tooltip content={rightPanel === "user" ? "Close User Panel" : "Open User Panel"} placement="bottom-start">

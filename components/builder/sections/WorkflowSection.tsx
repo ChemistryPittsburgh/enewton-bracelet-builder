@@ -320,7 +320,7 @@ export function WorkflowSection({ savedDesign, isReadOnly = false }: { savedDesi
               <ConfirmationPanel
                 message="Moving this bracelet back to draft will remove its approval and require a new review cycle. Continue?"
                 isPending={sendingToDraft}
-                confirmVariant="ghost"
+                confirmVariant="secondary"
                 onConfirm={() => sendToDraft(id, { onSuccess: () => setConfirmSendToDraft(false), onError: () => setConfirmSendToDraft(false) })}
                 onCancel={() => setConfirmSendToDraft(false)}
               />

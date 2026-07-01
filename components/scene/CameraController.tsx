@@ -30,6 +30,13 @@ function enableArrangeControls(c: CameraControls) {
   c.mouseButtons.middle = 0; c.mouseButtons.wheel = 16; // 16 = DOLLY
   c.touches.one = 0; c.touches.two = 2048; c.touches.three = 0;
 }
+// Grab / pan tool: left-drag trucks the view (no orbit), wheel zooms. Beads are
+// inert (useSceneItemInteraction), so the whole left-drag pans the canvas.
+function enablePanControls(c: CameraControls) {
+  c.mouseButtons.left = 2; c.mouseButtons.right = 2;   // 2 = TRUCK
+  c.mouseButtons.middle = 0; c.mouseButtons.wheel = 16; // 16 = DOLLY
+  c.touches.one = 0; c.touches.two = 2048; c.touches.three = 0;
+}
 
 interface CameraControllerProps {
   controlsRef: React.RefObject<CameraControls>;
@@ -150,9 +157,11 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
         }
       }
       // Look tool → free orbit/pan/zoom (beads inert via useSceneItemInteraction).
-      // Arrange tool → left reserved for bead drag.
+      // Grab tool → left-drag trucks the view. Arrange tool → left reserved for bead drag.
       if (canvasToolRef.current === 'look') {
         enableFreeControls(controls);
+      } else if (canvasToolRef.current === 'pan') {
+        enablePanControls(controls);
       } else {
         enableArrangeControls(controls);
       }
@@ -200,13 +209,15 @@ export function CameraController({ controlsRef }: CameraControllerProps) {
     }
   }, [viewMode, isEditMode, editViewMode, selectedBead, controlsRef, selectAllActive, isEvenlySpaced]);
 
-  // Live-swap the canvas tool (Arrange ↔ Look) without repositioning the camera.
-  // 3D edit only.
+  // Live-swap the canvas tool (Arrange ↔ Grab ↔ Look) without repositioning the
+  // camera. 3D edit only.
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls || !isEditMode || viewMode === 'line') return;
     if (canvasTool === 'look') {
       enableFreeControls(controls);
+    } else if (canvasTool === 'pan') {
+      enablePanControls(controls);
     } else {
       enableArrangeControls(controls);
     }

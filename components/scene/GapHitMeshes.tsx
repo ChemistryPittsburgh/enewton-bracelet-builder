@@ -104,16 +104,18 @@ export function GapHitMeshes() {
     groups,
     editSelectedIds,
     selectedGapIndex,
+    spacersHiddenForCapture,
   } = useStore(
     useShallow((s) => ({
-      beads:            s.beads,
-      braceletSize:     s.braceletSize,
-      viewMode:         s.viewMode,
-      isEvenlySpaced:   s.isEvenlySpaced,
-      isEditMode:       s.isEditMode,
-      groups:           s.groups,
-      editSelectedIds:  s.editSelectedIds,
-      selectedGapIndex: s.selectedGapIndex,
+      beads:                   s.beads,
+      braceletSize:            s.braceletSize,
+      viewMode:                s.viewMode,
+      isEvenlySpaced:          s.isEvenlySpaced,
+      isEditMode:              s.isEditMode,
+      groups:                  s.groups,
+      editSelectedIds:         s.editSelectedIds,
+      selectedGapIndex:        s.selectedGapIndex,
+      spacersHiddenForCapture: s.spacersHiddenForCapture,
     })),
   );
 
@@ -123,13 +125,18 @@ export function GapHitMeshes() {
 
   // Clear stale gap selection when the gap UI is hidden — prevents addBead from
   // splicing at a stale index after e.g. the user toggles off evenly-spaced mode.
+  // Keyed on shouldShow (not the capture flag below) so a thumbnail capture never
+  // wipes out the user's actual gap selection.
   useEffect(() => {
     if (!shouldShow && selectedGapIndex !== null) {
       setSelectedGapIndex(null);
     }
   }, [shouldShow, selectedGapIndex, setSelectedGapIndex]);
 
-  if (!shouldShow) return null;
+  // Hidden during thumbnail capture (spacersHiddenForCapture) along with spacer
+  // wireframes and the edit-mode Grid — none of these edit-only helpers should
+  // ever be baked into a saved thumbnail.
+  if (!shouldShow || spacersHiddenForCapture) return null;
 
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
   const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);

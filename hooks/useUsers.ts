@@ -26,6 +26,7 @@ interface CreateUserPayload {
 interface CreateOtpUserPayload {
   name: string;
   email: string;
+  color?: string | null;
   permissions?: Partial<User["permissions"]>;
   send_email: boolean;
 }
@@ -77,7 +78,13 @@ export function useCreateOtpUser() {
     mutationFn: (payload) =>
       apiFetch<User>("/users", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          // Assign a random avatar color when none is supplied — without this the
+          // OTP-created user is saved with a null color (the admin path already
+          // does this in useCreateUser).
+          color: payload.color ?? randomAvatarColor(),
+        }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });

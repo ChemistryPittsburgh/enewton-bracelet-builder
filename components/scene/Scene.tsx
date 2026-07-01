@@ -79,17 +79,18 @@ const BG_VARIANTS = {
 export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const panelWidth = usePanelWidth();
   const controlsRef = useRef<CameraControls>(null);
-  const { isEditMode, clearSelectedBead, clearEditSelection, setSelectedGapIndex, viewMode, canvasTool, editBgVariant } = useStore(useShallow((s) => ({
-    isEditMode:         s.isEditMode,
-    clearSelectedBead:  s.clearSelectedBead,
-    clearEditSelection: s.clearEditSelection,
-    setSelectedGapIndex: s.setSelectedGapIndex,
-    viewMode:           s.viewMode,
-    canvasTool:         s.canvasTool,
-    editBgVariant:      s.editBgVariant,
+  const { isEditMode, clearSelectedBead, clearEditSelection, setSelectedGapIndex, viewMode, canvasTool, editBgVariant, spacersHiddenForCapture } = useStore(useShallow((s) => ({
+    isEditMode:              s.isEditMode,
+    clearSelectedBead:       s.clearSelectedBead,
+    clearEditSelection:      s.clearEditSelection,
+    setSelectedGapIndex:     s.setSelectedGapIndex,
+    viewMode:                s.viewMode,
+    canvasTool:              s.canvasTool,
+    editBgVariant:           s.editBgVariant,
+    spacersHiddenForCapture: s.spacersHiddenForCapture,
   })));
 
-  const lookActive = isEditMode && viewMode !== 'line' && canvasTool === 'look';
+  const panActive = isEditMode && viewMode !== 'line' && (canvasTool === 'look' || canvasTool === 'pan');
 
   // Track pointer movement so a canvas drag (pan) doesn't fire deselect on pointer-up
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -97,7 +98,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
 
   return (
     <div
-      className={`relative h-full w-full ${lookActive ? "cursor-grab active:cursor-grabbing" : ""}`}
+      className={`relative h-full w-full ${panActive ? "cursor-grab active:cursor-grabbing" : ""}`}
       onPointerDown={(e) => { pointerDownPos.current = { x: e.clientX, y: e.clientY }; didDrag.current = false; }}
       onPointerMove={(e) => {
         if (!pointerDownPos.current) return;
@@ -141,7 +142,7 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
           <CameraController controlsRef={controlsRef} />
         </Suspense>
 
-        {isEditMode && viewMode !== 'line' && (
+        {isEditMode && viewMode !== 'line' && !spacersHiddenForCapture && (
           <Grid
             args={[0.5, 0.5]}
             position={[0, -0.001, 0]}

@@ -3,13 +3,15 @@ import { Inter, Square_Peg, Italiana } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/QueryProvider";
 import { DesktopOnly } from "@/components/ui/DesktopOnly";
+import { LOGO_SRC } from "@/lib/constants";
 
 const italiana = Italiana({ subsets: ["latin"], variable: "--font-italiana", display: 'swap', weight: ['400'] });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const squarePeg = Square_Peg({ subsets: ["latin"], variable: "--font-square-peg", weight: ['400'], display: 'swap' });
 
 export const metadata: Metadata = {
-  title: "eNewton | Bracelet Builder",
+  title: 'eNewton | Internal Bracelet Builder',
+  description: 'Internal tool to build 3D eNewton Bracelets',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

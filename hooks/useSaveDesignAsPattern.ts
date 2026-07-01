@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type { Bracelet, CreateBraceletRequest } from "@/types";
+import { toast } from "@/lib/toast";
 
 /**
  * Creates a new pattern from an existing saved design.
@@ -29,6 +30,7 @@ export function useSaveDesignAsPattern() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patterns"] });
+      toast.success("Saved as pattern");
     },
   });
 }

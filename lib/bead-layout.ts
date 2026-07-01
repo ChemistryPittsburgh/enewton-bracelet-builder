@@ -282,16 +282,30 @@ export function beadFits(
  * than appending to the end. Necessary when gap neighbors have different spacing
  * categories (e.g. two crystals) than the tail bead — append would under-count
  * the real arc cost, silently allowing overflow.
+ *
+ * When isEvenlySpaced is active, the whole-ring check alone isn't enough: leftover
+ * arc is displayed as "bonus" spacing distributed across every eligible gap
+ * (getGapFillAwareSpacingBonuses), so a specific gap's true visual size is only
+ * its fractional share of that leftover, not the whole ring's slack. Without this
+ * second check, a fill could pass the whole-ring test yet visually overflow the
+ * one gap it's actually going into.
  */
 export function beadFitsAtIndex(
-  beads: BeadLike[],
+  beads: PlacedBead[],
   newBead: BeadLike,
   insertAfter: number,
-  radius = BRACELET_RADIUS
+  radius = BRACELET_RADIUS,
+  groups: string[][] = [],
+  isEvenlySpaced = false,
 ): boolean {
   const arr = [...beads];
-  arr.splice(insertAfter + 1, 0, newBead);
-  return usedArc(arr) <= braceletArc(radius);
+  arr.splice(insertAfter + 1, 0, newBead as PlacedBead);
+  if (usedArc(arr) > braceletArc(radius)) return false;
+  if (!isEvenlySpaced || beads.length < 2) return true;
+  const bonuses = getGapFillAwareSpacingBonuses(beads, groups, radius);
+  const visualCapM = bonuses[insertAfter] ?? 0;
+  const newBeadCostM = usedArc(arr) - usedArc(beads);
+  return newBeadCostM <= visualCapM;
 }
 
 /**
@@ -340,11 +354,19 @@ export function maxSeedArcMm(beads: BeadLike[], radius = BRACELET_RADIUS): numbe
  * Uses the actual left/right neighbors of the gap; unlike maxSeedArcMm (which
  * always compares against the last bead), this is correct when gap neighbors
  * differ from the tail bead in spacing category.
+ *
+ * When isEvenlySpaced is active, this gap's true visual size is only its
+ * fractional share of the ring's total leftover arc (see
+ * getGapFillAwareSpacingBonuses) — the bare whole-ring figure below would let a
+ * fill exceed what's actually shown at this specific gap, so it's capped by that
+ * gap's current bonus share.
  */
 export function maxSeedArcMmAtGap(
-  beads: BeadLike[],
+  beads: PlacedBead[],
   insertAfterIndex: number,
-  radius = BRACELET_RADIUS
+  radius = BRACELET_RADIUS,
+  groups: string[][] = [],
+  isEvenlySpaced = false,
 ): number {
   if (beads.length < 2) return maxSeedArcMm(beads, radius);
   const L = beads[insertAfterIndex];
@@ -359,7 +381,9 @@ export function maxSeedArcMmAtGap(
     - getSpacing(L, SEED_SPACING_PROBE)
     - getSpacing(SEED_SPACING_PROBE, R)
     + (isWrapAround ? 0 : getSpacing(L, R));
-  return Math.max(0, maxArcM * 1000);
+  if (!isEvenlySpaced) return Math.max(0, maxArcM * 1000);
+  const visualCapM = getGapFillAwareSpacingBonuses(beads, groups, radius)[insertAfterIndex] ?? 0;
+  return Math.max(0, Math.min(maxArcM, visualCapM) * 1000);
 }
 
 /** Gap-aware maximum arc (mm) available for a spacer segment appended to `beads`. */

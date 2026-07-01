@@ -84,7 +84,7 @@ function UserEditor({
   }
 
   return (
-    <div className="border-t border-default bg-light-grey/80 px-20 py-10 flex flex-col gap-3">
+    <div className="border-t border-default bg-light-grey px-20 py-4 flex flex-col gap-3">
       {/* Name + email */}
       <div className="flex gap-3">
         <div className="flex flex-1 flex-col gap-1">
@@ -187,8 +187,8 @@ function UserRow({
         tabIndex={0}
         onClick={() => ((isEditing || isSelf) ? onCancelEdit() : onEditClick(user.id))}
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (isEditing ? onCancelEdit() : onEditClick(user.id))}
-        className={`flex items-center gap-3 px-8 py-4 transition-colors ${
-          isSelf ? 'bg-shell' : 'hover:bg-light-grey/60 cursor-pointer'
+        className={`flex items-center gap-3 px-4 xl:px-6 transition-colors ${
+          isSelf ? 'bg-shell py-2' : 'py-4 hover:bg-light-grey/60 cursor-pointer'
         }`}
       >
         {/* Expand chevron */}
@@ -205,7 +205,7 @@ function UserRow({
         {/* Name + email */}
         <div className="flex flex-col min-w-0 flex-1">
           {isSelf && 
-            <span className="text-[9px] font-bold w-fit bg-navy rounded-full py-[2px] px-2 text-white mb-1">Current user</span>
+            <span className="text-[9px] font-bold w-fit bg-navy rounded-full py-[2px] px-2 text-white mb-1 uppercase tracking-wide">Current user</span>
           }
           <span className="text-sm font-medium truncate">{user.name}</span>
           <span className="text-xs text-color-base/70 truncate">{user.email}</span>

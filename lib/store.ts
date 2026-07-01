@@ -10,7 +10,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import type { Bracelet, BeadGroup, BeadProduct, PlacedBead, BandMaterial, BraceletSize, SeedSegmentConfig } from "@/types";
-import { beadFits, beadFitsAtIndex, usedArc, braceletArc } from "@/lib/bead-layout";
+import { beadFits, beadFitsAtIndex, usedArc, braceletArc, buildEffectiveGroups } from "@/lib/bead-layout";
 import { beadMatchKey } from "@/lib/seed-bead-utils";
 import { BRACELET_SIZE_RADIUS, DEFAULT_BRACELET_NAME } from "@/lib/constants";
 import type { CameraControls } from "@react-three/drei";
@@ -174,6 +174,11 @@ interface Store {
   beadLoadErrors: { instanceId: string; name: string; filename: string }[];
   addBeadLoadError: (instanceId: string, name: string, filename: string) => void;
 
+  /** Ephemeral — not persisted. Transient toast notifications (success/error/info). */
+  toasts: { id: string; type: "success" | "error" | "info"; message: string }[];
+  addToast: (toast: { type?: "success" | "error" | "info"; message: string; durationMs?: number }) => void;
+  removeToast: (id: string) => void;
+
   /** Ephemeral — not persisted. Bead(s) selected inside edit mode — drives EditModeToolbar. */
   editSelectedIds: string[];
   /** Replace selection with a single bead (normal click). */
@@ -199,9 +204,9 @@ interface Store {
   /** Ephemeral — not persisted. Which camera view is active in edit mode. */
   editViewMode: 'top' | 'side';
   toggleEditViewMode: () => void;
-  /** Active canvas tool in edit mode: 'select' grabs/arranges beads, 'look' frees the camera (orbit/pan/zoom) and makes beads inert. */
-  canvasTool: 'select' | 'look';
-  setCanvasTool: (tool: 'select' | 'look') => void;
+  /** Active canvas tool in edit mode: 'select' arranges beads, 'pan' grabs/pans the view, 'look' frees the camera (orbit/pan/zoom). 'pan' and 'look' make beads inert. */
+  canvasTool: 'select' | 'pan' | 'look';
+  setCanvasTool: (tool: 'select' | 'pan' | 'look') => void;
 
   /** Ephemeral — dev-only toggle for background color testing in edit mode. */
   editBgVariant: 'blue' | 'beige';
@@ -359,6 +364,7 @@ export const useStore = create<Store>()(
       braceletSize: "medium" as BraceletSize,
       hairtieColor: "gray",
       beadLoadErrors: [],
+      toasts: [],
       isEditMode: false,
 
       showCharmCollisions: false,
@@ -435,7 +441,7 @@ export const useStore = create<Store>()(
         const s = get();
         const radius = BRACELET_SIZE_RADIUS[s.braceletSize];
         const fits = s.selectedGapIndex !== null
-          ? beadFitsAtIndex(s.beads, { product }, s.selectedGapIndex, radius)
+          ? beadFitsAtIndex(s.beads, { product }, s.selectedGapIndex, radius, buildEffectiveGroups(s.groups, s.editSelectedIds), s.isEvenlySpaced)
           : beadFits(s.beads, { product }, radius);
         if (!fits) return "Bracelet is full — no room for that bead.";
         get().pushUndoSnapshot();
@@ -456,7 +462,7 @@ export const useStore = create<Store>()(
         const s = get();
         const radius = BRACELET_SIZE_RADIUS[s.braceletSize];
         const fits = s.selectedGapIndex !== null
-          ? beadFitsAtIndex(s.beads, { product }, s.selectedGapIndex, radius)
+          ? beadFitsAtIndex(s.beads, { product }, s.selectedGapIndex, radius, buildEffectiveGroups(s.groups, s.editSelectedIds), s.isEvenlySpaced)
           : beadFits(s.beads, { product }, radius);
         if (!fits) return "Bracelet is full — no room for that segment.";
         get().pushUndoSnapshot();
@@ -629,9 +635,18 @@ export const useStore = create<Store>()(
       saveCurrentSelectionAsGroup() {
         const s = get();
         if (s.editSelectedIds.length === 0) return;
+        // A bead being (re)grouped leaves whatever group it was previously in —
+        // otherwise re-selecting an existing group (toggleGroup's echo-select)
+        // and saving again creates a second group with overlapping instanceIds,
+        // which breaks the "groups partition beads" assumption in the group-aware
+        // spacing math (getGroupSpacingBonuses / getGapFillAwareSpacingBonuses).
+        const selected = new Set(s.editSelectedIds);
         get().pushUndoSnapshot();
         set({
-          groups: [...s.groups, { id: nanoid(), instanceIds: s.editSelectedIds }],
+          groups: [
+            ...s.groups.filter((g) => !g.instanceIds.some((id) => selected.has(id))),
+            { id: nanoid(), instanceIds: s.editSelectedIds },
+          ],
           editSelectedIds: [],
           editReplaceNarrowedIds: null,
         });
@@ -1210,8 +1225,9 @@ export const useStore = create<Store>()(
       },
 
       insertBead(product, atIndex) {
-        const radius = BRACELET_SIZE_RADIUS[get().braceletSize];
-        if (!beadFitsAtIndex(get().beads, { product }, atIndex - 1, radius)) {
+        const s = get();
+        const radius = BRACELET_SIZE_RADIUS[s.braceletSize];
+        if (!beadFitsAtIndex(s.beads, { product }, atIndex - 1, radius, buildEffectiveGroups(s.groups, s.editSelectedIds), s.isEvenlySpaced)) {
           return "Bracelet is full — no room for that bead.";
         }
         get().pushUndoSnapshot();
@@ -1233,6 +1249,19 @@ export const useStore = create<Store>()(
           if (s.beadLoadErrors.some((e) => e.instanceId === instanceId)) return s;
           return { beadLoadErrors: [...s.beadLoadErrors, { instanceId, name, filename }] };
         });
+      },
+
+      addToast({ type = "success", message, durationMs = 3200 }) {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        set((s) => ({ toasts: [...s.toasts, { id, type, message }] }));
+        if (durationMs > 0 && typeof window !== "undefined") {
+          window.setTimeout(() => {
+            set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+          }, durationMs);
+        }
+      },
+      removeToast(id) {
+        set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
       },
     }),
     {
@@ -1261,9 +1290,16 @@ export const useStore = create<Store>()(
           s.activePatternId ??= null;
         }
         if (fromVersion < 5) {
+          // Band material was renamed to "stretchy" | "hairtie". Coerce any legacy
+          // or unknown value ("wire", "cord", "chord", …) back to the default so
+          // old persisted snapshots don't render with no material selected.
+          if (s.bandMaterial !== "stretchy" && s.bandMaterial !== "hairtie") {
+            s.bandMaterial = "stretchy";
+          }
           // groups promoted to first-class bracelet data
           s.groups ??= [];
         }
+
         return s;
       },
       partialize: (s) => ({

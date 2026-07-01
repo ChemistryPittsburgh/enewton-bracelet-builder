@@ -469,7 +469,7 @@ export function SavedDesignsScreen({ isOpen, onClose, initialView = "designs", i
                     )}
 
                     {/* Search */}
-                    <div className="xl:ml-auto flex flex-col gap-2 2xl:min-w-[280px] shrink-0">
+                    <div className="xl:ml-auto flex flex-col gap-2 xl:flex-1 xl:max-w-[350px] min-w-[200px] 2xl:min-w-[280px] shrink-0">
                       <p className={formLabel}>Search</p>
                       <div className="flex w-full items-center gap-0 rounded-[2px] border border-default bg-white pr-3 focus-within:border-navy transition-colors">
                         <input
