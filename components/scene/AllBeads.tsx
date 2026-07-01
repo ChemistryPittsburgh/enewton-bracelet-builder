@@ -4,7 +4,7 @@ import { Suspense, useRef, useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { BRACELET_SIZE_RADIUS, EDIT_REPLACE_GROUP_COLORS, DRAG_LIVE_PREVIEW } from "@/lib/constants";
 import { computeCharmAdjustments } from "@/lib/charm-collision";
-import { getEvenSpacingBonus } from "@/lib/bead-layout";
+import { getGapFillAwareSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
 import { useDesign } from "@/hooks/useDesign";
 import type { PlacedBead } from "@/types";
 import { BeadOnBracelet } from "./BeadOnBracelet";
@@ -57,7 +57,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
   const showCharmCollisions     = useStore((s) => s.showCharmCollisions);
   const editReplaceMode         = useStore((s) => s.editReplaceMode);
   const editSelectedIds         = useStore((s) => s.editSelectedIds);
-  const editSelectionGroups     = useStore((s) => s.editSelectionGroups);
+  const groups                  = useStore((s) => s.groups);
   const radius = BRACELET_SIZE_RADIUS[braceletSize];
 
   // Refs shared by both drag hooks so their closures always read latest values.
@@ -84,24 +84,25 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
     ? new Map(displayBeads.map((b, i) => [b.instanceId, i] as const))
     : null;
 
+  const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = isEvenlySpaced && viewMode === '3D'
-    ? getEvenSpacingBonus(displayBeads, radius)
+    ? getGapFillAwareSpacingBonuses(displayBeads, effectiveGroups, radius)
     : 0;
 
   // Map instanceId → group hex color for edit-replace mode.
   const editReplaceColorMap = useMemo(() => {
-    const totalSelected = editSelectedIds.length + editSelectionGroups.reduce((n, g) => n + g.length, 0);
+    const totalSelected = editSelectedIds.length + groups.reduce((n, g) => n + g.instanceIds.length, 0);
     if (!editReplaceMode || totalSelected === 0) return null;
 
     const map = new Map<string, string>();
 
-    if (editSelectionGroups.length > 0) {
+    if (groups.length > 0) {
       // Explicit groups mode: frozen groups get sequential colors; active selection gets the next slot
-      editSelectionGroups.forEach((group, g) => {
+      groups.forEach((group, g) => {
         const color = EDIT_REPLACE_GROUP_COLORS[g % EDIT_REPLACE_GROUP_COLORS.length];
-        group.forEach(id => map.set(id, color));
+        group.instanceIds.forEach(id => map.set(id, color));
       });
-      const activeColor = EDIT_REPLACE_GROUP_COLORS[editSelectionGroups.length % EDIT_REPLACE_GROUP_COLORS.length];
+      const activeColor = EDIT_REPLACE_GROUP_COLORS[groups.length % EDIT_REPLACE_GROUP_COLORS.length];
       editSelectedIds.forEach(id => map.set(id, activeColor));
     } else {
       // Auto mode: group by product.id, ordered by first appearance in editSelectedIds
@@ -120,7 +121,7 @@ export function AllBeads({ isLocked }: { isLocked?: boolean }) {
     }
 
     return map;
-  }, [editReplaceMode, editSelectedIds, editSelectionGroups, beads]);
+  }, [editReplaceMode, editSelectedIds, groups, beads]);
 
   // Charm adjustments — layer offset + bail-pivot swing for nearby charms
   const charmAdjustments = useMemo(

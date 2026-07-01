@@ -20,12 +20,13 @@ function uniqueTags(values: (string | null | undefined)[]): string[] {
 export function useCreatePattern() {
   const queryClient = useQueryClient();
   const { capture } = useGenerateThumbnail();
-  const { beads, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced } = useStore(useShallow((s) => ({
+  const { beads, bandMaterial, braceletSize, hairtieColor, isEvenlySpaced, groups } = useStore(useShallow((s) => ({
     beads:           s.beads,
     bandMaterial:    s.bandMaterial,
     braceletSize:    s.braceletSize,
     hairtieColor:    s.hairtieColor,
     isEvenlySpaced:  s.isEvenlySpaced,
+    groups:          s.groups,
   })));
 
   const mutation = useMutation({
@@ -37,7 +38,7 @@ export function useCreatePattern() {
         preview_image_url = await uploadThumbnail(dataUrl, filename);
       }
 
-      const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor, isEvenlySpaced);
+      const configuration = buildBraceletConfig(beads, braceletSize, bandMaterial, hairtieColor, isEvenlySpaced, groups);
       const body: CreateBraceletRequest = {
         name,
         configuration,

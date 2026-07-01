@@ -1,7 +1,7 @@
 import { useBeads } from "@/hooks/useBeads";
 import { useStore } from "@/lib/store";
 import { DEFAULT_BRACELET_NAME, createSeedSegmentProduct } from "@/lib/constants";
-import type { Bracelet, PlacedBead, BeadProduct } from "@/types";
+import type { Bracelet, PlacedBead, BeadProduct, BeadGroup } from "@/types";
 
 /**
  * Returns two functions:
@@ -53,19 +53,26 @@ export function useLoadPattern() {
             instanceId: configBead.instance_id,
             product: product,
             seedConfig: configBead.seed_config,
+            ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
           }];
         }
         const product = beadCatalog.find((p) => p.id === configBead.product_id);
         if (!product) return [];
-        return [{ instanceId: configBead.instance_id, product }];
+        return [{
+          instanceId: configBead.instance_id,
+          product,
+          ...(configBead.is_gap_fill ? { isGapFill: true } : {}),
+        }];
       });
+
+    const groups: BeadGroup[] = (configuration.groups ?? []).map((g) => ({ id: g.id, instanceIds: g.instance_ids }));
 
     setBraceletSize(configuration.bracelet_size);
     setbandMaterial(configuration.band_material);
     if (configuration.hairtie_color != null) setHairtieColor(configuration.hairtie_color);
     setIsEvenlySpaced(configuration.is_evenly_spaced ?? false);
     // When editing a pattern keep its name; when creating a new bracelet reset to default.
-    loadBeads(placedBeads, patternId !== null ? pattern.name : DEFAULT_BRACELET_NAME);
+    loadBeads(placedBeads, patternId !== null ? pattern.name : DEFAULT_BRACELET_NAME, groups);
     markClean();
 
     // Creating a fresh bracelet from a pattern (not "Edit pattern") drops the user

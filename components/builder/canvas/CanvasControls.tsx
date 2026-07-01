@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Hand, Orbit, SwitchCamera } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Hand, Orbit, SwitchCamera, Grid } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -27,7 +27,7 @@ const ROTATE_STEP = Math.PI / 7.5;
  * top-bar zoom buttons did.
  */
 export function CanvasControls() {
-  const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool } = useStore(useShallow((s) => ({
+  const { isEditMode, viewMode, editViewMode, toggleEditViewMode, controlsEl, canvasTool, setCanvasTool, showGrid, toggleGrid } = useStore(useShallow((s) => ({
     isEditMode: s.isEditMode,
     viewMode: s.viewMode,
     editViewMode: s.editViewMode,
@@ -35,6 +35,8 @@ export function CanvasControls() {
     controlsEl: s.controlsEl,
     canvasTool: s.canvasTool,
     setCanvasTool: s.setCanvasTool,
+    showGrid: s.showGrid,
+    toggleGrid: s.toggleGrid,
   })));
 
   const isPanning = canvasTool === 'pan';
@@ -70,6 +72,17 @@ export function CanvasControls() {
       controlsEl?.dollyTo(next, true);
     }
   }
+
+  // Sync zoomDistance when the camera is moved by scroll wheel or other
+  // non-button means (enableArrangeControls/enableFreeControls enable DOLLY).
+  useEffect(() => {
+    if (!controlsEl) return;
+    function syncDistance() {
+      setZoomDistance(controlsEl!.distance);
+    }
+    controlsEl.addEventListener('rest', syncDistance);
+    return () => controlsEl.removeEventListener('rest', syncDistance);
+  }, [controlsEl]);
 
   // Keyboard shortcuts mirroring each button: V toggles view (works in both
   // views); +/- zoom, [ ] rotate, H grab/pan, L look (orbit) are 3D-only.
@@ -174,6 +187,15 @@ export function CanvasControls() {
             label={editViewMode === 'top' ? 'Switch to side view' : 'Switch to top view'}
           >
             <SwitchCamera size={22} />
+          </EditBtn>
+        </Tooltip>
+        <Tooltip content={showGrid ? "Hide grid" : "Show grid"} placement="top">
+          <EditBtn
+            onClick={toggleGrid}
+            label={showGrid ? "Hide grid" : "Show grid"}
+            className={showGrid ? "bg-navy hover:bg-navy/80" : ""}
+          >
+            <Grid size={22} className={showGrid ? "text-white" : ""} />
           </EditBtn>
         </Tooltip>
       </div>

@@ -65,7 +65,7 @@ interface CharmEntry {
 export function computeCharmAdjustments(
   beads: readonly PlacedBead[],
   radius: number,
-  extraSpacingPerGap = 0,
+  extraSpacingPerGap: number | number[] = 0,
 ): Map<string, CharmAdjustment> {
   const adjustments = new Map<string, CharmAdjustment>();
 
@@ -131,7 +131,7 @@ export function computeCharmAdjustments(
 export function getCollidingCharmIds(
   beads: readonly PlacedBead[],
   radius: number,
-  extraSpacingPerGap = 0,
+  extraSpacingPerGap: number | number[] = 0,
 ): string[] {
   const adjustments = computeCharmAdjustments(beads, radius, extraSpacingPerGap);
   return [...adjustments.keys()];

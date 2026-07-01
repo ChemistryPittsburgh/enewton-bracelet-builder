@@ -25,6 +25,14 @@ export interface BraceletConfigBead {
   instance_id: string;
   /** Present only for seed_segment items — serialises the colorway + arc config. */
   seed_config?: SeedSegmentConfig;
+  /** Present when this bead was inserted via gap-fill; controls distribute spacing. */
+  is_gap_fill?: boolean;
+}
+
+/** A saved BeadGroup as persisted inside a bracelet configuration. */
+export interface BraceletConfigGroup {
+  id: string;
+  instance_ids: string[];
 }
 
 /**
@@ -40,6 +48,8 @@ export interface BraceletConfiguration {
   arc_total_mm: number;
   percent_used: number;
   beads: BraceletConfigBead[];
+  /** User-defined bead groups (see BeadGroup) — persisted alongside beads. */
+  groups?: BraceletConfigGroup[];
 }
 
 /**
@@ -249,6 +259,15 @@ export interface SeedSegmentConfig {
 }
 
 /**
+ * A user-defined group of placed beads — treated as a unit for spacing,
+ * replacement, dragging, and deletion. Persisted alongside beads.
+ */
+export interface BeadGroup {
+  id: string;
+  instanceIds: string[];
+}
+
+/**
  * A single bead that has been placed on the bracelet.
  */
 export interface PlacedBead {
@@ -257,6 +276,8 @@ export interface PlacedBead {
   product: BeadProduct;
   /** Present only when bead_category === "seed_segment". */
   seedConfig?: SeedSegmentConfig;
+  /** Set when inserted via gap-fill. Excluded from distribute spacing; sits tight against neighbors. */
+  isGapFill?: boolean;
 }
 
 // ─── Collections ──────────────────────────────────────────────────────────────

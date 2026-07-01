@@ -2,11 +2,12 @@
 
 import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { CameraControls, Environment, ContactShadows } from "@react-three/drei";
+import { CameraControls, Environment, ContactShadows, Grid } from "@react-three/drei";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import { BraceletCord } from "./BraceletCord";
 import { AllBeads } from "./AllBeads";
+import { GapHitMeshes } from "./GapHitMeshes";
 import { CameraController } from "./CameraController";
 import { CameraOffset } from "./CameraOffset";
 import { BeadErrorToast } from "./BeadErrorToast";
@@ -70,15 +71,24 @@ interface SceneProps {
 
 const DRAG_DESELECT_THRESHOLD_SQ = 4 * 4; // squared px; avoids sqrt on every move event
 
+const BG_VARIANTS = {
+  blue:  { bg: EDIT_MODE_BACKGROUND, cellColor: "#5c8199", sectionColor: "#4d7d96" },
+  beige: { bg: SCENE_BACKGROUND,     cellColor: "#a89f94", sectionColor: "#8f8479" },
+} as const;
+
 export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = false }: SceneProps) {
   const panelWidth = usePanelWidth();
   const controlsRef = useRef<CameraControls>(null);
-  const { isEditMode, clearSelectedBead, clearEditSelection, viewMode, canvasTool } = useStore(useShallow((s) => ({
-    isEditMode: s.isEditMode,
-    clearSelectedBead: s.clearSelectedBead,
-    clearEditSelection: s.clearEditSelection,
-    viewMode: s.viewMode,
-    canvasTool: s.canvasTool,
+  const { isEditMode, clearSelectedBead, clearEditSelection, setSelectedGapIndex, viewMode, canvasTool, editBgVariant, showGrid, spacersHiddenForCapture } = useStore(useShallow((s) => ({
+    isEditMode:              s.isEditMode,
+    clearSelectedBead:       s.clearSelectedBead,
+    clearEditSelection:      s.clearEditSelection,
+    setSelectedGapIndex:     s.setSelectedGapIndex,
+    viewMode:                s.viewMode,
+    canvasTool:              s.canvasTool,
+    editBgVariant:           s.editBgVariant,
+    showGrid:                s.showGrid,
+    spacersHiddenForCapture: s.spacersHiddenForCapture,
   })));
 
   const panActive = isEditMode && viewMode !== 'line' && (canvasTool === 'look' || canvasTool === 'pan');
@@ -110,11 +120,12 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
         }}
         shadows
         dpr={[1, 1.5]}
-        style={{ background: isEditMode ? EDIT_MODE_BACKGROUND : SCENE_BACKGROUND }}
+        style={{ background: isEditMode ? BG_VARIANTS[editBgVariant].bg : SCENE_BACKGROUND }}
         onPointerMissed={() => {
           if (didDrag.current) return;
           clearSelectedBead();
           clearEditSelection();
+          setSelectedGapIndex(null);
         }}
       >
         <CanvasRegistrar />
@@ -128,8 +139,24 @@ export function Scene({ panelOpen = false, rightPanelOpen = false, isLocked = fa
         <Suspense fallback={null}>
           <BraceletCord />
           <AllBeads isLocked={isLocked} />
+          <GapHitMeshes />
           <CameraController controlsRef={controlsRef} />
         </Suspense>
+
+        {isEditMode && viewMode !== 'line' && !spacersHiddenForCapture && showGrid && (
+          <Grid
+            args={[0.5, 0.5]}
+            position={[0, -0.008, 0]}
+            cellSize={0.01}
+            cellThickness={0.6}
+            cellColor={BG_VARIANTS[editBgVariant].cellColor}
+            sectionSize={0.05}
+            sectionThickness={1.5}
+            sectionColor={BG_VARIANTS[editBgVariant].sectionColor}
+            fadeDistance={0.5}
+            fadeStrength={2}
+          />
+        )}
 
         {viewMode !== 'line' && (
           <ContactShadows

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { X, Square, Shuffle, Settings, Circle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
@@ -11,12 +11,13 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { AvailableSpaceBox } from "@/components/ui/AvailableSpaceBox";
 import { BraceletFullNotice } from "@/components/ui/BraceletFullNotice";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { GapFillNotice } from "@/components/ui/GapFillNotice";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSeedColors } from "@/hooks/useSeedColors";
 import { useSeedPresets } from "@/hooks/useSeedPresets";
-import { maxSeedArcMm, getEvenSpacingBonus } from "@/lib/bead-layout";
+import { maxSeedArcMm, evenFillGapMm } from "@/lib/bead-layout";
 import {
   BRACELET_SIZE_RADIUS,
   SEED_BEAD_THICKNESS_RATIO,
@@ -57,9 +58,12 @@ interface SeedBeadPickerProps {
   isReplaceMode?: boolean;
   /** Replace mode: hide Fill Amount (each replaced segment keeps its own length). */
   replaceMode?: boolean;
+  /** Gap-fill: a specific gap is selected as the insert target. Replaces the Fill
+   *  Amount controls with a notice; the segment fills the selected gap. */
+  isGapFill?: boolean;
 }
 
-export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors, maxArcMm, isReplaceMode, replaceMode = false }: SeedBeadPickerProps) {
+export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors, maxArcMm, isReplaceMode, replaceMode = false, isGapFill = false }: SeedBeadPickerProps) {
   const { placedBeads, braceletSize } = useStore(useShallow((s) => ({
     placedBeads:  s.beads,
     braceletSize: s.braceletSize,
@@ -79,6 +83,13 @@ export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors,
   const [fillMode, setFillMode] = useState<"remaining" | "size" | "quantity" | "evenly">("remaining");
   const [customMm, setCustomMm] = useState("");
   const [customQuantity, setCustomQuantity] = useState("");
+
+  // Filling a specific gap: the gap defines the length, so the segment always
+  // fills the gap (Fill remaining against the gap's available arc). The Fill
+  // Amount controls are hidden while a gap is selected (see notice below).
+  useEffect(() => {
+    if (isGapFill) setFillMode("remaining");
+  }, [isGapFill]);
   const [seed, setSeed] = useState(() => newRandomSeed());
   const [seedShape, setSeedShape] = useState<"seed" | "round">("seed");
   const [seedSizeMm, setSeedSizeMm] = useState<number>(1);
@@ -124,18 +135,17 @@ export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors,
   const parsedQuantity = parseInt(customQuantity) || 0;
   const tooMany = fillMode === "quantity" && parsedQuantity > MAX_QUANTITY;
 
-  const arcMm = fillMode === "remaining"
+  const arcMm = (isGapFill || fillMode === "remaining")
     ? effectiveAvailableMm
     : fillMode === "quantity"
       ? arcFromQuantity(Math.min(parsedQuantity, MAX_QUANTITY))
       : parseFloat(customMm) || 0;
   const validArc = arcMm >= minUsefulArcMm && arcMm <= effectiveAvailableMm && !tooMany;
 
-  // Fill-gaps-evenly: distribute seeds into the gaps between already-placed beads,
-  // using the same even per-gap arc as the "distribute spacing evenly" toggle.
-  const evenGapMm = placedBeads.length > 0
-    ? Math.floor(getEvenSpacingBonus(placedBeads, radius) * 1000 * 10) / 10
-    : 0;
+  // Fill-gaps-evenly: distribute seeds into the gaps between already-placed beads.
+  // Shares its formula with the store's fillGapsWithSeeds (evenFillGapMm) so this
+  // preview can never diverge from what the button actually does.
+  const evenGapMm = evenFillGapMm(placedBeads, radius);
   const canFillGaps = !replaceMode && placedBeads.length > 0 && evenGapMm >= minUsefulArcMm;
   const perFillBeadMm = arcFromQuantity(1);
   const evenApproxBeads = canFillGaps && perFillBeadMm > 0 ? Math.max(1, Math.round(evenGapMm / perFillBeadMm)) : 0;
@@ -514,8 +524,12 @@ export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors,
           </>
         )}
 
-        {/* Fill amount — hidden in replace mode + until a colorway is selected */}
-        {!replaceMode && hasColors && (
+        {/* Fill amount — hidden in replace mode + until a colorway is selected.
+            When a gap is selected, the gap defines the length, so we swap the
+            amount controls for a notice. */}
+        {!replaceMode && (isGapFill ? (
+          <GapFillNotice gapMm={effectiveAvailableMm} subject="These seed beads" />
+        ) : hasColors ? (
         <div>
           <SectionHeading>Fill amount</SectionHeading>
 
@@ -650,7 +664,7 @@ export function SeedBeadPicker({ onAdd, onFillGapsEvenly, error, onManageColors,
             </p>
           )}
         </div>
-        )}
+        ) : null)}
       </div>
 
       {/* Bottom bar */}

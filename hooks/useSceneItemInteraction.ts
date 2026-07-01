@@ -70,8 +70,10 @@ export function useSceneItemInteraction(
     selectBead,
     selectedBead,
     editSelectedIds,
-    editSelectionGroups,
+    groups,
+    editReplaceMode,
     toggleEditBead,
+    setEditSelectedIds,
     clearSelectedBead,
     clearEditSelection,
     isEditMode,
@@ -85,8 +87,10 @@ export function useSceneItemInteraction(
       selectBead:           s.selectBead,
       selectedBead:         s.selectedBead,
       editSelectedIds:      s.editSelectedIds,
-      editSelectionGroups:  s.editSelectionGroups,
+      groups:               s.groups,
+      editReplaceMode:      s.editReplaceMode,
       toggleEditBead:       s.toggleEditBead,
+      setEditSelectedIds:   s.setEditSelectedIds,
       clearSelectedBead:    s.clearSelectedBead,
       clearEditSelection:   s.clearEditSelection,
       isEditMode:           s.isEditMode,
@@ -113,7 +117,7 @@ export function useSceneItemInteraction(
 
   const isSelected = isSeedReplaceTarget || isSeedSelectAll || (isEditMode
     ? editSelectedIds.includes(bead.instanceId) ||
-      editSelectionGroups.some(g => g.includes(bead.instanceId))
+      (editReplaceMode && groups.some(g => g.instanceIds.includes(bead.instanceId)))
     : selectedBead?.instanceId === bead.instanceId ||
       (selectAllOfType && selectAllActive && selectedBead?.product.id === bead.product.id));
 
@@ -127,14 +131,26 @@ export function useSceneItemInteraction(
     if (isLocked) return;
     if (isEditMode) {
       const ne = e.nativeEvent;
+      const beadGroup = groups.find(g => g.instanceIds.includes(bead.instanceId));
+      // Read live store state — the closure value of editSelectedIds can be stale
+      // because handlePointerDown may have mutated it before the click event fires.
+      // Also guard allIn against empty selection: [].every(fn) is vacuously true,
+      // which would wrongly deselect a group the user is clicking for the first time.
+      const currentIds = useStore.getState().editSelectedIds;
+      function toggleGroup() {
+        const allIn = currentIds.length > 0 && beadGroup!.instanceIds.every(id => currentIds.includes(id));
+        setEditSelectedIds(
+          allIn
+            ? currentIds.filter(id => !beadGroup!.instanceIds.includes(id))
+            : [...new Set([...currentIds, ...beadGroup!.instanceIds])],
+        );
+      }
       if (ne && (ne.metaKey || ne.ctrlKey)) {
-        // Cmd/Ctrl+click opens the info panel for this item and toggles selection.
         selectBead(bead);
-        toggleEditBead(bead.instanceId);
+        if (beadGroup) toggleGroup(); else toggleEditBead(bead.instanceId);
       } else {
-        // Plain click toggles edit selection; close info panel if open.
         clearSelectedBead();
-        toggleEditBead(bead.instanceId);
+        if (beadGroup) toggleGroup(); else toggleEditBead(bead.instanceId);
       }
     } else {
       selectBead(bead);
@@ -148,12 +164,18 @@ export function useSceneItemInteraction(
 
     const startX = e.nativeEvent.clientX;
     const startY = e.nativeEvent.clientY;
-    const isInSelection = editSelectedIds.includes(bead.instanceId);
+
+    const beadGroup = groups.find(g => g.instanceIds.includes(bead.instanceId));
+    const isInSelection = beadGroup != null || editSelectedIds.includes(bead.instanceId);
 
     function onMove(moveEvent: PointerEvent) {
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
       if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
+        // Prime the group selection now — just before starting the drag —
+        // handleDragStart reads getState() so it will see the full group.
+        // Done here (not at pointer-down) so it doesn't conflict with handleClick.
+        if (beadGroup) setEditSelectedIds(beadGroup.instanceIds);
         // Keep the selection alive when dragging a selected bead so the group
         // can be detected downstream. Clear it only for single-bead drags.
         if (!isInSelection) clearEditSelection();

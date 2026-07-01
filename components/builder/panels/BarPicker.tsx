@@ -7,6 +7,7 @@ import type { BeadProduct, PlacedBead } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { BraceletFullNotice } from "@/components/ui/BraceletFullNotice";
+import { GapFillNotice } from "@/components/ui/GapFillNotice";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { braceletArc, usedArc, beadFits } from "@/lib/bead-layout";
@@ -14,13 +15,17 @@ import { BRACELET_SIZE_RADIUS } from "@/lib/constants";
 
 import { BeadCard } from "./../cards/BeadCard";
 
-export function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMode, error }: {
+export function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMode, error, maxArcMm, isGapFill = false }: {
   bars: BeadProduct[];
   onAdd: (bar: BeadProduct) => void;
   onReplace: (bar: BeadProduct) => void;
   effectiveBeads: PlacedBead[];
   isReplaceMode: boolean;
   error: string | null;
+  /** Gap size (mm) when a gap is the insert target. */
+  maxArcMm?: number;
+  /** Gap-fill: hide the length slider; the bar fills the selected gap. */
+  isGapFill?: boolean;
 }) {
   const braceletSize = useStore((s) => s.braceletSize);
   const { canEdit } = usePermissions();
@@ -32,6 +37,9 @@ export function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMod
   const totalArc    = braceletArc(radius);
   const used        = usedArc(effectiveBeads);
   const availableMm = Math.max(0, Math.round((totalArc - used) * 1000 * 10) / 10);
+  const effectiveAvailableMm = maxArcMm ?? availableMm;
+  // Gap-fill sizes the bar to the gap; otherwise the user's slider length applies.
+  const effectiveLength = isGapFill ? effectiveAvailableMm : selectedLength;
 
   // Reset slider to the bar's natural size_mm whenever the selection changes
   useEffect(() => {
@@ -39,11 +47,13 @@ export function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMod
   }, [selectedBar]);
 
   const productToAdd = useMemo(
-    () => (selectedBar ? { ...selectedBar, size_mm: selectedLength } : null),
-    [selectedBar, selectedLength],
+    () => (selectedBar ? { ...selectedBar, size_mm: effectiveLength } : null),
+    [selectedBar, effectiveLength],
   );
 
-  const canAdd = productToAdd !== null && beadFits(effectiveBeads, { product: productToAdd }, radius);
+  const canAdd = productToAdd !== null && (
+    isGapFill ? effectiveAvailableMm > 0 : beadFits(effectiveBeads, { product: productToAdd }, radius)
+  );
 
   return (
     <div className="flex flex-col h-full min-h-0 pt-4">
@@ -81,8 +91,13 @@ export function BarPicker({ bars, onAdd, onReplace, effectiveBeads, isReplaceMod
           ))}
         </div>
 
-        {/* Step 2 — Length slider */}
-        {selectedBar && (
+        {/* Step 2 — Length slider (or gap-fill notice) */}
+        {selectedBar && isGapFill && (
+          <div className="mb-5">
+            <GapFillNotice gapMm={effectiveAvailableMm} subject="This bar" />
+          </div>
+        )}
+        {selectedBar && !isGapFill && (
           <div className="mb-5 rounded-[2px] border border-default bg-light-grey/40 px-4 py-3 space-y-2">
             <div className="flex justify-between text-xs">
               <span className="font-semibold text-color-base/70 uppercase tracking-wide">Length</span>

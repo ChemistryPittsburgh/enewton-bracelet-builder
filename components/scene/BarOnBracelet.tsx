@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import { BufferAttribute, BufferGeometry, ClampToEdgeWrapping, FrontSide, Mesh, MeshStandardMaterial, Texture } from "three";
 import type { PlacedBead } from "@/types";
-import { getBeadTransform, getBeadTransformLine, getEvenSpacingBonus } from "@/lib/bead-layout";
+import { getBeadTransform, getBeadTransformLine, getGapFillAwareSpacingBonuses, buildEffectiveGroups } from "@/lib/bead-layout";
 import { useStore } from "@/lib/store";
 import {
   BRACELET_SIZE_RADIUS,
@@ -146,7 +146,9 @@ export function BarOnBracelet({
   const layoutIdx      = layoutIndex ?? slotIndex;
   const braceletSize   = useStore((s) => s.braceletSize);
   const viewMode       = useStore((s) => s.viewMode);
-  const isEvenlySpaced = useStore((s) => s.isEvenlySpaced);
+  const isEvenlySpaced      = useStore((s) => s.isEvenlySpaced);
+  const groups              = useStore((s) => s.groups);
+  const editSelectedIds     = useStore((s) => s.editSelectedIds);
 
   const { isSelected, highlightColor, handleClick, handlePointerDown, handlePointerEnter, handlePointerLeave, showHoverRing } =
     useSceneItemInteraction(bead, slotIndex, { isLocked, onDragStart });
@@ -158,8 +160,9 @@ export function BarOnBracelet({
   );
 
   const braceletRadius = BRACELET_SIZE_RADIUS[braceletSize];
+  const effectiveGroups = buildEffectiveGroups(groups, editSelectedIds);
   const extraSpacingPerGap = (isEvenlySpaced && viewMode === '3D')
-    ? getEvenSpacingBonus(beads, braceletRadius)
+    ? getGapFillAwareSpacingBonuses(beads, effectiveGroups, braceletRadius)
     : 0;
   const { position, outerRotation, innerRotation } = viewMode === "line"
     ? getBeadTransformLine(layoutIdx, beads)
